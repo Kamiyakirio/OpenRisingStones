@@ -1,3 +1,7 @@
+//! Promotes 桌面端后端入口及对前端开放的受控命令。
+
+mod network;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -11,6 +15,7 @@ pub fn run() {
       }
       Ok(())
     })
+    .invoke_handler(tauri::generate_handler![network::send_network_request])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
