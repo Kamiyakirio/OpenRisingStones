@@ -494,16 +494,19 @@ def now_ms() -> int:
 
 def fetch_glamour_page(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
     """Fetch one constrained glamour page with the authenticated API session."""
+    params = {
+        "page": request["page"],
+        "limit": request["limit"],
+        "order": request["order"],
+    }
+    if request.get("raceId") is not None:
+        params["race_id"] = request["raceId"]
+    if request.get("genderId") is not None:
+        params["gender_id"] = request["genderId"]
     response = client.request(
         "GET",
         GLAMOUR_LIST_URL,
-        params={
-            "page": request["page"],
-            "limit": request["limit"],
-            "order": request["order"],
-            "race_id": request["raceId"],
-            "gender_id": request["genderId"],
-        },
+        params=params,
         headers={
             "Referer": "https://ff14risingstones.web.sdo.com/pc/index.html#/glamour"
         },

@@ -22,8 +22,8 @@ export function useGlamourDiscovery() {
   );
   const [query, setQuery] = useState("");
   const [order, setOrder] = useState<GlamourOrder>("latest");
-  const [raceId, setRaceId] = useState(1);
-  const [genderId, setGenderId] = useState(1);
+  const [raceId, setRaceId] = useState<number | null>(null);
+  const [genderId, setGenderId] = useState<number | null>(null);
   const [saved, setSaved] = useState<number[]>([2, 6]);
   const [page, setPage] = useState(1);
   const [pageInfo, setPageInfo] = useState<PageInfo | number>(
@@ -120,9 +120,9 @@ export function useGlamourDiscovery() {
     order,
     setOrder: (next: GlamourOrder) => updateFilter(() => setOrder(next)),
     raceId,
-    setRaceId: (next: number) => updateFilter(() => setRaceId(next)),
+    setRaceId: (next: number | null) => updateFilter(() => setRaceId(next)),
     genderId,
-    setGenderId: (next: number) => updateFilter(() => setGenderId(next)),
+    setGenderId: (next: number | null) => updateFilter(() => setGenderId(next)),
     saved,
     results,
     featured: glamours[0] ?? PREVIEW_GLAMOURS[0],

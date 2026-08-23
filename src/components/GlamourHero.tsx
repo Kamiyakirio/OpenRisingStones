@@ -7,8 +7,8 @@ import { formatGlamourCount } from "../utils/glamourPresentation";
 type GlamourHeroProps = {
   featured: Glamour;
   total: number;
-  raceId: number;
-  genderId: number;
+  raceId: number | null;
+  genderId: number | null;
 };
 
 export function GlamourHero({
@@ -47,7 +47,8 @@ export function GlamourHero({
           <div>
             <dt>当前筛选</dt>
             <dd>
-              {raceIdMap[raceId]} · {genderIdMap[genderId]}
+              {raceId === null ? "不限种族" : raceIdMap[raceId]} ·{" "}
+              {genderId === null ? "不限性别" : genderIdMap[genderId]}
             </dd>
           </div>
           <div>

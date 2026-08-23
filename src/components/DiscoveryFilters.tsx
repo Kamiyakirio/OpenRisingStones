@@ -9,12 +9,12 @@ import { genderIdMap, raceIdMap } from "../models/idsToName";
 
 type DiscoveryFiltersProps = {
   query: string;
-  raceId: number;
-  genderId: number;
+  raceId: number | null;
+  genderId: number | null;
   preview: boolean;
   onQueryChange: (query: string) => void;
-  onRaceChange: (raceId: number) => void;
-  onGenderChange: (genderId: number) => void;
+  onRaceChange: (raceId: number | null) => void;
+  onGenderChange: (genderId: number | null) => void;
 };
 
 export function DiscoveryFilters({
@@ -79,17 +79,20 @@ function FilterSelect({
   onChange,
 }: {
   label: string;
-  value: number;
+  value: number | null;
   options: Record<number, string>;
-  onChange: (value: number) => void;
+  onChange: (value: number | null) => void;
 }) {
   return (
     <label className="filter-select">
       {label}
       <select
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
+        value={value ?? ""}
+        onChange={(event) =>
+          onChange(event.target.value ? Number(event.target.value) : null)
+        }
       >
+        <option value="">不限</option>
         {Object.entries(options).map(([id, name]) => (
           <option value={id} key={id}>
             {name}

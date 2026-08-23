@@ -21,8 +21,8 @@ pub struct GlamourPageRequest {
   page: u32,
   limit: u32,
   order: String,
-  race_id: u8,
-  gender_id: u8,
+  race_id: Option<u8>,
+  gender_id: Option<u8>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -38,8 +38,10 @@ struct SidecarRequest {
   page: u32,
   limit: u32,
   order: String,
-  race_id: u8,
-  gender_id: u8,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  race_id: Option<u8>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  gender_id: Option<u8>,
   session: SessionSnapshot,
 }
 
@@ -67,7 +69,13 @@ fn validate_request(request: &GlamourPageRequest) -> Result<(), String> {
   if !matches!(request.order.as_str(), "latest" | "hot") {
     return Err("The requested sort order is invalid.".to_owned());
   }
-  if !(1..=8).contains(&request.race_id) || !(1..=2).contains(&request.gender_id) {
+  if request
+    .race_id
+    .is_some_and(|value| !(1..=8).contains(&value))
+    || request
+      .gender_id
+      .is_some_and(|value| !(1..=2).contains(&value))
+  {
     return Err("The race or gender filter is invalid.".to_owned());
   }
   Ok(())
@@ -154,11 +162,28 @@ mod tests {
       page: 1,
       limit: 12,
       order: "latest".to_owned(),
-      race_id: 1,
-      gender_id: 1,
+      race_id: None,
+      gender_id: None,
     };
+    assert!(validate_request(&request).is_ok());
+    request.race_id = Some(1);
+    request.gender_id = Some(2);
     assert!(validate_request(&request).is_ok());
     request.order = "random".to_owned();
     assert!(validate_request(&request).is_err());
+  }
+
+  #[test]
+  fn accepts_a_request_without_optional_filters() {
+    let request: GlamourPageRequest = serde_json::from_value(serde_json::json!({
+      "page": 1,
+      "limit": 12,
+      "order": "latest"
+    }))
+    .expect("request should deserialize");
+
+    assert_eq!(request.race_id, None);
+    assert_eq!(request.gender_id, None);
+    assert!(validate_request(&request).is_ok());
   }
 }

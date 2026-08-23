@@ -1,6 +1,6 @@
 import unittest
 
-from api_client import ApiClient, ApiClientError, BASE_HEADERS
+from api_client import ApiClient, ApiClientError, BASE_HEADERS, fetch_glamour_page
 
 
 class FakeResponse:
@@ -65,6 +65,38 @@ class ApiClientTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ApiClientError, "exceeded the size limit"):
             client.request("GET", "https://example.invalid", max_bytes=3)
+
+    def test_glamour_request_omits_empty_filters(self) -> None:
+        client, session = client_with(FakeResponse())
+
+        fetch_glamour_page(
+            client,
+            {"page": 1, "limit": 12, "order": "latest"},
+        )
+
+        _, _, arguments = session.arguments
+        self.assertEqual(
+            arguments["params"],
+            {"page": 1, "limit": 12, "order": "latest"},
+        )
+
+    def test_glamour_request_includes_selected_filters(self) -> None:
+        client, session = client_with(FakeResponse())
+
+        fetch_glamour_page(
+            client,
+            {
+                "page": 1,
+                "limit": 12,
+                "order": "latest",
+                "raceId": 4,
+                "genderId": 2,
+            },
+        )
+
+        _, _, arguments = session.arguments
+        self.assertEqual(arguments["params"]["race_id"], 4)
+        self.assertEqual(arguments["params"]["gender_id"], 2)
 
 
 if __name__ == "__main__":

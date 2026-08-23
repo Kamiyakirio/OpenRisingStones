@@ -40,16 +40,19 @@ export async function fetchGlamours(options: {
   page: number;
   limit?: number;
   order: GlamourOrder;
-  raceId: number;
-  genderId: number;
+  raceId: number | null;
+  genderId: number | null;
 }): Promise<GlamourPage> {
+  const filters = {
+    ...(options.raceId !== null ? { raceId: options.raceId } : {}),
+    ...(options.genderId !== null ? { genderId: options.genderId } : {}),
+  };
   const response = await invoke<NetworkResponse>("fetch_glamour_page", {
     request: {
       page: options.page,
       limit: options.limit ?? 12,
       order: options.order,
-      raceId: options.raceId,
-      genderId: options.genderId,
+      ...filters,
     },
   });
 
@@ -73,8 +76,7 @@ export async function fetchGlamours(options: {
   const items = records
     .map((record, index) => toGlamour(record, index, options))
     .filter((item): item is Glamour => Boolean(item));
-  const loadedTotal =
-    (options.page - 1) * (options.limit ?? 12) + items.length;
+  const loadedTotal = (options.page - 1) * (options.limit ?? 12) + items.length;
   return {
     items,
     total: findTotal(payload) ?? loadedTotal,
@@ -101,7 +103,7 @@ function findRecordList(value: unknown, depth = 0): UnknownRecord[] {
 function toGlamour(
   record: UnknownRecord,
   index: number,
-  filters: { raceId: number; genderId: number },
+  filters: { raceId: number | null; genderId: number | null },
 ): Glamour | null {
   const image = readImage(record);
   if (!image) return null;
