@@ -21,6 +21,7 @@ type GlamourGalleryProps = {
   error: string | null;
   onOrderChange: (order: GlamourOrder) => void;
   onToggleSave: (id: number) => void;
+  onOpenDetail: (glamour: Glamour) => void;
   onClearSearch: () => void;
   onRetry: () => void;
   onLoadMore: () => Promise<void>;
@@ -37,6 +38,7 @@ export function GlamourGallery({
   error,
   onOrderChange,
   onToggleSave,
+  onOpenDetail,
   onClearSearch,
   onRetry,
   onLoadMore,
@@ -97,6 +99,7 @@ export function GlamourGallery({
               index={index}
               saved={saved.includes(item.id)}
               onToggleSave={onToggleSave}
+              onOpenDetail={onOpenDetail}
             />
           ))}
         </div>
@@ -130,11 +133,13 @@ function GlamourCard({
   index,
   saved,
   onToggleSave,
+  onOpenDetail,
 }: {
   item: Glamour;
   index: number;
   saved: boolean;
   onToggleSave: (id: number) => void;
+  onOpenDetail: (glamour: Glamour) => void;
 }) {
   return (
     <article
@@ -148,6 +153,12 @@ function GlamourCard({
           loading={index > 2 ? "lazy" : "eager"}
           referrerPolicy="no-referrer"
           onError={(event) => replaceBrokenImage(event.currentTarget, index)}
+        />
+        <button
+          className="card-open-area"
+          type="button"
+          aria-label={`查看${item.title}的幻化详情`}
+          onClick={() => onOpenDetail(item)}
         />
         <button
           className={saved ? "save-button saved" : "save-button"}

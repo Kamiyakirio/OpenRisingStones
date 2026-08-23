@@ -1,13 +1,15 @@
 /** Application shell that routes between the product home and feature workspaces. */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "./components/AppHeader";
 import { DiscoveryFilters } from "./components/DiscoveryFilters";
 import { GlamourGallery } from "./components/GlamourGallery";
 import { GlamourHero } from "./components/GlamourHero";
+import { GlamourDetailView } from "./components/GlamourDetailView";
 import { HomePage } from "./components/HomePage";
 import { LoginDialog } from "./components/LoginDialog";
 import { SiteFooter } from "./components/SiteFooter";
 import { useGlamourDiscovery } from "./hooks/useGlamourDiscovery";
+import type { Glamour } from "./services/glamourApi";
 import { getSdoLoginStatus, type LoginProfile } from "./services/sdoLogin";
 import "./App.css";
 
@@ -72,11 +74,26 @@ function GlamourWorkspace({
   onLoginSuccess,
 }: GlamourWorkspaceProps) {
   const discovery = useGlamourDiscovery();
+  const [selectedGlamour, setSelectedGlamour] = useState<Glamour | null>(null);
+  const galleryScrollPosition = useRef(0);
 
   /** A verified login immediately retries the API request with the stored session. */
   const handleLoginSuccess = (nextProfile: LoginProfile) => {
     onLoginSuccess(nextProfile);
     discovery.retry();
+  };
+
+  const handleOpenDetail = (glamour: Glamour) => {
+    galleryScrollPosition.current = window.scrollY;
+    setSelectedGlamour(glamour);
+    window.scrollTo({ top: 0 });
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedGlamour(null);
+    queueMicrotask(() =>
+      window.scrollTo({ top: galleryScrollPosition.current }),
+    );
   };
 
   return (
@@ -88,38 +105,48 @@ function GlamourWorkspace({
         onToggleTheme={onToggleTheme}
         onOpenLogin={onOpenLogin}
       />
-      <main id="top">
-        <GlamourHero
-          featured={discovery.featured}
-          total={discovery.total}
-          raceId={discovery.raceId}
-          genderId={discovery.genderId}
-        />
-        <DiscoveryFilters
-          query={discovery.query}
-          raceId={discovery.raceId}
-          genderId={discovery.genderId}
-          preview={discovery.preview}
-          onQueryChange={discovery.setQuery}
-          onRaceChange={discovery.setRaceId}
-          onGenderChange={discovery.setGenderId}
-        />
-        <GlamourGallery
-          results={discovery.results}
-          saved={discovery.saved}
-          order={discovery.order}
-          total={discovery.total}
-          loading={discovery.loading}
-          loadingMore={discovery.loadingMore}
-          canLoadMore={discovery.canLoadMore}
-          error={discovery.error}
-          onOrderChange={discovery.setOrder}
+      {selectedGlamour ? (
+        <GlamourDetailView
+          glamour={selectedGlamour}
+          saved={discovery.saved.includes(selectedGlamour.id)}
+          onBack={handleCloseDetail}
           onToggleSave={discovery.toggleSave}
-          onClearSearch={() => discovery.setQuery("")}
-          onRetry={discovery.retry}
-          onLoadMore={discovery.loadMore}
         />
-      </main>
+      ) : (
+        <main id="top">
+          <GlamourHero
+            featured={discovery.featured}
+            total={discovery.total}
+            raceId={discovery.raceId}
+            genderId={discovery.genderId}
+          />
+          <DiscoveryFilters
+            query={discovery.query}
+            raceId={discovery.raceId}
+            genderId={discovery.genderId}
+            preview={discovery.preview}
+            onQueryChange={discovery.setQuery}
+            onRaceChange={discovery.setRaceId}
+            onGenderChange={discovery.setGenderId}
+          />
+          <GlamourGallery
+            results={discovery.results}
+            saved={discovery.saved}
+            order={discovery.order}
+            total={discovery.total}
+            loading={discovery.loading}
+            loadingMore={discovery.loadingMore}
+            canLoadMore={discovery.canLoadMore}
+            error={discovery.error}
+            onOrderChange={discovery.setOrder}
+            onToggleSave={discovery.toggleSave}
+            onOpenDetail={handleOpenDetail}
+            onClearSearch={() => discovery.setQuery("")}
+            onRetry={discovery.retry}
+            onLoadMore={discovery.loadMore}
+          />
+        </main>
+      )}
       <SiteFooter />
       {loginOpen && (
         <LoginDialog onClose={onCloseLogin} onSuccess={handleLoginSuccess} />

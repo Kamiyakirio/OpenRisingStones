@@ -1067,6 +1067,18 @@ main {
     transform 700ms cubic-bezier(0.16, 1, 0.3, 1),
     filter 300ms ease;
 }
+.card-open-area {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+.card-open-area:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -4px;
+}
 .glamour-card:hover .image-frame img {
   transform: scale(1.035);
   filter: saturate(1.06);
@@ -1075,6 +1087,7 @@ main {
   position: absolute;
   right: 13px;
   top: 13px;
+  z-index: 2;
   display: grid;
   place-items: center;
   width: 39px;
