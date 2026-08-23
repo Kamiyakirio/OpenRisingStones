@@ -1,9 +1,10 @@
-/** Application shell that composes independent discovery and login features. */
+/** Application shell that routes between the product home and feature workspaces. */
 import { useEffect, useState } from "react";
 import { AppHeader } from "./components/AppHeader";
 import { DiscoveryFilters } from "./components/DiscoveryFilters";
 import { GlamourGallery } from "./components/GlamourGallery";
 import { GlamourHero } from "./components/GlamourHero";
+import { HomePage } from "./components/HomePage";
 import { LoginDialog } from "./components/LoginDialog";
 import { SiteFooter } from "./components/SiteFooter";
 import { useGlamourDiscovery } from "./hooks/useGlamourDiscovery";
@@ -11,8 +12,10 @@ import { getSdoLoginStatus, type LoginProfile } from "./services/sdoLogin";
 import "./App.css";
 
 function App() {
-  const discovery = useGlamourDiscovery();
   const [dark, setDark] = useState(false);
+  const [activeFeature, setActiveFeature] = useState<"home" | "glamour">(
+    "home",
+  );
   const [loginOpen, setLoginOpen] = useState(false);
   const [loginProfile, setLoginProfile] = useState<LoginProfile | null>(null);
 
@@ -22,21 +25,69 @@ function App() {
       .catch(() => undefined);
   }, []);
 
-  /** A verified login immediately retries the API request with the newly stored session. */
-  const handleLoginSuccess = (profile: LoginProfile) => {
-    setLoginProfile(profile);
+  return (
+    <div className={dark ? "app theme-dark" : "app"}>
+      {activeFeature === "home" ? (
+        <HomePage
+          dark={dark}
+          onOpenGlamour={() => setActiveFeature("glamour")}
+          onToggleTheme={() => setDark((current) => !current)}
+        />
+      ) : (
+        <GlamourWorkspace
+          dark={dark}
+          loginOpen={loginOpen}
+          profile={loginProfile}
+          onCloseLogin={() => setLoginOpen(false)}
+          onGoHome={() => setActiveFeature("home")}
+          onToggleTheme={() => setDark((current) => !current)}
+          onOpenLogin={() => setLoginOpen(true)}
+          onLoginSuccess={setLoginProfile}
+        />
+      )}
+    </div>
+  );
+}
+
+type GlamourWorkspaceProps = {
+  dark: boolean;
+  loginOpen: boolean;
+  profile: LoginProfile | null;
+  onCloseLogin: () => void;
+  onGoHome: () => void;
+  onToggleTheme: () => void;
+  onOpenLogin: () => void;
+  onLoginSuccess: (profile: LoginProfile) => void;
+};
+
+/** Keeps glamour data fetching isolated so the home screen stays lightweight. */
+function GlamourWorkspace({
+  dark,
+  loginOpen,
+  profile,
+  onCloseLogin,
+  onGoHome,
+  onToggleTheme,
+  onOpenLogin,
+  onLoginSuccess,
+}: GlamourWorkspaceProps) {
+  const discovery = useGlamourDiscovery();
+
+  /** A verified login immediately retries the API request with the stored session. */
+  const handleLoginSuccess = (nextProfile: LoginProfile) => {
+    onLoginSuccess(nextProfile);
     discovery.retry();
   };
 
   return (
-    <div className={dark ? "app theme-dark" : "app"}>
+    <>
       <AppHeader
         dark={dark}
-        profile={loginProfile}
-        onToggleTheme={() => setDark((current) => !current)}
-        onOpenLogin={() => setLoginOpen(true)}
+        profile={profile}
+        onGoHome={onGoHome}
+        onToggleTheme={onToggleTheme}
+        onOpenLogin={onOpenLogin}
       />
-
       <main id="top">
         <GlamourHero
           featured={discovery.featured}
@@ -69,15 +120,11 @@ function App() {
           onLoadMore={discovery.loadMore}
         />
       </main>
-
       <SiteFooter />
       {loginOpen && (
-        <LoginDialog
-          onClose={() => setLoginOpen(false)}
-          onSuccess={handleLoginSuccess}
-        />
+        <LoginDialog onClose={onCloseLogin} onSuccess={handleLoginSuccess} />
       )}
-    </div>
+    </>
   );
 }
 

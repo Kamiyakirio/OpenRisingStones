@@ -12,6 +12,8 @@
   --accent: #a66d2f;
   --accent-strong: #795026;
   --accent-soft: #eadbc6;
+  --home-accent: #478f91;
+  --home-accent-strong: #2f7477;
   --shadow: 0 18px 52px rgba(50, 72, 72, 0.12);
 }
 
@@ -34,6 +36,8 @@
   --accent: #c89457;
   --accent-strong: #e4bc85;
   --accent-soft: #493925;
+  --home-accent: #79c4c2;
+  --home-accent-strong: #91d5d2;
   --shadow: 0 20px 60px rgba(0, 0, 0, 0.26);
 }
 
@@ -71,6 +75,13 @@ textarea:focus-visible {
   gap: 11px;
   text-decoration: none;
   width: max-content;
+}
+.brand-button {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
 }
 .brand-mark {
   display: grid;

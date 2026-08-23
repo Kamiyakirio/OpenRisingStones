@@ -12,6 +12,7 @@ import type { LoginProfile } from "../services/sdoLogin";
 type AppHeaderProps = {
   dark: boolean;
   profile: LoginProfile | null;
+  onGoHome: () => void;
   onToggleTheme: () => void;
   onOpenLogin: () => void;
 };
@@ -19,20 +20,26 @@ type AppHeaderProps = {
 export function AppHeader({
   dark,
   profile,
+  onGoHome,
   onToggleTheme,
   onOpenLogin,
 }: AppHeaderProps) {
   return (
     <header className="site-header">
-      <a className="brand" href="#top" aria-label="FFXIV GLAMOURS 首页">
+      <button
+        className="brand brand-button"
+        type="button"
+        aria-label="返回 OpenRisingStone 首页"
+        onClick={onGoHome}
+      >
         <span className="brand-mark">
           <Sparkle weight="fill" />
         </span>
         <span>
-          <strong>FFXIV GLAMOURS</strong>
-          <small>EORZEA LOOKBOOK</small>
+          <strong>OpenRisingStone</strong>
+          <small>GLAMOUR</small>
         </span>
-      </a>
+      </button>
       <nav className="main-nav" aria-label="主导航">
         <a className="active" href="#discover">
           推荐
