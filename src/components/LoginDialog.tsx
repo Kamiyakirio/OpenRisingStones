@@ -23,6 +23,10 @@ import {
   type LoginProfile,
   type LoginProgress,
 } from "../services/sdoLogin";
+import {
+  hasAcceptedCookieLoginRisk,
+  saveCookieLoginRiskAcceptance,
+} from "../services/cookieRiskConsent";
 
 type LoginMethod = "push" | "qr" | "cookie";
 type ActiveLogin = { id: number; method: Exclude<LoginMethod, "cookie"> };
@@ -42,7 +46,8 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
   const [method, setMethod] = useState<LoginMethod>("push");
   const [account, setAccount] = useState("");
   const [cookie, setCookie] = useState("");
-  const [riskAccepted, setRiskAccepted] = useState(false);
+  const [riskAccepted, setRiskAccepted] = useState(hasAcceptedCookieLoginRisk);
+  const [cookieAccessGranted, setCookieAccessGranted] = useState(false);
   const [activeLogin, setActiveLogin] = useState<ActiveLogin | null>(null);
   const [progress, setProgress] = useState<LoginProgress | null>(null);
   const [qrImage, setQrImage] = useState<string | null>(null);
@@ -120,6 +125,12 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
     setQrImage(null);
     setProfile(null);
     setError(null);
+    setCookieAccessGranted(false);
+  };
+
+  const updateRiskAcceptance = (accepted: boolean) => {
+    setRiskAccepted(accepted);
+    saveCookieLoginRiskAcceptance(accepted);
   };
 
   const beginPush = async () => {
@@ -313,53 +324,20 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
                 </button>
               )}
             </div>
+          ) : cookieAccessGranted ? (
+            <CookieLoginForm
+              cookie={cookie}
+              busy={busy}
+              onCookieChange={setCookie}
+              onReviewRisk={() => setCookieAccessGranted(false)}
+              onLogin={beginCookie}
+            />
           ) : (
-            <div className="login-pane" role="tabpanel">
-              <div className="cookie-warning" role="note">
-                <ShieldWarning weight="fill" />
-                <div>
-                  <strong>请确认你了解 Cookie 登录</strong>
-                  <p>
-                    这是为知道如何使用此功能的用户准备的，默认已知晓所有安全风险。
-                  </p>
-                  <p>如不了解此方面，请勿使用此种方法登录。</p>
-                </div>
-              </div>
-              <label className="login-field">
-                Cookie
-                <textarea
-                  value={cookie}
-                  onChange={(event) => setCookie(event.target.value)}
-                  placeholder="粘贴完整 Cookie 内容"
-                  rows={5}
-                  spellCheck={false}
-                  autoComplete="off"
-                />
-              </label>
-              <label className="risk-checkbox">
-                <input
-                  type="checkbox"
-                  checked={riskAccepted}
-                  onChange={(event) => setRiskAccepted(event.target.checked)}
-                />
-                <span>我已知晓安全风险</span>
-              </label>
-              <button
-                className="login-primary"
-                type="button"
-                disabled={busy || !riskAccepted || !cookie.trim()}
-                onClick={() => void beginCookie()}
-              >
-                {busy ? (
-                  <>
-                    <SpinnerGap className="spin" />
-                    正在验证
-                  </>
-                ) : (
-                  "验证 Cookie 并登录"
-                )}
-              </button>
-            </div>
+            <CookieRiskGate
+              accepted={riskAccepted}
+              onAcceptedChange={updateRiskAcceptance}
+              onContinue={() => setCookieAccessGranted(true)}
+            />
           )}
           {error && (
             <div className="login-error" role="alert">
@@ -368,6 +346,106 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function CookieRiskGate({
+  accepted,
+  onAcceptedChange,
+  onContinue,
+}: {
+  accepted: boolean;
+  onAcceptedChange: (accepted: boolean) => void;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="login-pane cookie-risk-page" role="tabpanel">
+      <div className="cookie-risk-heading">
+        <ShieldWarning weight="fill" />
+        <div>
+          <span>高级登录方式</span>
+          <h3>使用 Cookie 前请确认风险</h3>
+        </div>
+      </div>
+      <div className="cookie-warning" role="note">
+        <ShieldWarning weight="fill" />
+        <div>
+          <strong>此功能仅面向了解 Cookie 的用户</strong>
+          <p>这是为知道如何使用此功能的用户准备的，默认已知晓所有安全风险。</p>
+          <p>如不了解此方面，请勿使用此种方法登录。</p>
+        </div>
+      </div>
+      <label className="risk-checkbox risk-checkbox-panel">
+        <input
+          type="checkbox"
+          checked={accepted}
+          onChange={(event) => onAcceptedChange(event.target.checked)}
+        />
+        <span>我已知晓安全风险</span>
+      </label>
+      <button
+        className="login-primary"
+        type="button"
+        disabled={!accepted}
+        onClick={onContinue}
+      >
+        我已了解，继续使用
+      </button>
+    </div>
+  );
+}
+
+function CookieLoginForm({
+  cookie,
+  busy,
+  onCookieChange,
+  onReviewRisk,
+  onLogin,
+}: {
+  cookie: string;
+  busy: boolean;
+  onCookieChange: (cookie: string) => void;
+  onReviewRisk: () => void;
+  onLogin: () => Promise<void>;
+}) {
+  return (
+    <div className="login-pane" role="tabpanel">
+      <div className="cookie-form-heading">
+        <div>
+          <h3>粘贴已有 Cookie</h3>
+          <p>验证成功后，会话会由系统安全存储加密保留在本机。</p>
+        </div>
+        <button type="button" onClick={onReviewRisk}>
+          查看风险说明
+        </button>
+      </div>
+      <label className="login-field">
+        Cookie
+        <textarea
+          value={cookie}
+          onChange={(event) => onCookieChange(event.target.value)}
+          placeholder="粘贴完整 Cookie 内容"
+          rows={5}
+          spellCheck={false}
+          autoComplete="off"
+        />
+      </label>
+      <button
+        className="login-primary"
+        type="button"
+        disabled={busy || !cookie.trim()}
+        onClick={() => void onLogin()}
+      >
+        {busy ? (
+          <>
+            <SpinnerGap className="spin" />
+            正在验证
+          </>
+        ) : (
+          "验证 Cookie 并登录"
+        )}
+      </button>
     </div>
   );
 }

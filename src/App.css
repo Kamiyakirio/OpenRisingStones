@@ -1,5 +1,5 @@
 /**
- * 幻光集视觉系统。
+ * 视觉系统。
  * 卡片统一 14px 圆角，交互控件使用药丸形，铜金色只表达选中与关键动作。
  */
 :root {
@@ -497,6 +497,32 @@ textarea:focus-visible {
   font-size: 12px;
   line-height: 1.55;
 }
+.cookie-risk-page {
+  gap: 18px;
+}
+.cookie-risk-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 2px 2px 4px;
+}
+.cookie-risk-heading > svg {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  color: #a66a2c;
+}
+.cookie-risk-heading span {
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+}
+.cookie-risk-heading h3,
+.cookie-form-heading h3 {
+  margin: 4px 0 0;
+  font-size: 18px;
+}
 .risk-checkbox {
   display: flex;
   align-items: center;
@@ -511,6 +537,46 @@ textarea:focus-visible {
   height: 17px;
   margin: 0;
   accent-color: var(--accent-strong);
+}
+.risk-checkbox-panel {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+.risk-checkbox-panel:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.cookie-form-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+.cookie-form-heading h3 {
+  margin-top: 0;
+}
+.cookie-form-heading p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.cookie-form-heading button {
+  flex: 0 0 auto;
+  padding: 4px 0;
+  border: 0;
+  color: var(--accent-strong);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+}
+.cookie-form-heading button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .login-error {
   margin-top: 18px;
