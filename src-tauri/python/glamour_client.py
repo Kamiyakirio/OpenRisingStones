@@ -1,6 +1,7 @@
-"""用 curl_cffi 模拟 Chrome 指纹读取石之家幻化列表。
+"""Fetch the Rising Stones glamour list with a Chrome-compatible TLS fingerprint.
 
-脚本只接受分页与筛选字段；接口地址和请求头固定，不发送或持久化 Cookie。
+The script accepts only pagination and filter fields. The endpoint and headers are fixed,
+and cookies are neither supplied nor persisted.
 """
 
 import json
@@ -37,7 +38,7 @@ def main() -> None:
     )
     body = response.content
     if len(body) > MAX_RESPONSE_BYTES:
-        raise RuntimeError("石之家响应超过大小限制")
+        raise RuntimeError("The Rising Stones response exceeded the size limit.")
     result = {"status": response.status_code, "body": body.decode("utf-8")}
     json.dump(result, sys.stdout, ensure_ascii=False)
 
@@ -46,8 +47,12 @@ if __name__ == "__main__":
     try:
         main()
     except ModuleNotFoundError:
-        print("缺少 curl_cffi，请安装 python/requirements.txt", file=sys.stderr)
+        print("curl_cffi is missing. Install python/requirements.txt.", file=sys.stderr)
         raise SystemExit(1)
-    except Exception as error:  # 只向 Rust 返回简短错误，不暴露 Python 回溯和本地路径。
-        print(f"curl_cffi 请求失败：{error}", file=sys.stderr)
+    except RuntimeError as error:
+        print(str(error)[:240], file=sys.stderr)
+        raise SystemExit(1)
+    except Exception:
+        # Dependency errors may contain URLs or local paths, so return fixed safe copy.
+        print("The curl_cffi request failed.", file=sys.stderr)
         raise SystemExit(1)

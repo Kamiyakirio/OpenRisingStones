@@ -95,14 +95,14 @@ pub async fn send_network_request(
   let url = validate_url(&request.url)?;
   let host = url
     .host_str()
-    .ok_or_else(|| NetworkError::new("invalid_url", "URL 缺少主机名"))?
+    .ok_or_else(|| NetworkError::new("invalid_url", "The URL is missing a host."))?
     .to_owned();
   let headers = validate_headers(&request.headers)?;
   let timeout_ms = request.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS);
   if timeout_ms == 0 || timeout_ms > MAX_TIMEOUT_MS {
     return Err(NetworkError::new(
       "invalid_timeout",
-      format!("超时时间必须在 1 到 {MAX_TIMEOUT_MS} 毫秒之间"),
+      format!("The timeout must be between 1 and {MAX_TIMEOUT_MS} milliseconds."),
     ));
   }
   let addresses = resolve_public_addresses(&url, timeout_ms).await?;
@@ -117,7 +117,12 @@ pub async fn send_network_request(
     .resolve_to_addrs(&host, &addresses)
     .user_agent("OpenRisingStones/0.1")
     .build()
-    .map_err(|_| NetworkError::new("client_error", "无法初始化安全网络客户端"))?;
+    .map_err(|_| {
+      NetworkError::new(
+        "client_error",
+        "Unable to initialize the secure HTTP client.",
+      )
+    })?;
 
   let mut builder = client.request(request.method.into(), url).headers(headers);
   if let Some(body) = request.body {
@@ -137,7 +142,7 @@ pub async fn send_network_request(
   {
     return Err(NetworkError::new(
       "response_too_large",
-      format!("响应体不能超过 {MAX_RESPONSE_BODY_BYTES} 字节"),
+      format!("The response body cannot exceed {MAX_RESPONSE_BODY_BYTES} bytes."),
     ));
   }
 
@@ -145,19 +150,23 @@ pub async fn send_network_request(
   while let Some(chunk) = response
     .chunk()
     .await
-    .map_err(|_| NetworkError::new("read_error", "读取远程响应失败"))?
+    .map_err(|_| NetworkError::new("read_error", "Unable to read the remote response."))?
   {
     if bytes.len() + chunk.len() > MAX_RESPONSE_BODY_BYTES {
       return Err(NetworkError::new(
         "response_too_large",
-        format!("响应体不能超过 {MAX_RESPONSE_BODY_BYTES} 字节"),
+        format!("The response body cannot exceed {MAX_RESPONSE_BODY_BYTES} bytes."),
       ));
     }
     bytes.extend_from_slice(&chunk);
   }
 
-  let body = String::from_utf8(bytes)
-    .map_err(|_| NetworkError::new("unsupported_response", "响应体不是有效的 UTF-8 文本"))?;
+  let body = String::from_utf8(bytes).map_err(|_| {
+    NetworkError::new(
+      "unsupported_response",
+      "The response body is not valid UTF-8 text.",
+    )
+  })?;
 
   Ok(NetworkResponse {
     status,
@@ -174,7 +183,7 @@ fn validate_request_size(request: &NetworkRequest) -> Result<(), NetworkError> {
   {
     return Err(NetworkError::new(
       "request_too_large",
-      format!("请求体不能超过 {MAX_REQUEST_BODY_BYTES} 字节"),
+      format!("The request body cannot exceed {MAX_REQUEST_BODY_BYTES} bytes."),
     ));
   }
   Ok(())
@@ -184,41 +193,54 @@ fn validate_url(raw_url: &str) -> Result<Url, NetworkError> {
   if raw_url.len() > MAX_URL_BYTES {
     return Err(NetworkError::new(
       "invalid_url",
-      format!("URL 不能超过 {MAX_URL_BYTES} 字节"),
+      format!("The URL cannot exceed {MAX_URL_BYTES} bytes."),
     ));
   }
-  let url = Url::parse(raw_url).map_err(|_| NetworkError::new("invalid_url", "URL 格式无效"))?;
+  let url = Url::parse(raw_url)
+    .map_err(|_| NetworkError::new("invalid_url", "The URL format is invalid."))?;
 
   if url.scheme() != "https" {
-    return Err(NetworkError::new("insecure_scheme", "仅允许 HTTPS 请求"));
+    return Err(NetworkError::new(
+      "insecure_scheme",
+      "Only HTTPS requests are allowed.",
+    ));
   }
   if !url.username().is_empty() || url.password().is_some() {
-    return Err(NetworkError::new("invalid_url", "URL 中不能包含用户凭据"));
+    return Err(NetworkError::new(
+      "invalid_url",
+      "The URL cannot contain user credentials.",
+    ));
   }
   if url.fragment().is_some() {
-    return Err(NetworkError::new("invalid_url", "URL 中不能包含片段标识"));
+    return Err(NetworkError::new(
+      "invalid_url",
+      "The URL cannot contain a fragment.",
+    ));
   }
   if url.port_or_known_default() != Some(443) {
     return Err(NetworkError::new(
       "invalid_port",
-      "仅允许 HTTPS 默认端口 443",
+      "Only the default HTTPS port 443 is allowed.",
     ));
   }
 
   match url.host() {
-    Some(Host::Domain(domain)) if domain.eq_ignore_ascii_case("localhost") => {
-      Err(NetworkError::new("blocked_host", "不允许访问本地主机"))
-    }
+    Some(Host::Domain(domain)) if domain.eq_ignore_ascii_case("localhost") => Err(
+      NetworkError::new("blocked_host", "Localhost access is not allowed."),
+    ),
     Some(Host::Ipv4(address)) if !is_public_ip(IpAddr::V4(address)) => Err(NetworkError::new(
       "blocked_host",
-      "不允许访问内网或保留地址",
+      "Private and reserved addresses are not allowed.",
     )),
     Some(Host::Ipv6(address)) if !is_public_ip(IpAddr::V6(address)) => Err(NetworkError::new(
       "blocked_host",
-      "不允许访问内网或保留地址",
+      "Private and reserved addresses are not allowed.",
     )),
     Some(_) => Ok(url),
-    None => Err(NetworkError::new("invalid_url", "URL 缺少主机名")),
+    None => Err(NetworkError::new(
+      "invalid_url",
+      "The URL is missing a host.",
+    )),
   }
 }
 
@@ -235,21 +257,24 @@ async fn resolve_public_addresses(
 
   let host = url
     .host_str()
-    .ok_or_else(|| NetworkError::new("invalid_url", "URL 缺少主机名"))?;
+    .ok_or_else(|| NetworkError::new("invalid_url", "The URL is missing a host."))?;
   let dns_timeout = Duration::from_millis(timeout_ms.min(10_000));
   let resolved: Vec<_> = timeout(dns_timeout, lookup_host((host, 443)))
     .await
-    .map_err(|_| NetworkError::new("timeout", "域名解析超时"))?
-    .map_err(|_| NetworkError::new("dns_error", "无法解析远程主机"))?
+    .map_err(|_| NetworkError::new("timeout", "DNS resolution timed out."))?
+    .map_err(|_| NetworkError::new("dns_error", "Unable to resolve the remote host."))?
     .collect();
 
   if resolved.is_empty() {
-    return Err(NetworkError::new("dns_error", "远程主机没有可用地址"));
+    return Err(NetworkError::new(
+      "dns_error",
+      "The remote host has no usable addresses.",
+    ));
   }
   if resolved.iter().any(|address| !is_public_ip(address.ip())) {
     return Err(NetworkError::new(
       "blocked_host",
-      "远程主机解析到了内网或保留地址",
+      "The remote host resolved to a private or reserved address.",
     ));
   }
   Ok(resolved)
@@ -259,7 +284,7 @@ fn validate_headers(headers: &BTreeMap<String, String>) -> Result<HeaderMap, Net
   if headers.len() > MAX_HEADER_COUNT {
     return Err(NetworkError::new(
       "invalid_headers",
-      format!("请求头数量不能超过 {MAX_HEADER_COUNT}"),
+      format!("The request cannot contain more than {MAX_HEADER_COUNT} headers."),
     ));
   }
 
@@ -270,7 +295,7 @@ fn validate_headers(headers: &BTreeMap<String, String>) -> Result<HeaderMap, Net
   if total_size > MAX_HEADER_BYTES {
     return Err(NetworkError::new(
       "invalid_headers",
-      format!("请求头总大小不能超过 {MAX_HEADER_BYTES} 字节"),
+      format!("The total header size cannot exceed {MAX_HEADER_BYTES} bytes."),
     ));
   }
 
@@ -280,13 +305,13 @@ fn validate_headers(headers: &BTreeMap<String, String>) -> Result<HeaderMap, Net
     if is_blocked_header(&lower_name) {
       return Err(NetworkError::new(
         "blocked_header",
-        format!("不允许设置请求头 {name}"),
+        format!("The request header {name} is not allowed."),
       ));
     }
     let header_name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
-      .map_err(|_| NetworkError::new("invalid_headers", "请求头名称无效"))?;
+      .map_err(|_| NetworkError::new("invalid_headers", "A request header name is invalid."))?;
     let header_value = reqwest::header::HeaderValue::from_str(value)
-      .map_err(|_| NetworkError::new("invalid_headers", "请求头内容无效"))?;
+      .map_err(|_| NetworkError::new("invalid_headers", "A request header value is invalid."))?;
     result.insert(header_name, header_value);
   }
   Ok(result)
@@ -323,12 +348,12 @@ fn serialize_headers(headers: &HeaderMap) -> BTreeMap<String, String> {
 
 fn map_request_error(error: &reqwest::Error) -> NetworkError {
   if error.is_timeout() {
-    NetworkError::new("timeout", "网络请求超时")
+    NetworkError::new("timeout", "The network request timed out.")
   } else if error.is_connect() {
-    NetworkError::new("connection_error", "无法连接远程主机")
+    NetworkError::new("connection_error", "Unable to connect to the remote host.")
   } else {
     // 不直接返回依赖库错误，避免其中携带 URL、查询参数或凭据信息。
-    NetworkError::new("request_error", "网络请求失败")
+    NetworkError::new("request_error", "The network request failed.")
   }
 }
 

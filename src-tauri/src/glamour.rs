@@ -36,40 +36,40 @@ pub async fn fetch_glamour_page(
   validate_request(&request)?;
   tauri::async_runtime::spawn_blocking(move || run_python_client(request))
     .await
-    .map_err(|_| "幻化请求任务意外终止".to_owned())?
+    .map_err(|_| "The glamour request task stopped unexpectedly.".to_owned())?
 }
 
 fn validate_request(request: &GlamourPageRequest) -> Result<(), String> {
   if request.page == 0 || request.page > 10_000 {
-    return Err("页码超出允许范围".to_owned());
+    return Err("The page number is outside the allowed range.".to_owned());
   }
   if request.limit == 0 || request.limit > 50 {
-    return Err("每页数量必须在 1 到 50 之间".to_owned());
+    return Err("The page size must be between 1 and 50.".to_owned());
   }
   if !matches!(request.order.as_str(), "latest" | "hot") {
-    return Err("排序方式无效".to_owned());
+    return Err("The requested sort order is invalid.".to_owned());
   }
   if !(1..=8).contains(&request.race_id) || !(1..=2).contains(&request.gender_id) {
-    return Err("种族或性别参数无效".to_owned());
+    return Err("The race or gender filter is invalid.".to_owned());
   }
   Ok(())
 }
 
 fn run_python_client(request: GlamourPageRequest) -> Result<GlamourPageResponse, String> {
-  let input = serde_json::to_vec(&request).map_err(|_| "无法序列化幻化请求".to_owned())?;
-  let output = execute_python("python", &["-c", CLIENT_SCRIPT], &input)
-    .or_else(|error| {
-      if error.starts_with("not-found:") {
-        execute_python("py", &["-3", "-c", CLIENT_SCRIPT], &input)
-      } else {
-        Err(error)
-      }
-    })?;
+  let input = serde_json::to_vec(&request)
+    .map_err(|_| "Unable to serialize the glamour request.".to_owned())?;
+  let output = execute_python("python", &["-c", CLIENT_SCRIPT], &input).or_else(|error| {
+    if error.starts_with("not-found:") {
+      execute_python("py", &["-3", "-c", CLIENT_SCRIPT], &input)
+    } else {
+      Err(error)
+    }
+  })?;
 
   if output.len() > MAX_RESPONSE_BYTES {
-    return Err("石之家响应超过大小限制".to_owned());
+    return Err("The Rising Stones response exceeded the size limit.".to_owned());
   }
-  serde_json::from_slice(&output).map_err(|_| "curl_cffi 返回了无法解析的数据".to_owned())
+  serde_json::from_slice(&output).map_err(|_| "Unable to parse the curl_cffi response.".to_owned())
 }
 
 fn execute_python(program: &str, arguments: &[&str], input: &[u8]) -> Result<Vec<u8>, String> {
@@ -90,24 +90,24 @@ fn execute_python(program: &str, arguments: &[&str], input: &[u8]) -> Result<Vec
     if error.kind() == std::io::ErrorKind::NotFound {
       format!("not-found:{program}")
     } else {
-      "无法启动 Python 幻化客户端".to_owned()
+      "Unable to start the Python glamour client.".to_owned()
     }
   })?;
   child
     .stdin
     .take()
-    .ok_or_else(|| "无法写入 Python 幻化客户端".to_owned())?
+    .ok_or_else(|| "Unable to open stdin for the Python glamour client.".to_owned())?
     .write_all(input)
-    .map_err(|_| "无法写入 Python 幻化客户端".to_owned())?;
+    .map_err(|_| "Unable to write to the Python glamour client.".to_owned())?;
 
   let output = child
     .wait_with_output()
-    .map_err(|_| "等待 Python 幻化客户端失败".to_owned())?;
+    .map_err(|_| "Unable to wait for the Python glamour client.".to_owned())?;
   if !output.status.success() {
     let detail = String::from_utf8_lossy(&output.stderr);
     let detail = detail.trim().chars().take(240).collect::<String>();
     return Err(if detail.is_empty() {
-      "curl_cffi 请求失败".to_owned()
+      "The curl_cffi request failed.".to_owned()
     } else {
       detail
     });
