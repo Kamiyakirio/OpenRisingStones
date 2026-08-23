@@ -1,4 +1,8 @@
-# React + TypeScript + Vite
+# OpenRisingStones
+
+OpenRisingStones 是一个使用 React、TypeScript、Vite 与 Tauri 构建的 FF14 幻化浏览桌面应用。
+
+## 开发
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

@@ -115,7 +115,7 @@ pub async fn send_network_request(
     .connect_timeout(Duration::from_secs(10))
     .timeout(Duration::from_millis(timeout_ms))
     .resolve_to_addrs(&host, &addresses)
-    .user_agent("Promotes/0.1")
+    .user_agent("OpenRisingStones/0.1")
     .build()
     .map_err(|_| NetworkError::new("client_error", "无法初始化安全网络客户端"))?;
 

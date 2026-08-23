@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-  promotes_lib::run();
+  open_rising_stones_lib::run();
 }

@@ -1,4 +1,4 @@
-//! Promotes 桌面端后端入口及对前端开放的受控命令。
+//! OpenRisingStones 桌面端后端入口及对前端开放的受控命令。
 
 mod glamour;
 mod network;
