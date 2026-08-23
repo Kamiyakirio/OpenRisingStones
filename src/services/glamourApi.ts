@@ -20,6 +20,32 @@ export type Glamour = {
 
 export type GlamourOrder = "latest" | "hot";
 
+export type GlamourDye = {
+  id: number;
+  name: string;
+  color: string | null;
+};
+
+export type GlamourEquipment = {
+  slot: string;
+  equipmentId: number;
+  name: string | null;
+  icon: string | null;
+  dyes: GlamourDye[];
+  isFashion: boolean;
+  shopUrl: string | null;
+};
+
+export type GlamourDetail = Glamour & {
+  description: string;
+  images: string[];
+  createdAt: string;
+  areaName: string;
+  groupName: string;
+  avatar: string | null;
+  equipments: GlamourEquipment[];
+};
+
 type NetworkResponse = { status: number; body: string };
 type UnknownRecord = Record<string, unknown>;
 type GlamourPage = { items: Glamour[]; total: number; hasMore: boolean };
@@ -82,6 +108,29 @@ export async function fetchGlamours(options: {
     total: findTotal(payload) ?? loadedTotal,
     hasMore: records.length === (options.limit ?? 12),
   };
+}
+
+/** Reads and normalizes one detail record from the authenticated Tauri bridge. */
+export async function fetchGlamourDetail(id: number): Promise<GlamourDetail> {
+  const response = await invoke<NetworkResponse>("fetch_glamour_detail", {
+    request: { id },
+  });
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`石之家详情接口返回 HTTP ${response.status}`);
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(response.body);
+  } catch {
+    throw new Error("石之家返回了无法解析的幻化详情");
+  }
+  const root = asRecord(payload);
+  const data = asRecord(root.data);
+  if (!Object.keys(data).length) {
+    throw new Error(readString(root, ["msg", "message"]) ?? "未找到幻化详情");
+  }
+  return toGlamourDetail(data);
 }
 
 /** 兼容接口包装层可能使用的 data/list/rows/items 字段。 */
@@ -173,6 +222,111 @@ function toGlamour(
       ]) ?? 0,
     featured: index === 0,
   };
+}
+
+function toGlamourDetail(record: UnknownRecord): GlamourDetail {
+  const mainImage = readImage(record);
+  if (!mainImage) throw new Error("该投稿没有可显示的主图");
+  const raceRecords = readRecordArray(record.race_ids);
+  const raceName = raceRecords
+    .map((race) => readString(race, ["name"]))
+    .filter(Boolean)
+    .join("、");
+  const genderIds = Array.isArray(record.gender_ids)
+    ? record.gender_ids.filter((value): value is number =>
+        Number.isFinite(value),
+      )
+    : [];
+  const equipment = readRecordArray(record.equipments).map(toEquipment);
+  const ornament = asRecord(record.ortInfo);
+  const glassesId = readNumber(ornament, ["glasses_id"]);
+  if (glassesId !== null && glassesId > 0) {
+    equipment.push({
+      slot: "FACE",
+      equipmentId: glassesId,
+      name: readString(ornament, ["glasses_name"]),
+      icon: buildEquipmentIcon(readString(ornament, ["glasses_icon"])),
+      dyes: [],
+      isFashion: true,
+      shopUrl: null,
+    });
+  }
+  const user = asRecord(record.userInfo);
+  const extraImages = (readString(record, ["images"]) ?? "")
+    .split(",")
+    .map((image) => image.trim())
+    .filter(Boolean)
+    .map(normalizeImageUrl);
+  const genderName = genderIds
+    .map((id) => genderIdMap[id])
+    .filter(Boolean)
+    .join("、");
+
+  return {
+    id: readNumber(record, ["id"]) ?? 0,
+    title: readString(record, ["title"]) ?? "未命名幻化",
+    author:
+      readString(record, ["character_name", "nickname", "username"]) ??
+      "匿名冒险者",
+    race: [raceName, genderName].filter(Boolean).join(" ") || "种族不限",
+    job: readNamedList(record.job_ids) || "全职业",
+    palette: readPrimaryDye(equipment) ?? "配色未标注",
+    image: mainImage,
+    likes: readNumber(record, ["likes"]) ?? 0,
+    saved: readNumber(record, ["favorites"]) ?? 0,
+    description: readString(record, ["desc", "description"]) ?? "",
+    images: [mainImage, ...extraImages.filter((image) => image !== mainImage)],
+    createdAt: readString(record, ["created_at", "createdAt"]) ?? "",
+    areaName:
+      readString(record, ["area_name"]) ??
+      readString(user, ["area_name"]) ??
+      "服务器未公开",
+    groupName:
+      readString(record, ["group_name"]) ??
+      readString(user, ["group_name"]) ??
+      "大区未公开",
+    avatar: readString(user, ["avatar"]),
+    equipments: equipment,
+  };
+}
+
+function toEquipment(record: UnknownRecord): GlamourEquipment {
+  const equipmentId = readNumber(record, ["equipment_id"]) ?? -1;
+  return {
+    slot: readString(record, ["slot"]) ?? "UNKNOWN",
+    equipmentId,
+    name: readString(record, ["name"]),
+    icon: buildEquipmentIcon(readString(record, ["icon_id"])),
+    dyes: readRecordArray(record.dyes).map((dye) => ({
+      id: readNumber(dye, ["id"]) ?? -1,
+      name: readString(dye, ["name"]) ?? "未命名染剂",
+      color: readString(dye, ["color"]),
+    })),
+    isFashion: readNumber(record, ["is_fashion"]) === 1,
+    shopUrl: readString(record, ["sqmall_url"]),
+  };
+}
+
+function buildEquipmentIcon(iconId: string | null) {
+  if (!iconId || !/^\d{6}$/.test(iconId)) return null;
+  const group = `${iconId.slice(0, 3)}000`;
+  return `https://ff14-eo.web.sdo.com/ffstones/item/icon/dcsvv4fowz2m/${group}/${iconId}_hr1.png`;
+}
+
+function readPrimaryDye(equipment: GlamourEquipment[]) {
+  return equipment.find((item) => item.dyes.length)?.dyes[0]?.name ?? null;
+}
+
+function readNamedList(value: unknown) {
+  if (!Array.isArray(value)) return "";
+  return value
+    .map((item) => (isRecord(item) ? readString(item, ["name"]) : null))
+    .filter(Boolean)
+    .join("、");
+}
+
+function readRecordArray(value: unknown): UnknownRecord[] {
+  return Array.isArray(value) ? value.filter(isRecord) : [];
 }
 
 function readImage(record: UnknownRecord) {
