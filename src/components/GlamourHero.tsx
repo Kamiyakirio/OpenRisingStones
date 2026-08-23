@@ -2,10 +2,7 @@
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { genderIdMap, raceIdMap } from "../models/idsToName";
 import type { Glamour } from "../services/glamourApi";
-import {
-  formatGlamourCount,
-  replaceBrokenImage,
-} from "../utils/glamourPresentation";
+import { formatGlamourCount } from "../utils/glamourPresentation";
 
 type GlamourHeroProps = {
   featured: Glamour;
@@ -35,24 +32,29 @@ export function GlamourHero({
           浏览最新投稿
         </a>
       </div>
-      <div className="hero-image-wrap">
-        <img
-          src={featured.image}
-          alt={`${featured.title}幻化展示`}
-          onError={(event) => replaceBrokenImage(event.currentTarget, 0)}
-        />
-        <div className="hero-caption">
+      <aside className="hero-overview" aria-label="幻化收录概览">
+        <div className="archive-total">
+          <span>GLAMOUR ARCHIVE</span>
+          <strong>{formatGlamourCount(total)}</strong>
+          <small>套符合当前条件的造型</small>
+        </div>
+        <div className="latest-entry">
           <span>最新收录</span>
           <strong>{featured.title}</strong>
-          <small>by {featured.author}</small>
+          <p>by {featured.author}</p>
         </div>
-      </div>
-      <aside className="hero-index" aria-label="幻化收录数据">
-        <span>GLAMOUR ARCHIVE</span>
-        <strong>{formatGlamourCount(total)}</strong>
-        <p>
-          {raceIdMap[raceId]} {genderIdMap[genderId]}投稿
-        </p>
+        <dl className="hero-meta">
+          <div>
+            <dt>当前筛选</dt>
+            <dd>
+              {raceIdMap[raceId]} · {genderIdMap[genderId]}
+            </dd>
+          </div>
+          <div>
+            <dt>灵感来源</dt>
+            <dd>冒险者真实投稿</dd>
+          </div>
+        </dl>
       </aside>
     </section>
   );
