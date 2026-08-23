@@ -1,5 +1,6 @@
 //! Promotes 桌面端后端入口及对前端开放的受控命令。
 
+mod glamour;
 mod network;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -15,7 +16,10 @@ pub fn run() {
       }
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![network::send_network_request])
+    .invoke_handler(tauri::generate_handler![
+      glamour::fetch_glamour_page,
+      network::send_network_request,
+    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

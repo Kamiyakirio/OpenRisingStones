@@ -1,0 +1,2 @@
+# Python Requirements
+curl_cffi==0.15.0
