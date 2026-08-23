@@ -1,6 +1,12 @@
 import unittest
 
-from api_client import ApiClient, ApiClientError, BASE_HEADERS, fetch_glamour_page
+from api_client import (
+    ApiClient,
+    ApiClientError,
+    BASE_HEADERS,
+    fetch_glamour_detail,
+    fetch_glamour_page,
+)
 
 
 class FakeResponse:
@@ -97,6 +103,15 @@ class ApiClientTests(unittest.TestCase):
         _, _, arguments = session.arguments
         self.assertEqual(arguments["params"]["race_id"], 4)
         self.assertEqual(arguments["params"]["gender_id"], 2)
+
+    def test_glamour_detail_sends_identifier_and_temporary_id(self) -> None:
+        client, session = client_with(FakeResponse())
+
+        fetch_glamour_detail(client, {"id": 287009})
+
+        _, _, arguments = session.arguments
+        self.assertEqual(arguments["params"]["id"], 287009)
+        self.assertTrue(arguments["params"]["tempsuid"])
 
 
 if __name__ == "__main__":

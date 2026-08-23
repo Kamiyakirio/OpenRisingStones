@@ -36,6 +36,9 @@ LOGIN_STATUS_URL = "https://apiff14risingstones.web.sdo.com/api/home/GHome/isLog
 GLAMOUR_LIST_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/glamour/glamoursList"
 )
+GLAMOUR_DETAIL_URL = (
+    "https://apiff14risingstones.web.sdo.com/api/home/glamour/glamourDetail"
+)
 SERVICE_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/GHome/login"
     "?redirectUrl=https://ff14risingstones.web.sdo.com/pc/index.html"
@@ -523,6 +526,28 @@ def fetch_glamour_page(client: ApiClient, request: dict[str, Any]) -> dict[str, 
     return {"status": response.status_code, "body": body}
 
 
+def fetch_glamour_detail(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
+    """Fetch one glamour detail record without exposing the authenticated session."""
+    response = client.request(
+        "GET",
+        GLAMOUR_DETAIL_URL,
+        params={"id": request["id"], "tempsuid": str(uuid.uuid4())},
+        headers={
+            "Referer": "https://ff14risingstones.web.sdo.com/pc/index.html#/glamour"
+        },
+        discard_cookies=True,
+        allow_redirects=False,
+        error_message="The Rising Stones glamour detail request failed.",
+    )
+    try:
+        body = response.content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ApiClientError(
+            "The Rising Stones glamour detail endpoint returned invalid text."
+        ) from error
+    return {"status": response.status_code, "body": body}
+
+
 def main() -> None:
     request = json.load(sys.stdin)
     operation = request.get("operation")
@@ -541,6 +566,8 @@ def main() -> None:
         result = restore_session(client)
     elif operation == "fetchGlamourPage":
         result = fetch_glamour_page(client, request)
+    elif operation == "fetchGlamourDetail":
+        result = fetch_glamour_detail(client, request)
     else:
         raise ApiClientError("Unsupported API operation.")
     # ASCII escaping keeps the pipe valid JSON regardless of the Windows console code page.

@@ -23,6 +23,7 @@ pub fn run() {
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
+      glamour::fetch_glamour_detail,
       glamour::fetch_glamour_page,
       network::send_network_request,
       sdo_login::sdo_login_status,

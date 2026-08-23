@@ -31,6 +31,12 @@ pub struct GlamourPageResponse {
   body: String,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlamourDetailRequest {
+  id: u64,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SidecarRequest {
@@ -42,6 +48,14 @@ struct SidecarRequest {
   race_id: Option<u8>,
   #[serde(skip_serializing_if = "Option::is_none")]
   gender_id: Option<u8>,
+  session: SessionSnapshot,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SidecarDetailRequest {
+  operation: &'static str,
+  id: u64,
   session: SessionSnapshot,
 }
 
@@ -57,6 +71,27 @@ pub async fn fetch_glamour_page(
   tauri::async_runtime::spawn_blocking(move || run_python_client(request, session))
     .await
     .map_err(|_| "The glamour request task stopped unexpectedly.".to_owned())?
+}
+
+/// Reads one complete glamour submission with its equipment and image data.
+#[tauri::command]
+pub async fn fetch_glamour_detail(
+  request: GlamourDetailRequest,
+  state: State<'_, LoginState>,
+) -> Result<GlamourPageResponse, String> {
+  validate_detail_request(&request)?;
+  let session = sdo_login::current_session(&state)?
+    .ok_or_else(|| "请先登录石之家，再读取幻化详情。".to_owned())?;
+  tauri::async_runtime::spawn_blocking(move || run_python_detail(request.id, session))
+    .await
+    .map_err(|_| "The glamour detail task stopped unexpectedly.".to_owned())?
+}
+
+fn validate_detail_request(request: &GlamourDetailRequest) -> Result<(), String> {
+  if request.id == 0 {
+    return Err("The glamour identifier is invalid.".to_owned());
+  }
+  Ok(())
 }
 
 fn validate_request(request: &GlamourPageRequest) -> Result<(), String> {
@@ -107,6 +142,28 @@ fn run_python_client(
     return Err("The Rising Stones response exceeded the size limit.".to_owned());
   }
   serde_json::from_slice(&output).map_err(|_| "Unable to parse the curl_cffi response.".to_owned())
+}
+
+fn run_python_detail(id: u64, session: SessionSnapshot) -> Result<GlamourPageResponse, String> {
+  let input = serde_json::to_vec(&SidecarDetailRequest {
+    operation: "fetchGlamourDetail",
+    id,
+    session,
+  })
+  .map_err(|_| "Unable to serialize the glamour detail request.".to_owned())?;
+  let output = execute_python("python", &["-c", CLIENT_SCRIPT], &input).or_else(|error| {
+    if error.starts_with("not-found:") {
+      execute_python("py", &["-3", "-c", CLIENT_SCRIPT], &input)
+    } else {
+      Err(error)
+    }
+  })?;
+
+  if output.len() > MAX_RESPONSE_BYTES {
+    return Err("The Rising Stones response exceeded the size limit.".to_owned());
+  }
+  serde_json::from_slice(&output)
+    .map_err(|_| "Unable to parse the glamour detail response.".to_owned())
 }
 
 fn execute_python(program: &str, arguments: &[&str], input: &[u8]) -> Result<Vec<u8>, String> {
@@ -185,5 +242,12 @@ mod tests {
     assert_eq!(request.race_id, None);
     assert_eq!(request.gender_id, None);
     assert!(validate_request(&request).is_ok());
+  }
+
+  #[test]
+  fn rejects_an_empty_glamour_detail_identifier() {
+    let request = GlamourDetailRequest { id: 0 };
+    assert!(validate_detail_request(&request).is_err());
+    assert!(validate_detail_request(&GlamourDetailRequest { id: 287_009 }).is_ok());
   }
 }
