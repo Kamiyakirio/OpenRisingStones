@@ -125,7 +125,7 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
     setQrImage(null);
     setProfile(null);
     setError(null);
-    setCookieAccessGranted(false);
+    // setCookieAccessGranted(false);
   };
 
   const updateRiskAcceptance = (accepted: boolean) => {
@@ -166,7 +166,7 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
     setBusy(true);
     setError(null);
     try {
-      const result = await loginWithCookie(cookie);
+      const result = await loginWithCookie(cookie.trim());
       if (result.status !== "success" || !result.profile)
         throw new Error("登录验证未返回账号资料");
       setCookie("");
