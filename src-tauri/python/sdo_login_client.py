@@ -9,6 +9,7 @@ import base64
 import json
 import sys
 import time
+import uuid
 from typing import Any
 
 from curl_cffi import requests
@@ -17,6 +18,7 @@ from curl_cffi import requests
 SITE_INDEX_URL = "https://ff14risingstones.web.sdo.com/pc/index.html"
 SITE_REFERER = "https://ff14risingstones.web.sdo.com/"
 LOGIN_REFERER = "https://login.u.sdo.com/"
+LOGIN_STATUS_URL = "https://apiff14risingstones.web.sdo.com/api/home/GHome/isLogin"
 SERVICE_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/GHome/login"
     "?redirectUrl=https://ff14risingstones.web.sdo.com/pc/index.html"
@@ -43,7 +45,7 @@ BASE_HEADERS = {
     "Referer": SITE_REFERER,
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
     ),
 }
 
@@ -276,29 +278,55 @@ def login_with_cookie(cookie_header: str) -> dict[str, Any]:
         raise RuntimeError("The cookie is empty or exceeds 16 KB.")
     if "\r" in cookie_header or "\n" in cookie_header:
         raise RuntimeError("The cookie contains an invalid line break.")
+    session = build_session()
+    prime_cookie_login_session(session)
+    for name, value in parse_cookie_header(cookie_header):
+        # The application session is issued for the parent SDO domain. Other values can
+        # remain host-only to avoid forwarding unrelated credentials to sibling services.
+        domain = (
+            ".sdo.com"
+            if name == "ff14risingstones"
+            else "apiff14risingstones.web.sdo.com"
+        )
+        session.cookies.set(
+            name,
+            value,
+            domain=domain,
+            path="/",
+            secure=True,
+        )
+    profile = verify_login(session)
+    return {"status": "success", "session": snapshot_session(session), "profile": profile}
+
+
+def prime_cookie_login_session(session: requests.Session) -> None:
+    """Acquire host routing cookies before applying the user's authenticated cookies."""
+    response = session.get(
+        LOGIN_STATUS_URL,
+        params={"tempsuid": str(uuid.uuid4())},
+        headers=BASE_HEADERS,
+        timeout=20,
+    )
+    response.raise_for_status()
+
+
+def parse_cookie_header(cookie_header: str) -> list[tuple[str, str]]:
+    """Parse DevTools and Markdown-escaped Cookie headers without decoding values."""
     if cookie_header.lower().startswith("cookie:"):
         cookie_header = cookie_header[7:].strip()
 
-    session = build_session()
-    count = 0
+    cookies = []
     for part in cookie_header.split(";"):
         if "=" not in part:
             continue
         name, value = (item.strip() for item in part.split("=", 1))
+        name = name.replace("\\_", "_")
         if not name or not valid_cookie_name(name):
             raise RuntimeError("The cookie format is invalid.")
-        session.cookies.set(
-            name,
-            value,
-            domain="apiff14risingstones.web.sdo.com",
-            path="/",
-            secure=True,
-        )
-        count += 1
-    if count == 0:
+        cookies.append((name, value))
+    if not cookies:
         raise RuntimeError("No usable cookie pair was found.")
-    profile = verify_login(session)
-    return {"status": "success", "session": snapshot_session(session), "profile": profile}
+    return cookies
 
 
 def restore_session(snapshot: dict[str, Any]) -> dict[str, Any]:
@@ -343,8 +371,8 @@ def finish_ticket_login(
 def verify_login(session: requests.Session) -> dict[str, str]:
     """Accept a login only when isLogin returns a valid account profile."""
     response = session.get(
-        "https://apiff14risingstones.web.sdo.com/api/home/GHome/isLogin",
-        params={"tempsuid": str(now_ms())},
+        LOGIN_STATUS_URL,
+        params={"tempsuid": str(uuid.uuid4())},
         headers=BASE_HEADERS,
         timeout=20,
     )
