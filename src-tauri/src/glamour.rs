@@ -1,6 +1,6 @@
 //! 石之家幻化接口的受控 Python sidecar 桥接层。
 //!
-//! 参数只用于硬编码接口的查询字符串，不允许前端传入 URL、Cookie 或任意请求头。
+//! 参数只用于硬编码接口的查询字符串；登录 Cookie 从受保护的 Rust 状态读取。
 
 use std::{
   io::Write,
@@ -8,6 +8,9 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use tauri::State;
+
+use crate::sdo_login::{self, LoginState, SessionSnapshot};
 
 const CLIENT_SCRIPT: &str = include_str!("../python/glamour_client.py");
 const MAX_RESPONSE_BYTES: usize = 5 * 1024 * 1024;
@@ -28,13 +31,27 @@ pub struct GlamourPageResponse {
   body: String,
 }
 
-/// 使用 curl_cffi 的 Chrome 模拟器读取单页投稿；Python 进程结束后不保留会话或 Cookie。
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SidecarRequest {
+  page: u32,
+  limit: u32,
+  order: String,
+  race_id: u8,
+  gender_id: u8,
+  session: SessionSnapshot,
+}
+
+/// 使用 curl_cffi 的 Chrome 模拟器和当前受保护登录态读取单页投稿。
 #[tauri::command]
 pub async fn fetch_glamour_page(
   request: GlamourPageRequest,
+  state: State<'_, LoginState>,
 ) -> Result<GlamourPageResponse, String> {
   validate_request(&request)?;
-  tauri::async_runtime::spawn_blocking(move || run_python_client(request))
+  let session = sdo_login::current_session(&state)?
+    .ok_or_else(|| "请先登录石之家，再读取幻化投稿。".to_owned())?;
+  tauri::async_runtime::spawn_blocking(move || run_python_client(request, session))
     .await
     .map_err(|_| "The glamour request task stopped unexpectedly.".to_owned())?
 }
@@ -55,9 +72,19 @@ fn validate_request(request: &GlamourPageRequest) -> Result<(), String> {
   Ok(())
 }
 
-fn run_python_client(request: GlamourPageRequest) -> Result<GlamourPageResponse, String> {
-  let input = serde_json::to_vec(&request)
-    .map_err(|_| "Unable to serialize the glamour request.".to_owned())?;
+fn run_python_client(
+  request: GlamourPageRequest,
+  session: SessionSnapshot,
+) -> Result<GlamourPageResponse, String> {
+  let input = serde_json::to_vec(&SidecarRequest {
+    page: request.page,
+    limit: request.limit,
+    order: request.order,
+    race_id: request.race_id,
+    gender_id: request.gender_id,
+    session,
+  })
+  .map_err(|_| "Unable to serialize the glamour request.".to_owned())?;
   let output = execute_python("python", &["-c", CLIENT_SCRIPT], &input).or_else(|error| {
     if error.starts_with("not-found:") {
       execute_python("py", &["-3", "-c", CLIENT_SCRIPT], &input)

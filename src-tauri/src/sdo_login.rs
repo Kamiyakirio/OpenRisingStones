@@ -36,7 +36,7 @@ struct CookieRecord {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct SessionSnapshot {
+pub(crate) struct SessionSnapshot {
   cookies: Vec<CookieRecord>,
 }
 
@@ -99,7 +99,6 @@ struct PendingLogin {
 
 #[derive(Clone, Debug)]
 struct ActiveLogin {
-  #[allow(dead_code)]
   session: SessionSnapshot,
   profile: LoginProfile,
 }
@@ -367,7 +366,7 @@ fn persist_session(path: Option<&Path>, session: &SessionSnapshot) -> Result<(),
   save_result
 }
 
-fn load_stored_session(state: &State<'_, LoginState>) -> Result<Option<SessionSnapshot>, String> {
+fn load_stored_session(state: &LoginState) -> Result<Option<SessionSnapshot>, String> {
   let Some(path) = state.storage_path.as_deref() else {
     return Ok(None);
   };
@@ -378,6 +377,20 @@ fn load_stored_session(state: &State<'_, LoginState>) -> Result<Option<SessionSn
     .map_err(|_| "Unable to parse the protected session.".to_owned());
   plaintext.fill(0);
   parsed.map(Some)
+}
+
+/// Return the in-memory session when available, otherwise decrypt the persisted login snapshot.
+/// The snapshot is crate-private so credentials can only travel between trusted Rust commands.
+pub(crate) fn current_session(state: &LoginState) -> Result<Option<SessionSnapshot>, String> {
+  let active = state
+    .active
+    .lock()
+    .map_err(|_| "Unable to read the login state.".to_owned())?;
+  if let Some(login) = active.as_ref() {
+    return Ok(Some(login.session.clone()));
+  }
+  drop(active);
+  load_stored_session(state)
 }
 
 fn clear_stored_session(state: &State<'_, LoginState>) {

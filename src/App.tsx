@@ -22,6 +22,12 @@ function App() {
       .catch(() => undefined);
   }, []);
 
+  /** A verified login immediately retries the API request with the newly stored session. */
+  const handleLoginSuccess = (profile: LoginProfile) => {
+    setLoginProfile(profile);
+    discovery.retry();
+  };
+
   return (
     <div className={dark ? "app theme-dark" : "app"}>
       <AppHeader
@@ -68,7 +74,7 @@ function App() {
       {loginOpen && (
         <LoginDialog
           onClose={() => setLoginOpen(false)}
-          onSuccess={setLoginProfile}
+          onSuccess={handleLoginSuccess}
         />
       )}
     </div>

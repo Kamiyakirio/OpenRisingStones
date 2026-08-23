@@ -1,7 +1,7 @@
 """Fetch the Rising Stones glamour list with a Chrome-compatible TLS fingerprint.
 
-The script accepts only pagination and filter fields. The endpoint and headers are fixed,
-and cookies are neither supplied nor persisted.
+The endpoint and headers are fixed. An encrypted-at-rest login snapshot arrives through stdin,
+is restored into an in-memory session, and is discarded when this process exits.
 """
 
 import json
@@ -16,7 +16,17 @@ MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 
 def main() -> None:
     request = json.load(sys.stdin)
-    response = requests.get(
+    session = requests.Session(impersonate="chrome", default_headers=False)
+    for cookie in request["session"].get("cookies", []):
+        session.cookies.set(
+            cookie["name"],
+            cookie["value"],
+            domain=cookie.get("domain", ""),
+            path=cookie.get("path", "/"),
+            secure=bool(cookie.get("secure", False)),
+        )
+
+    response = session.get(
         ENDPOINT,
         params={
             "page": request["page"],
@@ -31,7 +41,6 @@ def main() -> None:
             "Origin": "https://ff14risingstones.web.sdo.com",
             "Referer": "https://ff14risingstones.web.sdo.com/pc/index.html#/glamour",
         },
-        impersonate="chrome",
         allow_redirects=False,
         discard_cookies=True,
         timeout=20,
