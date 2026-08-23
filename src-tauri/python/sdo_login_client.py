@@ -1,7 +1,8 @@
 """Constrained SDO login protocol client.
 
 The script accepts only fixed operations and required fields. Cookies are exchanged with
-Rust through stdin and stdout, never persisted, logged, or returned to the webview.
+Rust through stdin and stdout. Rust controls encrypted persistence and never returns them
+to the webview.
 """
 
 import base64
@@ -300,6 +301,13 @@ def login_with_cookie(cookie_header: str) -> dict[str, Any]:
     return {"status": "success", "session": snapshot_session(session), "profile": profile}
 
 
+def restore_session(snapshot: dict[str, Any]) -> dict[str, Any]:
+    """Revalidate a decrypted local session before accepting it."""
+    session = build_session(snapshot)
+    profile = verify_login(session)
+    return {"status": "success", "session": snapshot_session(session), "profile": profile}
+
+
 def finish_ticket_login(
     session: requests.Session, biz_context: str, payload: dict[str, Any]
 ) -> dict[str, Any]:
@@ -394,6 +402,8 @@ def main() -> None:
         result = poll_qr(request)
     elif operation == "cookieLogin":
         result = login_with_cookie(request["cookie"])
+    elif operation == "restoreSession":
+        result = restore_session(request["session"])
     else:
         raise RuntimeError("Unsupported login operation.")
     json.dump(result, sys.stdout, ensure_ascii=False)

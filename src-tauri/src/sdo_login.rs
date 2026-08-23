@@ -1,10 +1,12 @@
-//! SDO login commands and in-memory session management.
+//! SDO login commands with encrypted, user-scoped session persistence.
 //!
 //! A constrained Python sidecar performs the protocol using the project's Chrome TLS fingerprint.
-//! Login cookies stay in Rust state and child-process stdin and are never serialized to the webview.
+//! Login cookies stay in Rust state, OS-protected storage, and child-process stdin. They are never
+//! serialized to the webview or written to ordinary files as plaintext.
 
 use std::{
   io::Write,
+  path::{Path, PathBuf},
   process::{Command, Stdio},
   sync::{
     atomic::{AtomicU64, Ordering},
@@ -16,6 +18,8 @@ use std::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::State;
+
+use crate::secure_storage;
 
 const CLIENT_SCRIPT: &str = include_str!("../python/sdo_login_client.py");
 const MAX_SIDECAR_RESPONSE_BYTES: usize = 128 * 1024;
@@ -104,6 +108,7 @@ pub struct LoginState {
   next_id: AtomicU64,
   pending: Mutex<Option<PendingLogin>>,
   active: Mutex<Option<ActiveLogin>>,
+  storage_path: Option<PathBuf>,
 }
 
 impl Default for LoginState {
@@ -112,20 +117,51 @@ impl Default for LoginState {
       next_id: AtomicU64::new(1),
       pending: Mutex::new(None),
       active: Mutex::new(None),
+      storage_path: None,
+    }
+  }
+}
+
+impl LoginState {
+  pub fn with_storage_path(storage_path: PathBuf) -> Self {
+    Self {
+      storage_path: Some(storage_path),
+      ..Self::default()
     }
   }
 }
 
 #[tauri::command]
-pub fn sdo_login_status(state: State<'_, LoginState>) -> Result<LoginStatus, String> {
-  let active = state
-    .active
-    .lock()
-    .map_err(|_| "Unable to read the login state.".to_owned())?;
-  Ok(LoginStatus {
-    authenticated: active.is_some(),
-    profile: active.as_ref().map(|login| login.profile.clone()),
-  })
+pub async fn sdo_login_status(state: State<'_, LoginState>) -> Result<LoginStatus, String> {
+  if let Some(profile) = active_profile(&state)? {
+    return Ok(authenticated_status(profile));
+  }
+
+  let stored_session = match load_stored_session(&state) {
+    Ok(session) => session,
+    Err(_) => {
+      clear_stored_session(&state);
+      None
+    }
+  };
+  let Some(session) = stored_session else {
+    return Ok(unauthenticated_status());
+  };
+
+  let response = match run_sidecar(json!({
+    "operation": "restoreSession",
+    "session": session,
+  }))
+  .await
+  {
+    Ok(response) => response,
+    Err(_) => return Ok(unauthenticated_status()),
+  };
+  let Some(profile) = response.profile else {
+    return Ok(unauthenticated_status());
+  };
+  commit_active(&state, response.session, profile.clone())?;
+  Ok(authenticated_status(profile))
 }
 
 #[tauri::command]
@@ -289,12 +325,65 @@ fn commit_active(
   session: SessionSnapshot,
   profile: LoginProfile,
 ) -> Result<(), String> {
+  persist_session(state.storage_path.as_deref(), &session)?;
   *state
     .active
     .lock()
     .map_err(|_| "Unable to store the authenticated session.".to_owned())? =
     Some(ActiveLogin { session, profile });
   Ok(())
+}
+
+fn active_profile(state: &State<'_, LoginState>) -> Result<Option<LoginProfile>, String> {
+  let active = state
+    .active
+    .lock()
+    .map_err(|_| "Unable to read the login state.".to_owned())?;
+  Ok(active.as_ref().map(|login| login.profile.clone()))
+}
+
+fn authenticated_status(profile: LoginProfile) -> LoginStatus {
+  LoginStatus {
+    authenticated: true,
+    profile: Some(profile),
+  }
+}
+
+fn unauthenticated_status() -> LoginStatus {
+  LoginStatus {
+    authenticated: false,
+    profile: None,
+  }
+}
+
+fn persist_session(path: Option<&Path>, session: &SessionSnapshot) -> Result<(), String> {
+  let Some(path) = path else {
+    return Ok(());
+  };
+  let mut plaintext = serde_json::to_vec(session)
+    .map_err(|_| "Unable to serialize the authenticated session.".to_owned())?;
+  let save_result = secure_storage::save(path, &plaintext);
+  plaintext.fill(0);
+  save_result
+}
+
+fn load_stored_session(state: &State<'_, LoginState>) -> Result<Option<SessionSnapshot>, String> {
+  let Some(path) = state.storage_path.as_deref() else {
+    return Ok(None);
+  };
+  let Some(mut plaintext) = secure_storage::load(path)? else {
+    return Ok(None);
+  };
+  let parsed = serde_json::from_slice(&plaintext)
+    .map_err(|_| "Unable to parse the protected session.".to_owned());
+  plaintext.fill(0);
+  parsed.map(Some)
+}
+
+fn clear_stored_session(state: &State<'_, LoginState>) {
+  if let Some(path) = state.storage_path.as_deref() {
+    secure_storage::clear(path);
+  }
 }
 
 fn clear_pending(state: &State<'_, LoginState>, login_id: u64) -> Result<(), String> {
