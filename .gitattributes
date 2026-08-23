@@ -1,0 +1,7 @@
+# Keep repository text in UTF-8-friendly LF form on every platform.
+* text=auto eol=lf
+
+*.icns binary
+*.ico binary
+*.jpg binary
+*.png binary

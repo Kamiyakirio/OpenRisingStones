@@ -1,0 +1,19 @@
+# Keep repository text deterministic across Windows and macOS editors.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[*.{js,jsx,ts,tsx,css,html,json,mjs}]
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.{rs,toml}]
+indent_style = space
+indent_size = 2

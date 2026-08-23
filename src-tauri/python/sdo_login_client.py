@@ -15,6 +15,17 @@ from typing import Any
 from curl_cffi import requests
 
 
+def configure_standard_streams() -> None:
+    """Force UTF-8 for Rust pipes instead of inheriting the Windows console code page."""
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure:
+            reconfigure(encoding="utf-8")
+
+
+configure_standard_streams()
+
+
 SITE_INDEX_URL = "https://ff14risingstones.web.sdo.com/pc/index.html"
 SITE_REFERER = "https://ff14risingstones.web.sdo.com/"
 LOGIN_REFERER = "https://login.u.sdo.com/"
@@ -434,7 +445,8 @@ def main() -> None:
         result = restore_session(request["session"])
     else:
         raise RuntimeError("Unsupported login operation.")
-    json.dump(result, sys.stdout, ensure_ascii=False)
+    # ASCII escaping keeps the pipe valid JSON regardless of the Windows console code page.
+    json.dump(result, sys.stdout, ensure_ascii=True)
 
 
 if __name__ == "__main__":

@@ -435,6 +435,8 @@ fn execute_python(program: &str, arguments: &[&str], input: &[u8]) -> Result<Vec
   let mut command = Command::new(program);
   command
     .args(arguments)
+    .env("PYTHONUTF8", "1")
+    .env("PYTHONIOENCODING", "utf-8")
     .stdin(Stdio::piped())
     .stdout(Stdio::piped())
     .stderr(Stdio::piped());
