@@ -21,7 +21,6 @@ export function DiscoveryFilters({
   query,
   raceId,
   genderId,
-  preview,
   onQueryChange,
   onRaceChange,
   onGenderChange,
@@ -64,9 +63,9 @@ export function DiscoveryFilters({
           options={genderIdMap}
           onChange={onGenderChange}
         />
-        <span className="data-source">
+        {/* <span className="data-source">
           {preview ? "预览数据" : "石之家实时数据"}
-        </span>
+        </span> */}
       </div>
     </section>
   );
