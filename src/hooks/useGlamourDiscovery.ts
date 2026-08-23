@@ -10,6 +10,11 @@ import {
 
 const PAGE_SIZE = 12;
 
+type PageInfo = {
+  total: number;
+  hasMore: boolean;
+};
+
 export function useGlamourDiscovery() {
   const preview = !isTauriRuntime();
   const [glamours, setGlamours] = useState<Glamour[]>(
@@ -21,11 +26,17 @@ export function useGlamourDiscovery() {
   const [genderId, setGenderId] = useState(1);
   const [saved, setSaved] = useState<number[]>([2, 6]);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(preview ? PREVIEW_GLAMOURS.length : 0);
+  const [pageInfo, setPageInfo] = useState<PageInfo | number>(
+    preview ? PREVIEW_GLAMOURS.length : 0,
+  );
   const [loading, setLoading] = useState(!preview);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+
+  // A numeric value can survive Fast Refresh from the earlier total-only state.
+  const total = typeof pageInfo === "number" ? pageInfo : pageInfo.total;
+  const hasMore = typeof pageInfo === "number" ? false : pageInfo.hasMore;
 
   useEffect(() => {
     if (preview) return;
@@ -34,7 +45,7 @@ export function useGlamourDiscovery() {
       .then((result) => {
         if (!active) return;
         setGlamours(result.items);
-        setTotal(result.total);
+        setPageInfo({ total: result.total, hasMore: result.hasMore });
         setPage(1);
       })
       .catch((reason: unknown) => {
@@ -84,7 +95,7 @@ export function useGlamourDiscovery() {
         genderId,
       });
       setGlamours((current) => [...current, ...result.items]);
-      setTotal(result.total);
+      setPageInfo({ total: result.total, hasMore: result.hasMore });
       setPage(nextPage);
     } catch (reason) {
       setError(readError(reason));
@@ -119,7 +130,7 @@ export function useGlamourDiscovery() {
     loading,
     loadingMore,
     error,
-    canLoadMore: !preview && glamours.length < total,
+    canLoadMore: !preview && hasMore,
     retry,
     toggleSave,
     loadMore,

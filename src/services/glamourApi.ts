@@ -22,7 +22,7 @@ export type GlamourOrder = "latest" | "hot";
 
 type NetworkResponse = { status: number; body: string };
 type UnknownRecord = Record<string, unknown>;
-type GlamourPage = { items: Glamour[]; total: number };
+type GlamourPage = { items: Glamour[]; total: number; hasMore: boolean };
 
 const API_ORIGIN = "https://apiff14risingstones.web.sdo.com";
 
@@ -71,9 +71,15 @@ export async function fetchGlamours(options: {
   }
 
   const items = records
-    .map(toGlamour)
+    .map((record, index) => toGlamour(record, index, options))
     .filter((item): item is Glamour => Boolean(item));
-  return { items, total: findTotal(payload) ?? items.length };
+  const loadedTotal =
+    (options.page - 1) * (options.limit ?? 12) + items.length;
+  return {
+    items,
+    total: findTotal(payload) ?? loadedTotal,
+    hasMore: records.length === (options.limit ?? 12),
+  };
 }
 
 /** 兼容接口包装层可能使用的 data/list/rows/items 字段。 */
@@ -92,11 +98,21 @@ function findRecordList(value: unknown, depth = 0): UnknownRecord[] {
   return [];
 }
 
-function toGlamour(record: UnknownRecord, index: number): Glamour | null {
+function toGlamour(
+  record: UnknownRecord,
+  index: number,
+  filters: { raceId: number; genderId: number },
+): Glamour | null {
   const image = readImage(record);
   if (!image) return null;
-  const raceId = readNumber(record, ["race_id", "raceId"]);
-  const genderId = readNumber(record, ["gender_id", "genderId"]);
+  const raceId =
+    readNumber(record, ["race_id", "raceId"]) ??
+    readFirstNumber(record, ["race_ids", "raceIds"]) ??
+    filters.raceId;
+  const genderId =
+    readNumber(record, ["gender_id", "genderId"]) ??
+    readFirstNumber(record, ["gender_ids", "genderIds"]) ??
+    filters.genderId;
   const raceName = readString(record, ["race_name", "raceName", "race"]);
   const genderName = readString(record, [
     "gender_name",
@@ -160,6 +176,7 @@ function toGlamour(record: UnknownRecord, index: number): Glamour | null {
 function readImage(record: UnknownRecord) {
   const direct = readString(record, [
     "cover",
+    "main_image",
     "cover_url",
     "coverUrl",
     "image",
@@ -181,6 +198,19 @@ function readImage(record: UnknownRecord) {
     if (isRecord(first)) {
       const nested = readString(first, ["url", "src", "image_url", "imageUrl"]);
       if (nested) return normalizeImageUrl(nested);
+    }
+  }
+  return null;
+}
+
+function readFirstNumber(record: UnknownRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (!Array.isArray(value) || !value.length) continue;
+    const first = value[0];
+    if (typeof first === "number" && Number.isFinite(first)) return first;
+    if (typeof first === "string" && Number.isFinite(Number(first))) {
+      return Number(first);
     }
   }
   return null;

@@ -36,7 +36,7 @@ export function GlamourHero({
         <div className="archive-total">
           <span>GLAMOUR ARCHIVE</span>
           <strong>{formatGlamourCount(total)}</strong>
-          <small>套符合当前条件的造型</small>
+          <small>套已载入的造型</small>
         </div>
         <div className="latest-entry">
           <span>最新收录</span>

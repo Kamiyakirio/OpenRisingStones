@@ -67,7 +67,9 @@ export function GlamourGallery({
         <div className="result-count">
           {loading
             ? "正在读取投稿"
-            : `已显示 ${results.length} / ${total} 套造型`}
+            : canLoadMore
+              ? `已显示 ${results.length} 套造型`
+              : `共 ${total} 套造型`}
         </div>
         <button className="publish-link" type="button">
           <Plus />
@@ -144,6 +146,7 @@ function GlamourCard({
           src={item.image}
           alt={`${item.title}幻化展示`}
           loading={index > 2 ? "lazy" : "eager"}
+          referrerPolicy="no-referrer"
           onError={(event) => replaceBrokenImage(event.currentTarget, index)}
         />
         <button
