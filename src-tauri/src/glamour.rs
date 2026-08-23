@@ -12,7 +12,7 @@ use tauri::State;
 
 use crate::sdo_login::{self, LoginState, SessionSnapshot};
 
-const CLIENT_SCRIPT: &str = include_str!("../python/glamour_client.py");
+const CLIENT_SCRIPT: &str = include_str!("../python/api_client.py");
 const MAX_RESPONSE_BYTES: usize = 5 * 1024 * 1024;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -34,6 +34,7 @@ pub struct GlamourPageResponse {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SidecarRequest {
+  operation: &'static str,
   page: u32,
   limit: u32,
   order: String,
@@ -77,6 +78,7 @@ fn run_python_client(
   session: SessionSnapshot,
 ) -> Result<GlamourPageResponse, String> {
   let input = serde_json::to_vec(&SidecarRequest {
+    operation: "fetchGlamourPage",
     page: request.page,
     limit: request.limit,
     order: request.order,

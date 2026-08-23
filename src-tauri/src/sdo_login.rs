@@ -21,7 +21,7 @@ use tauri::State;
 
 use crate::secure_storage;
 
-const CLIENT_SCRIPT: &str = include_str!("../python/sdo_login_client.py");
+const CLIENT_SCRIPT: &str = include_str!("../python/api_client.py");
 const MAX_SIDECAR_RESPONSE_BYTES: usize = 128 * 1024;
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(120);
 
