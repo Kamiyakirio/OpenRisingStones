@@ -1,8 +1,9 @@
-//! Shared process boundary for the embedded Python API client.
+//! Shared process boundary for the Python API client.
 //!
-//! Requests and responses stay on anonymous pipes. This module owns interpreter
-//! selection, UTF-8 configuration, process cleanup, timeouts, and output limits so
-//! every caller gets the same cross-platform and security behavior.
+//! Standard builds use a system interpreter, while packaged releases enable the
+//! bundled PyInstaller sidecar feature. Requests and responses stay on anonymous
+//! pipes. This module owns UTF-8 configuration, cleanup, timeouts, and output limits
+//! so every caller gets the same cross-platform and security behavior.
 
 use std::{
   io::{self, Read, Write},
@@ -14,19 +15,23 @@ use std::{
 
 use serde::{de::DeserializeOwned, Serialize};
 
+#[cfg(not(feature = "bundled-python-sidecar"))]
 const CLIENT_SCRIPT: &str = include_str!("../python/api_client.py");
+#[cfg(feature = "bundled-python-sidecar")]
+const BUNDLED_CLIENT_NAME: &str = "rising-stones-api-client";
 const MAX_ERROR_BYTES: usize = 8 * 1024;
 const MAX_ERROR_CHARACTERS: usize = 240;
 const PROCESS_TIMEOUT: Duration = Duration::from_secs(180);
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(10);
 
+#[cfg(not(feature = "bundled-python-sidecar"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct PythonInterpreter {
   program: &'static str,
   launcher_arguments: &'static [&'static str],
 }
 
-#[cfg(windows)]
+#[cfg(all(not(feature = "bundled-python-sidecar"), windows))]
 const PYTHON_INTERPRETERS: &[PythonInterpreter] = &[
   PythonInterpreter {
     program: "py",
@@ -42,7 +47,7 @@ const PYTHON_INTERPRETERS: &[PythonInterpreter] = &[
   },
 ];
 
-#[cfg(not(windows))]
+#[cfg(all(not(feature = "bundled-python-sidecar"), not(windows)))]
 const PYTHON_INTERPRETERS: &[PythonInterpreter] = &[
   PythonInterpreter {
     program: "python3",
@@ -56,7 +61,7 @@ const PYTHON_INTERPRETERS: &[PythonInterpreter] = &[
 
 #[derive(Debug)]
 enum ProcessError {
-  InterpreterNotFound,
+  ClientNotFound,
   ResponseTooLarge,
   Message(String),
 }
@@ -88,26 +93,48 @@ where
     ProcessError::ResponseTooLarge => {
       format!("The {request_label} response exceeded the size limit.")
     }
-    ProcessError::InterpreterNotFound => {
-      "Python 3 was not found. Install Python 3 and the required packages before retrying."
-        .to_owned()
-    }
+    ProcessError::ClientNotFound => unavailable_client_message(),
     ProcessError::Message(message) => message,
   })?;
   serde_json::from_slice(&output)
     .map_err(|_| format!("Unable to parse the {request_label} response."))
 }
 
+#[cfg(not(feature = "bundled-python-sidecar"))]
+fn unavailable_client_message() -> String {
+  "Python 3 was not found. Install Python 3 and the required packages before retrying.".to_owned()
+}
+
+#[cfg(feature = "bundled-python-sidecar")]
+fn unavailable_client_message() -> String {
+  "The bundled Python client is missing. Reinstall the application and retry.".to_owned()
+}
+
+#[cfg(not(feature = "bundled-python-sidecar"))]
 fn execute(input: &[u8], max_response_bytes: usize) -> Result<Vec<u8>, ProcessError> {
   for interpreter in PYTHON_INTERPRETERS {
     match execute_with_interpreter(interpreter, input, max_response_bytes) {
-      Err(ProcessError::InterpreterNotFound) => continue,
+      Err(ProcessError::ClientNotFound) => continue,
       result => return result,
     }
   }
-  Err(ProcessError::InterpreterNotFound)
+  Err(ProcessError::ClientNotFound)
 }
 
+#[cfg(feature = "bundled-python-sidecar")]
+fn execute(input: &[u8], max_response_bytes: usize) -> Result<Vec<u8>, ProcessError> {
+  let current_executable = std::env::current_exe().map_err(|_| ProcessError::ClientNotFound)?;
+  let executable_directory = current_executable
+    .parent()
+    .ok_or(ProcessError::ClientNotFound)?;
+  let mut client_path = executable_directory.join(BUNDLED_CLIENT_NAME);
+  if cfg!(windows) {
+    client_path.set_extension("exe");
+  }
+  execute_with_command(Command::new(client_path), input, max_response_bytes)
+}
+
+#[cfg(not(feature = "bundled-python-sidecar"))]
 fn execute_with_interpreter(
   interpreter: &PythonInterpreter,
   input: &[u8],
@@ -116,7 +143,16 @@ fn execute_with_interpreter(
   let mut command = Command::new(interpreter.program);
   command
     .args(interpreter.launcher_arguments)
-    .args(["-c", CLIENT_SCRIPT])
+    .args(["-c", CLIENT_SCRIPT]);
+  execute_with_command(command, input, max_response_bytes)
+}
+
+fn execute_with_command(
+  mut command: Command,
+  input: &[u8],
+  max_response_bytes: usize,
+) -> Result<Vec<u8>, ProcessError> {
+  command
     .env("PYTHONUTF8", "1")
     .env("PYTHONIOENCODING", "utf-8")
     .env("PYTHONUNBUFFERED", "1")
@@ -132,7 +168,7 @@ fn execute_with_interpreter(
 
   let mut child = command.spawn().map_err(|error| {
     if error.kind() == io::ErrorKind::NotFound {
-      ProcessError::InterpreterNotFound
+      ProcessError::ClientNotFound
     } else {
       ProcessError::Message("Unable to start the Python client.".to_owned())
     }
@@ -340,6 +376,7 @@ mod tests {
   }
 
   #[test]
+  #[cfg(not(feature = "bundled-python-sidecar"))]
   fn interpreter_candidates_are_unique() {
     for (index, interpreter) in PYTHON_INTERPRETERS.iter().enumerate() {
       assert!(PYTHON_INTERPRETERS[index + 1..]
@@ -348,13 +385,13 @@ mod tests {
     }
   }
 
-  #[cfg(not(windows))]
+  #[cfg(all(not(feature = "bundled-python-sidecar"), not(windows)))]
   #[test]
   fn unix_prefers_the_python_three_executable() {
     assert_eq!(PYTHON_INTERPRETERS[0].program, "python3");
   }
 
-  #[cfg(windows)]
+  #[cfg(all(not(feature = "bundled-python-sidecar"), windows))]
   #[test]
   fn windows_prefers_the_python_three_launcher() {
     assert_eq!(PYTHON_INTERPRETERS[0].program, "py");
