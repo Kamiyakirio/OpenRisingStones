@@ -7,6 +7,8 @@ mod sdo_login;
 mod secure_storage;
 
 use tauri::Manager;
+#[cfg(debug_assertions)]
+use tauri_plugin_log::{Target, TargetKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -14,10 +16,22 @@ pub fn run() {
     .setup(|app| {
       let session_path = app.path().app_local_data_dir()?.join("sdo-session.v1.dat");
       app.manage(sdo_login::LoginState::with_storage_path(session_path));
-      if cfg!(debug_assertions) {
+      #[cfg(debug_assertions)]
+      {
         app.handle().plugin(
           tauri_plugin_log::Builder::default()
             .level(log::LevelFilter::Info)
+            .targets([
+              Target::new(TargetKind::Stdout)
+                .filter(|metadata| metadata.target() != "network_console"),
+              Target::new(TargetKind::LogDir { file_name: None })
+                .filter(|metadata| metadata.target() != "network_console"),
+              Target::new(TargetKind::Webview)
+                .filter(|metadata| metadata.target() == "network_console")
+                .format(|callback, message, _record| {
+                  callback.finish(format_args!("{message}"));
+                }),
+            ])
             .build(),
         )?;
       }

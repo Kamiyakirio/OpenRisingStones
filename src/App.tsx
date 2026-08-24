@@ -1,4 +1,5 @@
 /** Application shell that routes between the product home and feature workspaces. */
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "./components/AppHeader";
 import { DiscoveryFilters } from "./components/DiscoveryFilters";
@@ -10,7 +11,7 @@ import { LoginDialog } from "./components/LoginDialog";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { SiteFooter } from "./components/SiteFooter";
 import { useGlamourDiscovery } from "./hooks/useGlamourDiscovery";
-import type { Glamour } from "./services/glamourApi";
+import { isTauriRuntime, type Glamour } from "./services/glamourApi";
 import { getSdoLoginStatus, type LoginProfile } from "./services/sdoLogin";
 import "./App.css";
 
@@ -24,9 +25,34 @@ function App() {
   const [loginProfile, setLoginProfile] = useState<LoginProfile | null>(null);
 
   useEffect(() => {
-    void getSdoLoginStatus()
-      .then((status) => setLoginProfile(status.profile))
-      .catch(() => undefined);
+    let disposed = false;
+    let unlisten: UnlistenFn | undefined;
+    const initialize = async () => {
+      if (isTauriRuntime()) {
+        try {
+          const stopListening = await listen<BackendLogPayload>(
+            "log://log",
+            (event) => writeNetworkConsole(event.payload.message),
+          );
+          if (disposed) {
+            stopListening();
+            return;
+          }
+          unlisten = stopListening;
+        } catch {
+          // Network requests still work if the debug console bridge is unavailable.
+        }
+      }
+      if (disposed) return;
+      void getSdoLoginStatus()
+        .then((status) => setLoginProfile(status.profile))
+        .catch(() => undefined);
+    };
+    void initialize();
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
   }, []);
 
   return (
@@ -166,3 +192,18 @@ function GlamourWorkspace({
 }
 
 export default App;
+
+type BackendLogPayload = {
+  message: string;
+  level: string;
+};
+
+function writeNetworkConsole(message: string) {
+  try {
+    const payload = JSON.parse(message) as Record<string, unknown>;
+    const phase = typeof payload.phase === "string" ? payload.phase : "log";
+    console.log(`[network][${phase}]`, payload);
+  } catch {
+    console.log("[network]", message);
+  }
+}

@@ -7,10 +7,12 @@ cookie persistence and never returns credentials to the webview.
 
 import base64
 import json
+import os
 import sys
 import time
 import uuid
 from typing import Any, Collection
+from urllib.parse import urlencode
 
 try:
     from curl_cffi import requests
@@ -62,6 +64,8 @@ UNBOUND_CHARACTER_CODES = {10103, 10104}
 MAX_COOKIE_BYTES = 16 * 1024
 MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 MAX_USER_AGENT_BYTES = 512
+NETWORK_CONSOLE_ENV = "OPEN_RISING_STONES_NETWORK_CONSOLE"
+NETWORK_CONSOLE_PREFIX = "ORS_NETWORK_CONSOLE "
 
 BASE_HEADERS = {
     "Accept": "application/json, text/plain, */*",
@@ -75,6 +79,59 @@ BASE_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
     ),
 }
+
+
+def emit_network_console(phase: str, **fields: Any) -> None:
+    """Emit one machine-readable line for the debug-only WebView console bridge."""
+    if os.environ.get(NETWORK_CONSOLE_ENV) != "1":
+        return
+    try:
+        payload = json.dumps(
+            {"phase": phase, **fields},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        print(f"{NETWORK_CONSOLE_PREFIX}{payload}", file=sys.stderr, flush=True)
+    except Exception:
+        # Logging must never change request behavior, even for unusual body objects.
+        return
+
+
+def request_console_url(url: str, kwargs: dict[str, Any]) -> str:
+    """Build the complete request URL, including params, for preflight logging."""
+    params = kwargs.get("params")
+    if not params:
+        return url
+    try:
+        query = urlencode(params, doseq=True)
+    except Exception:
+        return url
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}{query}"
+
+
+def request_console_body(kwargs: dict[str, Any]) -> Any:
+    """Return the complete configured request body without including headers."""
+    if "json" in kwargs:
+        return kwargs["json"]
+    if "data" in kwargs:
+        return console_body(kwargs["data"])
+    if "content" in kwargs:
+        return console_body(kwargs["content"])
+    return None
+
+
+def console_body(value: Any) -> Any:
+    """Preserve text bodies and encode binary bodies without truncation."""
+    if isinstance(value, bytes):
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError:
+            return {
+                "encoding": "base64",
+                "value": base64.b64encode(value).decode("ascii"),
+            }
+    return value
 
 
 class ApiClientError(RuntimeError):
@@ -168,6 +225,15 @@ class ApiClient:
         **kwargs: Any,
     ) -> Any:
         merged_headers = {**self.base_headers, **(headers or {})}
+        request_url = request_console_url(url, kwargs)
+        method_name = method.upper()
+        emit_network_console(
+            "request",
+            method=method_name,
+            url=request_url,
+            body=request_console_body(kwargs),
+        )
+        started_at = time.perf_counter()
         try:
             response = self.session.request(
                 method,
@@ -177,7 +243,23 @@ class ApiClient:
                 **kwargs,
             )
         except Exception as error:
+            emit_network_console(
+                "error",
+                method=method_name,
+                url=request_url,
+                durationMs=round((time.perf_counter() - started_at) * 1000, 1),
+                errorType=type(error).__name__,
+                message=str(error),
+            )
             raise ApiClientError(error_message) from error
+        emit_network_console(
+            "response",
+            method=method_name,
+            url=str(getattr(response, "url", request_url)),
+            status=response.status_code,
+            durationMs=round((time.perf_counter() - started_at) * 1000, 1),
+            body=console_body(response.content),
+        )
         if response.status_code not in accepted_statuses:
             raise ApiClientError(f"{error_message} (HTTP {response.status_code})")
         if len(response.content) > max_bytes:

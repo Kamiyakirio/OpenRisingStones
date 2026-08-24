@@ -1,10 +1,15 @@
 import json
+import os
 import unittest
+from contextlib import redirect_stderr
+from io import StringIO
+from unittest.mock import patch
 
 from api_client import (
     ApiClient,
     ApiClientError,
     BASE_HEADERS,
+    NETWORK_CONSOLE_PREFIX,
     fetch_glamour_detail,
     fetch_glamour_page,
     finalize_authenticated_login,
@@ -13,9 +18,15 @@ from api_client import (
 
 
 class FakeResponse:
-    def __init__(self, status_code: int = 200, content: bytes = b"{}") -> None:
+    def __init__(
+        self,
+        status_code: int = 200,
+        content: bytes = b"{}",
+        url: str | None = None,
+    ) -> None:
         self.status_code = status_code
         self.content = content
+        self.url = url
 
     def json(self):
         return json.loads(self.content)
@@ -51,6 +62,32 @@ def client_with(
 
 
 class ApiClientTests(unittest.TestCase):
+    def test_network_console_logs_complete_url_and_bodies(self) -> None:
+        response_url = "https://example.invalid/path?existing=1&token=request-token"
+        client, _ = client_with(
+            FakeResponse(content=b'{"token":"response-token"}', url=response_url)
+        )
+        stderr = StringIO()
+
+        with patch.dict(os.environ, {"OPEN_RISING_STONES_NETWORK_CONSOLE": "1"}):
+            with redirect_stderr(stderr):
+                client.request(
+                    "POST",
+                    "https://example.invalid/path?existing=1",
+                    params={"token": "request-token"},
+                    json={"token": "request-body-token"},
+                    headers={"Authorization": "not-logged"},
+                )
+
+        entries = [
+            json.loads(line.removeprefix(NETWORK_CONSOLE_PREFIX))
+            for line in stderr.getvalue().splitlines()
+        ]
+        self.assertEqual(entries[0]["url"], response_url)
+        self.assertEqual(entries[0]["body"], {"token": "request-body-token"})
+        self.assertNotIn("headers", entries[0])
+        self.assertEqual(entries[1]["body"], '{"token":"response-token"}')
+
     def test_custom_user_agent_is_validated_and_persisted(self) -> None:
         user_agent = (
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "

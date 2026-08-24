@@ -20,7 +20,11 @@ const CLIENT_SCRIPT: &str = include_str!("../python/api_client.py");
 #[cfg(feature = "bundled-python-sidecar")]
 const BUNDLED_CLIENT_NAME: &str = "rising-stones-api-client";
 const MAX_ERROR_BYTES: usize = 8 * 1024;
+const MAX_DEBUG_STDERR_BYTES: usize = 16 * 1024 * 1024;
 const MAX_ERROR_CHARACTERS: usize = 240;
+#[cfg(debug_assertions)]
+const NETWORK_CONSOLE_ENV: &str = "OPEN_RISING_STONES_NETWORK_CONSOLE";
+const NETWORK_CONSOLE_PREFIX: &str = "ORS_NETWORK_CONSOLE ";
 const PROCESS_TIMEOUT: Duration = Duration::from_secs(180);
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(10);
 
@@ -160,6 +164,9 @@ fn execute_with_command(
     .stdout(Stdio::piped())
     .stderr(Stdio::piped());
 
+  #[cfg(debug_assertions)]
+  command.env(NETWORK_CONSOLE_ENV, "1");
+
   #[cfg(windows)]
   {
     use std::os::windows::process::CommandExt;
@@ -191,7 +198,11 @@ fn execute_with_command(
   let stderr_thread = thread::spawn(move || {
     let _ = sender.send(CapturedStream::Stderr(read_truncated(
       stderr,
-      MAX_ERROR_BYTES,
+      if cfg!(debug_assertions) {
+        MAX_DEBUG_STDERR_BYTES
+      } else {
+        MAX_ERROR_BYTES
+      },
     )));
   });
 
@@ -251,7 +262,8 @@ fn execute_with_command(
   if stdout.exceeded_limit {
     return Err(ProcessError::ResponseTooLarge);
   }
-  validate_status(status, &stderr.bytes)?;
+  let error_output = forward_network_console(&stderr.bytes);
+  validate_status(status, &error_output)?;
   Ok(stdout.bytes)
 }
 
@@ -323,6 +335,23 @@ fn capture_result(
     .map_err(|_| ProcessError::Message(format!("Unable to read the Python client {description}.")))
 }
 
+fn forward_network_console(stderr: &[u8]) -> Vec<u8> {
+  let mut error_lines = Vec::new();
+  let stderr = String::from_utf8_lossy(stderr);
+  for line in stderr.lines() {
+    let Some(payload) = line.strip_prefix(NETWORK_CONSOLE_PREFIX) else {
+      if !line.trim().is_empty() {
+        error_lines.push(line);
+      }
+      continue;
+    };
+    if let Ok(value) = serde_json::from_str::<serde_json::Value>(payload) {
+      log::info!(target: "network_console", "{value}");
+    }
+  }
+  error_lines.join("\n").into_bytes()
+}
+
 fn validate_status(status: ExitStatus, stderr: &[u8]) -> Result<(), ProcessError> {
   if status.success() {
     return Ok(());
@@ -373,6 +402,15 @@ mod tests {
 
     assert_eq!(output.bytes, b"1234");
     assert!(output.exceeded_limit);
+  }
+
+  #[test]
+  fn network_console_records_do_not_leak_into_user_facing_errors() {
+    let stderr = b"ORS_NETWORK_CONSOLE {\"phase\":\"request\",\"body\":\"secret\"}\nSafe error";
+
+    let error_output = forward_network_console(stderr);
+
+    assert_eq!(error_output, b"Safe error");
   }
 
   #[test]
