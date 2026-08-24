@@ -107,7 +107,7 @@ export function GlamourGallery({
         <div className="empty-state">
           <MagnifyingGlass />
           <h2>暂时没有对应投稿</h2>
-          <p>更换种族、性别或搜索词后再试一次。</p>
+          <p>更换种族、性别或标题关键词后再试一次。</p>
           <button type="button" onClick={onClearSearch}>
             清空搜索
           </button>

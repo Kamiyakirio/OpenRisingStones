@@ -5,47 +5,126 @@ import {
   SlidersHorizontal,
   X,
 } from "@phosphor-icons/react";
+import { useEffect, useRef } from "react";
 import { genderIdMap, raceIdMap } from "../models/idsToName";
+import type { EquipmentSearchItem } from "../services/equipmentApi";
+import type { GlamourSearchMode } from "../hooks/useGlamourDiscovery";
+import { SelectedEquipmentSummary } from "./EquipmentSearchPage";
 
 type DiscoveryFiltersProps = {
+  searchMode: GlamourSearchMode;
   query: string;
+  activeQuery: string;
   raceId: number | null;
   genderId: number | null;
-  preview: boolean;
+  searchLoading: boolean;
+  selectedEquipment: EquipmentSearchItem | null;
+  onSearchModeChange: (mode: GlamourSearchMode) => void;
   onQueryChange: (query: string) => void;
+  onSearch: () => void;
+  onClearSearch: () => void;
   onRaceChange: (raceId: number | null) => void;
   onGenderChange: (genderId: number | null) => void;
 };
 
 export function DiscoveryFilters({
+  searchMode,
   query,
+  activeQuery,
   raceId,
   genderId,
+  searchLoading,
+  selectedEquipment,
+  onSearchModeChange,
   onQueryChange,
+  onSearch,
+  onClearSearch,
   onRaceChange,
   onGenderChange,
 }: DiscoveryFiltersProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const focusSearch = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, []);
+
   return (
     <section className="discovery-panel" aria-label="搜索和筛选">
-      <div className="search-box">
+      <div className="search-mode-switch" role="group" aria-label="搜索方式">
+        <button
+          className={searchMode === "title" ? "active" : ""}
+          type="button"
+          aria-pressed={searchMode === "title"}
+          onClick={() => onSearchModeChange("title")}
+        >
+          按标题
+        </button>
+        <button
+          className={searchMode === "equipment" ? "active" : ""}
+          type="button"
+          aria-pressed={searchMode === "equipment"}
+          onClick={() => onSearchModeChange("equipment")}
+        >
+          按装备
+        </button>
+      </div>
+      <form
+        className="search-box"
+        role="search"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSearch();
+        }}
+      >
         <MagnifyingGlass weight="bold" />
         <input
+          ref={inputRef}
+          type="search"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="搜索标题、作者、职业或色系"
-          aria-label="搜索幻化"
+          placeholder={searchMode === "title" ? "输入幻化标题" : "输入装备名称"}
+          aria-label={searchMode === "title" ? "按标题搜索幻化" : "搜索装备"}
+          maxLength={80}
         />
-        {query && (
+        {(query || activeQuery) && (
           <button
+            className="search-clear"
             type="button"
             aria-label="清空搜索"
-            onClick={() => onQueryChange("")}
+            onClick={onClearSearch}
           >
             <X />
           </button>
         )}
-        <kbd>⌘ K</kbd>
-      </div>
+        <kbd aria-hidden="true">⌘/Ctrl K</kbd>
+        <button
+          className="search-submit"
+          type="submit"
+          disabled={searchLoading || (!query.trim() && !activeQuery)}
+        >
+          {searchLoading
+            ? searchMode === "title"
+              ? "搜索中"
+              : "查找中"
+            : searchMode === "title"
+              ? "搜索"
+              : "查找装备"}
+        </button>
+      </form>
+      {searchMode === "equipment" && selectedEquipment ? (
+        <SelectedEquipmentSummary item={selectedEquipment} />
+      ) : searchMode === "equipment" ? (
+        <p className="equipment-search-hint">
+          输入装备名称，搜索结果会在新页面中打开。
+        </p>
+      ) : null}
       <div className="filter-row">
         <div className="filter-label">
           <SlidersHorizontal />
@@ -63,9 +142,6 @@ export function DiscoveryFilters({
           options={genderIdMap}
           onChange={onGenderChange}
         />
-        {/* <span className="data-source">
-          {preview ? "预览数据" : "石之家实时数据"}
-        </span> */}
       </div>
     </section>
   );

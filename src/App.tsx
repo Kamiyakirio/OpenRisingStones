@@ -3,6 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "./components/AppHeader";
 import { DiscoveryFilters } from "./components/DiscoveryFilters";
+import { EquipmentSearchPage } from "./components/EquipmentSearchPage";
 import { GlamourGallery } from "./components/GlamourGallery";
 import { GlamourHero } from "./components/GlamourHero";
 import { GlamourDetailView } from "./components/GlamourDetailView";
@@ -148,6 +149,23 @@ function GlamourWorkspace({
           onBack={handleCloseDetail}
           onToggleSave={discovery.toggleSave}
         />
+      ) : discovery.equipmentResultsOpen ? (
+        <EquipmentSearchPage
+          query={discovery.query}
+          items={discovery.equipmentCandidates}
+          page={discovery.equipmentPage}
+          pageSize={discovery.equipmentPageSize}
+          loading={discovery.equipmentSearchLoading}
+          error={discovery.equipmentSearchError}
+          canShowPrevious={discovery.canShowPreviousEquipmentPage}
+          canShowNext={discovery.canShowNextEquipmentPage}
+          onBack={discovery.closeEquipmentResults}
+          onSelect={discovery.selectEquipment}
+          onShowPrevious={discovery.showPreviousEquipmentPage}
+          onShowNext={discovery.showNextEquipmentPage}
+          onRetry={discovery.retryEquipmentSearch}
+          onPageSizeChange={discovery.changeEquipmentPageSize}
+        />
       ) : (
         <main id="top">
           <GlamourHero
@@ -157,11 +175,21 @@ function GlamourWorkspace({
             genderId={discovery.genderId}
           />
           <DiscoveryFilters
+            searchMode={discovery.searchMode}
             query={discovery.query}
+            activeQuery={discovery.activeQuery}
             raceId={discovery.raceId}
             genderId={discovery.genderId}
-            preview={discovery.preview}
+            searchLoading={
+              discovery.searchMode === "title"
+                ? discovery.loading
+                : discovery.equipmentSearchLoading
+            }
+            selectedEquipment={discovery.selectedEquipment}
+            onSearchModeChange={discovery.setSearchMode}
             onQueryChange={discovery.setQuery}
+            onSearch={discovery.submitSearch}
+            onClearSearch={discovery.clearSearch}
             onRaceChange={discovery.setRaceId}
             onGenderChange={discovery.setGenderId}
           />
@@ -177,7 +205,7 @@ function GlamourWorkspace({
             onOrderChange={discovery.setOrder}
             onToggleSave={discovery.toggleSave}
             onOpenDetail={handleOpenDetail}
-            onClearSearch={() => discovery.setQuery("")}
+            onClearSearch={discovery.clearSearch}
             onRetry={discovery.retry}
             onLoadMore={discovery.loadMore}
           />
