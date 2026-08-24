@@ -30,7 +30,11 @@ export type LoginPoll = {
 };
 
 export type LoginProgress =
-  "awaiting_confirmation" | "awaiting_scan" | "scanned" | "success";
+  | "awaiting_confirmation"
+  | "awaiting_scan"
+  | "scanned"
+  | "binding_required"
+  | "success";
 
 function requireDesktopRuntime() {
   if (!isTauriRuntime())
@@ -63,9 +67,9 @@ export async function pollQrLogin(loginId: number) {
   return invoke<LoginPoll>("sdo_poll_qr_login", { loginId });
 }
 
-export async function loginWithCookie(cookie: string) {
+export async function loginWithCookie(cookie: string, userAgent: string) {
   requireDesktopRuntime();
-  return invoke<LoginPoll>("sdo_login_with_cookie", { cookie });
+  return invoke<LoginPoll>("sdo_login_with_cookie", { cookie, userAgent });
 }
 
 export async function cancelSdoLogin(loginId: number) {

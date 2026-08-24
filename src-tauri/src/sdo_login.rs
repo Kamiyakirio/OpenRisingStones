@@ -21,6 +21,7 @@ use crate::{python_sidecar, secure_storage};
 
 const MAX_SIDECAR_RESPONSE_BYTES: usize = 128 * 1024;
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(120);
+const MAX_USER_AGENT_BYTES: usize = 512;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -33,8 +34,11 @@ struct CookieRecord {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct SessionSnapshot {
   cookies: Vec<CookieRecord>,
+  #[serde(default)]
+  user_agent: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -156,9 +160,18 @@ pub async fn sdo_login_status(state: State<'_, LoginState>) -> Result<LoginStatu
     Ok(response) => response,
     Err(_) => return Ok(unauthenticated_status()),
   };
+  if response.status != "success" {
+    let _ = clear_stored_session(&state);
+    return Ok(unauthenticated_status());
+  }
   let Some(profile) = response.profile else {
+    let _ = clear_stored_session(&state);
     return Ok(unauthenticated_status());
   };
+  if !is_complete_profile(&profile) {
+    let _ = clear_stored_session(&state);
+    return Ok(unauthenticated_status());
+  }
   commit_active(&state, lifecycle_version, response.session, profile.clone())?;
   Ok(authenticated_status(profile))
 }
@@ -203,17 +216,35 @@ pub async fn sdo_poll_qr_login(
 #[tauri::command]
 pub async fn sdo_login_with_cookie(
   cookie: String,
+  user_agent: String,
   state: State<'_, LoginState>,
 ) -> Result<LoginPoll, String> {
   if cookie.is_empty() || cookie.len() > 16 * 1024 || cookie.contains('\r') || cookie.contains('\n')
   {
     return Err("The cookie is empty, too long, or contains a line break.".to_owned());
   }
+  let user_agent = user_agent.trim().to_owned();
+  validate_user_agent(&user_agent)?;
   let lifecycle_version = current_lifecycle_version(&state)?;
-  let response = run_sidecar(json!({ "operation": "cookieLogin", "cookie": cookie })).await?;
+  let response = run_sidecar(json!({
+    "operation": "cookieLogin",
+    "cookie": cookie,
+    "userAgent": user_agent,
+  }))
+  .await?;
+  if response.status == "binding_required" {
+    return Ok(LoginPoll {
+      status: "binding_required".to_owned(),
+      profile: None,
+    });
+  }
+  if response.status != "success" {
+    return Err("The Cookie login did not complete.".to_owned());
+  }
   let profile = response
     .profile
     .ok_or_else(|| "Login verification returned no account profile.".to_owned())?;
+  ensure_complete_profile(&profile)?;
   commit_active(&state, lifecycle_version, response.session, profile.clone())?;
   Ok(LoginPoll {
     status: "success".to_owned(),
@@ -316,6 +347,7 @@ async fn poll_login(
     let profile = response
       .profile
       .ok_or_else(|| "Login verification returned no account profile.".to_owned())?;
+    ensure_complete_profile(&profile)?;
     let session = response.session;
     *current = None;
     drop(current);
@@ -323,6 +355,14 @@ async fn poll_login(
     return Ok(LoginPoll {
       status: "success".to_owned(),
       profile: Some(profile),
+    });
+  }
+
+  if response.status == "binding_required" {
+    *current = None;
+    return Ok(LoginPoll {
+      status: "binding_required".to_owned(),
+      profile: None,
     });
   }
 
@@ -341,6 +381,7 @@ fn commit_active(
   session: SessionSnapshot,
   profile: LoginProfile,
 ) -> Result<(), String> {
+  ensure_complete_profile(&profile)?;
   let lifecycle_version = state
     .lifecycle_version
     .lock()
@@ -361,6 +402,31 @@ fn active_profile(state: &LoginState) -> Result<Option<LoginProfile>, String> {
     .lock()
     .map_err(|_| "Unable to read the login state.".to_owned())?;
   Ok(active.as_ref().map(|login| login.profile.clone()))
+}
+
+fn validate_user_agent(user_agent: &str) -> Result<(), String> {
+  if user_agent.len() < 20
+    || user_agent.len() > MAX_USER_AGENT_BYTES
+    || !user_agent.is_ascii()
+    || user_agent.chars().any(char::is_control)
+  {
+    return Err(
+      "Enter the complete User-Agent from the browser that supplied the Cookie.".to_owned(),
+    );
+  }
+  Ok(())
+}
+
+fn is_complete_profile(profile: &LoginProfile) -> bool {
+  !profile.display_account.is_empty() && !profile.character_name.is_empty()
+}
+
+fn ensure_complete_profile(profile: &LoginProfile) -> Result<(), String> {
+  if is_complete_profile(profile) {
+    Ok(())
+  } else {
+    Err("Login verification returned no bound character.".to_owned())
+  }
 }
 
 fn authenticated_status(profile: LoginProfile) -> LoginStatus {
@@ -479,6 +545,13 @@ async fn run_sidecar(request: serde_json::Value) -> Result<SidecarResponse, Stri
 mod tests {
   use super::*;
 
+  fn empty_session() -> SessionSnapshot {
+    SessionSnapshot {
+      cookies: vec![],
+      user_agent: None,
+    }
+  }
+
   #[test]
   fn login_state_starts_without_credentials() {
     let state = LoginState::default();
@@ -497,6 +570,18 @@ mod tests {
   }
 
   #[test]
+  fn session_snapshot_uses_the_python_user_agent_field_name() {
+    let session = SessionSnapshot {
+      cookies: vec![],
+      user_agent: Some("test-user-agent".to_owned()),
+    };
+    let serialized = serde_json::to_value(session).unwrap();
+
+    assert_eq!(serialized["userAgent"], "test-user-agent");
+    assert!(serialized.get("user_agent").is_none());
+  }
+
+  #[test]
   fn clearing_local_data_resets_every_in_memory_login_value() {
     let state = LoginState::default();
     state.next_id.store(42, Ordering::Relaxed);
@@ -505,11 +590,11 @@ mod tests {
       id: 41,
       kind: PendingKind::Qr,
       started_at: Instant::now(),
-      session: SessionSnapshot { cookies: vec![] },
+      session: empty_session(),
       biz_context: "test-context".to_owned(),
     });
     *state.active.lock().unwrap() = Some(ActiveLogin {
-      session: SessionSnapshot { cookies: vec![] },
+      session: empty_session(),
       profile: LoginProfile {
         display_account: "test-account".to_owned(),
         character_name: "test-character".to_owned(),
@@ -535,12 +620,42 @@ mod tests {
     let result = commit_active(
       &state,
       lifecycle_version,
-      SessionSnapshot { cookies: vec![] },
+      empty_session(),
       LoginProfile {
         display_account: "test-account".to_owned(),
         character_name: "test-character".to_owned(),
         area_name: "test-area".to_owned(),
         group_name: "test-group".to_owned(),
+      },
+    );
+
+    assert!(result.is_err());
+    assert!(state.active.lock().unwrap().is_none());
+  }
+
+  #[test]
+  fn validates_browser_user_agents_without_accepting_header_injection() {
+    assert!(validate_user_agent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/151 Safari/537.36"
+    )
+    .is_ok());
+    assert!(validate_user_agent("Mozilla/5.0\r\nCookie: secret").is_err());
+    assert!(validate_user_agent("short").is_err());
+  }
+
+  #[test]
+  fn refuses_to_commit_an_account_without_a_bound_character() {
+    let state = LoginState::default();
+    let lifecycle_version = current_lifecycle_version(&state).unwrap();
+    let result = commit_active(
+      &state,
+      lifecycle_version,
+      empty_session(),
+      LoginProfile {
+        display_account: "test-account".to_owned(),
+        character_name: String::new(),
+        area_name: String::new(),
+        group_name: String::new(),
       },
     );
 

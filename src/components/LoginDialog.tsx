@@ -1,12 +1,13 @@
 /**
  * 盛趣登录弹窗：提供叨鱼一键确认、二维码扫描和受风险确认保护的 Cookie 登录。
- * 所有成功状态均来自后端对石之家 isLogin 接口的二次验证。
+ * 登录成功必须同时通过账号验证与石之家官方角色绑定检查。
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckCircle,
   Cookie,
   DeviceMobile,
+  IdentificationCard,
   QrCode,
   ShieldWarning,
   SpinnerGap,
@@ -46,9 +47,13 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
   const [method, setMethod] = useState<LoginMethod>("push");
   const [account, setAccount] = useState("");
   const [cookie, setCookie] = useState("");
+  const [userAgent, setUserAgent] = useState("");
   const [riskAccepted, setRiskAccepted] = useState(hasAcceptedCookieLoginRisk);
-  const [cookieAccessGranted, setCookieAccessGranted] = useState(false);
+  const [cookieAccessGranted, setCookieAccessGranted] = useState(
+    hasAcceptedCookieLoginRisk,
+  );
   const [activeLogin, setActiveLogin] = useState<ActiveLogin | null>(null);
+  const [bindingRequired, setBindingRequired] = useState(false);
   const [progress, setProgress] = useState<LoginProgress | null>(null);
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [profile, setProfile] = useState<LoginProfile | null>(null);
@@ -94,6 +99,11 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
             : await pollQrLogin(activeLogin.id);
         if (cancelled) return;
         setProgress(result.status);
+        if (result.status === "binding_required") {
+          setActiveLogin(null);
+          setBindingRequired(true);
+          return;
+        }
         if (result.status === "success" && result.profile) {
           setProfile(result.profile);
           setActiveLogin(null);
@@ -116,16 +126,16 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
   }, [activeLogin, onSuccess]);
 
   const switchMethod = async (nextMethod: LoginMethod) => {
-    if (nextMethod === method) return;
+    if (nextMethod === method && !bindingRequired) return;
     if (activeLogin)
       await cancelSdoLogin(activeLogin.id).catch(() => undefined);
     setMethod(nextMethod);
     setActiveLogin(null);
+    setBindingRequired(false);
     setProgress(null);
     setQrImage(null);
     setProfile(null);
     setError(null);
-    // setCookieAccessGranted(false);
   };
 
   const updateRiskAcceptance = (accepted: boolean) => {
@@ -166,7 +176,13 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
     setBusy(true);
     setError(null);
     try {
-      const result = await loginWithCookie(cookie.trim());
+      const result = await loginWithCookie(cookie.trim(), userAgent.trim());
+      if (result.status === "binding_required") {
+        setCookie("");
+        setProgress("binding_required");
+        setBindingRequired(true);
+        return;
+      }
       if (result.status !== "success" || !result.profile)
         throw new Error("登录验证未返回账号资料");
       setCookie("");
@@ -233,6 +249,8 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
         <div className="login-content">
           {profile ? (
             <LoginSuccess profile={profile} onDone={() => void closeDialog()} />
+          ) : bindingRequired ? (
+            <CharacterBindingRequired onDone={() => void closeDialog()} />
           ) : method === "push" ? (
             <div className="login-pane" role="tabpanel">
               <BrowserSessionWarning />
@@ -327,8 +345,10 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
           ) : cookieAccessGranted ? (
             <CookieLoginForm
               cookie={cookie}
+              userAgent={userAgent}
               busy={busy}
               onCookieChange={setCookie}
+              onUserAgentChange={setUserAgent}
               onReviewRisk={() => setCookieAccessGranted(false)}
               onLogin={beginCookie}
             />
@@ -346,6 +366,23 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function CharacterBindingRequired({ onDone }: { onDone: () => void }) {
+  return (
+    <div className="login-pane binding-required" role="status">
+      <IdentificationCard weight="duotone" />
+      <span>尚未绑定角色</span>
+      <h3>请先在石之家官网绑定角色</h3>
+      <div className="binding-required-copy">
+        <p>当前盛趣账号已经通过验证，但石之家没有返回可用角色。</p>
+        <p>请在官网完成角色绑定后，再回到 App 重新登录。</p>
+      </div>
+      <button className="login-primary" type="button" onClick={onDone}>
+        知道了
+      </button>
     </div>
   );
 }
@@ -398,14 +435,18 @@ function CookieRiskGate({
 
 function CookieLoginForm({
   cookie,
+  userAgent,
   busy,
   onCookieChange,
+  onUserAgentChange,
   onReviewRisk,
   onLogin,
 }: {
   cookie: string;
+  userAgent: string;
   busy: boolean;
   onCookieChange: (cookie: string) => void;
+  onUserAgentChange: (userAgent: string) => void;
   onReviewRisk: () => void;
   onLogin: () => Promise<void>;
 }) {
@@ -421,6 +462,20 @@ function CookieLoginForm({
         </button>
       </div>
       <label className="login-field">
+        User-Agent
+        <input
+          value={userAgent}
+          onChange={(event) => onUserAgentChange(event.target.value)}
+          placeholder="粘贴获取 Cookie 时浏览器的 User-Agent"
+          spellCheck={false}
+          autoComplete="off"
+          disabled={busy}
+        />
+        <span className="login-field-hint">
+          必须与 Cookie 来源浏览器一致，否则石之家会拒绝该会话。
+        </span>
+      </label>
+      <label className="login-field">
         Cookie
         <textarea
           value={cookie}
@@ -429,12 +484,13 @@ function CookieLoginForm({
           rows={5}
           spellCheck={false}
           autoComplete="off"
+          disabled={busy}
         />
       </label>
       <button
         className="login-primary"
         type="button"
-        disabled={busy || !cookie.trim()}
+        disabled={busy || !cookie.trim() || !userAgent.trim()}
         onClick={() => void onLogin()}
       >
         {busy ? (

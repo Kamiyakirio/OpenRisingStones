@@ -619,6 +619,12 @@ textarea:focus-visible {
   color: var(--muted);
   opacity: 0.78;
 }
+.login-field-hint {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.55;
+}
 .login-primary,
 .login-secondary {
   display: inline-flex;
@@ -827,6 +833,46 @@ textarea:focus-visible {
 .theme-dark .login-error {
   color: #f1b4aa;
   background: #402824;
+}
+.binding-required {
+  justify-items: center;
+  padding: 6px 0 2px;
+  text-align: center;
+}
+.binding-required > svg {
+  width: 52px;
+  height: 52px;
+  color: var(--accent);
+}
+.binding-required > span {
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 750;
+}
+.binding-required h3 {
+  margin: -8px 0 0;
+  font-family: "Songti SC", "Noto Serif CJK SC", serif;
+  font-size: 23px;
+}
+.binding-required-copy {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border-radius: 10px;
+  color: var(--muted);
+  background: var(--surface-2);
+  text-align: left;
+}
+.binding-required-copy p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.binding-required-copy p + p {
+  margin-top: 6px;
+}
+.binding-required .login-primary {
+  width: 100%;
 }
 .login-success {
   display: grid;

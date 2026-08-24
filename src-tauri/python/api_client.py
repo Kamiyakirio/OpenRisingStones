@@ -39,6 +39,10 @@ GLAMOUR_LIST_URL = (
 GLAMOUR_DETAIL_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/glamour/glamourDetail"
 )
+CHARACTER_BINDING_URL = (
+    "https://apiff14risingstones.web.sdo.com/api/home/"
+    "groupAndRole/getCharacterBindInfo"
+)
 SERVICE_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/GHome/login"
     "?redirectUrl=https://ff14risingstones.web.sdo.com/pc/index.html"
@@ -54,8 +58,10 @@ APP_ID = 6788
 AREA_ID = 1
 PENDING_PUSH_CODE = -10516808
 PENDING_QR_CODE = -10515805
+UNBOUND_CHARACTER_CODES = {10103, 10104}
 MAX_COOKIE_BYTES = 16 * 1024
 MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+MAX_USER_AGENT_BYTES = 512
 
 BASE_HEADERS = {
     "Accept": "application/json, text/plain, */*",
@@ -75,14 +81,41 @@ class ApiClientError(RuntimeError):
     """A safe error that may be returned to Rust without leaking request details."""
 
 
+def normalize_user_agent(user_agent: str | None) -> str:
+    """Validate an imported browser identity before using it in request headers."""
+    if user_agent is None:
+        return BASE_HEADERS["User-Agent"]
+    if not isinstance(user_agent, str):
+        raise ApiClientError("The browser User-Agent is invalid.")
+    value = user_agent.strip()
+    if (
+        len(value) < 20
+        or len(value.encode("utf-8")) > MAX_USER_AGENT_BYTES
+        or not value.isascii()
+        or any(ord(character) < 32 or ord(character) == 127 for character in value)
+    ):
+        raise ApiClientError("The browser User-Agent is invalid.")
+    return value
+
+
 class ApiClient:
     """Own the fingerprinted session and enforce one network/error policy."""
 
-    def __init__(self, snapshot: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        snapshot: dict[str, Any] | None = None,
+        user_agent: str | None = None,
+    ) -> None:
         if requests is None:
             raise ApiClientError("curl_cffi is missing. Install python/requirements.txt.")
+        snapshot_user_agent = snapshot.get("userAgent") if snapshot else None
+        requested_user_agent = (
+            user_agent if user_agent is not None else snapshot_user_agent
+        )
+        self.user_agent = normalize_user_agent(requested_user_agent)
+        self.base_headers = {**BASE_HEADERS, "User-Agent": self.user_agent}
         self.session = requests.Session(impersonate="chrome", default_headers=False)
-        self.session.headers.update(BASE_HEADERS)
+        self.session.headers.update(self.base_headers)
         self._restore_cookies(snapshot)
 
     def _restore_cookies(self, snapshot: dict[str, Any] | None) -> None:
@@ -121,7 +154,7 @@ class ApiClient:
                     "secure": cookie.secure,
                 }
             )
-        return {"cookies": cookies}
+        return {"cookies": cookies, "userAgent": self.user_agent}
 
     def request(
         self,
@@ -134,7 +167,7 @@ class ApiClient:
         error_message: str = "The remote service request failed.",
         **kwargs: Any,
     ) -> Any:
-        merged_headers = {**BASE_HEADERS, **(headers or {})}
+        merged_headers = {**self.base_headers, **(headers or {})}
         try:
             response = self.session.request(
                 method,
@@ -375,8 +408,7 @@ def login_with_cookie(client: ApiClient, cookie_header: str) -> dict[str, Any]:
             path="/",
             secure=True,
         )
-    profile = verify_login(client)
-    return {"status": "success", "session": client.snapshot(), "profile": profile}
+    return finalize_authenticated_login(client)
 
 
 def prime_cookie_login_session(client: ApiClient) -> None:
@@ -410,8 +442,7 @@ def parse_cookie_header(cookie_header: str) -> list[tuple[str, str]]:
 
 def restore_session(client: ApiClient) -> dict[str, Any]:
     """Revalidate a decrypted local session before accepting it."""
-    profile = verify_login(client)
-    return {"status": "success", "session": client.snapshot(), "profile": profile}
+    return finalize_authenticated_login(client)
 
 
 def finish_ticket_login(
@@ -441,12 +472,11 @@ def finish_ticket_login(
         accepted_statuses=(200, 302),
         error_message="The Rising Stones login ticket could not be redeemed.",
     )
-    profile = verify_login(client)
-    return {"status": "success", "session": client.snapshot(), "profile": profile}
+    return finalize_authenticated_login(client)
 
 
-def verify_login(client: ApiClient) -> dict[str, str]:
-    """Accept a login only when isLogin returns a valid account profile."""
+def verify_login(client: ApiClient) -> tuple[dict[str, str], bool]:
+    """Return the account summary and whether isLogin itself requires binding."""
     response = client.request(
         "GET",
         LOGIN_STATUS_URL,
@@ -457,14 +487,82 @@ def verify_login(client: ApiClient) -> dict[str, str]:
         response, "The Rising Stones login endpoint returned invalid data."
     )
     data = payload.get("data")
-    if payload.get("code") != 10000 or not isinstance(data, dict) or not data.get("displayAccount"):
+    if payload.get("code") in UNBOUND_CHARACTER_CODES:
+        return (
+            {
+                "displayAccount": str(
+                    data.get("displayAccount", "") if isinstance(data, dict) else ""
+                ),
+                "characterName": "",
+                "areaName": "",
+                "groupName": "",
+            },
+            True,
+        )
+    if (
+        payload.get("code") not in (10000, 10002)
+        or not isinstance(data, dict)
+        or not data.get("displayAccount")
+    ):
         raise ApiClientError("The cookie is invalid or expired.")
+    return (
+        {
+            "displayAccount": str(data.get("displayAccount", "")),
+            "characterName": str(data.get("character_name", "")),
+            "areaName": str(data.get("area_name", "")),
+            "groupName": str(data.get("group_name", "")),
+        },
+        False,
+    )
+
+
+def finalize_authenticated_login(client: ApiClient) -> dict[str, Any]:
+    """Require both account authentication and the official character context."""
+    account_profile, binding_required = verify_login(client)
+    if binding_required:
+        return {
+            "status": "binding_required",
+            "session": client.snapshot(),
+            "profile": account_profile,
+        }
+    character = get_character_binding(client)
+    if character is None:
+        return {
+            "status": "binding_required",
+            "session": client.snapshot(),
+            "profile": account_profile,
+        }
     return {
-        "displayAccount": str(data.get("displayAccount", "")),
-        "characterName": str(data.get("character_name", "")),
-        "areaName": str(data.get("area_name", "")),
-        "groupName": str(data.get("group_name", "")),
+        "status": "success",
+        "session": client.snapshot(),
+        "profile": {
+            "displayAccount": account_profile["displayAccount"],
+            "characterName": str(character.get("character_name", "")),
+            "areaName": str(character.get("area_name", "")),
+            "groupName": str(character.get("group_name", "")),
+        },
     }
+
+
+def get_character_binding(client: ApiClient) -> dict[str, Any] | None:
+    """Return the current platform binding, or None when the account must choose one."""
+    response = client.request(
+        "GET",
+        CHARACTER_BINDING_URL,
+        params={"platform": 2},
+        error_message="Unable to read the bound Rising Stones character.",
+    )
+    payload = client.parse_json(
+        response, "The character binding endpoint returned invalid data."
+    )
+    data = payload.get("data")
+    if payload.get("code") in UNBOUND_CHARACTER_CODES:
+        return None
+    if payload.get("code") not in (10000, 10002):
+        raise ApiClientError("Unable to read the bound Rising Stones character.")
+    if not isinstance(data, dict) or not data.get("character_name"):
+        return None
+    return data
 
 
 def pending_result(
@@ -551,7 +649,7 @@ def fetch_glamour_detail(client: ApiClient, request: dict[str, Any]) -> dict[str
 def main() -> None:
     request = json.load(sys.stdin)
     operation = request.get("operation")
-    client = ApiClient(request.get("session"))
+    client = ApiClient(request.get("session"), request.get("userAgent"))
     if operation == "startPush":
         result = start_push(client, request["account"])
     elif operation == "pollPush":
