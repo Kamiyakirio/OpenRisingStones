@@ -28,3 +28,5 @@ src-tauri/binaries/
 .agents/*
 !.agents/skills/
 !.agents/skills/**
+
+prompt.md
