@@ -65,8 +65,12 @@ mod platform {
     transform(&protected, false).map(Some)
   }
 
-  pub fn clear(path: &Path) {
-    let _ = fs::remove_file(path);
+  pub fn clear(path: &Path) -> Result<(), String> {
+    match fs::remove_file(path) {
+      Ok(()) => Ok(()),
+      Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+      Err(_) => Err("Unable to clear the protected session.".to_owned()),
+    }
   }
 
   fn transform(input: &[u8], encrypt: bool) -> Result<Vec<u8>, String> {
@@ -256,7 +260,7 @@ mod platform {
     Ok(Some(value))
   }
 
-  pub fn clear(_path: &Path) {
+  pub fn clear(_path: &Path) -> Result<(), String> {
     let mut item = ptr::null_mut();
     let status = unsafe {
       SecKeychainFindGenericPassword(
@@ -270,12 +274,15 @@ mod platform {
         &mut item,
       )
     };
-    if status == 0 {
-      unsafe {
-        SecKeychainItemDelete(item);
-        CFRelease(item.cast_const());
-      }
+    if status == ERR_SEC_ITEM_NOT_FOUND {
+      return Ok(());
     }
+    if status != 0 || item.is_null() {
+      return Err("Unable to access the macOS Keychain.".to_owned());
+    }
+    let delete_status = unsafe { SecKeychainItemDelete(item) };
+    unsafe { CFRelease(item.cast_const()) };
+    status_result(delete_status, "Unable to clear the Keychain session.")
   }
 
   fn status_result(status: i32, message: &str) -> Result<(), String> {
@@ -299,7 +306,9 @@ mod platform {
     Err("Secure session storage is not supported on this platform.".to_owned())
   }
 
-  pub fn clear(_path: &Path) {}
+  pub fn clear(_path: &Path) -> Result<(), String> {
+    Ok(())
+  }
 }
 
 pub use platform::{clear, load, save};

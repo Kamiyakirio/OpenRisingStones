@@ -48,7 +48,7 @@
 }
 
 .home-brand-mark,
-.home-theme-toggle {
+.home-header-button {
   display: grid;
   place-items: center;
   width: 38px;
@@ -64,7 +64,7 @@
 }
 
 .home-brand-mark svg,
-.home-theme-toggle svg {
+.home-header-button svg {
   width: 19px;
   height: 19px;
 }
@@ -75,7 +75,13 @@
   letter-spacing: -0.035em;
 }
 
-.home-theme-toggle {
+.home-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-header-button {
   border: 1px solid var(--line);
   color: var(--muted);
   background: var(--surface);
@@ -85,12 +91,12 @@
     transform 180ms ease;
 }
 
-.home-theme-toggle:hover {
+.home-header-button:hover {
   border-color: var(--home-accent);
   color: var(--home-accent);
 }
 
-.home-theme-toggle:active {
+.home-header-button:active {
   transform: scale(0.96);
 }
 

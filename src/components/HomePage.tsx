@@ -2,6 +2,7 @@
 import {
   ArrowUpRight,
   CoatHanger,
+  GearSix,
   LockSimple,
   MapTrifold,
   Moon,
@@ -15,12 +16,14 @@ import "./HomePage.css";
 type HomePageProps = {
   dark: boolean;
   onOpenGlamour: () => void;
+  onOpenSettings: () => void;
   onToggleTheme: () => void;
 };
 
 export function HomePage({
   dark,
   onOpenGlamour,
+  onOpenSettings,
   onToggleTheme,
 }: HomePageProps) {
   return (
@@ -32,14 +35,24 @@ export function HomePage({
           </span>
           <strong>OpenRisingStone</strong>
         </a>
-        <button
-          className="home-theme-toggle"
-          type="button"
-          aria-label={dark ? "切换浅色主题" : "切换深色主题"}
-          onClick={onToggleTheme}
-        >
-          {dark ? <Sun /> : <Moon />}
-        </button>
+        <div className="home-header-actions">
+          <button
+            className="home-header-button"
+            type="button"
+            aria-label="打开设置"
+            onClick={onOpenSettings}
+          >
+            <GearSix />
+          </button>
+          <button
+            className="home-header-button"
+            type="button"
+            aria-label={dark ? "切换浅色主题" : "切换深色主题"}
+            onClick={onToggleTheme}
+          >
+            {dark ? <Sun /> : <Moon />}
+          </button>
+        </div>
       </header>
 
       <section className="home-intro" aria-labelledby="home-heading">

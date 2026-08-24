@@ -102,6 +102,7 @@ struct ActiveLogin {
 
 pub struct LoginState {
   next_id: AtomicU64,
+  lifecycle_version: Mutex<u64>,
   pending: Mutex<Option<PendingLogin>>,
   active: Mutex<Option<ActiveLogin>>,
   storage_path: Option<PathBuf>,
@@ -111,6 +112,7 @@ impl Default for LoginState {
   fn default() -> Self {
     Self {
       next_id: AtomicU64::new(1),
+      lifecycle_version: Mutex::new(0),
       pending: Mutex::new(None),
       active: Mutex::new(None),
       storage_path: None,
@@ -129,6 +131,7 @@ impl LoginState {
 
 #[tauri::command]
 pub async fn sdo_login_status(state: State<'_, LoginState>) -> Result<LoginStatus, String> {
+  let lifecycle_version = current_lifecycle_version(&state)?;
   if let Some(profile) = active_profile(&state)? {
     return Ok(authenticated_status(profile));
   }
@@ -136,7 +139,7 @@ pub async fn sdo_login_status(state: State<'_, LoginState>) -> Result<LoginStatu
   let stored_session = match load_stored_session(&state) {
     Ok(session) => session,
     Err(_) => {
-      clear_stored_session(&state);
+      let _ = clear_stored_session(&state);
       None
     }
   };
@@ -156,7 +159,7 @@ pub async fn sdo_login_status(state: State<'_, LoginState>) -> Result<LoginStatu
   let Some(profile) = response.profile else {
     return Ok(unauthenticated_status());
   };
-  commit_active(&state, response.session, profile.clone())?;
+  commit_active(&state, lifecycle_version, response.session, profile.clone())?;
   Ok(authenticated_status(profile))
 }
 
@@ -169,14 +172,16 @@ pub async fn sdo_start_push_login(
   if account.len() < 5 || account.len() > 64 || account.chars().any(char::is_control) {
     return Err("Enter a valid SDO account or mobile number.".to_owned());
   }
+  let lifecycle_version = current_lifecycle_version(&state)?;
   let response = run_sidecar(json!({ "operation": "startPush", "account": account })).await?;
-  store_pending(&state, PendingKind::Push, response)
+  store_pending(&state, lifecycle_version, PendingKind::Push, response)
 }
 
 #[tauri::command]
 pub async fn sdo_start_qr_login(state: State<'_, LoginState>) -> Result<LoginStart, String> {
+  let lifecycle_version = current_lifecycle_version(&state)?;
   let response = run_sidecar(json!({ "operation": "startQr" })).await?;
-  store_pending(&state, PendingKind::Qr, response)
+  store_pending(&state, lifecycle_version, PendingKind::Qr, response)
 }
 
 #[tauri::command]
@@ -204,11 +209,12 @@ pub async fn sdo_login_with_cookie(
   {
     return Err("The cookie is empty, too long, or contains a line break.".to_owned());
   }
+  let lifecycle_version = current_lifecycle_version(&state)?;
   let response = run_sidecar(json!({ "operation": "cookieLogin", "cookie": cookie })).await?;
   let profile = response
     .profile
     .ok_or_else(|| "Login verification returned no account profile.".to_owned())?;
-  commit_active(&state, response.session, profile.clone())?;
+  commit_active(&state, lifecycle_version, response.session, profile.clone())?;
   Ok(LoginPoll {
     status: "success".to_owned(),
     profile: Some(profile),
@@ -227,14 +233,26 @@ pub fn sdo_cancel_login(login_id: u64, state: State<'_, LoginState>) -> Result<(
   Ok(())
 }
 
+/// Remove persisted credentials and reset every in-memory login state value.
+#[tauri::command]
+pub fn clear_all_local_data(state: State<'_, LoginState>) -> Result<(), String> {
+  clear_all_local_data_inner(&state)
+}
+
 fn store_pending(
-  state: &State<'_, LoginState>,
+  state: &LoginState,
+  expected_lifecycle_version: u64,
   kind: PendingKind,
   response: SidecarResponse,
 ) -> Result<LoginStart, String> {
   let biz_context = response
     .biz_context
     .ok_or_else(|| "The SDO response is missing session data.".to_owned())?;
+  let lifecycle_version = state
+    .lifecycle_version
+    .lock()
+    .map_err(|_| "Unable to read the login lifecycle.".to_owned())?;
+  ensure_current_lifecycle(*lifecycle_version, expected_lifecycle_version)?;
   let id = state.next_id.fetch_add(1, Ordering::Relaxed);
   let start = LoginStart {
     login_id: id,
@@ -260,6 +278,7 @@ async fn poll_login(
   kind: PendingKind,
   state: &State<'_, LoginState>,
 ) -> Result<LoginPoll, String> {
+  let lifecycle_version = current_lifecycle_version(state)?;
   let pending = state
     .pending
     .lock()
@@ -300,7 +319,7 @@ async fn poll_login(
     let session = response.session;
     *current = None;
     drop(current);
-    commit_active(state, session, profile.clone())?;
+    commit_active(state, lifecycle_version, session, profile.clone())?;
     return Ok(LoginPoll {
       status: "success".to_owned(),
       profile: Some(profile),
@@ -317,10 +336,16 @@ async fn poll_login(
 }
 
 fn commit_active(
-  state: &State<'_, LoginState>,
+  state: &LoginState,
+  expected_lifecycle_version: u64,
   session: SessionSnapshot,
   profile: LoginProfile,
 ) -> Result<(), String> {
+  let lifecycle_version = state
+    .lifecycle_version
+    .lock()
+    .map_err(|_| "Unable to read the login lifecycle.".to_owned())?;
+  ensure_current_lifecycle(*lifecycle_version, expected_lifecycle_version)?;
   persist_session(state.storage_path.as_deref(), &session)?;
   *state
     .active
@@ -330,7 +355,7 @@ fn commit_active(
   Ok(())
 }
 
-fn active_profile(state: &State<'_, LoginState>) -> Result<Option<LoginProfile>, String> {
+fn active_profile(state: &LoginState) -> Result<Option<LoginProfile>, String> {
   let active = state
     .active
     .lock()
@@ -390,13 +415,48 @@ pub(crate) fn current_session(state: &LoginState) -> Result<Option<SessionSnapsh
   load_stored_session(state)
 }
 
-fn clear_stored_session(state: &State<'_, LoginState>) {
+fn clear_stored_session(state: &LoginState) -> Result<(), String> {
   if let Some(path) = state.storage_path.as_deref() {
-    secure_storage::clear(path);
+    secure_storage::clear(path)?;
   }
+  Ok(())
 }
 
-fn clear_pending(state: &State<'_, LoginState>, login_id: u64) -> Result<(), String> {
+fn clear_all_local_data_inner(state: &LoginState) -> Result<(), String> {
+  let mut lifecycle_version = state
+    .lifecycle_version
+    .lock()
+    .map_err(|_| "Unable to update the login lifecycle.".to_owned())?;
+  *lifecycle_version = lifecycle_version.wrapping_add(1);
+  clear_stored_session(state)?;
+  *state
+    .pending
+    .lock()
+    .map_err(|_| "Unable to clear the pending login session.".to_owned())? = None;
+  *state
+    .active
+    .lock()
+    .map_err(|_| "Unable to clear the active login session.".to_owned())? = None;
+  state.next_id.store(1, Ordering::Relaxed);
+  Ok(())
+}
+
+fn current_lifecycle_version(state: &LoginState) -> Result<u64, String> {
+  state
+    .lifecycle_version
+    .lock()
+    .map(|version| *version)
+    .map_err(|_| "Unable to read the login lifecycle.".to_owned())
+}
+
+fn ensure_current_lifecycle(current: u64, expected: u64) -> Result<(), String> {
+  if current != expected {
+    return Err("The login state was cleared. Start again.".to_owned());
+  }
+  Ok(())
+}
+
+fn clear_pending(state: &LoginState, login_id: u64) -> Result<(), String> {
   let mut pending = state
     .pending
     .lock()
@@ -434,5 +494,57 @@ mod tests {
     };
     let serialized = serde_json::to_string(&status).unwrap();
     assert!(!serialized.contains("cookies"));
+  }
+
+  #[test]
+  fn clearing_local_data_resets_every_in_memory_login_value() {
+    let state = LoginState::default();
+    state.next_id.store(42, Ordering::Relaxed);
+    *state.lifecycle_version.lock().unwrap() = 7;
+    *state.pending.lock().unwrap() = Some(PendingLogin {
+      id: 41,
+      kind: PendingKind::Qr,
+      started_at: Instant::now(),
+      session: SessionSnapshot { cookies: vec![] },
+      biz_context: "test-context".to_owned(),
+    });
+    *state.active.lock().unwrap() = Some(ActiveLogin {
+      session: SessionSnapshot { cookies: vec![] },
+      profile: LoginProfile {
+        display_account: "test-account".to_owned(),
+        character_name: "test-character".to_owned(),
+        area_name: "test-area".to_owned(),
+        group_name: "test-group".to_owned(),
+      },
+    });
+
+    clear_all_local_data_inner(&state).unwrap();
+
+    assert_eq!(state.next_id.load(Ordering::Relaxed), 1);
+    assert_eq!(*state.lifecycle_version.lock().unwrap(), 8);
+    assert!(state.pending.lock().unwrap().is_none());
+    assert!(state.active.lock().unwrap().is_none());
+  }
+
+  #[test]
+  fn cleared_state_rejects_an_in_flight_login_result() {
+    let state = LoginState::default();
+    let lifecycle_version = current_lifecycle_version(&state).unwrap();
+
+    clear_all_local_data_inner(&state).unwrap();
+    let result = commit_active(
+      &state,
+      lifecycle_version,
+      SessionSnapshot { cookies: vec![] },
+      LoginProfile {
+        display_account: "test-account".to_owned(),
+        character_name: "test-character".to_owned(),
+        area_name: "test-area".to_owned(),
+        group_name: "test-group".to_owned(),
+      },
+    );
+
+    assert!(result.is_err());
+    assert!(state.active.lock().unwrap().is_none());
   }
 }

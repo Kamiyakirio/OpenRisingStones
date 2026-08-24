@@ -1,6 +1,7 @@
 /** Primary navigation, theme control, and account entry point. */
 import {
   Bell,
+  GearSix,
   Moon,
   Sparkle,
   Sun,
@@ -15,6 +16,7 @@ type AppHeaderProps = {
   onGoHome: () => void;
   onToggleTheme: () => void;
   onOpenLogin: () => void;
+  onOpenSettings: () => void;
 };
 
 export function AppHeader({
@@ -23,6 +25,7 @@ export function AppHeader({
   onGoHome,
   onToggleTheme,
   onOpenLogin,
+  onOpenSettings,
 }: AppHeaderProps) {
   return (
     <header className="site-header">
@@ -48,6 +51,14 @@ export function AppHeader({
         <a href="#collections">收藏夹</a>
       </nav>
       <div className="header-actions">
+        <button
+          className="icon-button"
+          type="button"
+          aria-label="打开设置"
+          onClick={onOpenSettings}
+        >
+          <GearSix />
+        </button>
         <button
           className="icon-button"
           type="button"

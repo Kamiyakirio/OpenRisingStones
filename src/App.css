@@ -4,7 +4,7 @@
  */
 :root {
   --ink: #1e2a2d;
-  --muted: #677477;
+  --muted: #627073;
   --paper: #f4f6f3;
   --surface: #fbfcfa;
   --surface-2: #e7ece9;
@@ -14,6 +14,10 @@
   --accent-soft: #eadbc6;
   --home-accent: #478f91;
   --home-accent-strong: #2f7477;
+  --danger: #9f443a;
+  --danger-strong: #7f342d;
+  --danger-soft: #f6e3df;
+  --danger-line: #dba59e;
   --shadow: 0 18px 52px rgba(50, 72, 72, 0.12);
 }
 
@@ -38,6 +42,10 @@
   --accent-soft: #493925;
   --home-accent: #79c4c2;
   --home-accent-strong: #91d5d2;
+  --danger: #e6a097;
+  --danger-strong: #8f3d35;
+  --danger-soft: #3e2926;
+  --danger-line: #744b46;
   --shadow: 0 20px 60px rgba(0, 0, 0, 0.26);
 }
 
@@ -200,6 +208,223 @@ textarea:focus-visible {
 }
 .profile-button.authenticated {
   color: var(--accent-strong);
+}
+
+/* Settings uses the existing paper surface, with red reserved for destructive actions. */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(18, 28, 28, 0.56);
+  backdrop-filter: blur(8px);
+}
+.settings-dialog {
+  width: min(560px, 100%);
+  max-height: min(720px, calc(100dvh - 44px));
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 28px 90px rgba(14, 27, 28, 0.28);
+}
+.settings-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 26px 28px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-dialog-header span {
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+}
+.settings-dialog-header h2 {
+  margin: 5px 0 0;
+  font-family: "Songti SC", "Noto Serif CJK SC", serif;
+  font-size: 28px;
+}
+.settings-dialog-header .dialog-close:disabled {
+  cursor: wait;
+  opacity: 0.45;
+}
+.settings-content {
+  padding: 26px 28px 30px;
+}
+.settings-section {
+  display: grid;
+  gap: 24px;
+}
+.settings-section-intro {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.settings-section-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--accent-strong);
+  background: var(--paper);
+}
+.settings-section-icon svg {
+  width: 23px;
+  height: 23px;
+}
+.settings-section h3,
+.settings-confirmation h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.settings-section p,
+.settings-confirmation p,
+.settings-data-item p,
+.settings-danger-action p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.settings-data-scope {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.settings-data-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px 16px;
+}
+.settings-data-item + .settings-data-item {
+  border-top: 1px solid var(--line);
+}
+.settings-data-item > span {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+.settings-data-item svg {
+  width: 17px;
+  height: 17px;
+}
+.settings-data-item strong,
+.settings-danger-action strong {
+  font-size: 13px;
+}
+.settings-data-item p {
+  margin-top: 3px;
+}
+.settings-danger-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--danger-line);
+}
+.settings-danger-action strong {
+  color: var(--danger);
+}
+.settings-danger-button,
+.settings-cancel-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+.settings-danger-button {
+  border: 1px solid var(--danger-strong);
+  color: #fff8f6;
+  background: var(--danger-strong);
+}
+.settings-danger-button:not(:disabled):hover {
+  background: color-mix(in srgb, var(--danger-strong) 88%, #1e2a2d);
+}
+.settings-danger-button:not(:disabled):active,
+.settings-cancel-button:not(:disabled):active {
+  transform: translateY(1px) scale(0.985);
+}
+.settings-danger-button:disabled,
+.settings-cancel-button:disabled {
+  cursor: wait;
+  opacity: 0.52;
+}
+.settings-danger-button svg,
+.settings-cancel-button svg {
+  width: 16px;
+  height: 16px;
+}
+.settings-confirmation {
+  display: grid;
+  justify-items: center;
+  padding: 8px 10px 2px;
+  text-align: center;
+}
+.settings-confirmation > svg {
+  width: 46px;
+  height: 46px;
+  color: var(--danger);
+}
+.settings-confirmation h3 {
+  margin-top: 16px;
+}
+.settings-confirmation > p {
+  max-width: 38ch;
+  margin-top: 9px;
+}
+.settings-confirmation-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 26px;
+}
+.settings-cancel-button {
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: transparent;
+}
+.settings-cancel-button:not(:disabled):hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.settings-error {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 20px;
+  padding: 11px 13px;
+  border-left: 3px solid var(--danger);
+  border-radius: 0 9px 9px 0;
+  color: var(--danger);
+  background: var(--danger-soft);
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: left;
 }
 
 /* 登录弹窗延续页面的纸张与铜金视觉，警告色仅用于真实安全提示。 */
@@ -1442,11 +1667,13 @@ main {
     align-items: flex-start;
     flex-direction: column;
   }
-  .login-backdrop {
+  .login-backdrop,
+  .settings-backdrop {
     align-items: end;
     padding: 0;
   }
-  .login-dialog {
+  .login-dialog,
+  .settings-dialog {
     width: 100%;
     max-height: calc(100dvh - 18px);
     border-radius: 14px 14px 0 0;
@@ -1467,6 +1694,23 @@ main {
   .login-content {
     padding: 22px 20px 26px;
   }
+  .settings-dialog-header {
+    padding: 22px 20px 17px;
+  }
+  .settings-dialog-header h2 {
+    font-size: 25px;
+  }
+  .settings-content {
+    padding: 22px 20px 26px;
+  }
+  .settings-danger-action {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .settings-danger-action .settings-danger-button {
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -1478,7 +1722,8 @@ main {
     backdrop-filter: none;
     background: rgba(23, 34, 35, 0.86);
   }
-  .login-backdrop {
+  .login-backdrop,
+  .settings-backdrop {
     backdrop-filter: none;
   }
 }
@@ -1489,6 +1734,9 @@ main {
   }
   .hero-overview {
     animation: hero-enter 850ms 80ms both cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .settings-dialog {
+    animation: settings-dialog-enter 220ms both cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
@@ -1510,5 +1758,16 @@ main {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes settings-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

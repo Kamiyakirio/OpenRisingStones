@@ -7,6 +7,7 @@ import { GlamourHero } from "./components/GlamourHero";
 import { GlamourDetailView } from "./components/GlamourDetailView";
 import { HomePage } from "./components/HomePage";
 import { LoginDialog } from "./components/LoginDialog";
+import { SettingsDialog } from "./components/SettingsDialog";
 import { SiteFooter } from "./components/SiteFooter";
 import { useGlamourDiscovery } from "./hooks/useGlamourDiscovery";
 import type { Glamour } from "./services/glamourApi";
@@ -19,6 +20,7 @@ function App() {
     "home",
   );
   const [loginOpen, setLoginOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [loginProfile, setLoginProfile] = useState<LoginProfile | null>(null);
 
   useEffect(() => {
@@ -33,6 +35,7 @@ function App() {
         <HomePage
           dark={dark}
           onOpenGlamour={() => setActiveFeature("glamour")}
+          onOpenSettings={() => setSettingsOpen(true)}
           onToggleTheme={() => setDark((current) => !current)}
         />
       ) : (
@@ -44,8 +47,12 @@ function App() {
           onGoHome={() => setActiveFeature("home")}
           onToggleTheme={() => setDark((current) => !current)}
           onOpenLogin={() => setLoginOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
           onLoginSuccess={setLoginProfile}
         />
+      )}
+      {settingsOpen && (
+        <SettingsDialog onClose={() => setSettingsOpen(false)} />
       )}
     </div>
   );
@@ -59,6 +66,7 @@ type GlamourWorkspaceProps = {
   onGoHome: () => void;
   onToggleTheme: () => void;
   onOpenLogin: () => void;
+  onOpenSettings: () => void;
   onLoginSuccess: (profile: LoginProfile) => void;
 };
 
@@ -71,6 +79,7 @@ function GlamourWorkspace({
   onGoHome,
   onToggleTheme,
   onOpenLogin,
+  onOpenSettings,
   onLoginSuccess,
 }: GlamourWorkspaceProps) {
   const discovery = useGlamourDiscovery();
@@ -104,6 +113,7 @@ function GlamourWorkspace({
         onGoHome={onGoHome}
         onToggleTheme={onToggleTheme}
         onOpenLogin={onOpenLogin}
+        onOpenSettings={onOpenSettings}
       />
       {selectedGlamour ? (
         <GlamourDetailView

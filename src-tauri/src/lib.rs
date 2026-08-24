@@ -27,6 +27,7 @@ pub fn run() {
       glamour::fetch_glamour_detail,
       glamour::fetch_glamour_page,
       network::send_network_request,
+      sdo_login::clear_all_local_data,
       sdo_login::sdo_login_status,
       sdo_login::sdo_start_push_login,
       sdo_login::sdo_start_qr_login,
