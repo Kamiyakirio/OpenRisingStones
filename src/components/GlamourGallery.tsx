@@ -178,8 +178,8 @@ function GlamourCard({
           {item.race}
           <span />
           {item.job}
-          <span />
-          {item.palette}
+          {/* <span />
+          {item.palette} */}
         </p>
         <div className="card-footer">
           <span>by {item.author}</span>
