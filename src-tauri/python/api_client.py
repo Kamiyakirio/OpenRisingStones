@@ -41,6 +41,9 @@ GLAMOUR_LIST_URL = (
 GLAMOUR_DETAIL_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/glamour/glamourDetail"
 )
+GLAMOUR_SEARCH_URL = (
+    "https://apiff14risingstones.web.sdo.com/api/common/search"
+)
 CHARACTER_BINDING_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/"
     "groupAndRole/getCharacterBindInfo"
@@ -677,19 +680,33 @@ def now_ms() -> int:
 
 def fetch_glamour_page(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
     """Fetch one constrained glamour page with the authenticated API session."""
+    keywords = str(request.get("keywords") or "").strip()
     params = {
         "page": request["page"],
         "limit": request["limit"],
     }
     if request.get("order") is not None:
         params["order"] = request["order"]
-    if request.get("raceId") is not None:
-        params["race_id"] = request["raceId"]
-    if request.get("genderId") is not None:
-        params["gender_id"] = request["genderId"]
+    if keywords:
+        url = GLAMOUR_SEARCH_URL
+        params.update(
+            {
+                "type": 7,
+                "keywords": keywords,
+                "tempsuid": str(uuid.uuid4()),
+            }
+        )
+        if request.get("searchByEquipment") is True:
+            params["searchByEquipment"] = 1
+    else:
+        url = GLAMOUR_LIST_URL
+        if request.get("raceId") is not None:
+            params["race_id"] = request["raceId"]
+        if request.get("genderId") is not None:
+            params["gender_id"] = request["genderId"]
     response = client.request(
         "GET",
-        GLAMOUR_LIST_URL,
+        url,
         params=params,
         headers={
             "Referer": "https://ff14risingstones.web.sdo.com/pc/index.html#/glamour"

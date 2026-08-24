@@ -22,6 +22,8 @@ pub struct GlamourPageRequest {
   order: Option<String>,
   race_id: Option<u8>,
   gender_id: Option<u8>,
+  keywords: Option<String>,
+  search_by_equipment: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -48,6 +50,10 @@ struct SidecarRequest {
   race_id: Option<u8>,
   #[serde(skip_serializing_if = "Option::is_none")]
   gender_id: Option<u8>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  keywords: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  search_by_equipment: Option<bool>,
   session: SessionSnapshot,
 }
 
@@ -116,6 +122,15 @@ fn validate_request(request: &GlamourPageRequest) -> Result<(), String> {
   {
     return Err("The race or gender filter is invalid.".to_owned());
   }
+  if request.keywords.as_ref().is_some_and(|keywords| {
+    let trimmed = keywords.trim();
+    trimmed.is_empty() || trimmed.chars().count() > 80 || trimmed.chars().any(char::is_control)
+  }) {
+    return Err("The search keywords are invalid.".to_owned());
+  }
+  if request.search_by_equipment == Some(true) && request.keywords.is_none() {
+    return Err("Equipment search requires an equipment identifier.".to_owned());
+  }
   Ok(())
 }
 
@@ -123,6 +138,7 @@ fn run_python_client(
   request: GlamourPageRequest,
   session: SessionSnapshot,
 ) -> Result<GlamourPageResponse, String> {
+  let keywords = request.keywords.map(|value| value.trim().to_owned());
   python_sidecar::request(
     &SidecarRequest {
       operation: "fetchGlamourPage",
@@ -131,6 +147,8 @@ fn run_python_client(
       order: backend_order(request.order),
       race_id: request.race_id,
       gender_id: request.gender_id,
+      keywords,
+      search_by_equipment: request.search_by_equipment,
       session,
     },
     MAX_SIDECAR_RESPONSE_BYTES,
@@ -166,6 +184,8 @@ mod tests {
       order: Some("latest".to_owned()),
       race_id: None,
       gender_id: None,
+      keywords: None,
+      search_by_equipment: None,
     };
     assert!(validate_request(&request).is_ok());
     request.race_id = Some(1);
@@ -186,6 +206,8 @@ mod tests {
     assert_eq!(request.race_id, None);
     assert_eq!(request.gender_id, None);
     assert_eq!(request.order, None);
+    assert_eq!(request.keywords, None);
+    assert_eq!(request.search_by_equipment, None);
     assert!(validate_request(&request).is_ok());
   }
 
@@ -203,5 +225,30 @@ mod tests {
     let request = GlamourDetailRequest { id: 0 };
     assert!(validate_detail_request(&request).is_err());
     assert!(validate_detail_request(&GlamourDetailRequest { id: 287_009 }).is_ok());
+  }
+
+  #[test]
+  fn validates_title_search_keywords() {
+    let mut request = GlamourPageRequest {
+      page: 1,
+      limit: 20,
+      order: Some("latest".to_owned()),
+      race_id: None,
+      gender_id: None,
+      keywords: Some("summer".to_owned()),
+      search_by_equipment: None,
+    };
+    assert!(validate_request(&request).is_ok());
+
+    request.keywords = Some("   ".to_owned());
+    assert!(validate_request(&request).is_err());
+    request.keywords = Some("x".repeat(81));
+    assert!(validate_request(&request).is_err());
+
+    request.keywords = None;
+    request.search_by_equipment = Some(true);
+    assert!(validate_request(&request).is_err());
+    request.keywords = Some("1129".to_owned());
+    assert!(validate_request(&request).is_ok());
   }
 }

@@ -10,6 +10,8 @@ export type Glamour = {
   title: string;
   author: string;
   race: string;
+  raceIds: number[];
+  genderIds: number[];
   job: string;
   palette: string;
   image: string;
@@ -68,11 +70,15 @@ export async function fetchGlamours(options: {
   order: GlamourOrder;
   raceId: number | null;
   genderId: number | null;
+  keywords?: string;
+  searchByEquipment?: boolean;
 }): Promise<GlamourPage> {
   const filters = {
     ...(options.order === "latest" ? { order: "latest" } : {}),
     ...(options.raceId !== null ? { raceId: options.raceId } : {}),
     ...(options.genderId !== null ? { genderId: options.genderId } : {}),
+    ...(options.keywords ? { keywords: options.keywords } : {}),
+    ...(options.searchByEquipment ? { searchByEquipment: true } : {}),
   };
   const response = await invoke<NetworkResponse>("fetch_glamour_page", {
     request: {
@@ -102,11 +108,13 @@ export async function fetchGlamours(options: {
   const items = records
     .map((record, index) => toGlamour(record, index, options))
     .filter((item): item is Glamour => Boolean(item));
-  const loadedTotal = (options.page - 1) * (options.limit ?? 12) + items.length;
+  const pageSize = options.limit ?? 12;
+  const loadedCount = (options.page - 1) * pageSize + records.length;
+  const total = findTotal(payload) ?? loadedCount;
   return {
     items,
-    total: findTotal(payload) ?? loadedTotal,
-    hasMore: records.length === (options.limit ?? 12),
+    total,
+    hasMore: loadedCount < total,
   };
 }
 
@@ -156,13 +164,13 @@ function toGlamour(
 ): Glamour | null {
   const image = readImage(record);
   if (!image) return null;
+  const raceIds = readNumberArray(record, ["race_ids", "raceIds"]);
+  const genderIds = readNumberArray(record, ["gender_ids", "genderIds"]);
   const raceId =
-    readNumber(record, ["race_id", "raceId"]) ??
-    readFirstNumber(record, ["race_ids", "raceIds"]) ??
-    filters.raceId;
+    readNumber(record, ["race_id", "raceId"]) ?? raceIds[0] ?? filters.raceId;
   const genderId =
     readNumber(record, ["gender_id", "genderId"]) ??
-    readFirstNumber(record, ["gender_ids", "genderIds"]) ??
+    genderIds[0] ??
     filters.genderId;
   const raceName = readString(record, ["race_name", "raceName", "race"]);
   const genderName = readString(record, [
@@ -193,6 +201,8 @@ function toGlamour(
       ]
         .filter(Boolean)
         .join(" ") || "种族不限",
+    raceIds: raceIds.length ? raceIds : raceId ? [raceId] : [],
+    genderIds: genderIds.length ? genderIds : genderId ? [genderId] : [],
     job:
       readString(record, [
         "job_name",
@@ -227,6 +237,7 @@ function toGlamour(
 function toGlamourDetail(record: UnknownRecord): GlamourDetail {
   const mainImage = readImage(record);
   if (!mainImage) throw new Error("该投稿没有可显示的主图");
+  const raceIds = readNumberArray(record, ["race_ids", "raceIds"]);
   const raceRecords = readRecordArray(record.race_ids);
   const raceName = raceRecords
     .map((race) => readString(race, ["name"]))
@@ -269,6 +280,8 @@ function toGlamourDetail(record: UnknownRecord): GlamourDetail {
       readString(record, ["character_name", "nickname", "username"]) ??
       "匿名冒险者",
     race: [raceName, genderName].filter(Boolean).join(" ") || "种族不限",
+    raceIds,
+    genderIds,
     job: readNamedList(record.job_ids) || "全职业",
     palette: readPrimaryDye(equipment) ?? "配色未标注",
     image: mainImage,
@@ -359,17 +372,21 @@ function readImage(record: UnknownRecord) {
   return null;
 }
 
-function readFirstNumber(record: UnknownRecord, keys: string[]) {
+function readNumberArray(record: UnknownRecord, keys: string[]) {
   for (const key of keys) {
     const value = record[key];
-    if (!Array.isArray(value) || !value.length) continue;
-    const first = value[0];
-    if (typeof first === "number" && Number.isFinite(first)) return first;
-    if (typeof first === "string" && Number.isFinite(Number(first))) {
-      return Number(first);
-    }
+    if (!Array.isArray(value)) continue;
+    return value
+      .map((item) => {
+        if (typeof item === "number" && Number.isFinite(item)) return item;
+        if (typeof item === "string" && Number.isFinite(Number(item))) {
+          return Number(item);
+        }
+        return null;
+      })
+      .filter((item): item is number => item !== null);
   }
-  return null;
+  return [];
 }
 
 function normalizeImageUrl(value: string) {

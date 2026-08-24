@@ -9,6 +9,7 @@ from api_client import (
     ApiClient,
     ApiClientError,
     BASE_HEADERS,
+    GLAMOUR_SEARCH_URL,
     NETWORK_CONSOLE_PREFIX,
     fetch_glamour_detail,
     fetch_glamour_page,
@@ -178,6 +179,49 @@ class ApiClientTests(unittest.TestCase):
         _, _, arguments = session.arguments
         self.assertEqual(arguments["params"]["race_id"], 4)
         self.assertEqual(arguments["params"]["gender_id"], 2)
+
+    def test_glamour_title_search_uses_the_common_search_contract(self) -> None:
+        client, session = client_with(FakeResponse())
+
+        fetch_glamour_page(
+            client,
+            {
+                "page": 1,
+                "limit": 20,
+                "order": "latest",
+                "raceId": 4,
+                "genderId": 2,
+                "keywords": "summer",
+            },
+        )
+
+        _, url, arguments = session.arguments
+        self.assertEqual(url, GLAMOUR_SEARCH_URL)
+        self.assertEqual(arguments["params"]["type"], 7)
+        self.assertEqual(arguments["params"]["keywords"], "summer")
+        self.assertTrue(arguments["params"]["tempsuid"])
+        self.assertNotIn("searchByEquipment", arguments["params"])
+        self.assertNotIn("race_id", arguments["params"])
+        self.assertNotIn("gender_id", arguments["params"])
+
+    def test_glamour_equipment_search_sends_the_selected_item_id(self) -> None:
+        client, session = client_with(FakeResponse())
+
+        fetch_glamour_page(
+            client,
+            {
+                "page": 1,
+                "limit": 20,
+                "order": "latest",
+                "keywords": "1129",
+                "searchByEquipment": True,
+            },
+        )
+
+        _, url, arguments = session.arguments
+        self.assertEqual(url, GLAMOUR_SEARCH_URL)
+        self.assertEqual(arguments["params"]["keywords"], "1129")
+        self.assertEqual(arguments["params"]["searchByEquipment"], 1)
 
     def test_glamour_detail_sends_identifier_and_temporary_id(self) -> None:
         client, session = client_with(FakeResponse())
