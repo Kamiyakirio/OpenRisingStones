@@ -2,6 +2,7 @@
 
 mod glamour;
 mod network;
+mod python_sidecar;
 mod sdo_login;
 mod secure_storage;
 

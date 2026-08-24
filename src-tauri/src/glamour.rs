@@ -2,18 +2,17 @@
 //!
 //! 参数只用于硬编码接口的查询字符串；登录 Cookie 从受保护的 Rust 状态读取。
 
-use std::{
-  io::Write,
-  process::{Command, Stdio},
-};
-
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use crate::sdo_login::{self, LoginState, SessionSnapshot};
+use crate::{
+  python_sidecar,
+  sdo_login::{self, LoginState, SessionSnapshot},
+};
 
-const CLIENT_SCRIPT: &str = include_str!("../python/api_client.py");
-const MAX_RESPONSE_BYTES: usize = 5 * 1024 * 1024;
+const MAX_GLAMOUR_BODY_BYTES: usize = 5 * 1024 * 1024;
+// A JSON string can expand each source byte into a six-byte Unicode escape.
+const MAX_SIDECAR_RESPONSE_BYTES: usize = 6 * MAX_GLAMOUR_BODY_BYTES + 1024;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -120,93 +119,31 @@ fn run_python_client(
   request: GlamourPageRequest,
   session: SessionSnapshot,
 ) -> Result<GlamourPageResponse, String> {
-  let input = serde_json::to_vec(&SidecarRequest {
-    operation: "fetchGlamourPage",
-    page: request.page,
-    limit: request.limit,
-    order: request.order,
-    race_id: request.race_id,
-    gender_id: request.gender_id,
-    session,
-  })
-  .map_err(|_| "Unable to serialize the glamour request.".to_owned())?;
-  let output = execute_python("python", &["-c", CLIENT_SCRIPT], &input).or_else(|error| {
-    if error.starts_with("not-found:") {
-      execute_python("py", &["-3", "-c", CLIENT_SCRIPT], &input)
-    } else {
-      Err(error)
-    }
-  })?;
-
-  if output.len() > MAX_RESPONSE_BYTES {
-    return Err("The Rising Stones response exceeded the size limit.".to_owned());
-  }
-  serde_json::from_slice(&output).map_err(|_| "Unable to parse the curl_cffi response.".to_owned())
+  python_sidecar::request(
+    &SidecarRequest {
+      operation: "fetchGlamourPage",
+      page: request.page,
+      limit: request.limit,
+      order: request.order,
+      race_id: request.race_id,
+      gender_id: request.gender_id,
+      session,
+    },
+    MAX_SIDECAR_RESPONSE_BYTES,
+    "Rising Stones glamour",
+  )
 }
 
 fn run_python_detail(id: u64, session: SessionSnapshot) -> Result<GlamourPageResponse, String> {
-  let input = serde_json::to_vec(&SidecarDetailRequest {
-    operation: "fetchGlamourDetail",
-    id,
-    session,
-  })
-  .map_err(|_| "Unable to serialize the glamour detail request.".to_owned())?;
-  let output = execute_python("python", &["-c", CLIENT_SCRIPT], &input).or_else(|error| {
-    if error.starts_with("not-found:") {
-      execute_python("py", &["-3", "-c", CLIENT_SCRIPT], &input)
-    } else {
-      Err(error)
-    }
-  })?;
-
-  if output.len() > MAX_RESPONSE_BYTES {
-    return Err("The Rising Stones response exceeded the size limit.".to_owned());
-  }
-  serde_json::from_slice(&output)
-    .map_err(|_| "Unable to parse the glamour detail response.".to_owned())
-}
-
-fn execute_python(program: &str, arguments: &[&str], input: &[u8]) -> Result<Vec<u8>, String> {
-  let mut command = Command::new(program);
-  command
-    .args(arguments)
-    .stdin(Stdio::piped())
-    .stdout(Stdio::piped())
-    .stderr(Stdio::piped());
-
-  #[cfg(windows)]
-  {
-    use std::os::windows::process::CommandExt;
-    command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-  }
-
-  let mut child = command.spawn().map_err(|error| {
-    if error.kind() == std::io::ErrorKind::NotFound {
-      format!("not-found:{program}")
-    } else {
-      "Unable to start the Python glamour client.".to_owned()
-    }
-  })?;
-  child
-    .stdin
-    .take()
-    .ok_or_else(|| "Unable to open stdin for the Python glamour client.".to_owned())?
-    .write_all(input)
-    .map_err(|_| "Unable to write to the Python glamour client.".to_owned())?;
-
-  let output = child
-    .wait_with_output()
-    .map_err(|_| "Unable to wait for the Python glamour client.".to_owned())?;
-  if !output.status.success() {
-    let detail = String::from_utf8_lossy(&output.stderr);
-    let detail = detail.trim().chars().take(240).collect::<String>();
-    return Err(if detail.is_empty() {
-      "The curl_cffi request failed.".to_owned()
-    } else {
-      detail
-    });
-  }
-  Ok(output.stdout)
+  python_sidecar::request(
+    &SidecarDetailRequest {
+      operation: "fetchGlamourDetail",
+      id,
+      session,
+    },
+    MAX_SIDECAR_RESPONSE_BYTES,
+    "Rising Stones glamour detail",
+  )
 }
 
 #[cfg(test)]

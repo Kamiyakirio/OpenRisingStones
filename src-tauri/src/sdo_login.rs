@@ -5,9 +5,7 @@
 //! serialized to the webview or written to ordinary files as plaintext.
 
 use std::{
-  io::Write,
   path::{Path, PathBuf},
-  process::{Command, Stdio},
   sync::{
     atomic::{AtomicU64, Ordering},
     Mutex,
@@ -19,9 +17,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::State;
 
-use crate::secure_storage;
+use crate::{python_sidecar, secure_storage};
 
-const CLIENT_SCRIPT: &str = include_str!("../python/api_client.py");
 const MAX_SIDECAR_RESPONSE_BYTES: usize = 128 * 1024;
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(120);
 
@@ -412,67 +409,10 @@ fn clear_pending(state: &State<'_, LoginState>, login_id: u64) -> Result<(), Str
 
 async fn run_sidecar(request: serde_json::Value) -> Result<SidecarResponse, String> {
   tauri::async_runtime::spawn_blocking(move || {
-    let input = serde_json::to_vec(&request)
-      .map_err(|_| "Unable to serialize the login request.".to_owned())?;
-    let output = execute_python("python", &["-c", CLIENT_SCRIPT], &input).or_else(|error| {
-      if error.starts_with("not-found:") {
-        execute_python("py", &["-3", "-c", CLIENT_SCRIPT], &input)
-      } else {
-        Err(error)
-      }
-    })?;
-    if output.len() > MAX_SIDECAR_RESPONSE_BYTES {
-      return Err("The SDO login response exceeded the size limit.".to_owned());
-    }
-    serde_json::from_slice(&output)
-      .map_err(|_| "Unable to parse the SDO login response.".to_owned())
+    python_sidecar::request(&request, MAX_SIDECAR_RESPONSE_BYTES, "SDO login")
   })
   .await
   .map_err(|_| "The login task stopped unexpectedly.".to_owned())?
-}
-
-fn execute_python(program: &str, arguments: &[&str], input: &[u8]) -> Result<Vec<u8>, String> {
-  let mut command = Command::new(program);
-  command
-    .args(arguments)
-    .env("PYTHONUTF8", "1")
-    .env("PYTHONIOENCODING", "utf-8")
-    .stdin(Stdio::piped())
-    .stdout(Stdio::piped())
-    .stderr(Stdio::piped());
-
-  #[cfg(windows)]
-  {
-    use std::os::windows::process::CommandExt;
-    command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-  }
-
-  let mut child = command.spawn().map_err(|error| {
-    if error.kind() == std::io::ErrorKind::NotFound {
-      format!("not-found:{program}")
-    } else {
-      "Unable to start the SDO login client.".to_owned()
-    }
-  })?;
-  child
-    .stdin
-    .take()
-    .ok_or_else(|| "Unable to open stdin for the SDO login client.".to_owned())?
-    .write_all(input)
-    .map_err(|_| "Unable to write to the SDO login client.".to_owned())?;
-  let output = child
-    .wait_with_output()
-    .map_err(|_| "Unable to wait for the SDO login client.".to_owned())?;
-  if !output.status.success() {
-    let detail = String::from_utf8_lossy(&output.stderr);
-    let detail = detail.trim().chars().take(240).collect::<String>();
-    return Err(if detail.is_empty() {
-      "The SDO login request failed.".to_owned()
-    } else {
-      detail
-    });
-  }
-  Ok(output.stdout)
 }
 
 #[cfg(test)]
