@@ -19,7 +19,7 @@ const MAX_SIDECAR_RESPONSE_BYTES: usize = 6 * MAX_GLAMOUR_BODY_BYTES + 1024;
 pub struct GlamourPageRequest {
   page: u32,
   limit: u32,
-  order: String,
+  order: Option<String>,
   race_id: Option<u8>,
   gender_id: Option<u8>,
 }
@@ -42,7 +42,8 @@ struct SidecarRequest {
   operation: &'static str,
   page: u32,
   limit: u32,
-  order: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  order: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   race_id: Option<u8>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -100,7 +101,10 @@ fn validate_request(request: &GlamourPageRequest) -> Result<(), String> {
   if request.limit == 0 || request.limit > 50 {
     return Err("The page size must be between 1 and 50.".to_owned());
   }
-  if !matches!(request.order.as_str(), "latest" | "hot") {
+  if !matches!(
+    request.order.as_deref(),
+    None | Some("latest") | Some("hot")
+  ) {
     return Err("The requested sort order is invalid.".to_owned());
   }
   if request
@@ -124,7 +128,7 @@ fn run_python_client(
       operation: "fetchGlamourPage",
       page: request.page,
       limit: request.limit,
-      order: request.order,
+      order: backend_order(request.order),
       race_id: request.race_id,
       gender_id: request.gender_id,
       session,
@@ -132,6 +136,10 @@ fn run_python_client(
     MAX_SIDECAR_RESPONSE_BYTES,
     "Rising Stones glamour",
   )
+}
+
+fn backend_order(order: Option<String>) -> Option<String> {
+  order.filter(|value| value == "latest")
 }
 
 fn run_python_detail(id: u64, session: SessionSnapshot) -> Result<GlamourPageResponse, String> {
@@ -155,7 +163,7 @@ mod tests {
     let mut request = GlamourPageRequest {
       page: 1,
       limit: 12,
-      order: "latest".to_owned(),
+      order: Some("latest".to_owned()),
       race_id: None,
       gender_id: None,
     };
@@ -163,7 +171,7 @@ mod tests {
     request.race_id = Some(1);
     request.gender_id = Some(2);
     assert!(validate_request(&request).is_ok());
-    request.order = "random".to_owned();
+    request.order = Some("random".to_owned());
     assert!(validate_request(&request).is_err());
   }
 
@@ -171,14 +179,23 @@ mod tests {
   fn accepts_a_request_without_optional_filters() {
     let request: GlamourPageRequest = serde_json::from_value(serde_json::json!({
       "page": 1,
-      "limit": 12,
-      "order": "latest"
+      "limit": 12
     }))
     .expect("request should deserialize");
 
     assert_eq!(request.race_id, None);
     assert_eq!(request.gender_id, None);
+    assert_eq!(request.order, None);
     assert!(validate_request(&request).is_ok());
+  }
+
+  #[test]
+  fn omits_hot_order_from_the_backend_request() {
+    assert_eq!(backend_order(Some("hot".to_owned())), None);
+    assert_eq!(
+      backend_order(Some("latest".to_owned())),
+      Some("latest".to_owned())
+    );
   }
 
   #[test]

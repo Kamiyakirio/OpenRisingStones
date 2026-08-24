@@ -70,6 +70,7 @@ export async function fetchGlamours(options: {
   genderId: number | null;
 }): Promise<GlamourPage> {
   const filters = {
+    ...(options.order === "latest" ? { order: "latest" } : {}),
     ...(options.raceId !== null ? { raceId: options.raceId } : {}),
     ...(options.genderId !== null ? { genderId: options.genderId } : {}),
   };
@@ -77,7 +78,6 @@ export async function fetchGlamours(options: {
     request: {
       page: options.page,
       limit: options.limit ?? 12,
-      order: options.order,
       ...filters,
     },
   });

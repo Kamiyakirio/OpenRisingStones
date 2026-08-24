@@ -680,8 +680,9 @@ def fetch_glamour_page(client: ApiClient, request: dict[str, Any]) -> dict[str, 
     params = {
         "page": request["page"],
         "limit": request["limit"],
-        "order": request["order"],
     }
+    if request.get("order") is not None:
+        params["order"] = request["order"]
     if request.get("raceId") is not None:
         params["race_id"] = request["raceId"]
     if request.get("genderId") is not None:

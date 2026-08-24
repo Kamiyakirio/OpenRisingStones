@@ -153,6 +153,14 @@ class ApiClientTests(unittest.TestCase):
             {"page": 1, "limit": 12, "order": "latest"},
         )
 
+    def test_glamour_hot_request_omits_order(self) -> None:
+        client, session = client_with(FakeResponse())
+
+        fetch_glamour_page(client, {"page": 1, "limit": 12})
+
+        _, _, arguments = session.arguments
+        self.assertEqual(arguments["params"], {"page": 1, "limit": 12})
+
     def test_glamour_request_includes_selected_filters(self) -> None:
         client, session = client_with(FakeResponse())
 
