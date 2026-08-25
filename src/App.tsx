@@ -11,7 +11,11 @@ import { HomePage } from "./components/HomePage";
 import { LoginDialog } from "./components/LoginDialog";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { SiteFooter } from "./components/SiteFooter";
+import { WikiVerificationStatus } from "./components/WikiVerificationStatus";
+import { WikiItemPage } from "./components/WikiItemPage";
 import { useGlamourDiscovery } from "./hooks/useGlamourDiscovery";
+import { useWikiItem } from "./hooks/useWikiItem";
+import type { EquipmentSearchItem } from "./services/equipmentApi";
 import { isTauriRuntime, type Glamour } from "./services/glamourApi";
 import { getSdoLoginStatus, type LoginProfile } from "./services/sdoLogin";
 import "./App.css";
@@ -110,8 +114,12 @@ function GlamourWorkspace({
   onLoginSuccess,
 }: GlamourWorkspaceProps) {
   const discovery = useGlamourDiscovery();
+  const wiki = useWikiItem();
   const [selectedGlamour, setSelectedGlamour] = useState<Glamour | null>(null);
+  const [pendingEquipment, setPendingEquipment] =
+    useState<EquipmentSearchItem | null>(null);
   const galleryScrollPosition = useRef(0);
+  const equipmentResultsScrollPosition = useRef(0);
 
   /** A verified login immediately retries the API request with the stored session. */
   const handleLoginSuccess = (nextProfile: LoginProfile) => {
@@ -132,6 +140,29 @@ function GlamourWorkspace({
     );
   };
 
+  const handleSelectEquipment = (equipment: EquipmentSearchItem) => {
+    equipmentResultsScrollPosition.current = window.scrollY;
+    setPendingEquipment(equipment);
+    void wiki.load(equipment.name);
+    queueMicrotask(() => window.scrollTo({ top: 0 }));
+  };
+
+  const handleCloseWikiPreview = () => {
+    setPendingEquipment(null);
+    void wiki.cancelVerification();
+    queueMicrotask(() =>
+      window.scrollTo({ top: equipmentResultsScrollPosition.current }),
+    );
+  };
+
+  const handleConfirmEquipment = () => {
+    if (!pendingEquipment) return;
+    const equipment = pendingEquipment;
+    setPendingEquipment(null);
+    void wiki.cancelVerification();
+    discovery.selectEquipment(equipment);
+  };
+
   return (
     <>
       <AppHeader
@@ -149,6 +180,16 @@ function GlamourWorkspace({
           onBack={handleCloseDetail}
           onToggleSave={discovery.toggleSave}
         />
+      ) : pendingEquipment ? (
+        <WikiItemPage
+          equipment={pendingEquipment}
+          item={wiki.item}
+          status={wiki.status}
+          error={wiki.error}
+          onBack={handleCloseWikiPreview}
+          onConfirm={handleConfirmEquipment}
+          onRetry={() => void wiki.load(pendingEquipment.name)}
+        />
       ) : discovery.equipmentResultsOpen ? (
         <EquipmentSearchPage
           query={discovery.query}
@@ -160,7 +201,7 @@ function GlamourWorkspace({
           canShowPrevious={discovery.canShowPreviousEquipmentPage}
           canShowNext={discovery.canShowNextEquipmentPage}
           onBack={discovery.closeEquipmentResults}
-          onSelect={discovery.selectEquipment}
+          onSelect={handleSelectEquipment}
           onShowPrevious={discovery.showPreviousEquipmentPage}
           onShowNext={discovery.showNextEquipmentPage}
           onRetry={discovery.retryEquipmentSearch}
@@ -215,6 +256,14 @@ function GlamourWorkspace({
       {loginOpen && (
         <LoginDialog onClose={onCloseLogin} onSuccess={handleLoginSuccess} />
       )}
+      <WikiVerificationStatus
+        status={wiki.status}
+        itemName={wiki.itemName}
+        error={wiki.error}
+        onShow={() => void wiki.showVerification()}
+        onCancel={() => void wiki.cancelVerification()}
+        onDismiss={wiki.dismissError}
+      />
     </>
   );
 }
