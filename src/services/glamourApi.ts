@@ -72,6 +72,67 @@ export async function fetchGlamours(options: {
   genderId: number | null;
   keywords?: string;
   searchByEquipment?: boolean;
+  equipmentIds?: number[];
+}): Promise<GlamourPage> {
+  const equipmentIds = Array.from(
+    new Set(
+      (options.equipmentIds ?? []).filter(
+        (id) => Number.isSafeInteger(id) && id > 0,
+      ),
+    ),
+  );
+  if (equipmentIds.length > 1) {
+    const perEquipmentLimit = Math.max(
+      4,
+      Math.ceil((options.limit ?? 12) / equipmentIds.length),
+    );
+    const pages = await Promise.all(
+      equipmentIds.map((equipmentId) =>
+        fetchSingleGlamourPage({
+          ...options,
+          limit: perEquipmentLimit,
+          keywords: String(equipmentId),
+          searchByEquipment: true,
+          equipmentIds: undefined,
+        }),
+      ),
+    );
+    const merged = new Map<number, Glamour>();
+    pages.forEach((page) => {
+      page.items.forEach((item) => merged.set(item.id, item));
+    });
+    const items = [...merged.values()]
+      .sort((left, right) =>
+        options.order === "hot" ? right.likes - left.likes : right.id - left.id,
+      )
+      .slice(0, options.limit ?? 12);
+    const hasMore = pages.some((page) => page.hasMore);
+    return {
+      items,
+      total: hasMore
+        ? pages.reduce((sum, page) => sum + page.total, 0)
+        : items.length,
+      hasMore,
+    };
+  }
+  return fetchSingleGlamourPage({
+    ...options,
+    ...(equipmentIds.length === 1
+      ? { keywords: String(equipmentIds[0]), searchByEquipment: true }
+      : {}),
+  });
+}
+
+/** Performs one public Stone search request for a title or equipment identifier. */
+async function fetchSingleGlamourPage(options: {
+  page: number;
+  limit?: number;
+  order: GlamourOrder;
+  raceId: number | null;
+  genderId: number | null;
+  keywords?: string;
+  searchByEquipment?: boolean;
+  equipmentIds?: number[];
 }): Promise<GlamourPage> {
   const filters = {
     ...(options.order === "latest" ? { order: "latest" } : {}),

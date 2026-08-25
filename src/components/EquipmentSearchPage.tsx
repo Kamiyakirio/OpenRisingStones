@@ -171,8 +171,10 @@ export function EquipmentSearchPage({
 
 export function SelectedEquipmentSummary({
   item,
+  equivalentCount = 0,
 }: {
   item: EquipmentSearchItem;
+  equivalentCount?: number;
 }) {
   return (
     <div className="selected-equipment" aria-live="polite">
@@ -186,6 +188,9 @@ export function SelectedEquipmentSummary({
         <span>
           {item.category} · ID {item.id}
         </span>
+        {equivalentCount > 0 && (
+          <span>另有 {equivalentCount} 件同模装备已纳入结果</span>
+        )}
       </span>
     </div>
   );

@@ -19,6 +19,7 @@ type DiscoveryFiltersProps = {
   genderId: number | null;
   searchLoading: boolean;
   selectedEquipment: EquipmentSearchItem | null;
+  equivalentEquipmentCount: number;
   onSearchModeChange: (mode: GlamourSearchMode) => void;
   onQueryChange: (query: string) => void;
   onSearch: () => void;
@@ -35,6 +36,7 @@ export function DiscoveryFilters({
   genderId,
   searchLoading,
   selectedEquipment,
+  equivalentEquipmentCount,
   onSearchModeChange,
   onQueryChange,
   onSearch,
@@ -119,7 +121,10 @@ export function DiscoveryFilters({
         </button>
       </form>
       {searchMode === "equipment" && selectedEquipment ? (
-        <SelectedEquipmentSummary item={selectedEquipment} />
+        <SelectedEquipmentSummary
+          item={selectedEquipment}
+          equivalentCount={equivalentEquipmentCount}
+        />
       ) : searchMode === "equipment" ? (
         <p className="equipment-search-hint">
           输入装备名称，搜索结果会在新页面中打开。

@@ -11,6 +11,8 @@ import {
   type WikiStatusEvent,
 } from "../services/wikiApi";
 
+const wikiItemCache = new Map<string, WikiItemData>();
+
 export type WikiLoadStatus =
   | "idle"
   | "loading"
@@ -51,22 +53,71 @@ export function useWikiItem() {
     };
   }, [preview]);
 
-  const load = async (nextItemName: string) => {
+  const load = async (nextItemName: string, equipmentId?: number) => {
     const version = ++requestVersion.current;
     setItemName(nextItemName);
-    setItem(null);
     setError(null);
+    const cacheKey = equipmentId ? String(equipmentId) : nextItemName;
+    const cached = wikiItemCache.get(cacheKey);
+    if (cached) {
+      setItem(cached);
+      setStatus("ready");
+      return cached;
+    }
+    setItem(null);
     setStatus("loading");
     if (preview) {
       const previewItem: WikiItemData = {
         itemName: nextItemName,
         pageTitle: `物品:${nextItemName}`,
         canonicalUrl: "",
-        imageUrl: null,
-        description: "",
-        facts: [],
+        unobtainable: false,
+        acquisitions: [
+          {
+            type: "dungeon",
+            label: "通过副本获得",
+            summary: "遗忘行路雾之迹",
+            details: [
+              {
+                title: "遗忘行路雾之迹",
+                description: "安度西亚斯等 2 处出现",
+                requirement: null,
+                location: null,
+                url: null,
+                items: [],
+              },
+            ],
+          },
+        ],
+        modelItems: [
+          {
+            id: equipmentId ?? null,
+            name: nextItemName,
+            category: "脚部防具",
+            iconUrl: null,
+            wikiUrl: "",
+            relation: "current",
+            dyeable: false,
+            unobtainable: false,
+            sourceSummary: "副本（遗忘行路雾之迹）",
+            sourceTypes: ["dungeon"],
+          },
+          {
+            id: null,
+            name: `${nextItemName}同模款`,
+            category: "脚部防具",
+            iconUrl: null,
+            wikiUrl: "",
+            relation: "primary",
+            dyeable: false,
+            unobtainable: false,
+            sourceSummary: "任务、商店、道具商城",
+            sourceTypes: ["quest", "currency", "cash_shop"],
+          },
+        ],
         source: "safari",
       };
+      wikiItemCache.set(cacheKey, previewItem);
       setItem(previewItem);
       setStatus("ready");
       return previewItem;
@@ -75,8 +126,9 @@ export function useWikiItem() {
       const page = await fetchWikiItemPage(nextItemName);
       if (requestVersion.current !== version) return null;
       setStatus("parsing");
-      const parsed = await parseWikiItemPage(page, nextItemName);
+      const parsed = await parseWikiItemPage(page, nextItemName, equipmentId);
       if (requestVersion.current !== version) return null;
+      wikiItemCache.set(cacheKey, parsed);
       setItem(parsed);
       setStatus("ready");
       return parsed;
@@ -124,6 +176,8 @@ export function useWikiItem() {
     dismissError,
   };
 }
+
+export type WikiItemInspector = ReturnType<typeof useWikiItem>;
 
 function readError(reason: unknown) {
   if (reason instanceof Error) return reason.message;

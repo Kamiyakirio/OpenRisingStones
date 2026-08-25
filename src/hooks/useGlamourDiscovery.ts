@@ -13,6 +13,7 @@ import {
   type Glamour,
   type GlamourOrder,
 } from "../services/glamourApi";
+import type { WikiModelItem } from "../services/wikiApi";
 
 const DISCOVERY_PAGE_SIZE = 12;
 const SEARCH_PAGE_SIZE = 20;
@@ -46,11 +47,16 @@ export function useGlamourDiscovery() {
   const [equipmentResultsOpen, setEquipmentResultsOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] =
     useState<EquipmentSearchItem | null>(null);
+  const [equipmentModelMatches, setEquipmentModelMatches] = useState<
+    WikiModelItem[]
+  >([]);
   const [equipmentSearchLoading, setEquipmentSearchLoading] = useState(false);
   const [equipmentSearchError, setEquipmentSearchError] = useState<
     string | null
   >(null);
   const equipmentRequest = useRef(0);
+  const selectedEquipmentId = useRef<number | null>(null);
+  const equipmentModelMatchesRef = useRef<WikiModelItem[]>([]);
   const [order, setOrder] = useState<GlamourOrder>("latest");
   const [raceId, setRaceId] = useState<number | null>(null);
   const [genderId, setGenderId] = useState<number | null>(null);
@@ -70,14 +76,24 @@ export function useGlamourDiscovery() {
   const query = searchMode === "title" ? titleQuery : equipmentQuery;
   const activeQuery =
     searchMode === "title" ? activeTitleQuery : (selectedEquipment?.name ?? "");
-  const requestKeywords =
-    searchMode === "title"
-      ? activeTitleQuery
-      : selectedEquipment
-        ? String(selectedEquipment.id)
-        : "";
+  const requestKeywords = searchMode === "title" ? activeTitleQuery : "";
   const searchByEquipment = searchMode === "equipment" && !!selectedEquipment;
-  const pageSize = requestKeywords ? SEARCH_PAGE_SIZE : DISCOVERY_PAGE_SIZE;
+  const equipmentSearchIds = useMemo(
+    () =>
+      selectedEquipment
+        ? [
+            selectedEquipment.id,
+            ...equipmentModelMatches.flatMap((model) =>
+              model.id === null ? [] : [model.id],
+            ),
+          ]
+        : [],
+    [equipmentModelMatches, selectedEquipment],
+  );
+  const pageSize =
+    requestKeywords || searchByEquipment
+      ? SEARCH_PAGE_SIZE
+      : DISCOVERY_PAGE_SIZE;
   const equipmentPage = equipmentPages[equipmentPageIndex] ?? null;
 
   useEffect(() => {
@@ -91,6 +107,7 @@ export function useGlamourDiscovery() {
       genderId,
       keywords: requestKeywords || undefined,
       searchByEquipment,
+      equipmentIds: searchByEquipment ? equipmentSearchIds : undefined,
     })
       .then((result) => {
         if (!active) return;
@@ -109,6 +126,7 @@ export function useGlamourDiscovery() {
     };
   }, [
     genderId,
+    equipmentSearchIds,
     order,
     pageSize,
     preview,
@@ -164,8 +182,13 @@ export function useGlamourDiscovery() {
         genderId,
         keywords: requestKeywords || undefined,
         searchByEquipment,
+        equipmentIds: searchByEquipment ? equipmentSearchIds : undefined,
       });
-      setGlamours((current) => [...current, ...result.items]);
+      setGlamours((current) => {
+        const merged = new Map(current.map((item) => [item.id, item]));
+        result.items.forEach((item) => merged.set(item.id, item));
+        return [...merged.values()];
+      });
       setPageInfo({ total: result.total, hasMore: result.hasMore });
       setPage(nextPage);
     } catch (reason) {
@@ -233,7 +256,14 @@ export function useGlamourDiscovery() {
     setEquipmentResultsOpen(true);
     setEquipmentPages([]);
     setEquipmentPageIndex(0);
-    if (selectedEquipment) updateFilter(() => setSelectedEquipment(null));
+    if (selectedEquipment) {
+      selectedEquipmentId.current = null;
+      equipmentModelMatchesRef.current = [];
+      updateFilter(() => {
+        setEquipmentModelMatches([]);
+        setSelectedEquipment(null);
+      });
+    }
     requestEquipmentPage(nextQuery, null, 0);
   };
   const clearEquipmentSearch = () => {
@@ -244,6 +274,9 @@ export function useGlamourDiscovery() {
     setEquipmentResultsOpen(false);
     setEquipmentSearchError(null);
     setEquipmentSearchLoading(false);
+    selectedEquipmentId.current = null;
+    equipmentModelMatchesRef.current = [];
+    setEquipmentModelMatches([]);
     if (selectedEquipment) updateFilter(() => setSelectedEquipment(null));
   };
   const clearSearch = () => {
@@ -260,8 +293,49 @@ export function useGlamourDiscovery() {
     setEquipmentResultsOpen(false);
     setEquipmentSearchError(null);
     setEquipmentSearchLoading(false);
-    updateFilter(() => setSelectedEquipment(equipment));
+    selectedEquipmentId.current = equipment.id;
+    equipmentModelMatchesRef.current = [];
+    updateFilter(() => {
+      setEquipmentModelMatches([]);
+      setSelectedEquipment(equipment);
+    });
     window.scrollTo({ top: 0 });
+  };
+  const includeEquivalentEquipment = (
+    equipmentId: number,
+    modelItems: WikiModelItem[],
+  ) => {
+    if (selectedEquipmentId.current !== equipmentId) return;
+    const seen = new Set<number>([equipmentId]);
+    const matches = modelItems
+      .filter(
+        (model) =>
+          model.relation !== "current" &&
+          !model.unobtainable &&
+          model.id !== null &&
+          !seen.has(model.id),
+      )
+      .filter((model) => {
+        seen.add(model.id!);
+        return true;
+      })
+      .sort((left, right) =>
+        left.relation === right.relation
+          ? 0
+          : left.relation === "identical"
+            ? -1
+            : 1,
+      )
+      .slice(0, 3);
+    if (!matches.length) return;
+    const nextSignature = matches.map((model) => model.id).join(",");
+    const currentSignature = equipmentModelMatchesRef.current
+      .map((model) => model.id)
+      .join(",");
+    if (nextSignature === currentSignature) return;
+    equipmentModelMatchesRef.current = matches;
+    setError(null);
+    setEquipmentModelMatches(matches);
   };
   const closeEquipmentResults = () => {
     setEquipmentResultsOpen(false);
@@ -347,9 +421,11 @@ export function useGlamourDiscovery() {
       equipmentPages[equipmentPageIndex + 1] || equipmentPage?.nextCursor,
     ),
     selectedEquipment,
+    equipmentModelMatches,
     equipmentSearchLoading,
     equipmentSearchError,
     selectEquipment,
+    includeEquivalentEquipment,
     closeEquipmentResults,
     showPreviousEquipmentPage,
     showNextEquipmentPage,
