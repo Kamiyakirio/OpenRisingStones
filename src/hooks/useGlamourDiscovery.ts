@@ -17,6 +17,7 @@ import type { WikiModelItem } from "../services/wikiApi";
 
 const DISCOVERY_PAGE_SIZE = 12;
 const SEARCH_PAGE_SIZE = 20;
+export const MAX_EQUIVALENT_EQUIPMENT_SELECTION = 10;
 
 type PageInfo = {
   total: number;
@@ -47,16 +48,19 @@ export function useGlamourDiscovery() {
   const [equipmentResultsOpen, setEquipmentResultsOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] =
     useState<EquipmentSearchItem | null>(null);
-  const [equipmentModelMatches, setEquipmentModelMatches] = useState<
+  const [equipmentModelCandidates, setEquipmentModelCandidates] = useState<
     WikiModelItem[]
   >([]);
+  const [selectedEquipmentModelIds, setSelectedEquipmentModelIds] = useState<
+    number[]
+  >([]);
+  const [equipmentRangeUpdating, setEquipmentRangeUpdating] = useState(false);
   const [equipmentSearchLoading, setEquipmentSearchLoading] = useState(false);
   const [equipmentSearchError, setEquipmentSearchError] = useState<
     string | null
   >(null);
   const equipmentRequest = useRef(0);
   const selectedEquipmentId = useRef<number | null>(null);
-  const equipmentModelMatchesRef = useRef<WikiModelItem[]>([]);
   const [order, setOrder] = useState<GlamourOrder>("latest");
   const [raceId, setRaceId] = useState<number | null>(null);
   const [genderId, setGenderId] = useState<number | null>(null);
@@ -67,6 +71,9 @@ export function useGlamourDiscovery() {
   );
   const [loading, setLoading] = useState(!preview);
   const [loadingMore, setLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
+  const feedRequestVersion = useRef(0);
+  const feedAbortController = useRef<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
@@ -81,14 +88,9 @@ export function useGlamourDiscovery() {
   const equipmentSearchIds = useMemo(
     () =>
       selectedEquipment
-        ? [
-            selectedEquipment.id,
-            ...equipmentModelMatches.flatMap((model) =>
-              model.id === null ? [] : [model.id],
-            ),
-          ]
+        ? [selectedEquipment.id, ...selectedEquipmentModelIds]
         : [],
-    [equipmentModelMatches, selectedEquipment],
+    [selectedEquipment, selectedEquipmentModelIds],
   );
   const pageSize =
     requestKeywords || searchByEquipment
@@ -99,6 +101,10 @@ export function useGlamourDiscovery() {
   useEffect(() => {
     if (preview) return;
     let active = true;
+    feedAbortController.current?.abort();
+    const controller = new AbortController();
+    feedAbortController.current = controller;
+    const requestVersion = ++feedRequestVersion.current;
     fetchGlamours({
       page: 1,
       limit: pageSize,
@@ -108,21 +114,32 @@ export function useGlamourDiscovery() {
       keywords: requestKeywords || undefined,
       searchByEquipment,
       equipmentIds: searchByEquipment ? equipmentSearchIds : undefined,
+      signal: controller.signal,
     })
       .then((result) => {
-        if (!active) return;
+        if (!active || feedRequestVersion.current !== requestVersion) return;
         setGlamours(result.items);
         setPageInfo({ total: result.total, hasMore: result.hasMore });
         setPage(1);
       })
       .catch((reason: unknown) => {
-        if (active) setError(readError(reason));
+        if (isAbortError(reason)) return;
+        if (active && feedRequestVersion.current === requestVersion) {
+          setError(readError(reason));
+        }
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active && feedRequestVersion.current === requestVersion) {
+          setLoading(false);
+          setEquipmentRangeUpdating(false);
+        }
       });
     return () => {
       active = false;
+      controller.abort();
+      if (feedAbortController.current === controller) {
+        feedAbortController.current = null;
+      }
     };
   }, [
     genderId,
@@ -169,7 +186,10 @@ export function useGlamourDiscovery() {
   };
 
   const loadMore = async () => {
-    if (preview || loadingMore) return;
+    if (preview || loadingMoreRef.current) return;
+    const requestVersion = feedRequestVersion.current;
+    const signal = feedAbortController.current?.signal;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     setError(null);
     try {
@@ -183,17 +203,28 @@ export function useGlamourDiscovery() {
         keywords: requestKeywords || undefined,
         searchByEquipment,
         equipmentIds: searchByEquipment ? equipmentSearchIds : undefined,
+        signal,
       });
+      if (feedRequestVersion.current !== requestVersion) return;
+      const currentIds = new Set(glamours.map((item) => item.id));
+      const hasNewItems = result.items.some((item) => !currentIds.has(item.id));
       setGlamours((current) => {
         const merged = new Map(current.map((item) => [item.id, item]));
         result.items.forEach((item) => merged.set(item.id, item));
         return [...merged.values()];
       });
-      setPageInfo({ total: result.total, hasMore: result.hasMore });
+      setPageInfo({
+        total: result.total,
+        hasMore: result.hasMore && hasNewItems,
+      });
       setPage(nextPage);
     } catch (reason) {
-      setError(readError(reason));
+      if (isAbortError(reason)) return;
+      if (feedRequestVersion.current === requestVersion) {
+        setError(readError(reason));
+      }
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
   };
@@ -258,9 +289,9 @@ export function useGlamourDiscovery() {
     setEquipmentPageIndex(0);
     if (selectedEquipment) {
       selectedEquipmentId.current = null;
-      equipmentModelMatchesRef.current = [];
       updateFilter(() => {
-        setEquipmentModelMatches([]);
+        setEquipmentModelCandidates([]);
+        setSelectedEquipmentModelIds([]);
         setSelectedEquipment(null);
       });
     }
@@ -275,8 +306,9 @@ export function useGlamourDiscovery() {
     setEquipmentSearchError(null);
     setEquipmentSearchLoading(false);
     selectedEquipmentId.current = null;
-    equipmentModelMatchesRef.current = [];
-    setEquipmentModelMatches([]);
+    setEquipmentModelCandidates([]);
+    setSelectedEquipmentModelIds([]);
+    setEquipmentRangeUpdating(false);
     if (selectedEquipment) updateFilter(() => setSelectedEquipment(null));
   };
   const clearSearch = () => {
@@ -294,29 +326,30 @@ export function useGlamourDiscovery() {
     setEquipmentSearchError(null);
     setEquipmentSearchLoading(false);
     selectedEquipmentId.current = equipment.id;
-    equipmentModelMatchesRef.current = [];
     updateFilter(() => {
-      setEquipmentModelMatches([]);
+      setEquipmentModelCandidates([]);
+      setSelectedEquipmentModelIds([]);
+      setEquipmentRangeUpdating(false);
       setSelectedEquipment(equipment);
     });
     window.scrollTo({ top: 0 });
   };
-  const includeEquivalentEquipment = (
+  const registerEquivalentEquipment = (
     equipmentId: number,
     modelItems: WikiModelItem[],
   ) => {
     if (selectedEquipmentId.current !== equipmentId) return;
-    const seen = new Set<number>([equipmentId]);
-    const matches = modelItems
+    const seen = new Set<string>();
+    const candidates = modelItems
       .filter(
         (model) =>
           model.relation !== "current" &&
-          !model.unobtainable &&
-          model.id !== null &&
-          !seen.has(model.id),
+          model.id !== selectedEquipmentId.current,
       )
       .filter((model) => {
-        seen.add(model.id!);
+        const key = model.id === null ? model.name : String(model.id);
+        if (seen.has(key)) return false;
+        seen.add(key);
         return true;
       })
       .sort((left, right) =>
@@ -325,17 +358,53 @@ export function useGlamourDiscovery() {
           : left.relation === "identical"
             ? -1
             : 1,
-      )
-      .slice(0, 3);
-    if (!matches.length) return;
-    const nextSignature = matches.map((model) => model.id).join(",");
-    const currentSignature = equipmentModelMatchesRef.current
-      .map((model) => model.id)
-      .join(",");
-    if (nextSignature === currentSignature) return;
-    equipmentModelMatchesRef.current = matches;
+      );
+    setEquipmentModelCandidates(candidates);
+    setSelectedEquipmentModelIds([]);
+    setEquipmentRangeUpdating(false);
+  };
+  const toggleEquivalentEquipment = (equipmentId: number) => {
+    const candidate = equipmentModelCandidates.find(
+      (model) => model.id === equipmentId,
+    );
+    if (!candidate || candidate.unobtainable) return;
     setError(null);
-    setEquipmentModelMatches(matches);
+    if (selectedEquipmentModelIds.includes(equipmentId)) {
+      if (!preview) setEquipmentRangeUpdating(true);
+      setSelectedEquipmentModelIds((current) =>
+        current.filter((id) => id !== equipmentId),
+      );
+      return;
+    }
+    if (
+      selectedEquipmentModelIds.length >= MAX_EQUIVALENT_EQUIPMENT_SELECTION
+    ) {
+      return;
+    }
+    setError(null);
+    if (!preview) setEquipmentRangeUpdating(true);
+    setSelectedEquipmentModelIds((current) => [...current, equipmentId]);
+  };
+  const selectAllEquivalentEquipment = () => {
+    const nextIds = equipmentModelCandidates
+      .flatMap((model) =>
+        model.id === null || model.unobtainable ? [] : [model.id],
+      )
+      .slice(0, MAX_EQUIVALENT_EQUIPMENT_SELECTION);
+    if (
+      nextIds.length === selectedEquipmentModelIds.length &&
+      nextIds.every((id, index) => selectedEquipmentModelIds[index] === id)
+    ) {
+      return;
+    }
+    if (!preview) setEquipmentRangeUpdating(true);
+    setSelectedEquipmentModelIds(nextIds);
+  };
+  const clearEquivalentEquipment = () => {
+    if (!selectedEquipmentModelIds.length) return;
+    setError(null);
+    if (!preview) setEquipmentRangeUpdating(true);
+    setSelectedEquipmentModelIds([]);
   };
   const closeEquipmentResults = () => {
     setEquipmentResultsOpen(false);
@@ -421,11 +490,16 @@ export function useGlamourDiscovery() {
       equipmentPages[equipmentPageIndex + 1] || equipmentPage?.nextCursor,
     ),
     selectedEquipment,
-    equipmentModelMatches,
+    equipmentModelCandidates,
+    selectedEquipmentModelIds,
+    equipmentRangeUpdating,
     equipmentSearchLoading,
     equipmentSearchError,
     selectEquipment,
-    includeEquivalentEquipment,
+    registerEquivalentEquipment,
+    toggleEquivalentEquipment,
+    selectAllEquivalentEquipment,
+    clearEquivalentEquipment,
     closeEquipmentResults,
     showPreviousEquipmentPage,
     showNextEquipmentPage,
@@ -467,4 +541,8 @@ function readError(reason: unknown) {
     return reason.message;
   }
   return "无法读取石之家投稿，请稍后重试";
+}
+
+function isAbortError(reason: unknown) {
+  return reason instanceof DOMException && reason.name === "AbortError";
 }

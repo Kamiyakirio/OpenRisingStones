@@ -51,8 +51,22 @@ export type GlamourDetail = Glamour & {
 type NetworkResponse = { status: number; body: string };
 type UnknownRecord = Record<string, unknown>;
 type GlamourPage = { items: Glamour[]; total: number; hasMore: boolean };
+type GlamourFetchOptions = {
+  page: number;
+  limit?: number;
+  order: GlamourOrder;
+  raceId: number | null;
+  genderId: number | null;
+  keywords?: string;
+  searchByEquipment?: boolean;
+  equipmentIds?: number[];
+  signal?: AbortSignal;
+};
 
 const API_ORIGIN = "https://apiff14risingstones.web.sdo.com";
+const GLAMOUR_REQUEST_INTERVAL_MS = 800;
+let glamourRequestQueue: Promise<void> = Promise.resolve();
+let lastGlamourRequestStartedAt = 0;
 
 declare global {
   interface Window {
@@ -64,16 +78,9 @@ export function isTauriRuntime() {
   return typeof window !== "undefined" && Boolean(window.__TAURI_INTERNALS__);
 }
 
-export async function fetchGlamours(options: {
-  page: number;
-  limit?: number;
-  order: GlamourOrder;
-  raceId: number | null;
-  genderId: number | null;
-  keywords?: string;
-  searchByEquipment?: boolean;
-  equipmentIds?: number[];
-}): Promise<GlamourPage> {
+export async function fetchGlamours(
+  options: GlamourFetchOptions,
+): Promise<GlamourPage> {
   const equipmentIds = Array.from(
     new Set(
       (options.equipmentIds ?? []).filter(
@@ -83,29 +90,25 @@ export async function fetchGlamours(options: {
   );
   if (equipmentIds.length > 1) {
     const perEquipmentLimit = Math.max(
-      4,
+      1,
       Math.ceil((options.limit ?? 12) / equipmentIds.length),
     );
-    const pages = await Promise.all(
-      equipmentIds.map((equipmentId) =>
-        fetchSingleGlamourPage({
-          ...options,
-          limit: perEquipmentLimit,
-          keywords: String(equipmentId),
-          searchByEquipment: true,
-          equipmentIds: undefined,
-        }),
-      ),
+    const pages = await mapWithConcurrency(equipmentIds, 3, (equipmentId) =>
+      fetchSingleGlamourPage({
+        ...options,
+        limit: perEquipmentLimit,
+        keywords: String(equipmentId),
+        searchByEquipment: true,
+        equipmentIds: undefined,
+      }),
     );
     const merged = new Map<number, Glamour>();
     pages.forEach((page) => {
       page.items.forEach((item) => merged.set(item.id, item));
     });
-    const items = [...merged.values()]
-      .sort((left, right) =>
-        options.order === "hot" ? right.likes - left.likes : right.id - left.id,
-      )
-      .slice(0, options.limit ?? 12);
+    const items = [...merged.values()].sort((left, right) =>
+      options.order === "hot" ? right.likes - left.likes : right.id - left.id,
+    );
     const hasMore = pages.some((page) => page.hasMore);
     return {
       items,
@@ -123,17 +126,78 @@ export async function fetchGlamours(options: {
   });
 }
 
+/** Limits fan-out so selecting many model variants does not burst the public API. */
+async function mapWithConcurrency<T, R>(
+  values: T[],
+  concurrency: number,
+  mapper: (value: T, index: number) => Promise<R>,
+) {
+  const results = new Array<R>(values.length);
+  let nextIndex = 0;
+  const workers = Array.from(
+    { length: Math.min(concurrency, values.length) },
+    async () => {
+      while (nextIndex < values.length) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        results[currentIndex] = await mapper(
+          values[currentIndex],
+          currentIndex,
+        );
+      }
+    },
+  );
+  await Promise.all(workers);
+  return results;
+}
+
+/** Serializes API traffic and leaves enough spacing to avoid request bursts. */
+async function scheduleGlamourRequest<T>(
+  request: () => Promise<T>,
+  signal?: AbortSignal,
+) {
+  const run = glamourRequestQueue.then(async () => {
+    throwIfAborted(signal);
+    const waitTime = Math.max(
+      0,
+      GLAMOUR_REQUEST_INTERVAL_MS - (Date.now() - lastGlamourRequestStartedAt),
+    );
+    if (waitTime > 0) {
+      await new Promise<void>((resolve) =>
+        window.setTimeout(resolve, waitTime),
+      );
+    }
+    throwIfAborted(signal);
+    lastGlamourRequestStartedAt = Date.now();
+    const result = await request();
+    throwIfAborted(signal);
+    return result;
+  });
+  glamourRequestQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
+function throwIfAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException("Request aborted.", "AbortError");
+}
+
+function rejectBotChallenge(body: string) {
+  if (
+    body.includes("__tst_status") ||
+    body.includes("EO_Bot_Ssid") ||
+    /<script[^>]*>\s*function\s+a\(/i.test(body)
+  ) {
+    throw new Error("石之家触发访问频控，已暂停自动加载，请稍后重试");
+  }
+}
+
 /** Performs one public Stone search request for a title or equipment identifier. */
-async function fetchSingleGlamourPage(options: {
-  page: number;
-  limit?: number;
-  order: GlamourOrder;
-  raceId: number | null;
-  genderId: number | null;
-  keywords?: string;
-  searchByEquipment?: boolean;
-  equipmentIds?: number[];
-}): Promise<GlamourPage> {
+async function fetchSingleGlamourPage(
+  options: GlamourFetchOptions,
+): Promise<GlamourPage> {
   const filters = {
     ...(options.order === "latest" ? { order: "latest" } : {}),
     ...(options.raceId !== null ? { raceId: options.raceId } : {}),
@@ -141,17 +205,22 @@ async function fetchSingleGlamourPage(options: {
     ...(options.keywords ? { keywords: options.keywords } : {}),
     ...(options.searchByEquipment ? { searchByEquipment: true } : {}),
   };
-  const response = await invoke<NetworkResponse>("fetch_glamour_page", {
-    request: {
-      page: options.page,
-      limit: options.limit ?? 12,
-      ...filters,
-    },
-  });
+  const response = await scheduleGlamourRequest(
+    () =>
+      invoke<NetworkResponse>("fetch_glamour_page", {
+        request: {
+          page: options.page,
+          limit: options.limit ?? 12,
+          ...filters,
+        },
+      }),
+    options.signal,
+  );
 
   if (response.status < 200 || response.status >= 300) {
     throw new Error(`石之家接口返回 HTTP ${response.status}`);
   }
+  rejectBotChallenge(response.body);
 
   let payload: unknown;
   try {
@@ -175,18 +244,21 @@ async function fetchSingleGlamourPage(options: {
   return {
     items,
     total,
-    hasMore: loadedCount < total,
+    hasMore: records.length > 0 && loadedCount < total,
   };
 }
 
 /** Reads and normalizes one detail record from the authenticated Tauri bridge. */
 export async function fetchGlamourDetail(id: number): Promise<GlamourDetail> {
-  const response = await invoke<NetworkResponse>("fetch_glamour_detail", {
-    request: { id },
-  });
+  const response = await scheduleGlamourRequest(() =>
+    invoke<NetworkResponse>("fetch_glamour_detail", {
+      request: { id },
+    }),
+  );
   if (response.status < 200 || response.status >= 300) {
     throw new Error(`石之家详情接口返回 HTTP ${response.status}`);
   }
+  rejectBotChallenge(response.body);
 
   let payload: unknown;
   try {

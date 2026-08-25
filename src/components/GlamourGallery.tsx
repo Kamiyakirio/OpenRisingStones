@@ -1,7 +1,8 @@
 /** Gallery result states and interactions, isolated from page orchestration. */
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import {
   BookmarkSimple,
+  CircleNotch,
   Heart,
   MagnifyingGlass,
   Plus,
@@ -43,6 +44,26 @@ export function GlamourGallery({
   onRetry,
   onLoadMore,
 }: GlamourGalleryProps) {
+  const loadMoreTrigger = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const trigger = loadMoreTrigger.current;
+    if (!trigger || !canLoadMore || loading || loadingMore || error) return;
+    if (!("IntersectionObserver" in window)) return;
+    let requested = false;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (requested || !entries.some((entry) => entry.isIntersecting)) return;
+        requested = true;
+        observer.disconnect();
+        void onLoadMore();
+      },
+      { rootMargin: "420px 0px" },
+    );
+    observer.observe(trigger);
+    return () => observer.disconnect();
+  }, [canLoadMore, error, loading, loadingMore, onLoadMore]);
+
   return (
     <section className="gallery-section" id="recommendations">
       <div className="gallery-toolbar">
@@ -115,14 +136,18 @@ export function GlamourGallery({
       )}
 
       {canLoadMore && !loading && (
-        <button
-          className="load-more"
-          type="button"
-          disabled={loadingMore}
-          onClick={() => void onLoadMore()}
+        <div
+          ref={loadMoreTrigger}
+          className="feed-load-trigger"
+          aria-live="polite"
         >
-          {loadingMore ? "正在读取" : "加载更多投稿"}
-        </button>
+          {loadingMore && (
+            <span>
+              <CircleNotch />
+              正在加载更多投稿
+            </span>
+          )}
+        </div>
       )}
     </section>
   );

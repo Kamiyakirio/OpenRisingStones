@@ -140,7 +140,7 @@ function GlamourWorkspace({
     discovery.selectEquipment(equipment);
     void wiki.load(equipment.name, equipment.id).then((item) => {
       if (item) {
-        discovery.includeEquivalentEquipment(equipment.id, item.modelItems);
+        discovery.registerEquivalentEquipment(equipment.id, item.modelItems);
       }
     });
   };
@@ -200,13 +200,28 @@ function GlamourWorkspace({
                 : discovery.equipmentSearchLoading
             }
             selectedEquipment={discovery.selectedEquipment}
-            equivalentEquipmentCount={discovery.equipmentModelMatches.length}
+            equivalentEquipment={discovery.equipmentModelCandidates}
+            selectedEquivalentEquipmentIds={discovery.selectedEquipmentModelIds}
+            equivalentStatus={
+              wiki.itemName === discovery.selectedEquipment?.name
+                ? wiki.status
+                : "idle"
+            }
+            equivalentError={
+              wiki.itemName === discovery.selectedEquipment?.name
+                ? wiki.error
+                : null
+            }
+            equivalentUpdating={discovery.equipmentRangeUpdating}
             onSearchModeChange={discovery.setSearchMode}
             onQueryChange={discovery.setQuery}
             onSearch={discovery.submitSearch}
             onClearSearch={discovery.clearSearch}
             onRaceChange={discovery.setRaceId}
             onGenderChange={discovery.setGenderId}
+            onToggleEquivalent={discovery.toggleEquivalentEquipment}
+            onSelectAllEquivalent={discovery.selectAllEquivalentEquipment}
+            onClearEquivalent={discovery.clearEquivalentEquipment}
           />
           <GlamourGallery
             results={discovery.results}

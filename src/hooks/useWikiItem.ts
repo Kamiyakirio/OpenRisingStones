@@ -67,6 +67,18 @@ export function useWikiItem() {
     setItem(null);
     setStatus("loading");
     if (preview) {
+      const previewModelItems = Array.from({ length: 12 }, (_, index) => ({
+        id: equipmentId ? equipmentId + index + 1 : null,
+        name: `${nextItemName}同模变体 ${index + 1}`,
+        category: "同部位装备",
+        iconUrl: null,
+        wikiUrl: "",
+        relation: index < 6 ? ("identical" as const) : ("primary" as const),
+        dyeable: index % 2 === 0,
+        unobtainable: index === 11,
+        sourceSummary: index === 11 ? "" : "预览来源",
+        sourceTypes: ["other" as const],
+      }));
       const previewItem: WikiItemData = {
         itemName: nextItemName,
         pageTitle: `物品:${nextItemName}`,
@@ -102,18 +114,7 @@ export function useWikiItem() {
             sourceSummary: "副本（遗忘行路雾之迹）",
             sourceTypes: ["dungeon"],
           },
-          {
-            id: null,
-            name: `${nextItemName}同模款`,
-            category: "脚部防具",
-            iconUrl: null,
-            wikiUrl: "",
-            relation: "primary",
-            dyeable: false,
-            unobtainable: false,
-            sourceSummary: "任务、商店、道具商城",
-            sourceTypes: ["quest", "currency", "cash_shop"],
-          },
+          ...previewModelItems,
         ],
         source: "safari",
       };

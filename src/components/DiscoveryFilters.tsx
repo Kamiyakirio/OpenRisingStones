@@ -9,6 +9,9 @@ import { useEffect, useRef } from "react";
 import { genderIdMap, raceIdMap } from "../models/idsToName";
 import type { EquipmentSearchItem } from "../services/equipmentApi";
 import type { GlamourSearchMode } from "../hooks/useGlamourDiscovery";
+import type { WikiLoadStatus } from "../hooks/useWikiItem";
+import type { WikiModelItem } from "../services/wikiApi";
+import { EquivalentEquipmentSelector } from "./EquivalentEquipmentSelector";
 import { SelectedEquipmentSummary } from "./EquipmentSearchPage";
 
 type DiscoveryFiltersProps = {
@@ -19,13 +22,20 @@ type DiscoveryFiltersProps = {
   genderId: number | null;
   searchLoading: boolean;
   selectedEquipment: EquipmentSearchItem | null;
-  equivalentEquipmentCount: number;
+  equivalentEquipment: WikiModelItem[];
+  selectedEquivalentEquipmentIds: number[];
+  equivalentStatus: WikiLoadStatus;
+  equivalentError: string | null;
+  equivalentUpdating: boolean;
   onSearchModeChange: (mode: GlamourSearchMode) => void;
   onQueryChange: (query: string) => void;
   onSearch: () => void;
   onClearSearch: () => void;
   onRaceChange: (raceId: number | null) => void;
   onGenderChange: (genderId: number | null) => void;
+  onToggleEquivalent: (equipmentId: number) => void;
+  onSelectAllEquivalent: () => void;
+  onClearEquivalent: () => void;
 };
 
 export function DiscoveryFilters({
@@ -36,13 +46,20 @@ export function DiscoveryFilters({
   genderId,
   searchLoading,
   selectedEquipment,
-  equivalentEquipmentCount,
+  equivalentEquipment,
+  selectedEquivalentEquipmentIds,
+  equivalentStatus,
+  equivalentError,
+  equivalentUpdating,
   onSearchModeChange,
   onQueryChange,
   onSearch,
   onClearSearch,
   onRaceChange,
   onGenderChange,
+  onToggleEquivalent,
+  onSelectAllEquivalent,
+  onClearEquivalent,
 }: DiscoveryFiltersProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -121,10 +138,19 @@ export function DiscoveryFilters({
         </button>
       </form>
       {searchMode === "equipment" && selectedEquipment ? (
-        <SelectedEquipmentSummary
-          item={selectedEquipment}
-          equivalentCount={equivalentEquipmentCount}
-        />
+        <div className="selected-equipment-scope">
+          <SelectedEquipmentSummary item={selectedEquipment} />
+          <EquivalentEquipmentSelector
+            items={equivalentEquipment}
+            selectedIds={selectedEquivalentEquipmentIds}
+            status={equivalentStatus}
+            error={equivalentError}
+            updating={equivalentUpdating}
+            onToggle={onToggleEquivalent}
+            onSelectAll={onSelectAllEquivalent}
+            onClear={onClearEquivalent}
+          />
+        </div>
       ) : searchMode === "equipment" ? (
         <p className="equipment-search-hint">
           输入装备名称，搜索结果会在新页面中打开。
