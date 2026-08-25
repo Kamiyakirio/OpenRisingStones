@@ -11,8 +11,10 @@ from api_client import (
     BASE_HEADERS,
     GLAMOUR_SEARCH_URL,
     NETWORK_CONSOLE_PREFIX,
+    WIKI_IMPERSONATE,
     fetch_glamour_detail,
     fetch_glamour_page,
+    fetch_wiki_page,
     finalize_authenticated_login,
     normalize_user_agent,
 )
@@ -24,10 +26,12 @@ class FakeResponse:
         status_code: int = 200,
         content: bytes = b"{}",
         url: str | None = None,
+        headers: dict | None = None,
     ) -> None:
         self.status_code = status_code
         self.content = content
         self.url = url
+        self.headers = headers or {}
 
     def json(self):
         return json.loads(self.content)
@@ -49,6 +53,9 @@ class FakeSession:
         if isinstance(response, Exception):
             raise response
         return response
+
+    def close(self):
+        return None
 
 
 def client_with(
@@ -231,6 +238,48 @@ class ApiClientTests(unittest.TestCase):
         _, _, arguments = session.arguments
         self.assertEqual(arguments["params"]["id"], 287009)
         self.assertTrue(arguments["params"]["tempsuid"])
+
+    def test_wiki_request_uses_encoded_item_name_and_detects_success(self) -> None:
+        item_name = "\u6d4b\u8bd5\u624b\u5957"
+        client, session = client_with(
+            FakeResponse(
+                content=f"<title>Item:{item_name}</title>{item_name}".encode(),
+            )
+        )
+
+        result = fetch_wiki_page({"itemName": item_name}, session)
+
+        method, url, arguments = session.arguments
+        self.assertEqual(method, "GET")
+        self.assertIn("%E7%89%A9%E5%93%81%3A", url)
+        self.assertIn("%E6%B5%8B%E8%AF%95%E6%89%8B%E5%A5%97", url)
+        self.assertIn("ItemSearch", arguments["headers"]["Referer"])
+        self.assertFalse(result["challenged"])
+
+    def test_wiki_request_detects_cloudflare_challenge(self) -> None:
+        client, session = client_with(
+            FakeResponse(
+                status_code=403,
+                content=b"<title>Just a moment...</title>",
+                headers={"cf-mitigated": "challenge"},
+            )
+        )
+
+        result = fetch_wiki_page({"itemName": "Test"}, session)
+
+        self.assertTrue(result["challenged"])
+
+    def test_wiki_request_constructs_the_configured_safari_session(self) -> None:
+        item_name = "\u6d4b\u8bd5\u624b\u5957"
+        session = FakeSession(
+            FakeResponse(content=f"<title>Item:{item_name}</title>{item_name}".encode())
+        )
+
+        with patch("api_client.requests.Session", return_value=session) as factory:
+            result = fetch_wiki_page({"itemName": item_name})
+
+        factory.assert_called_once_with(impersonate=WIKI_IMPERSONATE)
+        self.assertFalse(result["challenged"])
 
     def test_login_requires_the_official_character_binding(self) -> None:
         client, _ = client_with(

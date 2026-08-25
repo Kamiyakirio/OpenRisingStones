@@ -5,6 +5,7 @@ mod network;
 mod python_sidecar;
 mod sdo_login;
 mod secure_storage;
+mod wiki;
 
 use tauri::Manager;
 #[cfg(debug_assertions)]
@@ -19,6 +20,7 @@ pub fn run() {
       #[cfg(not(debug_assertions))]
       let session_path = app.path().app_local_data_dir()?.join("sdo-session.v1.dat");
       app.manage(sdo_login::LoginState::with_storage_path(session_path));
+      app.manage(wiki::WikiVerificationState::default());
       #[cfg(debug_assertions)]
       {
         app.handle().plugin(
@@ -52,6 +54,9 @@ pub fn run() {
       sdo_login::sdo_poll_qr_login,
       sdo_login::sdo_login_with_cookie,
       sdo_login::sdo_cancel_login,
+      wiki::fetch_wiki_item_page,
+      wiki::show_wiki_verification,
+      wiki::cancel_wiki_verification,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

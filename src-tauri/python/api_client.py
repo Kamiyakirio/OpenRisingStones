@@ -12,7 +12,7 @@ import sys
 import time
 import uuid
 from typing import Any, Collection
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 try:
     from curl_cffi import requests
@@ -44,6 +44,9 @@ GLAMOUR_DETAIL_URL = (
 GLAMOUR_SEARCH_URL = (
     "https://apiff14risingstones.web.sdo.com/api/common/search"
 )
+WIKI_ORIGIN = "https://ff14.huijiwiki.com"
+WIKI_IMPERSONATE = "safari2601"
+WIKI_ITEM_NAMESPACE = "\u7269\u54c1:"
 CHARACTER_BINDING_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/"
     "groupAndRole/getCharacterBindInfo"
@@ -746,9 +749,72 @@ def fetch_glamour_detail(client: ApiClient, request: dict[str, Any]) -> dict[str
     return {"status": response.status_code, "body": body}
 
 
+def fetch_wiki_page(
+    request: dict[str, Any], session: Any | None = None
+) -> dict[str, Any]:
+    """Fetch one public item page with the configured Safari browser fingerprint."""
+    if requests is None:
+        raise ApiClientError("curl_cffi is missing. Install python/requirements.txt.")
+    item_name = str(request.get("itemName") or "").strip()
+    if not item_name:
+        raise ApiClientError("The wiki item name is missing.")
+    url = f"{WIKI_ORIGIN}/wiki/{quote(f'{WIKI_ITEM_NAMESPACE}{item_name}', safe='')}"
+    referer = f"{WIKI_ORIGIN}/wiki/ItemSearch?name={quote(item_name, safe='')}"
+    owns_session = session is None
+    wiki_session = session or requests.Session(impersonate=WIKI_IMPERSONATE)
+    try:
+        response = wiki_session.request(
+            "GET",
+            url,
+            headers={
+                "Accept": (
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                    "image/avif,image/webp,image/apng,*/*;q=0.8"
+                ),
+                "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.7",
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+                "Referer": referer,
+            },
+            timeout=20,
+            allow_redirects=True,
+        )
+    except Exception as error:
+        raise ApiClientError("The FFXIV wiki request failed.") from error
+    finally:
+        if owns_session:
+            wiki_session.close()
+
+    if len(response.content) > MAX_RESPONSE_BYTES:
+        raise ApiClientError("The wiki response exceeded the size limit.")
+    try:
+        body = response.content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ApiClientError("The wiki returned invalid text.") from error
+    response_headers = getattr(response, "headers", {})
+    mitigated = str(response_headers.get("cf-mitigated") or "").lower()
+    lowered = body.lower()
+    challenged = (
+        mitigated == "challenge"
+        or response.status_code == 403
+        or "just a moment" in lowered
+        or "cdn-cgi/challenge-platform" in lowered
+    )
+    return {
+        "status": response.status_code,
+        "body": body,
+        "url": str(getattr(response, "url", url) or url),
+        "challenged": challenged,
+    }
+
+
 def main() -> None:
     request = json.load(sys.stdin)
     operation = request.get("operation")
+    if operation == "fetchWikiPage":
+        result = fetch_wiki_page(request)
+        json.dump(result, sys.stdout, ensure_ascii=True)
+        return
     client = ApiClient(request.get("session"), request.get("userAgent"))
     if operation == "startPush":
         result = start_push(client, request["account"])
