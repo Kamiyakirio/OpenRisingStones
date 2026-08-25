@@ -30,3 +30,4 @@ src-tauri/binaries/
 !.agents/skills/**
 
 prompt.md
+sdo-session.debug.json

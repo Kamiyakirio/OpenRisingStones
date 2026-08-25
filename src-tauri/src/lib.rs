@@ -14,6 +14,9 @@ use tauri_plugin_log::{Target, TargetKind};
 pub fn run() {
   tauri::Builder::default()
     .setup(|app| {
+      #[cfg(debug_assertions)]
+      let session_path = std::env::current_dir()?.join("sdo-session.debug.json");
+      #[cfg(not(debug_assertions))]
       let session_path = app.path().app_local_data_dir()?.join("sdo-session.v1.dat");
       app.manage(sdo_login::LoginState::with_storage_path(session_path));
       #[cfg(debug_assertions)]

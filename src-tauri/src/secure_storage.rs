@@ -1,6 +1,65 @@
 //! Operating-system credential protection for sensitive local session material.
 
-#[cfg(windows)]
+#[cfg(debug_assertions)]
+mod platform {
+  use std::{fs, path::Path};
+
+  const MAX_PLAINTEXT_BYTES: u64 = 256 * 1024;
+
+  /// Debug builds intentionally use plaintext storage in the process working directory.
+  pub fn save(path: &Path, plaintext: &[u8]) -> Result<(), String> {
+    let parent = path
+      .parent()
+      .ok_or_else(|| "The debug session path is invalid.".to_owned())?;
+    fs::create_dir_all(parent)
+      .map_err(|_| "Unable to prepare debug session storage.".to_owned())?;
+    fs::write(path, plaintext).map_err(|_| "Unable to save the debug session.".to_owned())
+  }
+
+  pub fn load(path: &Path) -> Result<Option<Vec<u8>>, String> {
+    let metadata = match fs::metadata(path) {
+      Ok(metadata) => metadata,
+      Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+      Err(_) => return Err("Unable to inspect the debug session.".to_owned()),
+    };
+    if metadata.len() > MAX_PLAINTEXT_BYTES {
+      return Err("The debug session exceeds the size limit.".to_owned());
+    }
+    fs::read(path)
+      .map(Some)
+      .map_err(|_| "Unable to read the debug session.".to_owned())
+  }
+
+  pub fn clear(path: &Path) -> Result<(), String> {
+    match fs::remove_file(path) {
+      Ok(()) => Ok(()),
+      Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+      Err(_) => Err("Unable to clear the debug session.".to_owned()),
+    }
+  }
+
+  #[cfg(test)]
+  mod tests {
+    use super::*;
+
+    #[test]
+    fn debug_storage_writes_plaintext_to_the_requested_path() {
+      let path = std::env::temp_dir().join(format!(
+        "open-rising-stones-debug-session-{}.json",
+        std::process::id()
+      ));
+      let plaintext = b"{\"cookie\":\"debug-secret\"}";
+
+      save(&path, plaintext).unwrap();
+      assert_eq!(fs::read(&path).unwrap(), plaintext);
+      assert_eq!(load(&path).unwrap().unwrap(), plaintext);
+      clear(&path).unwrap();
+      assert!(!path.exists());
+    }
+  }
+}
+
+#[cfg(all(not(debug_assertions), windows))]
 mod platform {
   use std::{ffi::c_void, fs, path::Path, ptr};
 
@@ -141,7 +200,7 @@ mod platform {
   }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(not(debug_assertions), target_os = "macos"))]
 mod platform {
   use std::{ffi::c_void, path::Path, ptr};
 
@@ -294,7 +353,7 @@ mod platform {
   }
 }
 
-#[cfg(not(any(windows, target_os = "macos")))]
+#[cfg(all(not(debug_assertions), not(any(windows, target_os = "macos"))))]
 mod platform {
   use std::path::Path;
 
