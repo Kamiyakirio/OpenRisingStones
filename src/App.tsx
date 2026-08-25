@@ -159,6 +159,7 @@ function GlamourWorkspace({
         <GlamourDetailView
           glamour={selectedGlamour}
           saved={discovery.saved.includes(selectedGlamour.id)}
+          wiki={wiki}
           onBack={handleCloseDetail}
           onToggleSave={discovery.toggleSave}
         />

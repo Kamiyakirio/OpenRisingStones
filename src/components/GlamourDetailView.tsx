@@ -1,5 +1,5 @@
 /** Complete glamour submission with media, author context, and equipment slots. */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   BookmarkSimple,
@@ -10,17 +10,20 @@ import {
   Star,
 } from "@phosphor-icons/react";
 import { useGlamourDetail } from "../hooks/useGlamourDetail";
+import type { WikiItemInspector } from "../hooks/useWikiItem";
 import type {
   Glamour,
   GlamourDetail,
   GlamourEquipment,
 } from "../services/glamourApi";
 import { replaceBrokenImage } from "../utils/glamourPresentation";
+import { EquipmentSourcePopover } from "./EquipmentSourcePopover";
 import "./GlamourDetailView.css";
 
 type GlamourDetailViewProps = {
   glamour: Glamour;
   saved: boolean;
+  wiki: WikiItemInspector;
   onBack: () => void;
   onToggleSave: (id: number) => void;
 };
@@ -43,6 +46,7 @@ const EQUIPMENT_SLOTS = [
 export function GlamourDetailView({
   glamour,
   saved,
+  wiki,
   onBack,
   onToggleSave,
 }: GlamourDetailViewProps) {
@@ -65,6 +69,7 @@ export function GlamourDetailView({
         <DetailContent
           detail={detail}
           saved={saved}
+          wiki={wiki}
           onToggleSave={onToggleSave}
         />
       )}
@@ -75,10 +80,12 @@ export function GlamourDetailView({
 function DetailContent({
   detail,
   saved,
+  wiki,
   onToggleSave,
 }: {
   detail: GlamourDetail;
   saved: boolean;
+  wiki: WikiItemInspector;
   onToggleSave: (id: number) => void;
 }) {
   const [activeImage, setActiveImage] = useState(detail.images[0]);
@@ -193,6 +200,7 @@ function DetailContent({
               <EquipmentSlot
                 label={label}
                 equipment={equipment.get(slot)}
+                wiki={wiki}
                 key={slot}
               />
             ))}
@@ -200,6 +208,7 @@ function DetailContent({
               <EquipmentSlot
                 label="面部配饰"
                 equipment={equipment.get("FACE")}
+                wiki={wiki}
               />
             )}
           </div>
@@ -212,10 +221,53 @@ function DetailContent({
 function EquipmentSlot({
   label,
   equipment,
+  wiki,
 }: {
   label: string;
   equipment?: GlamourEquipment;
+  wiki: WikiItemInspector;
 }) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [popoverAnchor, setPopoverAnchor] = useState<HTMLDivElement | null>(
+    null,
+  );
+  const openTimer = useRef<number | null>(null);
+  const closeTimer = useRef<number | null>(null);
+  const showPopover = (immediate = false) => {
+    if (!equipment?.name || equipment.equipmentId <= 0) return;
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    if (popoverOpen) return;
+    if (openTimer.current !== null) window.clearTimeout(openTimer.current);
+    openTimer.current = window.setTimeout(
+      () => {
+        openTimer.current = null;
+        setPopoverOpen(true);
+        void wiki.load(equipment.name!, equipment.equipmentId);
+      },
+      immediate ? 0 : 260,
+    );
+  };
+  const keepPopoverOpen = () => {
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  };
+  const hidePopover = () => {
+    if (openTimer.current !== null) window.clearTimeout(openTimer.current);
+    openTimer.current = null;
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null;
+      setPopoverOpen(false);
+    }, 220);
+  };
+
+  useEffect(
+    () => () => {
+      if (openTimer.current !== null) window.clearTimeout(openTimer.current);
+      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
   const content = (
     <>
       <span className="equipment-icon">
@@ -252,7 +304,7 @@ function EquipmentSlot({
     </>
   );
 
-  return equipment?.shopUrl ? (
+  const item = equipment?.shopUrl ? (
     <a
       className="equipment-item equipment-shop-link"
       href={equipment.shopUrl}
@@ -267,6 +319,37 @@ function EquipmentSlot({
       className={equipment?.name ? "equipment-item" : "equipment-item empty"}
     >
       {content}
+    </div>
+  );
+
+  const matchesCurrentItem = wiki.itemName === equipment?.name;
+  return (
+    <div
+      ref={setPopoverAnchor}
+      className="equipment-slot-wrapper"
+      tabIndex={equipment?.name && !equipment.shopUrl ? 0 : undefined}
+      onMouseEnter={() => showPopover()}
+      onMouseLeave={hidePopover}
+      onFocus={() => showPopover(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          hidePopover();
+        }
+      }}
+    >
+      {item}
+      {popoverOpen && equipment?.name && (
+        <EquipmentSourcePopover
+          anchor={popoverAnchor}
+          itemName={equipment.name}
+          item={matchesCurrentItem ? wiki.item : null}
+          status={matchesCurrentItem ? wiki.status : "loading"}
+          error={matchesCurrentItem ? wiki.error : null}
+          onRetry={() => void wiki.load(equipment.name!, equipment.equipmentId)}
+          onKeepOpen={keepPopoverOpen}
+          onDismiss={hidePopover}
+        />
+      )}
     </div>
   );
 }
