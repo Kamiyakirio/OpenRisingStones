@@ -848,6 +848,72 @@
   padding: 0 5px 5px;
 }
 
+.model-role-cluster {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-soft) 28%, var(--surface));
+}
+
+.model-role-cluster > summary {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 54px;
+  padding: 7px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.model-role-cluster > summary::-webkit-details-marker {
+  display: none;
+}
+
+.model-role-cluster > summary > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.model-role-cluster > summary strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-role-cluster > summary small,
+.model-role-cluster > summary span > span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-role-cluster > summary > svg {
+  width: 13px;
+  height: 13px;
+  color: var(--accent);
+  transition: transform 160ms ease;
+}
+
+.model-role-cluster[open] > summary > svg {
+  transform: rotate(180deg);
+}
+
+.model-role-cluster-items {
+  display: grid;
+  gap: 2px;
+  padding: 0 4px 4px 14px;
+}
+
+.model-role-cluster-items article {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
 .model-source-list article {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) auto;
@@ -1232,6 +1298,10 @@
 
   .model-source-list article {
     grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .model-role-cluster-items {
+    padding-left: 4px;
   }
 
   .model-dye-state,

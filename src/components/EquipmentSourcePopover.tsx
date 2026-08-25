@@ -26,6 +26,10 @@ import type {
   WikiModelItem,
   WikiSourceItem,
 } from "../services/wikiApi";
+import {
+  clusterModelItems,
+  type ModelNameCluster,
+} from "../utils/modelNameClusters";
 
 type EquipmentSourcePopoverProps = {
   anchor: HTMLElement | null;
@@ -363,6 +367,7 @@ function ModelGroup({
   label: string;
   models: WikiModelItem[];
 }) {
+  const entries = clusterModelItems(models);
   return (
     <details className="model-source-group">
       <summary>
@@ -371,50 +376,91 @@ function ModelGroup({
         <span>{models.length}</span>
       </summary>
       <div className="model-source-list">
-        {models.map((model) => (
-          <article
-            className={model.unobtainable ? "model-source-unobtainable" : ""}
+        {entries.map((entry) =>
+          entry.kind === "cluster" ? (
+            <ModelRoleCluster cluster={entry} key={entry.key} />
+          ) : (
+            <ModelSourceItem
+              model={entry.model}
+              key={`${entry.model.relation}-${entry.model.id ?? entry.model.name}`}
+            />
+          ),
+        )}
+      </div>
+    </details>
+  );
+}
+
+function ModelRoleCluster({ cluster }: { cluster: ModelNameCluster }) {
+  const representative = cluster.models[0];
+  return (
+    <details className="model-role-cluster">
+      <summary>
+        <ModelSourceIcon model={representative} />
+        <span>
+          <strong>{cluster.label}</strong>
+          <small>{cluster.infixes.join(" / ")}</small>
+          <span>{cluster.models.length} 个职业变体</span>
+        </span>
+        <CaretDown />
+      </summary>
+      <div className="model-role-cluster-items">
+        {cluster.models.map((model) => (
+          <ModelSourceItem
+            model={model}
             key={`${model.relation}-${model.id ?? model.name}`}
-          >
-            <span className="model-source-icon" aria-hidden="true">
-              <Package />
-              {model.iconUrl && (
-                <img
-                  src={model.iconUrl}
-                  alt=""
-                  referrerPolicy="no-referrer"
-                  onError={(event) => {
-                    event.currentTarget.hidden = true;
-                  }}
-                />
-              )}
-            </span>
-            <span>
-              <strong>{model.name}</strong>
-              <small>{model.category}</small>
-              <span>
-                {model.unobtainable
-                  ? model.sourceSummary
-                    ? `当前无法获得，历史来源：${model.sourceSummary}`
-                    : "当前无法获得"
-                  : model.sourceSummary || "来源未收录"}
-              </span>
-            </span>
-            {model.unobtainable ? (
-              <small className="model-unobtainable-state">
-                <Prohibit />
-                无法获得
-              </small>
-            ) : model.dyeable !== null ? (
-              <small className="model-dye-state">
-                {model.dyeable ? <Check /> : <X />}
-                {model.dyeable ? "可染色" : "不可染色"}
-              </small>
-            ) : null}
-          </article>
+          />
         ))}
       </div>
     </details>
+  );
+}
+
+function ModelSourceItem({ model }: { model: WikiModelItem }) {
+  return (
+    <article className={model.unobtainable ? "model-source-unobtainable" : ""}>
+      <ModelSourceIcon model={model} />
+      <span>
+        <strong>{model.name}</strong>
+        <small>{model.category}</small>
+        <span>
+          {model.unobtainable
+            ? model.sourceSummary
+              ? `当前无法获得，历史来源：${model.sourceSummary}`
+              : "当前无法获得"
+            : model.sourceSummary || "来源未收录"}
+        </span>
+      </span>
+      {model.unobtainable ? (
+        <small className="model-unobtainable-state">
+          <Prohibit />
+          无法获得
+        </small>
+      ) : model.dyeable !== null ? (
+        <small className="model-dye-state">
+          {model.dyeable ? <Check /> : <X />}
+          {model.dyeable ? "可染色" : "不可染色"}
+        </small>
+      ) : null}
+    </article>
+  );
+}
+
+function ModelSourceIcon({ model }: { model: WikiModelItem }) {
+  return (
+    <span className="model-source-icon" aria-hidden="true">
+      <Package />
+      {model.iconUrl && (
+        <img
+          src={model.iconUrl}
+          alt=""
+          referrerPolicy="no-referrer"
+          onError={(event) => {
+            event.currentTarget.hidden = true;
+          }}
+        />
+      )}
+    </span>
   );
 }
 
