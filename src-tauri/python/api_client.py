@@ -724,7 +724,11 @@ def fetch_glamour_page(client: ApiClient, request: dict[str, Any]) -> dict[str, 
         raise ApiClientError(
             "The Rising Stones glamour endpoint returned invalid text."
         ) from error
-    return {"status": response.status_code, "body": body}
+    return {
+        "status": response.status_code,
+        "body": body,
+        "url": str(getattr(response, "url", url) or url),
+    }
 
 
 def fetch_glamour_detail(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
@@ -746,7 +750,13 @@ def fetch_glamour_detail(client: ApiClient, request: dict[str, Any]) -> dict[str
         raise ApiClientError(
             "The Rising Stones glamour detail endpoint returned invalid text."
         ) from error
-    return {"status": response.status_code, "body": body}
+    return {
+        "status": response.status_code,
+        "body": body,
+        "url": str(
+            getattr(response, "url", GLAMOUR_DETAIL_URL) or GLAMOUR_DETAIL_URL
+        ),
+    }
 
 
 def fetch_wiki_page(

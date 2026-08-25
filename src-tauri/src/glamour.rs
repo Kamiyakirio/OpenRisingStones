@@ -3,9 +3,10 @@
 //! 参数只用于硬编码接口的查询字符串；登录 Cookie 从受保护的 Rust 状态读取。
 
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::{
+  glamour_verification::{self, GlamourVerificationState},
   python_sidecar,
   sdo_login::{self, LoginState, SessionSnapshot},
 };
@@ -14,7 +15,7 @@ const MAX_GLAMOUR_BODY_BYTES: usize = 5 * 1024 * 1024;
 // A JSON string can expand each source byte into a six-byte Unicode escape.
 const MAX_SIDECAR_RESPONSE_BYTES: usize = 6 * MAX_GLAMOUR_BODY_BYTES + 1024;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GlamourPageRequest {
   page: u32,
@@ -30,9 +31,11 @@ pub struct GlamourPageRequest {
 pub struct GlamourPageResponse {
   status: u16,
   body: String,
+  #[serde(default, skip_serializing)]
+  url: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GlamourDetailRequest {
   id: u64,
@@ -69,28 +72,96 @@ struct SidecarDetailRequest {
 #[tauri::command]
 pub async fn fetch_glamour_page(
   request: GlamourPageRequest,
+  app: AppHandle,
   state: State<'_, LoginState>,
+  verification: State<'_, GlamourVerificationState>,
 ) -> Result<GlamourPageResponse, String> {
   validate_request(&request)?;
   let session = sdo_login::current_session(&state)?
     .ok_or_else(|| "请先登录石之家，再读取幻化投稿。".to_owned())?;
-  tauri::async_runtime::spawn_blocking(move || run_python_client(request, session))
-    .await
-    .map_err(|_| "The glamour request task stopped unexpectedly.".to_owned())?
+  let verification_session = session.clone();
+  let retry_request = request.clone();
+  let mut response =
+    tauri::async_runtime::spawn_blocking(move || run_python_client(request, session))
+      .await
+      .map_err(|_| "The glamour request task stopped unexpectedly.".to_owned())??;
+  if is_bot_challenge(&response.body) {
+    if let Some(body) = glamour_verification::verify(
+      &app,
+      &verification,
+      &verification_session,
+      &response.url,
+      &response.body,
+    )
+    .await?
+    {
+      return Ok(GlamourPageResponse {
+        status: 200,
+        body,
+        url: response.url,
+      });
+    }
+    let session = sdo_login::current_session(&state)?
+      .ok_or_else(|| "The authenticated session is unavailable.".to_owned())?;
+    response =
+      tauri::async_runtime::spawn_blocking(move || run_python_client(retry_request, session))
+        .await
+        .map_err(|_| "The glamour retry task stopped unexpectedly.".to_owned())??;
+    if is_bot_challenge(&response.body) {
+      return Err("Rising Stones access verification did not clear the challenge.".to_owned());
+    }
+  }
+  Ok(response)
 }
 
 /// Reads one complete glamour submission with its equipment and image data.
 #[tauri::command]
 pub async fn fetch_glamour_detail(
   request: GlamourDetailRequest,
+  app: AppHandle,
   state: State<'_, LoginState>,
+  verification: State<'_, GlamourVerificationState>,
 ) -> Result<GlamourPageResponse, String> {
   validate_detail_request(&request)?;
   let session = sdo_login::current_session(&state)?
     .ok_or_else(|| "请先登录石之家，再读取幻化详情。".to_owned())?;
-  tauri::async_runtime::spawn_blocking(move || run_python_detail(request.id, session))
+  let verification_session = session.clone();
+  let id = request.id;
+  let mut response = tauri::async_runtime::spawn_blocking(move || run_python_detail(id, session))
     .await
-    .map_err(|_| "The glamour detail task stopped unexpectedly.".to_owned())?
+    .map_err(|_| "The glamour detail task stopped unexpectedly.".to_owned())??;
+  if is_bot_challenge(&response.body) {
+    if let Some(body) = glamour_verification::verify(
+      &app,
+      &verification,
+      &verification_session,
+      &response.url,
+      &response.body,
+    )
+    .await?
+    {
+      return Ok(GlamourPageResponse {
+        status: 200,
+        body,
+        url: response.url,
+      });
+    }
+    let session = sdo_login::current_session(&state)?
+      .ok_or_else(|| "The authenticated session is unavailable.".to_owned())?;
+    response = tauri::async_runtime::spawn_blocking(move || run_python_detail(id, session))
+      .await
+      .map_err(|_| "The glamour detail retry task stopped unexpectedly.".to_owned())??;
+    if is_bot_challenge(&response.body) {
+      return Err("Rising Stones access verification did not clear the challenge.".to_owned());
+    }
+  }
+  Ok(response)
+}
+
+fn is_bot_challenge(body: &str) -> bool {
+  body.contains("__tst_status")
+    || body.contains("EO_Bot_Ssid")
+    || body.to_ascii_lowercase().contains("<script>function a(a)")
 }
 
 fn validate_detail_request(request: &GlamourDetailRequest) -> Result<(), String> {
@@ -250,5 +321,13 @@ mod tests {
     assert!(validate_request(&request).is_err());
     request.keywords = Some("1129".to_owned());
     assert!(validate_request(&request).is_ok());
+  }
+
+  #[test]
+  fn detects_javascript_bot_challenges_inside_success_responses() {
+    assert!(is_bot_challenge(
+      "<script>function a(a){} document.cookie='__tst_status=1'; document.cookie='EO_Bot_Ssid=2';</script>"
+    ));
+    assert!(!is_bot_challenge("{\"code\":0,\"data\":[]}"));
   }
 }

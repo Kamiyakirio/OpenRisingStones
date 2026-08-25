@@ -1,6 +1,7 @@
 //! OpenRisingStones 桌面端后端入口及对前端开放的受控命令。
 
 mod glamour;
+mod glamour_verification;
 mod network;
 mod python_sidecar;
 mod sdo_login;
@@ -20,6 +21,7 @@ pub fn run() {
       #[cfg(not(debug_assertions))]
       let session_path = app.path().app_local_data_dir()?.join("sdo-session.v1.dat");
       app.manage(sdo_login::LoginState::with_storage_path(session_path));
+      app.manage(glamour_verification::GlamourVerificationState::default());
       app.manage(wiki::WikiVerificationState::default());
       #[cfg(debug_assertions)]
       {

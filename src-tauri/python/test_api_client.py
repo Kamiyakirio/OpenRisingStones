@@ -212,9 +212,10 @@ class ApiClientTests(unittest.TestCase):
         self.assertNotIn("gender_id", arguments["params"])
 
     def test_glamour_equipment_search_sends_the_selected_item_id(self) -> None:
-        client, session = client_with(FakeResponse())
+        resolved_url = f"{GLAMOUR_SEARCH_URL}?page=1&keywords=1129"
+        client, session = client_with(FakeResponse(url=resolved_url))
 
-        fetch_glamour_page(
+        result = fetch_glamour_page(
             client,
             {
                 "page": 1,
@@ -229,6 +230,7 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(url, GLAMOUR_SEARCH_URL)
         self.assertEqual(arguments["params"]["keywords"], "1129")
         self.assertEqual(arguments["params"]["searchByEquipment"], 1)
+        self.assertEqual(result["url"], resolved_url)
 
     def test_glamour_detail_sends_identifier_and_temporary_id(self) -> None:
         client, session = client_with(FakeResponse())

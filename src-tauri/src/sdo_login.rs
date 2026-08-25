@@ -22,21 +22,23 @@ use crate::{python_sidecar, secure_storage};
 const MAX_SIDECAR_RESPONSE_BYTES: usize = 128 * 1024;
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(120);
 const MAX_USER_AGENT_BYTES: usize = 512;
+const GLAMOUR_API_HOST: &str = "apiff14risingstones.web.sdo.com";
+const GLAMOUR_ANTIBOT_COOKIES: [&str; 2] = ["__tst_status", "EO_Bot_Ssid"];
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct CookieRecord {
-  name: String,
-  value: String,
-  domain: String,
-  path: String,
-  secure: bool,
+pub(crate) struct CookieRecord {
+  pub(crate) name: String,
+  pub(crate) value: String,
+  pub(crate) domain: String,
+  pub(crate) path: String,
+  pub(crate) secure: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SessionSnapshot {
-  cookies: Vec<CookieRecord>,
+  pub(crate) cookies: Vec<CookieRecord>,
   #[serde(default)]
   user_agent: Option<String>,
 }
@@ -481,6 +483,60 @@ pub(crate) fn current_session(state: &LoginState) -> Result<Option<SessionSnapsh
   load_stored_session(state)
 }
 
+/// Merge WebView-generated anti-bot cookies back into the trusted API session.
+pub(crate) fn merge_glamour_antibot_cookies(
+  state: &LoginState,
+  document_cookie: &str,
+) -> Result<(), String> {
+  let parsed = document_cookie
+    .split(';')
+    .filter_map(|part| part.trim().split_once('='))
+    .filter(|(name, _)| GLAMOUR_ANTIBOT_COOKIES.contains(name))
+    .map(|(name, value)| (name.to_owned(), value.trim().to_owned()))
+    .filter(|(_, value)| {
+      !value.is_empty() && value.len() <= 256 && !value.chars().any(char::is_control)
+    })
+    .collect::<Vec<_>>();
+  if !GLAMOUR_ANTIBOT_COOKIES
+    .iter()
+    .all(|required| parsed.iter().any(|(name, _)| name == required))
+  {
+    return Err("The Rising Stones verification cookies are incomplete.".to_owned());
+  }
+
+  let mut active = state
+    .active
+    .lock()
+    .map_err(|_| "Unable to update the authenticated session.".to_owned())?;
+  if let Some(login) = active.as_mut() {
+    merge_cookie_records(&mut login.session, &parsed);
+    persist_session(state.storage_path.as_deref(), &login.session)?;
+    return Ok(());
+  }
+  drop(active);
+  let mut session = load_stored_session(state)?
+    .ok_or_else(|| "There is no authenticated session to update.".to_owned())?;
+  merge_cookie_records(&mut session, &parsed);
+  persist_session(state.storage_path.as_deref(), &session)
+}
+
+fn merge_cookie_records(session: &mut SessionSnapshot, cookies: &[(String, String)]) {
+  for (name, value) in cookies {
+    session.cookies.retain(|cookie| {
+      cookie.name != *name
+        || cookie.domain.trim_start_matches('.') != GLAMOUR_API_HOST
+        || cookie.path != "/"
+    });
+    session.cookies.push(CookieRecord {
+      name: name.clone(),
+      value: value.clone(),
+      domain: GLAMOUR_API_HOST.to_owned(),
+      path: "/".to_owned(),
+      secure: true,
+    });
+  }
+}
+
 fn clear_stored_session(state: &LoginState) -> Result<(), String> {
   if let Some(path) = state.storage_path.as_deref() {
     secure_storage::clear(path)?;
@@ -579,6 +635,35 @@ mod tests {
 
     assert_eq!(serialized["userAgent"], "test-user-agent");
     assert!(serialized.get("user_agent").is_none());
+  }
+
+  #[test]
+  fn merges_only_complete_glamour_antibot_cookies() {
+    let state = LoginState::default();
+    *state.active.lock().unwrap() = Some(ActiveLogin {
+      session: empty_session(),
+      profile: LoginProfile {
+        display_account: "test-account".to_owned(),
+        character_name: "test-character".to_owned(),
+        area_name: "test-area".to_owned(),
+        group_name: "test-group".to_owned(),
+      },
+    });
+
+    assert!(merge_glamour_antibot_cookies(&state, "EO_Bot_Ssid=123").is_err());
+    merge_glamour_antibot_cookies(
+      &state,
+      "unrelated=value; __tst_status=456#; EO_Bot_Ssid=123",
+    )
+    .unwrap();
+
+    let session = current_session(&state).unwrap().unwrap();
+    assert_eq!(session.cookies.len(), 2);
+    assert!(session.cookies.iter().all(|cookie| {
+      GLAMOUR_ANTIBOT_COOKIES.contains(&cookie.name.as_str())
+        && cookie.domain == GLAMOUR_API_HOST
+        && cookie.secure
+    }));
   }
 
   #[test]
