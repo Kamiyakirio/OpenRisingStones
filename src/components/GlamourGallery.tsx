@@ -45,6 +45,11 @@ export function GlamourGallery({
   onLoadMore,
 }: GlamourGalleryProps) {
   const loadMoreTrigger = useRef<HTMLDivElement>(null);
+  const loadMoreCallback = useRef(onLoadMore);
+
+  useEffect(() => {
+    loadMoreCallback.current = onLoadMore;
+  }, [onLoadMore]);
 
   useEffect(() => {
     const trigger = loadMoreTrigger.current;
@@ -56,13 +61,13 @@ export function GlamourGallery({
         if (requested || !entries.some((entry) => entry.isIntersecting)) return;
         requested = true;
         observer.disconnect();
-        void onLoadMore();
+        void loadMoreCallback.current();
       },
       { rootMargin: "420px 0px" },
     );
     observer.observe(trigger);
     return () => observer.disconnect();
-  }, [canLoadMore, error, loading, loadingMore, onLoadMore]);
+  }, [canLoadMore, error, loading, loadingMore]);
 
   return (
     <section className="gallery-section" id="recommendations">

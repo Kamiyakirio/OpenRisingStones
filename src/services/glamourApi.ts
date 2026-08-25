@@ -4,6 +4,10 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { genderIdMap, raceIdMap } from "../models/idsToName";
+import {
+  findGlamourTotal,
+  inferGlamourHasMore,
+} from "../utils/glamourPagination";
 
 export type Glamour = {
   id: number;
@@ -240,11 +244,17 @@ async function fetchSingleGlamourPage(
     .filter((item): item is Glamour => Boolean(item));
   const pageSize = options.limit ?? 12;
   const loadedCount = (options.page - 1) * pageSize + records.length;
-  const total = findTotal(payload) ?? loadedCount;
+  const reportedTotal = findGlamourTotal(payload);
+  const hasMore = inferGlamourHasMore(
+    payload,
+    records.length,
+    pageSize,
+    loadedCount,
+  );
   return {
     items,
-    total,
-    hasMore: records.length > 0 && loadedCount < total,
+    total: reportedTotal ?? loadedCount,
+    hasMore,
   };
 }
 
@@ -526,22 +536,6 @@ function normalizeImageUrl(value: string) {
   if (value.startsWith("//")) return `https:${value}`;
   if (value.startsWith("/")) return `${API_ORIGIN}${value}`;
   return value;
-}
-
-function findTotal(value: unknown, depth = 0): number | null {
-  if (depth > 4 || !isRecord(value)) return null;
-  const direct = readNumber(value, [
-    "total",
-    "total_count",
-    "totalCount",
-    "count",
-  ]);
-  if (direct !== null) return direct;
-  for (const key of ["data", "result", "payload"]) {
-    const nested = findTotal(value[key], depth + 1);
-    if (nested !== null) return nested;
-  }
-  return null;
 }
 
 function readString(record: UnknownRecord, keys: string[]) {
