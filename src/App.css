@@ -207,7 +207,141 @@ textarea:focus-visible {
   color: var(--accent);
 }
 .profile-button.authenticated {
+  max-width: 190px;
   color: var(--accent-strong);
+}
+.profile-button.authenticated span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-entry {
+  position: relative;
+}
+.account-menu {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 13px);
+  right: 0;
+  width: min(300px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.account-menu::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 21px;
+  width: 12px;
+  height: 12px;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  transform: rotate(45deg);
+}
+.account-menu-identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+.account-menu-identity > svg {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  color: var(--accent);
+}
+.account-menu-identity > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.account-menu-identity span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+.account-menu-identity strong {
+  overflow: hidden;
+  font-family: "Songti SC", "Noto Serif CJK SC", serif;
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-menu-details {
+  display: grid;
+  gap: 10px;
+  margin: 15px 0;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.account-menu-details > div {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+.account-menu-details dt,
+.account-menu-details dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.account-menu-details dt {
+  color: var(--muted);
+}
+.account-menu-details dd {
+  overflow-wrap: anywhere;
+  font-weight: 650;
+  text-align: right;
+}
+.account-logout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--danger-line);
+  border-radius: 999px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  font-size: 12px;
+  font-weight: 750;
+}
+.account-logout:not(:disabled):hover {
+  border-color: var(--danger);
+}
+.account-logout:not(:disabled):active {
+  transform: translateY(1px) scale(0.985);
+}
+.account-logout:disabled {
+  cursor: wait;
+  opacity: 0.56;
+}
+.account-logout svg {
+  width: 16px;
+  height: 16px;
+}
+.account-menu-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 10px;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.account-menu-error svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
 }
 
 /* Settings uses the existing paper surface, with red reserved for destructive actions. */
@@ -2872,6 +3006,9 @@ button.equipment-card:active {
   .profile-button svg {
     width: 26px;
     height: 26px;
+  }
+  .profile-button.authenticated span {
+    display: none;
   }
   main {
     padding: 16px 16px 70px;

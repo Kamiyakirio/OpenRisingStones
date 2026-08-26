@@ -31,6 +31,7 @@ export function AppView({ viewModel }: AppViewProps) {
           onOpenLogin={viewModel.openLogin}
           onOpenSettings={viewModel.openSettings}
           onLoginSuccess={viewModel.loginSucceeded}
+          onLogout={viewModel.logout}
         />
       )}
       {viewModel.settingsOpen && (

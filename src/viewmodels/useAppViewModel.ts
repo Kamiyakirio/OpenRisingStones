@@ -3,7 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useState } from "react";
 import type { LoginProfile } from "../models/auth";
 import { SDO_AUTHENTICATION_REQUIRED_EVENT } from "../services/authEvents";
-import { getSdoLoginStatus } from "../services/sdoLogin";
+import { getSdoLoginStatus, logoutSdo } from "../services/sdoLogin";
 import { isTauriRuntime } from "../services/runtime";
 
 export type ActiveFeature = "home" | "glamour";
@@ -82,6 +82,12 @@ export function useAppViewModel() {
   const closeLogin = useCallback(() => setLoginOpen(false), []);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const logout = useCallback(async () => {
+    await logoutSdo();
+    setLoginProfile(null);
+    setLoginExpired(false);
+    setLoginOpen(false);
+  }, []);
 
   return {
     dark,
@@ -99,6 +105,7 @@ export function useAppViewModel() {
     openSettings,
     closeSettings,
     loginSucceeded,
+    logout,
   };
 }
 

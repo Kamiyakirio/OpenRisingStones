@@ -42,6 +42,12 @@ export async function loginWithCookie(cookie: string, userAgent: string) {
   return invoke<LoginPoll>("sdo_login_with_cookie", { cookie, userAgent });
 }
 
+/** Removes the persisted SDO session while preserving browser preferences. */
+export async function logoutSdo() {
+  requireDesktopRuntime();
+  await invoke("clear_all_local_data");
+}
+
 export async function cancelSdoLogin(loginId: number) {
   if (!isTauriRuntime()) return;
   await invoke("sdo_cancel_login", { loginId });

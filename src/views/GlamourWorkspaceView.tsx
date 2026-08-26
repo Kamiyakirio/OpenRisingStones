@@ -23,6 +23,7 @@ type GlamourWorkspaceViewProps = {
   onOpenLogin: () => void;
   onOpenSettings: () => void;
   onLoginSuccess: (profile: LoginProfile) => void;
+  onLogout: () => Promise<void>;
 };
 
 export function GlamourWorkspaceView({
@@ -37,6 +38,7 @@ export function GlamourWorkspaceView({
   onOpenLogin,
   onOpenSettings,
   onLoginSuccess,
+  onLogout,
 }: GlamourWorkspaceViewProps) {
   const viewModel = useGlamourWorkspaceViewModel({
     authenticated: Boolean(profile),
@@ -54,6 +56,7 @@ export function GlamourWorkspaceView({
         onToggleTheme={onToggleTheme}
         onOpenLogin={onOpenLogin}
         onOpenSettings={onOpenSettings}
+        onLogout={onLogout}
       />
       {loginChecking || !profile ? (
         <GlamourLoginWall
