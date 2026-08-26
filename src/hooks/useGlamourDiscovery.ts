@@ -30,7 +30,7 @@ type EquipmentCandidatePage = EquipmentSearchPage & {
 
 export type GlamourSearchMode = "title" | "equipment";
 
-export function useGlamourDiscovery() {
+export function useGlamourDiscovery(enabled = true) {
   const preview = !isTauriRuntime();
   const [glamours, setGlamours] = useState<Glamour[]>(
     preview ? PREVIEW_GLAMOURS : [],
@@ -69,7 +69,8 @@ export function useGlamourDiscovery() {
   const [pageInfo, setPageInfo] = useState<PageInfo | number>(
     preview ? PREVIEW_GLAMOURS.length : 0,
   );
-  const [loading, setLoading] = useState(!preview);
+  const [loading, setLoading] = useState(!preview && enabled);
+  const [initialized, setInitialized] = useState(preview);
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const feedRequestVersion = useRef(0);
@@ -99,7 +100,7 @@ export function useGlamourDiscovery() {
   const equipmentPage = equipmentPages[equipmentPageIndex] ?? null;
 
   useEffect(() => {
-    if (preview) return;
+    if (preview || !enabled) return;
     let active = true;
     feedAbortController.current?.abort();
     const controller = new AbortController();
@@ -131,6 +132,7 @@ export function useGlamourDiscovery() {
       .finally(() => {
         if (active && feedRequestVersion.current === requestVersion) {
           setLoading(false);
+          setInitialized(true);
           setEquipmentRangeUpdating(false);
         }
       });
@@ -144,6 +146,7 @@ export function useGlamourDiscovery() {
   }, [
     genderId,
     equipmentSearchIds,
+    enabled,
     order,
     pageSize,
     preview,
@@ -186,7 +189,7 @@ export function useGlamourDiscovery() {
   };
 
   const loadMore = async () => {
-    if (preview || loadingMoreRef.current) return;
+    if (preview || !enabled || loadingMoreRef.current) return;
     const requestVersion = feedRequestVersion.current;
     const signal = feedAbortController.current?.signal;
     loadingMoreRef.current = true;
@@ -516,10 +519,10 @@ export function useGlamourDiscovery() {
     results,
     featured: results[0] ?? glamours[0] ?? PREVIEW_GLAMOURS[0],
     total: preview || !hasMore ? results.length : total,
-    loading,
+    loading: loading || (!initialized && enabled),
     loadingMore,
     error,
-    canLoadMore: !preview && hasMore,
+    canLoadMore: !preview && enabled && hasMore,
     retry,
     toggleSave,
     loadMore,

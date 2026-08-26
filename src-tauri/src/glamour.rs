@@ -77,8 +77,8 @@ pub async fn fetch_glamour_page(
   verification: State<'_, GlamourVerificationState>,
 ) -> Result<GlamourPageResponse, String> {
   validate_request(&request)?;
-  let session = sdo_login::current_session(&state)?
-    .ok_or_else(|| "请先登录石之家，再读取幻化投稿。".to_owned())?;
+  let session =
+    sdo_login::current_session(&state)?.ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
   let verification_session = session.clone();
   let retry_request = request.clone();
   let mut response =
@@ -123,8 +123,8 @@ pub async fn fetch_glamour_detail(
   verification: State<'_, GlamourVerificationState>,
 ) -> Result<GlamourPageResponse, String> {
   validate_detail_request(&request)?;
-  let session = sdo_login::current_session(&state)?
-    .ok_or_else(|| "请先登录石之家，再读取幻化详情。".to_owned())?;
+  let session =
+    sdo_login::current_session(&state)?.ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
   let verification_session = session.clone();
   let id = request.id;
   let mut response = tauri::async_runtime::spawn_blocking(move || run_python_detail(id, session))

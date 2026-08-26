@@ -5,6 +5,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { genderIdMap, raceIdMap } from "../models/idsToName";
 import {
+  authenticationRequired,
+  isSdoAuthenticationFailure,
+  isSdoAuthenticationPayload,
+} from "./authEvents";
+import {
   findGlamourTotal,
   inferGlamourHasMore,
 } from "../utils/glamourPagination";
@@ -210,7 +215,7 @@ async function fetchSingleGlamourPage(
   };
   const response = await scheduleGlamourRequest(
     () =>
-      invoke<NetworkResponse>("fetch_glamour_page", {
+      invokeProtected<NetworkResponse>("fetch_glamour_page", {
         request: {
           page: options.page,
           limit: options.limit ?? 12,
@@ -221,6 +226,7 @@ async function fetchSingleGlamourPage(
   );
 
   if (response.status < 200 || response.status >= 300) {
+    if (response.status === 401) throw authenticationRequired();
     throw new Error(`石之家接口返回 HTTP ${response.status}`);
   }
   rejectBotChallenge(response.body);
@@ -231,6 +237,7 @@ async function fetchSingleGlamourPage(
   } catch {
     throw new Error("石之家返回了无法解析的数据");
   }
+  if (isSdoAuthenticationPayload(payload)) throw authenticationRequired();
 
   const records = findRecordList(payload);
   if (!records.length) {
@@ -260,11 +267,12 @@ async function fetchSingleGlamourPage(
 /** Reads and normalizes one detail record from the authenticated Tauri bridge. */
 export async function fetchGlamourDetail(id: number): Promise<GlamourDetail> {
   const response = await scheduleGlamourRequest(() =>
-    invoke<NetworkResponse>("fetch_glamour_detail", {
+    invokeProtected<NetworkResponse>("fetch_glamour_detail", {
       request: { id },
     }),
   );
   if (response.status < 200 || response.status >= 300) {
+    if (response.status === 401) throw authenticationRequired();
     throw new Error(`石之家详情接口返回 HTTP ${response.status}`);
   }
   rejectBotChallenge(response.body);
@@ -275,12 +283,25 @@ export async function fetchGlamourDetail(id: number): Promise<GlamourDetail> {
   } catch {
     throw new Error("石之家返回了无法解析的幻化详情");
   }
+  if (isSdoAuthenticationPayload(payload)) throw authenticationRequired();
   const root = asRecord(payload);
   const data = asRecord(root.data);
   if (!Object.keys(data).length) {
     throw new Error(readString(root, ["msg", "message"]) ?? "未找到幻化详情");
   }
   return toGlamourDetail(data);
+}
+
+async function invokeProtected<T>(
+  command: string,
+  args: Record<string, unknown>,
+) {
+  try {
+    return await invoke<T>(command, args);
+  } catch (reason) {
+    if (isSdoAuthenticationFailure(reason)) throw authenticationRequired();
+    throw reason;
+  }
 }
 
 /** 兼容接口包装层可能使用的 data/list/rows/items 字段。 */

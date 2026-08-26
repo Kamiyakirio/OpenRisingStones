@@ -6,6 +6,7 @@ import { DiscoveryFilters } from "./components/DiscoveryFilters";
 import { EquipmentSearchPage } from "./components/EquipmentSearchPage";
 import { GlamourGallery } from "./components/GlamourGallery";
 import { GlamourHero } from "./components/GlamourHero";
+import { GlamourLoginWall } from "./components/GlamourLoginWall";
 import { GlamourDetailView } from "./components/GlamourDetailView";
 import { HomePage } from "./components/HomePage";
 import { LoginDialog } from "./components/LoginDialog";
@@ -15,6 +16,7 @@ import { WikiVerificationStatus } from "./components/WikiVerificationStatus";
 import { useGlamourDiscovery } from "./hooks/useGlamourDiscovery";
 import { useWikiItem } from "./hooks/useWikiItem";
 import type { EquipmentSearchItem } from "./services/equipmentApi";
+import { SDO_AUTHENTICATION_REQUIRED_EVENT } from "./services/authEvents";
 import {
   isTauriRuntime,
   type Glamour,
@@ -31,10 +33,21 @@ function App() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [loginProfile, setLoginProfile] = useState<LoginProfile | null>(null);
+  const [loginChecking, setLoginChecking] = useState(true);
+  const [loginExpired, setLoginExpired] = useState(false);
 
   useEffect(() => {
     let disposed = false;
     let unlisten: UnlistenFn | undefined;
+    const requireAuthentication = () => {
+      setLoginProfile(null);
+      setLoginExpired(true);
+      setLoginOpen(false);
+    };
+    window.addEventListener(
+      SDO_AUTHENTICATION_REQUIRED_EVENT,
+      requireAuthentication,
+    );
     const initialize = async () => {
       if (isTauriRuntime()) {
         try {
@@ -52,14 +65,25 @@ function App() {
         }
       }
       if (disposed) return;
-      void getSdoLoginStatus()
-        .then((status) => setLoginProfile(status.profile))
-        .catch(() => undefined);
+      try {
+        const status = await getSdoLoginStatus();
+        if (disposed) return;
+        setLoginProfile(status.profile);
+        setLoginExpired(false);
+      } catch {
+        if (!disposed) setLoginProfile(null);
+      } finally {
+        if (!disposed) setLoginChecking(false);
+      }
     };
     void initialize();
     return () => {
       disposed = true;
       unlisten?.();
+      window.removeEventListener(
+        SDO_AUTHENTICATION_REQUIRED_EVENT,
+        requireAuthentication,
+      );
     };
   }, []);
 
@@ -76,13 +100,19 @@ function App() {
         <GlamourWorkspace
           dark={dark}
           loginOpen={loginOpen}
+          loginChecking={loginChecking}
+          loginExpired={loginExpired}
           profile={loginProfile}
           onCloseLogin={() => setLoginOpen(false)}
           onGoHome={() => setActiveFeature("home")}
           onToggleTheme={() => setDark((current) => !current)}
           onOpenLogin={() => setLoginOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
-          onLoginSuccess={setLoginProfile}
+          onLoginSuccess={(nextProfile) => {
+            setLoginProfile(nextProfile);
+            setLoginExpired(false);
+            setLoginChecking(false);
+          }}
         />
       )}
       {settingsOpen && (
@@ -95,6 +125,8 @@ function App() {
 type GlamourWorkspaceProps = {
   dark: boolean;
   loginOpen: boolean;
+  loginChecking: boolean;
+  loginExpired: boolean;
   profile: LoginProfile | null;
   onCloseLogin: () => void;
   onGoHome: () => void;
@@ -108,6 +140,8 @@ type GlamourWorkspaceProps = {
 function GlamourWorkspace({
   dark,
   loginOpen,
+  loginChecking,
+  loginExpired,
   profile,
   onCloseLogin,
   onGoHome,
@@ -116,7 +150,7 @@ function GlamourWorkspace({
   onOpenSettings,
   onLoginSuccess,
 }: GlamourWorkspaceProps) {
-  const discovery = useGlamourDiscovery();
+  const discovery = useGlamourDiscovery(Boolean(profile) && !loginChecking);
   const wiki = useWikiItem();
   const [selectedGlamour, setSelectedGlamour] = useState<Glamour | null>(null);
   const galleryScrollPosition = useRef(0);
@@ -173,7 +207,14 @@ function GlamourWorkspace({
         onOpenLogin={onOpenLogin}
         onOpenSettings={onOpenSettings}
       />
-      {selectedGlamour ? (
+      {loginChecking || !profile ? (
+        <GlamourLoginWall
+          checking={loginChecking}
+          expired={loginExpired}
+          onLogin={onOpenLogin}
+          onGoHome={onGoHome}
+        />
+      ) : selectedGlamour ? (
         <GlamourDetailView
           glamour={selectedGlamour}
           saved={discovery.saved.includes(selectedGlamour.id)}
@@ -264,14 +305,16 @@ function GlamourWorkspace({
       {loginOpen && (
         <LoginDialog onClose={onCloseLogin} onSuccess={handleLoginSuccess} />
       )}
-      <WikiVerificationStatus
-        status={wiki.status}
-        itemName={wiki.itemName}
-        error={wiki.error}
-        onShow={() => void wiki.showVerification()}
-        onCancel={() => void wiki.cancelVerification()}
-        onDismiss={wiki.dismissError}
-      />
+      {profile && (
+        <WikiVerificationStatus
+          status={wiki.status}
+          itemName={wiki.itemName}
+          error={wiki.error}
+          onShow={() => void wiki.showVerification()}
+          onCancel={() => void wiki.cancelVerification()}
+          onDismiss={wiki.dismissError}
+        />
+      )}
     </>
   );
 }
