@@ -26,7 +26,6 @@ const releaseDirectory = join(projectRoot, ".release");
 const sidecarName = "rising-stones-api-client";
 const isWindows = process.platform === "win32";
 const executableExtension = isWindows ? ".exe" : "";
-const npmCommand = isWindows ? "npm.cmd" : "npm";
 
 function fail(message) {
   throw new Error(message);
@@ -58,6 +57,31 @@ function capture(command, args) {
     return null;
   }
   return result.stdout.trim();
+}
+
+/** Resolve npm without spawning a Windows command shim, which Node rejects with EINVAL. */
+function findNpm() {
+  if (!isWindows) {
+    return { command: "npm", launcherArgs: [] };
+  }
+
+  const npmCliCandidates = [process.env.npm_execpath];
+  const npmShims = capture("where.exe", ["npm.cmd"]);
+  if (npmShims) {
+    for (const npmShim of npmShims.split(/\r?\n/)) {
+      npmCliCandidates.push(
+        join(dirname(npmShim), "node_modules", "npm", "bin", "npm-cli.js"),
+      );
+    }
+  }
+
+  const npmCli = npmCliCandidates.find(
+    (candidate) => candidate && existsSync(candidate),
+  );
+  if (!npmCli) {
+    fail("Unable to locate the npm CLI entry point.");
+  }
+  return { command: process.execPath, launcherArgs: [npmCli] };
 }
 
 function findPython() {
@@ -215,7 +239,7 @@ function buildSidecar(venvPython, targetTriple) {
   return bundledSidecar;
 }
 
-function ensureFrontendDependencies() {
+function ensureFrontendDependencies(npm) {
   const tauriCliPackage = join(
     projectRoot,
     "node_modules",
@@ -224,7 +248,7 @@ function ensureFrontendDependencies() {
     "package.json",
   );
   if (!existsSync(tauriCliPackage)) {
-    run(npmCommand, ["ci"]);
+    run(npm.command, [...npm.launcherArgs, "ci"]);
   }
 }
 
@@ -232,15 +256,17 @@ function main() {
   console.log("Building an OpenRisingStones desktop release...");
   const targetTriple = detectTargetTriple();
   const python = findPython();
+  const npm = findNpm();
   console.log(`Target: ${targetTriple}`);
   console.log(`Python: ${python.version}`);
 
-  ensureFrontendDependencies();
+  ensureFrontendDependencies(npm);
   const venvPython = preparePythonEnvironment(python, targetTriple);
   const sidecarPath = buildSidecar(venvPython, targetTriple);
   console.log(`Packaged sidecar: ${sidecarPath}`);
 
-  run(npmCommand, [
+  run(npm.command, [
+    ...npm.launcherArgs,
     "run",
     "tauri",
     "--",
