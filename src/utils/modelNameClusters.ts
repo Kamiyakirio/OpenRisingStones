@@ -1,5 +1,5 @@
 /** Groups role-specific equipment variants when only one known infix differs. */
-import type { WikiModelItem } from "../services/wikiApi";
+import type { WikiModelItem } from "../models/wiki";
 
 export const MODEL_ROLE_INFIXES = [
   "御敌",

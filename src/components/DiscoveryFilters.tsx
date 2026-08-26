@@ -10,10 +10,10 @@ import { genderIdMap, raceIdMap } from "../models/idsToName";
 import type {
   EquipmentSearchFilters as EquipmentSearchFilterValues,
   EquipmentSearchItem,
-} from "../services/equipmentApi";
-import type { GlamourSearchMode } from "../hooks/useGlamourDiscovery";
-import type { WikiLoadStatus } from "../hooks/useWikiItem";
-import type { WikiModelItem } from "../services/wikiApi";
+} from "../models/equipment";
+import type { WikiModelItem } from "../models/wiki";
+import type { GlamourSearchMode } from "../viewmodels/useGlamourDiscoveryViewModel";
+import type { WikiLoadStatus } from "../viewmodels/useWikiItemViewModel";
 import { EquivalentEquipmentSelector } from "./EquivalentEquipmentSelector";
 import { EquipmentSearchFilters } from "./EquipmentSearchFilters";
 import { SelectedEquipmentSummary } from "./EquipmentSearchPage";

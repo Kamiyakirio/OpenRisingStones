@@ -18,18 +18,18 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
-import type { WikiLoadStatus } from "../hooks/useWikiItem";
 import type {
   WikiAcquisition,
   WikiAcquisitionType,
   WikiItemData,
   WikiModelItem,
   WikiSourceItem,
-} from "../services/wikiApi";
+} from "../models/wiki";
 import {
   clusterModelItems,
   type ModelNameCluster,
 } from "../utils/modelNameClusters";
+import type { WikiLoadStatus } from "../viewmodels/useWikiItemViewModel";
 
 type EquipmentSourcePopoverProps = {
   anchor: HTMLElement | null;

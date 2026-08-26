@@ -21,18 +21,6 @@ import {
   inferGlamourHasMore,
 } from "../utils/glamourPagination";
 
-// Compatibility exports keep existing consumers buildable during the MVVM migration.
-export type {
-  Glamour,
-  GlamourDetail,
-  GlamourDye,
-  GlamourEquipment,
-  GlamourFetchOptions,
-  GlamourOrder,
-  GlamourPage,
-} from "../models/glamour";
-export { isTauriRuntime } from "./runtime";
-
 type NetworkResponse = { status: number; body: string };
 type UnknownRecord = Record<string, unknown>;
 

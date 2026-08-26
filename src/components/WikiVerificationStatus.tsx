@@ -1,6 +1,6 @@
 /** Non-blocking status card for background Cloudflare verification. */
 import { CircleNotch, WarningCircle } from "@phosphor-icons/react";
-import type { WikiLoadStatus } from "../hooks/useWikiItem";
+import type { WikiLoadStatus } from "../viewmodels/useWikiItemViewModel";
 
 type WikiVerificationStatusProps = {
   status: WikiLoadStatus;

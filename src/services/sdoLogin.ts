@@ -6,15 +6,6 @@ import { invoke } from "@tauri-apps/api/core";
 import type { LoginPoll, LoginStart, LoginStatus } from "../models/auth";
 import { isTauriRuntime } from "./runtime";
 
-// Compatibility exports keep existing consumers buildable during the MVVM migration.
-export type {
-  LoginPoll,
-  LoginProfile,
-  LoginProgress,
-  LoginStart,
-  LoginStatus,
-} from "../models/auth";
-
 function requireDesktopRuntime() {
   if (!isTauriRuntime())
     throw new Error("请在 OpenRisingStones 桌面端使用盛趣登录");

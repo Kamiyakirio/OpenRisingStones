@@ -14,7 +14,7 @@ import {
   type EquipmentPageSize,
   type EquipmentSearchFilters,
   type EquipmentSearchItem,
-} from "../services/equipmentApi";
+} from "../models/equipment";
 import { getEquipmentSearchFilterLabels } from "../utils/equipmentFilterPresentation";
 
 type EquipmentSearchPageProps = {

@@ -3,7 +3,7 @@ import type {
   Glamour,
   GlamourDetail,
   GlamourEquipment,
-} from "../services/glamourApi";
+} from "../models/glamour";
 
 export const PREVIEW_GLAMOURS: Glamour[] = [
   {

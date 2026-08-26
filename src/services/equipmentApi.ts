@@ -11,24 +11,6 @@ import {
 } from "../models/equipment";
 import { isTauriRuntime } from "./runtime";
 
-// Compatibility exports keep existing consumers buildable during the MVVM migration.
-export {
-  EQUIPMENT_CLASS_JOB_VALUES,
-  EQUIPMENT_PAGE_SIZES,
-  EQUIPMENT_SLOT_VALUES,
-  countEquipmentSearchFilters,
-  createEmptyEquipmentSearchFilters,
-  validateEquipmentSearchFilters,
-} from "../models/equipment";
-export type {
-  EquipmentClassJob,
-  EquipmentPageSize,
-  EquipmentSearchFilters,
-  EquipmentSearchItem,
-  EquipmentSearchPage,
-  EquipmentSlot,
-} from "../models/equipment";
-
 type NetworkResponse = { status: number; body: string };
 type UnknownRecord = Record<string, unknown>;
 

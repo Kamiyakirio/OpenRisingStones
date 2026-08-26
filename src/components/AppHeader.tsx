@@ -8,7 +8,7 @@ import {
   UserCircle,
   UserCircleCheck,
 } from "@phosphor-icons/react";
-import type { LoginProfile } from "../services/sdoLogin";
+import type { LoginProfile } from "../models/auth";
 
 type AppHeaderProps = {
   dark: boolean;

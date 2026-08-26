@@ -11,19 +11,6 @@ import type {
   WikiSourceItem,
 } from "../models/wiki";
 
-// Compatibility exports keep existing consumers buildable during the MVVM migration.
-export type {
-  WikiAcquisition,
-  WikiAcquisitionType,
-  WikiItemData,
-  WikiModelItem,
-  WikiModelRelation,
-  WikiPageTransport,
-  WikiSourceDetail,
-  WikiSourceItem,
-  WikiStatusEvent,
-} from "../models/wiki";
-
 export async function fetchWikiItemPage(itemName: string) {
   return invoke<WikiPageTransport>("fetch_wiki_item_page", {
     request: { itemName },

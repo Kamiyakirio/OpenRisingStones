@@ -7,7 +7,7 @@ import {
   MagnifyingGlass,
   Plus,
 } from "@phosphor-icons/react";
-import type { Glamour, GlamourOrder } from "../services/glamourApi";
+import type { Glamour, GlamourOrder } from "../models/glamour";
 import { replaceBrokenImage } from "../utils/glamourPresentation";
 
 type GlamourGalleryProps = {

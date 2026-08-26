@@ -9,21 +9,21 @@ import {
   MapPin,
   Star,
 } from "@phosphor-icons/react";
-import { useGlamourDetail } from "../hooks/useGlamourDetail";
-import type { WikiItemInspector } from "../hooks/useWikiItem";
 import type {
   Glamour,
   GlamourDetail,
   GlamourEquipment,
-} from "../services/glamourApi";
+} from "../models/glamour";
 import { replaceBrokenImage } from "../utils/glamourPresentation";
+import { useGlamourDetailViewModel } from "../viewmodels/useGlamourDetailViewModel";
+import type { WikiItemViewModel } from "../viewmodels/useWikiItemViewModel";
 import { EquipmentSourcePopover } from "./EquipmentSourcePopover";
 import "./GlamourDetailView.css";
 
 type GlamourDetailViewProps = {
   glamour: Glamour;
   saved: boolean;
-  wiki: WikiItemInspector;
+  wiki: WikiItemViewModel;
   onBack: () => void;
   onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
   onToggleSave: (id: number) => void;
@@ -52,7 +52,7 @@ export function GlamourDetailView({
   onSearchEquipment,
   onToggleSave,
 }: GlamourDetailViewProps) {
-  const { detail, loading, error, retry } = useGlamourDetail(glamour);
+  const { detail, loading, error, retry } = useGlamourDetailViewModel(glamour);
 
   return (
     <main className="glamour-detail-page" id="top">
@@ -89,7 +89,7 @@ function DetailContent({
 }: {
   detail: GlamourDetail;
   saved: boolean;
-  wiki: WikiItemInspector;
+  wiki: WikiItemViewModel;
   onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
   onToggleSave: (id: number) => void;
 }) {
@@ -233,7 +233,7 @@ function EquipmentSlot({
 }: {
   label: string;
   equipment?: GlamourEquipment;
-  wiki: WikiItemInspector;
+  wiki: WikiItemViewModel;
   onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
 }) {
   const [popoverOpen, setPopoverOpen] = useState(false);
