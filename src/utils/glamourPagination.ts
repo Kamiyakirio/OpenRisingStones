@@ -1,9 +1,23 @@
 /** Normalizes pagination metadata across Rising Stones response variants. */
 type UnknownRecord = Record<string, unknown>;
+type GlamourPaginationMetadata = {
+  countIsPageSize?: boolean;
+};
 
-export function findGlamourTotal(value: unknown, depth = 0): number | null {
+export function findGlamourTotal(
+  value: unknown,
+  metadata: GlamourPaginationMetadata = {},
+): number | null {
+  return findGlamourTotalAtDepth(value, metadata, 0);
+}
+
+function findGlamourTotalAtDepth(
+  value: unknown,
+  metadata: GlamourPaginationMetadata,
+  depth: number,
+): number | null {
   if (depth > 4 || !isRecord(value)) return null;
-  const direct = readNumber(value, [
+  const totalKeys = [
     "total",
     "total_count",
     "totalCount",
@@ -11,11 +25,12 @@ export function findGlamourTotal(value: unknown, depth = 0): number | null {
     "totalNum",
     "total_rows",
     "totalRows",
-    "count",
-  ]);
+  ];
+  if (!metadata.countIsPageSize) totalKeys.push("count");
+  const direct = readNumber(value, totalKeys);
   if (direct !== null) return direct;
   for (const key of ["data", "result", "payload"]) {
-    const nested = findGlamourTotal(value[key], depth + 1);
+    const nested = findGlamourTotalAtDepth(value[key], metadata, depth + 1);
     if (nested !== null) return nested;
   }
   return null;
@@ -26,11 +41,12 @@ export function inferGlamourHasMore(
   recordCount: number,
   pageSize: number,
   loadedCount: number,
+  metadata: GlamourPaginationMetadata = {},
 ) {
   if (recordCount <= 0) return false;
   const explicitHasMore = findHasMore(payload);
   if (explicitHasMore !== null) return explicitHasMore;
-  const reportedTotal = findGlamourTotal(payload);
+  const reportedTotal = findGlamourTotal(payload, metadata);
   return reportedTotal !== null
     ? loadedCount < reportedTotal
     : recordCount >= pageSize;

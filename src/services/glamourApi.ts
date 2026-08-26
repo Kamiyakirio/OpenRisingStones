@@ -193,12 +193,15 @@ async function fetchSingleGlamourPage(
     .filter((item): item is Glamour => Boolean(item));
   const pageSize = options.limit ?? 12;
   const loadedCount = (options.page - 1) * pageSize + records.length;
-  const reportedTotal = findGlamourTotal(payload);
+  // The popular endpoint's data.count mirrors rows.length instead of the total.
+  const paginationMetadata = { countIsPageSize: options.order === "hot" };
+  const reportedTotal = findGlamourTotal(payload, paginationMetadata);
   const hasMore = inferGlamourHasMore(
     payload,
     records.length,
     pageSize,
     loadedCount,
+    paginationMetadata,
   );
   return {
     items,
