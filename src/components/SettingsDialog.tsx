@@ -1,5 +1,5 @@
 /** Application settings dialog with a guarded local-data reset action. */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   Cookie,
   Database,
@@ -9,22 +9,17 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
-import { clearAllLocalData } from "../services/localData";
+import { useSettingsDialogViewModel } from "../viewmodels/useSettingsDialogViewModel";
 
 type SettingsDialogProps = {
   onClose: () => void;
 };
 
 export function SettingsDialog({ onClose }: SettingsDialogProps) {
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const viewModel = useSettingsDialogViewModel(onClose);
+  const closeDialog = viewModel.close;
   const closeButton = useRef<HTMLButtonElement>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);
-
-  const closeDialog = useCallback(() => {
-    if (!busy) onClose();
-  }, [busy, onClose]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -36,8 +31,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   }, []);
 
   useEffect(() => {
-    if (confirming) cancelButton.current?.focus();
-  }, [confirming]);
+    if (viewModel.confirming) cancelButton.current?.focus();
+  }, [viewModel.confirming]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -46,17 +41,6 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [closeDialog]);
-
-  const clearData = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await clearAllLocalData();
-    } catch (reason) {
-      setError(readError(reason));
-      setBusy(false);
-    }
-  };
 
   return (
     <div
@@ -81,7 +65,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             className="dialog-close"
             type="button"
             aria-label="关闭设置窗口"
-            disabled={busy}
+            disabled={viewModel.busy}
             onClick={closeDialog}
           >
             <X />
@@ -89,16 +73,13 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         </header>
 
         <div className="settings-content">
-          {confirming ? (
+          {viewModel.confirming ? (
             <ConfirmationPanel
-              busy={busy}
-              error={error}
+              busy={viewModel.busy}
+              error={viewModel.error}
               cancelButton={cancelButton}
-              onCancel={() => {
-                setConfirming(false);
-                setError(null);
-              }}
-              onConfirm={clearData}
+              onCancel={viewModel.cancelConfirmation}
+              onConfirm={viewModel.clearData}
             />
           ) : (
             <section
@@ -136,7 +117,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 <button
                   className="settings-danger-button"
                   type="button"
-                  onClick={() => setConfirming(true)}
+                  onClick={viewModel.startConfirmation}
                 >
                   <Trash />
                   清除数据
@@ -227,10 +208,4 @@ function DataScopeItem({
       </div>
     </div>
   );
-}
-
-function readError(reason: unknown) {
-  if (reason instanceof Error) return reason.message;
-  if (typeof reason === "string") return reason;
-  return "无法清除本地数据，请稍后重试";
 }

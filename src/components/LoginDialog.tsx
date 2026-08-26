@@ -2,7 +2,7 @@
  * 盛趣登录弹窗：提供叨鱼一键确认、二维码扫描和受风险确认保护的 Cookie 登录。
  * 登录成功必须同时通过账号验证与石之家官方角色绑定检查。
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   CheckCircle,
   Cookie,
@@ -14,23 +14,8 @@ import {
   UserCircleCheck,
   X,
 } from "@phosphor-icons/react";
-import {
-  cancelSdoLogin,
-  loginWithCookie,
-  pollPushLogin,
-  pollQrLogin,
-  startPushLogin,
-  startQrLogin,
-  type LoginProfile,
-  type LoginProgress,
-} from "../services/sdoLogin";
-import {
-  hasAcceptedCookieLoginRisk,
-  saveCookieLoginRiskAcceptance,
-} from "../services/cookieRiskConsent";
-
-type LoginMethod = "push" | "qr" | "cookie";
-type ActiveLogin = { id: number; method: Exclude<LoginMethod, "cookie"> };
+import type { LoginMethod, LoginProfile, LoginProgress } from "../models/auth";
+import { useLoginDialogViewModel } from "../viewmodels/useLoginDialogViewModel";
 
 type LoginDialogProps = {
   onClose: () => void;
@@ -44,28 +29,32 @@ const METHOD_LABELS: Record<LoginMethod, string> = {
 };
 
 export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
-  const [method, setMethod] = useState<LoginMethod>("push");
-  const [account, setAccount] = useState("");
-  const [cookie, setCookie] = useState("");
-  const [userAgent, setUserAgent] = useState("");
-  const [riskAccepted, setRiskAccepted] = useState(hasAcceptedCookieLoginRisk);
-  const [cookieAccessGranted, setCookieAccessGranted] = useState(
-    hasAcceptedCookieLoginRisk,
-  );
-  const [activeLogin, setActiveLogin] = useState<ActiveLogin | null>(null);
-  const [bindingRequired, setBindingRequired] = useState(false);
-  const [progress, setProgress] = useState<LoginProgress | null>(null);
-  const [qrImage, setQrImage] = useState<string | null>(null);
-  const [profile, setProfile] = useState<LoginProfile | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    method,
+    account,
+    cookie,
+    userAgent,
+    riskAccepted,
+    cookieAccessGranted,
+    activeLogin,
+    bindingRequired,
+    progress,
+    qrImage,
+    profile,
+    busy,
+    error,
+    setAccount,
+    setCookie,
+    setUserAgent,
+    setCookieAccessGranted,
+    close: closeDialog,
+    switchMethod,
+    updateRiskAcceptance,
+    beginPush,
+    beginQr,
+    beginCookie,
+  } = useLoginDialogViewModel({ onClose, onSuccess });
   const closeButton = useRef<HTMLButtonElement>(null);
-
-  const closeDialog = useCallback(async () => {
-    if (activeLogin)
-      await cancelSdoLogin(activeLogin.id).catch(() => undefined);
-    onClose();
-  }, [activeLogin, onClose]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -85,116 +74,6 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [closeDialog]);
-
-  useEffect(() => {
-    if (!activeLogin) return;
-    let cancelled = false;
-    let timer = 0;
-
-    const poll = async () => {
-      try {
-        const result =
-          activeLogin.method === "push"
-            ? await pollPushLogin(activeLogin.id)
-            : await pollQrLogin(activeLogin.id);
-        if (cancelled) return;
-        setProgress(result.status);
-        if (result.status === "binding_required") {
-          setActiveLogin(null);
-          setBindingRequired(true);
-          return;
-        }
-        if (result.status === "success" && result.profile) {
-          setProfile(result.profile);
-          setActiveLogin(null);
-          onSuccess(result.profile);
-          return;
-        }
-        timer = window.setTimeout(poll, 2_000);
-      } catch (reason) {
-        if (cancelled) return;
-        setError(readError(reason));
-        setActiveLogin(null);
-      }
-    };
-
-    timer = window.setTimeout(poll, 2_000);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [activeLogin, onSuccess]);
-
-  const switchMethod = async (nextMethod: LoginMethod) => {
-    if (nextMethod === method && !bindingRequired) return;
-    if (activeLogin)
-      await cancelSdoLogin(activeLogin.id).catch(() => undefined);
-    setMethod(nextMethod);
-    setActiveLogin(null);
-    setBindingRequired(false);
-    setProgress(null);
-    setQrImage(null);
-    setProfile(null);
-    setError(null);
-  };
-
-  const updateRiskAcceptance = (accepted: boolean) => {
-    setRiskAccepted(accepted);
-    saveCookieLoginRiskAcceptance(accepted);
-  };
-
-  const beginPush = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await startPushLogin(account);
-      setProgress(result.status);
-      setActiveLogin({ id: result.loginId, method: "push" });
-    } catch (reason) {
-      setError(readError(reason));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const beginQr = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await startQrLogin();
-      setQrImage(result.qrImageDataUrl);
-      setProgress(result.status);
-      setActiveLogin({ id: result.loginId, method: "qr" });
-    } catch (reason) {
-      setError(readError(reason));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const beginCookie = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await loginWithCookie(cookie.trim(), userAgent.trim());
-      if (result.status === "binding_required") {
-        setCookie("");
-        setProgress("binding_required");
-        setBindingRequired(true);
-        return;
-      }
-      if (result.status !== "success" || !result.profile)
-        throw new Error("登录验证未返回账号资料");
-      setCookie("");
-      setProfile(result.profile);
-      setProgress("success");
-      onSuccess(result.profile);
-    } catch (reason) {
-      setError(readError(reason));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <div
@@ -586,10 +465,4 @@ function LoginSuccess({
       </button>
     </div>
   );
-}
-
-function readError(reason: unknown) {
-  if (reason instanceof Error) return reason.message;
-  if (typeof reason === "string") return reason;
-  return "登录失败，请稍后重试";
 }
