@@ -6,7 +6,6 @@ import {
   Heart,
   MagnifyingGlass,
   Plus,
-  Sparkle,
 } from "@phosphor-icons/react";
 import type { Glamour, GlamourOrder } from "../services/glamourApi";
 import { replaceBrokenImage } from "../utils/glamourPresentation";
@@ -202,7 +201,6 @@ function GlamourCard({
       <div className="card-body">
         <div className="card-heading">
           <h2>{item.title}</h2>
-          {item.featured && <Sparkle weight="fill" aria-label="最新收录" />}
         </div>
         <p>
           {item.race}

@@ -5,7 +5,6 @@ import { AppHeader } from "./components/AppHeader";
 import { DiscoveryFilters } from "./components/DiscoveryFilters";
 import { EquipmentSearchPage } from "./components/EquipmentSearchPage";
 import { GlamourGallery } from "./components/GlamourGallery";
-import { GlamourHero } from "./components/GlamourHero";
 import { GlamourLoginWall } from "./components/GlamourLoginWall";
 import { GlamourDetailView } from "./components/GlamourDetailView";
 import { HomePage } from "./components/HomePage";
@@ -242,12 +241,6 @@ function GlamourWorkspace({
         />
       ) : (
         <main id="top">
-          <GlamourHero
-            featured={discovery.featured}
-            total={discovery.total}
-            raceId={discovery.raceId}
-            genderId={discovery.genderId}
-          />
           <DiscoveryFilters
             searchMode={discovery.searchMode}
             query={discovery.query}
