@@ -331,6 +331,7 @@ export function useGlamourDiscovery() {
       setSelectedEquipmentModelIds([]);
       setEquipmentRangeUpdating(false);
       setSelectedEquipment(equipment);
+      setSearchModeState("equipment");
     });
     window.scrollTo({ top: 0 });
   };

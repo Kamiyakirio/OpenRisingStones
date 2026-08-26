@@ -25,6 +25,7 @@ type GlamourDetailViewProps = {
   saved: boolean;
   wiki: WikiItemInspector;
   onBack: () => void;
+  onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
   onToggleSave: (id: number) => void;
 };
 
@@ -48,6 +49,7 @@ export function GlamourDetailView({
   saved,
   wiki,
   onBack,
+  onSearchEquipment,
   onToggleSave,
 }: GlamourDetailViewProps) {
   const { detail, loading, error, retry } = useGlamourDetail(glamour);
@@ -70,6 +72,7 @@ export function GlamourDetailView({
           detail={detail}
           saved={saved}
           wiki={wiki}
+          onSearchEquipment={onSearchEquipment}
           onToggleSave={onToggleSave}
         />
       )}
@@ -81,11 +84,13 @@ function DetailContent({
   detail,
   saved,
   wiki,
+  onSearchEquipment,
   onToggleSave,
 }: {
   detail: GlamourDetail;
   saved: boolean;
   wiki: WikiItemInspector;
+  onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
   onToggleSave: (id: number) => void;
 }) {
   const [activeImage, setActiveImage] = useState(detail.images[0]);
@@ -201,6 +206,7 @@ function DetailContent({
                 label={label}
                 equipment={equipment.get(slot)}
                 wiki={wiki}
+                onSearchEquipment={onSearchEquipment}
                 key={slot}
               />
             ))}
@@ -209,6 +215,7 @@ function DetailContent({
                 label="面部配饰"
                 equipment={equipment.get("FACE")}
                 wiki={wiki}
+                onSearchEquipment={onSearchEquipment}
               />
             )}
           </div>
@@ -222,10 +229,12 @@ function EquipmentSlot({
   label,
   equipment,
   wiki,
+  onSearchEquipment,
 }: {
   label: string;
   equipment?: GlamourEquipment;
   wiki: WikiItemInspector;
+  onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
 }) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLDivElement | null>(
@@ -304,30 +313,29 @@ function EquipmentSlot({
     </>
   );
 
-  const item = equipment?.shopUrl ? (
-    <a
-      className="equipment-item equipment-shop-link"
-      href={equipment.shopUrl}
-      target="_blank"
-      rel="noreferrer"
-      aria-label={`${equipment.name}，前往商城`}
-    >
-      {content}
-    </a>
-  ) : (
-    <div
-      className={equipment?.name ? "equipment-item" : "equipment-item empty"}
-    >
-      {content}
-    </div>
-  );
+  const item =
+    equipment?.name && equipment.equipmentId > 0 ? (
+      <button
+        className="equipment-item equipment-search-link"
+        type="button"
+        aria-label={`查询${equipment.name}的幻化投稿`}
+        onClick={() => onSearchEquipment(equipment, label)}
+      >
+        {content}
+      </button>
+    ) : (
+      <div
+        className={equipment?.name ? "equipment-item" : "equipment-item empty"}
+      >
+        {content}
+      </div>
+    );
 
   const matchesCurrentItem = wiki.itemName === equipment?.name;
   return (
     <div
       ref={setPopoverAnchor}
       className="equipment-slot-wrapper"
-      tabIndex={equipment?.name && !equipment.shopUrl ? 0 : undefined}
       onMouseEnter={() => showPopover()}
       onMouseLeave={hidePopover}
       onFocus={() => showPopover(true)}

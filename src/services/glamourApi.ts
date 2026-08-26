@@ -39,7 +39,6 @@ export type GlamourEquipment = {
   icon: string | null;
   dyes: GlamourDye[];
   isFashion: boolean;
-  shopUrl: string | null;
 };
 
 export type GlamourDetail = Glamour & {
@@ -402,7 +401,6 @@ function toGlamourDetail(record: UnknownRecord): GlamourDetail {
       icon: buildEquipmentIcon(readString(ornament, ["glasses_icon"])),
       dyes: [],
       isFashion: true,
-      shopUrl: null,
     });
   }
   const user = asRecord(record.userInfo);
@@ -459,7 +457,6 @@ function toEquipment(record: UnknownRecord): GlamourEquipment {
       color: readString(dye, ["color"]),
     })),
     isFashion: readNumber(record, ["is_fashion"]) === 1,
-    shopUrl: readString(record, ["sqmall_url"]),
   };
 }
 

@@ -15,7 +15,11 @@ import { WikiVerificationStatus } from "./components/WikiVerificationStatus";
 import { useGlamourDiscovery } from "./hooks/useGlamourDiscovery";
 import { useWikiItem } from "./hooks/useWikiItem";
 import type { EquipmentSearchItem } from "./services/equipmentApi";
-import { isTauriRuntime, type Glamour } from "./services/glamourApi";
+import {
+  isTauriRuntime,
+  type Glamour,
+  type GlamourEquipment,
+} from "./services/glamourApi";
 import { getSdoLoginStatus, type LoginProfile } from "./services/sdoLogin";
 import "./App.css";
 
@@ -145,6 +149,20 @@ function GlamourWorkspace({
     });
   };
 
+  const handleSearchDetailEquipment = (
+    equipment: GlamourEquipment,
+    category: string,
+  ) => {
+    if (!equipment.name || equipment.equipmentId <= 0) return;
+    setSelectedGlamour(null);
+    handleSelectEquipment({
+      id: equipment.equipmentId,
+      name: equipment.name,
+      category,
+      icon: equipment.icon ?? "",
+    });
+  };
+
   return (
     <>
       <AppHeader
@@ -161,6 +179,7 @@ function GlamourWorkspace({
           saved={discovery.saved.includes(selectedGlamour.id)}
           wiki={wiki}
           onBack={handleCloseDetail}
+          onSearchEquipment={handleSearchDetailEquipment}
           onToggleSave={discovery.toggleSave}
         />
       ) : discovery.equipmentResultsOpen ? (

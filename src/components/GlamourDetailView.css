@@ -325,10 +325,6 @@
   outline: none;
 }
 
-.equipment-slot-wrapper:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
-}
-
 .equipment-item {
   display: grid;
   grid-template-columns: 50px minmax(0, 1fr);
@@ -353,15 +349,22 @@
   opacity: 0.58;
 }
 
-.equipment-shop-link {
+.equipment-search-link {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   transition:
     border-color 180ms ease,
     transform 180ms ease;
 }
 
-.equipment-shop-link:hover {
+.equipment-search-link:hover {
   border-color: var(--accent);
   transform: translateY(-2px);
+}
+
+.equipment-search-link:active {
+  transform: scale(0.98);
 }
 
 .equipment-icon {

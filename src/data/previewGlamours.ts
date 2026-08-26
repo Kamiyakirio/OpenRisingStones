@@ -210,6 +210,5 @@ function previewEquipment(
         ? [{ id: equipmentId, name: dyeName, color: dyeColor }]
         : [],
     isFashion: false,
-    shopUrl: null,
   };
 }

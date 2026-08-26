@@ -195,15 +195,17 @@ function EquipmentArtwork({ item }: { item: EquipmentSearchItem }) {
   return (
     <span className="equipment-artwork" aria-hidden="true">
       <CoatHanger />
-      <img
-        src={item.icon}
-        alt=""
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onError={(event) => {
-          event.currentTarget.hidden = true;
-        }}
-      />
+      {item.icon && (
+        <img
+          src={item.icon}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={(event) => {
+            event.currentTarget.hidden = true;
+          }}
+        />
+      )}
     </span>
   );
 }
