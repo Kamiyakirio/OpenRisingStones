@@ -1,6 +1,6 @@
 /** Clears backend credentials and browser-managed state for this application. */
 import { invoke } from "@tauri-apps/api/core";
-import { isTauriRuntime } from "./glamourApi";
+import { isTauriRuntime } from "./runtime";
 
 export async function clearAllLocalData() {
   if (isTauriRuntime()) await invoke("clear_all_local_data");

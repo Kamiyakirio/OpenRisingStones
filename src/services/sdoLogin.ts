@@ -3,38 +3,17 @@
  * Cookie 与 ticket 均由 Tauri 后端保管，前端只接收流程状态和已验证的账号摘要。
  */
 import { invoke } from "@tauri-apps/api/core";
-import { isTauriRuntime } from "./glamourApi";
+import type { LoginPoll, LoginStart, LoginStatus } from "../models/auth";
+import { isTauriRuntime } from "./runtime";
 
-export type LoginProfile = {
-  displayAccount: string;
-  characterName: string;
-  areaName: string;
-  groupName: string;
-};
-
-export type LoginStatus = {
-  authenticated: boolean;
-  profile: LoginProfile | null;
-};
-
-export type LoginStart = {
-  loginId: number;
-  status: LoginProgress;
-  expiresInSeconds: number;
-  qrImageDataUrl: string | null;
-};
-
-export type LoginPoll = {
-  status: LoginProgress;
-  profile: LoginProfile | null;
-};
-
-export type LoginProgress =
-  | "awaiting_confirmation"
-  | "awaiting_scan"
-  | "scanned"
-  | "binding_required"
-  | "success";
+// Compatibility exports keep existing consumers buildable during the MVVM migration.
+export type {
+  LoginPoll,
+  LoginProfile,
+  LoginProgress,
+  LoginStart,
+  LoginStatus,
+} from "../models/auth";
 
 function requireDesktopRuntime() {
   if (!isTauriRuntime())

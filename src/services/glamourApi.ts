@@ -4,6 +4,13 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { genderIdMap, raceIdMap } from "../models/idsToName";
+import type {
+  Glamour,
+  GlamourDetail,
+  GlamourEquipment,
+  GlamourFetchOptions,
+  GlamourPage,
+} from "../models/glamour";
 import {
   authenticationRequired,
   isSdoAuthenticationFailure,
@@ -14,77 +21,25 @@ import {
   inferGlamourHasMore,
 } from "../utils/glamourPagination";
 
-export type Glamour = {
-  id: number;
-  title: string;
-  author: string;
-  race: string;
-  raceIds: number[];
-  genderIds: number[];
-  job: string;
-  palette: string;
-  image: string;
-  likes: number;
-  saved: number;
-  featured?: boolean;
-};
-
-export type GlamourOrder = "latest" | "hot";
-
-export type GlamourDye = {
-  id: number;
-  name: string;
-  color: string | null;
-};
-
-export type GlamourEquipment = {
-  slot: string;
-  equipmentId: number;
-  name: string | null;
-  icon: string | null;
-  dyes: GlamourDye[];
-  isFashion: boolean;
-};
-
-export type GlamourDetail = Glamour & {
-  description: string;
-  images: string[];
-  createdAt: string;
-  areaName: string;
-  groupName: string;
-  avatar: string | null;
-  equipments: GlamourEquipment[];
-};
+// Compatibility exports keep existing consumers buildable during the MVVM migration.
+export type {
+  Glamour,
+  GlamourDetail,
+  GlamourDye,
+  GlamourEquipment,
+  GlamourFetchOptions,
+  GlamourOrder,
+  GlamourPage,
+} from "../models/glamour";
+export { isTauriRuntime } from "./runtime";
 
 type NetworkResponse = { status: number; body: string };
 type UnknownRecord = Record<string, unknown>;
-type GlamourPage = { items: Glamour[]; total: number; hasMore: boolean };
-type GlamourFetchOptions = {
-  page: number;
-  limit?: number;
-  order: GlamourOrder;
-  raceId: number | null;
-  genderId: number | null;
-  keywords?: string;
-  searchByEquipment?: boolean;
-  equipmentIds?: number[];
-  signal?: AbortSignal;
-};
 
 const API_ORIGIN = "https://apiff14risingstones.web.sdo.com";
 const GLAMOUR_REQUEST_INTERVAL_MS = 800;
 let glamourRequestQueue: Promise<void> = Promise.resolve();
 let lastGlamourRequestStartedAt = 0;
-
-declare global {
-  interface Window {
-    __TAURI_INTERNALS__?: unknown;
-  }
-}
-
-export function isTauriRuntime() {
-  return typeof window !== "undefined" && Boolean(window.__TAURI_INTERNALS__);
-}
 
 export async function fetchGlamours(
   options: GlamourFetchOptions,
