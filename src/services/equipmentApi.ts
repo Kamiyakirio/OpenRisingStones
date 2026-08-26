@@ -7,6 +7,8 @@ export type EquipmentSearchItem = {
   name: string;
   category: string;
   icon: string;
+  levelEquip?: number;
+  levelItem?: number;
 };
 
 export type EquipmentSearchPage = {
@@ -17,18 +19,146 @@ export type EquipmentSearchPage = {
 export const EQUIPMENT_PAGE_SIZES = [12, 24, 48] as const;
 export type EquipmentPageSize = (typeof EQUIPMENT_PAGE_SIZES)[number];
 
+export const EQUIPMENT_SLOT_VALUES = [
+  "MainHand",
+  "OffHand",
+  "Head",
+  "Body",
+  "Gloves",
+  "Legs",
+  "Feet",
+  "Ears",
+  "Neck",
+  "Wrists",
+  "FingerL",
+] as const;
+export type EquipmentSlot = (typeof EQUIPMENT_SLOT_VALUES)[number];
+
+export const EQUIPMENT_CLASS_JOB_VALUES = [
+  "PLD",
+  "WAR",
+  "DRK",
+  "GNB",
+  "WHM",
+  "SCH",
+  "AST",
+  "SGE",
+  "MNK",
+  "DRG",
+  "NIN",
+  "SAM",
+  "RPR",
+  "VPR",
+  "BRD",
+  "MCH",
+  "DNC",
+  "BLM",
+  "SMN",
+  "RDM",
+  "PCT",
+  "BLU",
+  "CRP",
+  "BSM",
+  "ARM",
+  "GSM",
+  "LTW",
+  "WVR",
+  "ALC",
+  "CUL",
+  "MIN",
+  "BTN",
+  "FSH",
+] as const;
+export type EquipmentClassJob = (typeof EQUIPMENT_CLASS_JOB_VALUES)[number];
+
+/** Optional Item-sheet clauses that can be freely combined with a name search. */
+export type EquipmentSearchFilters = {
+  equipSlot: EquipmentSlot | null;
+  minEquipLevel: number | null;
+  maxEquipLevel: number | null;
+  minItemLevel: number | null;
+  maxItemLevel: number | null;
+  itemUiCategory: string;
+  classJob: EquipmentClassJob | null;
+};
+
+export function createEmptyEquipmentSearchFilters(): EquipmentSearchFilters {
+  return {
+    equipSlot: null,
+    minEquipLevel: null,
+    maxEquipLevel: null,
+    minItemLevel: null,
+    maxItemLevel: null,
+    itemUiCategory: "",
+    classJob: null,
+  };
+}
+
+export function countEquipmentSearchFilters(filters: EquipmentSearchFilters) {
+  return [
+    filters.equipSlot,
+    filters.minEquipLevel,
+    filters.maxEquipLevel,
+    filters.minItemLevel,
+    filters.maxItemLevel,
+    filters.itemUiCategory.trim(),
+    filters.classJob,
+  ].filter((value) => value !== null && value !== "").length;
+}
+
+export function validateEquipmentSearchFilters(
+  filters: EquipmentSearchFilters,
+): string | null {
+  if (!isOptionalIntegerInRange(filters.minEquipLevel, 1, 999)) {
+    return "装备等级必须是 1 至 999 之间的整数";
+  }
+  if (!isOptionalIntegerInRange(filters.maxEquipLevel, 1, 999)) {
+    return "最高装备等级必须是 1 至 999 之间的整数";
+  }
+  if (
+    filters.minEquipLevel !== null &&
+    filters.maxEquipLevel !== null &&
+    filters.minEquipLevel > filters.maxEquipLevel
+  ) {
+    return "最低装备等级不能高于最高装备等级";
+  }
+  if (!isOptionalIntegerInRange(filters.minItemLevel, 0, 9999)) {
+    return "最低品级必须是 0 至 9999 之间的整数";
+  }
+  if (!isOptionalIntegerInRange(filters.maxItemLevel, 0, 9999)) {
+    return "最高品级必须是 0 至 9999 之间的整数";
+  }
+  if (
+    filters.minItemLevel !== null &&
+    filters.maxItemLevel !== null &&
+    filters.minItemLevel > filters.maxItemLevel
+  ) {
+    return "最低品级不能高于最高品级";
+  }
+  if (filters.itemUiCategory.trim().length > 40) {
+    return "装备分类不能超过 40 个字符";
+  }
+  return null;
+}
+
 type NetworkResponse = { status: number; body: string };
 type UnknownRecord = Record<string, unknown>;
 
 const XIVAPI_ORIGIN = "https://xivapi-v2.xivcdn.com";
 export async function fetchEquipmentCandidates(
   searchTerm: string,
+  filters: EquipmentSearchFilters,
   cursor?: string,
   limit: EquipmentPageSize = 12,
 ): Promise<EquipmentSearchPage> {
   const query = searchTerm.trim();
-  if (!query || query.length > 80) {
-    throw new Error("请输入 1 至 80 个字符的装备名称");
+  if (query.length > 80) {
+    throw new Error("装备名称不能超过 80 个字符");
+  }
+  const filterError = validateEquipmentSearchFilters(filters);
+  if (filterError) throw new Error(filterError);
+  if (!query && countEquipmentSearchFilters(filters) === 0) {
+    throw new Error("请输入装备名称或至少选择一个筛选条件");
   }
   if (cursor && !/^[0-9a-f-]{36}$/i.test(cursor)) {
     throw new Error("装备搜索分页信息无效，请重新搜索");
@@ -43,9 +173,9 @@ export async function fetchEquipmentCandidates(
       ? { cursor }
       : {
           sheets: "Item",
-          query: `+Name~"${escapeQueryValue(query)}" +EquipSlotCategory>0`,
+          query: buildEquipmentSearchQuery(query, filters),
         }),
-    fields: "Name,Icon,ItemUICategory.Name",
+    fields: "Name,Icon,ItemUICategory.Name,LevelEquip,LevelItem@as(raw)",
     language: "chs",
     limit: String(limit),
   }).toString();
@@ -126,7 +256,42 @@ function toEquipmentSearchItem(value: unknown): EquipmentSearchItem | null {
     name,
     category: readString(category, "Name") ?? "装备",
     icon: iconUrl.toString(),
+    levelEquip: readNumber(fields, "LevelEquip") ?? undefined,
+    levelItem: readNumber(fields, "LevelItem@as(raw)") ?? undefined,
   };
+}
+
+/** Builds required XIVAPI clauses so every selected control narrows results. */
+export function buildEquipmentSearchQuery(
+  searchTerm: string,
+  filters: EquipmentSearchFilters,
+) {
+  const clauses = ["+EquipSlotCategory>0"];
+  const name = searchTerm.trim();
+  const category = filters.itemUiCategory.trim();
+  if (name) clauses.unshift(`+Name~"${escapeQueryValue(name)}"`);
+  if (filters.equipSlot) {
+    clauses.push(`+EquipSlotCategory.${filters.equipSlot}>0`);
+  }
+  if (filters.minEquipLevel !== null) {
+    clauses.push(`+LevelEquip>=${filters.minEquipLevel}`);
+  }
+  if (filters.maxEquipLevel !== null) {
+    clauses.push(`+LevelEquip<=${filters.maxEquipLevel}`);
+  }
+  if (filters.minItemLevel !== null) {
+    clauses.push(`+LevelItem>=${filters.minItemLevel}`);
+  }
+  if (filters.maxItemLevel !== null) {
+    clauses.push(`+LevelItem<=${filters.maxItemLevel}`);
+  }
+  if (category) {
+    clauses.push(`+ItemUICategory.Name="${escapeQueryValue(category)}"`);
+  }
+  if (filters.classJob) {
+    clauses.push(`+ClassJobCategory.${filters.classJob}=true`);
+  }
+  return clauses.join(" ");
 }
 
 function escapeQueryValue(value: string) {
@@ -147,4 +312,15 @@ function readString(record: UnknownRecord, key: string) {
 function readNumber(record: UnknownRecord, key: string) {
   const value = record[key];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function isOptionalIntegerInRange(
+  value: number | null,
+  minimum: number,
+  maximum: number,
+) {
+  return (
+    value === null ||
+    (Number.isInteger(value) && value >= minimum && value <= maximum)
+  );
 }

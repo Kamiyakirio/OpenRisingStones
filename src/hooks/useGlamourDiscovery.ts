@@ -2,10 +2,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PREVIEW_GLAMOURS } from "../data/previewGlamours";
 import {
+  countEquipmentSearchFilters,
+  createEmptyEquipmentSearchFilters,
   type EquipmentPageSize,
   fetchEquipmentCandidates,
+  type EquipmentSearchFilters,
   type EquipmentSearchItem,
   type EquipmentSearchPage,
+  validateEquipmentSearchFilters,
 } from "../services/equipmentApi";
 import {
   fetchGlamours,
@@ -45,6 +49,10 @@ export function useGlamourDiscovery(enabled = true) {
   const [equipmentPageIndex, setEquipmentPageIndex] = useState(0);
   const [equipmentPageSize, setEquipmentPageSize] =
     useState<EquipmentPageSize>(12);
+  const [equipmentFilters, setEquipmentFilters] =
+    useState<EquipmentSearchFilters>(createEmptyEquipmentSearchFilters);
+  const [activeEquipmentFilters, setActiveEquipmentFilters] =
+    useState<EquipmentSearchFilters>(createEmptyEquipmentSearchFilters);
   const [equipmentResultsOpen, setEquipmentResultsOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] =
     useState<EquipmentSearchItem | null>(null);
@@ -98,6 +106,14 @@ export function useGlamourDiscovery(enabled = true) {
       ? SEARCH_PAGE_SIZE
       : DISCOVERY_PAGE_SIZE;
   const equipmentPage = equipmentPages[equipmentPageIndex] ?? null;
+  const canSubmitSearch =
+    searchMode === "title"
+      ? Boolean(query.trim() || activeQuery)
+      : Boolean(
+          (equipmentQuery.trim() ||
+            countEquipmentSearchFilters(equipmentFilters)) &&
+          !validateEquipmentSearchFilters(equipmentFilters),
+        );
 
   useEffect(() => {
     if (preview || !enabled) return;
@@ -235,6 +251,7 @@ export function useGlamourDiscovery(enabled = true) {
   const retry = () => updateFilter(() => setRetryKey((key) => key + 1));
   const requestEquipmentPage = (
     nextQuery: string,
+    nextFilters: EquipmentSearchFilters,
     cursor: string | null,
     targetIndex: number,
     limit: EquipmentPageSize = equipmentPageSize,
@@ -248,7 +265,12 @@ export function useGlamourDiscovery(enabled = true) {
       return pages;
     });
     setEquipmentPageIndex(targetIndex);
-    void fetchEquipmentCandidates(nextQuery, cursor ?? undefined, limit)
+    void fetchEquipmentCandidates(
+      nextQuery,
+      nextFilters,
+      cursor ?? undefined,
+      limit,
+    )
       .then((pageResult) => {
         if (equipmentRequest.current !== requestId) return;
         setEquipmentPages((current) => {
@@ -282,14 +304,18 @@ export function useGlamourDiscovery(enabled = true) {
     }
 
     const nextQuery = equipmentQuery.trim();
+    const nextFilters = {
+      ...equipmentFilters,
+      itemUiCategory: equipmentFilters.itemUiCategory.trim(),
+    };
     setEquipmentQuery(nextQuery);
-    if (!nextQuery) {
-      clearEquipmentSearch();
-      return;
-    }
+    setEquipmentFilters(nextFilters);
+    if (validateEquipmentSearchFilters(nextFilters)) return;
+    if (!nextQuery && !countEquipmentSearchFilters(nextFilters)) return;
     setEquipmentResultsOpen(true);
     setEquipmentPages([]);
     setEquipmentPageIndex(0);
+    setActiveEquipmentFilters(nextFilters);
     if (selectedEquipment) {
       selectedEquipmentId.current = null;
       updateFilter(() => {
@@ -298,13 +324,15 @@ export function useGlamourDiscovery(enabled = true) {
         setSelectedEquipment(null);
       });
     }
-    requestEquipmentPage(nextQuery, null, 0);
+    requestEquipmentPage(nextQuery, nextFilters, null, 0);
   };
   const clearEquipmentSearch = () => {
     equipmentRequest.current += 1;
     setEquipmentQuery("");
     setEquipmentPages([]);
     setEquipmentPageIndex(0);
+    setEquipmentFilters(createEmptyEquipmentSearchFilters());
+    setActiveEquipmentFilters(createEmptyEquipmentSearchFilters());
     setEquipmentResultsOpen(false);
     setEquipmentSearchError(null);
     setEquipmentSearchLoading(false);
@@ -429,6 +457,7 @@ export function useGlamourDiscovery(enabled = true) {
     if (!equipmentPage.nextCursor) return;
     requestEquipmentPage(
       equipmentQuery,
+      activeEquipmentFilters,
       equipmentPage.nextCursor,
       equipmentPageIndex + 1,
     );
@@ -437,6 +466,7 @@ export function useGlamourDiscovery(enabled = true) {
   const retryEquipmentSearch = () => {
     requestEquipmentPage(
       equipmentQuery,
+      activeEquipmentFilters,
       equipmentPage?.cursor ?? null,
       equipmentPageIndex,
     );
@@ -446,7 +476,13 @@ export function useGlamourDiscovery(enabled = true) {
     setEquipmentPageSize(nextSize);
     setEquipmentPages([]);
     setEquipmentPageIndex(0);
-    requestEquipmentPage(equipmentQuery, null, 0, nextSize);
+    requestEquipmentPage(
+      equipmentQuery,
+      activeEquipmentFilters,
+      null,
+      0,
+      nextSize,
+    );
     window.scrollTo({ top: 0 });
   };
   const changeSearchMode = (nextMode: GlamourSearchMode) => {
@@ -483,12 +519,15 @@ export function useGlamourDiscovery(enabled = true) {
     query,
     setQuery: searchMode === "title" ? setTitleQuery : setEquipmentQuery,
     activeQuery,
+    canSubmitSearch,
     submitSearch,
     clearSearch,
     equipmentResultsOpen,
     equipmentCandidates: equipmentPage?.items ?? [],
     equipmentPage: equipmentPageIndex + 1,
     equipmentPageSize,
+    equipmentFilters,
+    activeEquipmentFilters,
     canShowPreviousEquipmentPage: equipmentPageIndex > 0,
     canShowNextEquipmentPage: Boolean(
       equipmentPages[equipmentPageIndex + 1] || equipmentPage?.nextCursor,
@@ -509,6 +548,9 @@ export function useGlamourDiscovery(enabled = true) {
     showNextEquipmentPage,
     retryEquipmentSearch,
     changeEquipmentPageSize,
+    setEquipmentFilters,
+    clearEquipmentFilters: () =>
+      setEquipmentFilters(createEmptyEquipmentSearchFilters()),
     order,
     setOrder: (next: GlamourOrder) => updateFilter(() => setOrder(next)),
     raceId,
