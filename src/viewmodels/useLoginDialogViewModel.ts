@@ -13,6 +13,15 @@ import {
   startPushLogin,
   startQrLogin,
 } from "../services/sdoLogin";
+import { extractCurlCredentials } from "../utils/curlCredentials";
+
+export type CurlImportStatus =
+  | "idle"
+  | "success"
+  | "invalid"
+  | "missing_cookie"
+  | "missing_user_agent"
+  | "missing_both";
 
 type ActiveLogin = {
   id: number;
@@ -33,6 +42,9 @@ export function useLoginDialogViewModel({
   const [account, setAccount] = useState("");
   const [cookie, setCookie] = useState("");
   const [userAgent, setUserAgent] = useState("");
+  const [curlRequest, setCurlRequest] = useState("");
+  const [curlImportStatus, setCurlImportStatus] =
+    useState<CurlImportStatus>("idle");
   const [riskAccepted, setRiskAccepted] = useState(hasAcceptedCookieLoginRisk);
   const [cookieAccessGranted, setCookieAccessGranted] = useState(
     hasAcceptedCookieLoginRisk,
@@ -114,6 +126,33 @@ export function useLoginDialogViewModel({
     saveCookieLoginRiskAcceptance(accepted);
   };
 
+  const importCurlRequest = (request: string) => {
+    setCurlRequest(request);
+    if (!request.trim()) {
+      setCurlImportStatus("idle");
+      return;
+    }
+
+    const credentials = extractCurlCredentials(request);
+    if (!credentials.recognized) {
+      setCurlImportStatus("invalid");
+      return;
+    }
+
+    if (credentials.cookie) setCookie(credentials.cookie);
+    if (credentials.userAgent) setUserAgent(credentials.userAgent);
+    if (credentials.cookie && credentials.userAgent) {
+      setCurlRequest("");
+      setCurlImportStatus("success");
+    } else if (!credentials.cookie && !credentials.userAgent) {
+      setCurlImportStatus("missing_both");
+    } else if (!credentials.cookie) {
+      setCurlImportStatus("missing_cookie");
+    } else {
+      setCurlImportStatus("missing_user_agent");
+    }
+  };
+
   const beginPush = async () => {
     setBusy(true);
     setError(null);
@@ -173,6 +212,8 @@ export function useLoginDialogViewModel({
     account,
     cookie,
     userAgent,
+    curlRequest,
+    curlImportStatus,
     riskAccepted,
     cookieAccessGranted,
     activeLogin,
@@ -185,6 +226,7 @@ export function useLoginDialogViewModel({
     setAccount,
     setCookie,
     setUserAgent,
+    importCurlRequest,
     setCookieAccessGranted,
     close,
     switchMethod,

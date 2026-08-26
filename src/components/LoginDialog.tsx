@@ -5,6 +5,7 @@
 import { useEffect, useRef } from "react";
 import {
   CheckCircle,
+  ClipboardText,
   Cookie,
   DeviceMobile,
   IdentificationCard,
@@ -12,10 +13,14 @@ import {
   ShieldWarning,
   SpinnerGap,
   UserCircleCheck,
+  WarningCircle,
   X,
 } from "@phosphor-icons/react";
 import type { LoginMethod, LoginProfile, LoginProgress } from "../models/auth";
-import { useLoginDialogViewModel } from "../viewmodels/useLoginDialogViewModel";
+import {
+  type CurlImportStatus,
+  useLoginDialogViewModel,
+} from "../viewmodels/useLoginDialogViewModel";
 
 type LoginDialogProps = {
   onClose: () => void;
@@ -34,6 +39,8 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
     account,
     cookie,
     userAgent,
+    curlRequest,
+    curlImportStatus,
     riskAccepted,
     cookieAccessGranted,
     activeLogin,
@@ -46,6 +53,7 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
     setAccount,
     setCookie,
     setUserAgent,
+    importCurlRequest,
     setCookieAccessGranted,
     close: closeDialog,
     switchMethod,
@@ -225,9 +233,12 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
             <CookieLoginForm
               cookie={cookie}
               userAgent={userAgent}
+              curlRequest={curlRequest}
+              curlImportStatus={curlImportStatus}
               busy={busy}
               onCookieChange={setCookie}
               onUserAgentChange={setUserAgent}
+              onCurlRequestChange={importCurlRequest}
               onReviewRisk={() => setCookieAccessGranted(false)}
               onLogin={beginCookie}
             />
@@ -315,17 +326,23 @@ function CookieRiskGate({
 function CookieLoginForm({
   cookie,
   userAgent,
+  curlRequest,
+  curlImportStatus,
   busy,
   onCookieChange,
   onUserAgentChange,
+  onCurlRequestChange,
   onReviewRisk,
   onLogin,
 }: {
   cookie: string;
   userAgent: string;
+  curlRequest: string;
+  curlImportStatus: CurlImportStatus;
   busy: boolean;
   onCookieChange: (cookie: string) => void;
   onUserAgentChange: (userAgent: string) => void;
+  onCurlRequestChange: (request: string) => void;
   onReviewRisk: () => void;
   onLogin: () => Promise<void>;
 }) {
@@ -339,6 +356,27 @@ function CookieLoginForm({
         <button type="button" onClick={onReviewRisk}>
           查看风险说明
         </button>
+      </div>
+      <div className="curl-import">
+        <div className="curl-import-heading">
+          <ClipboardText weight="duotone" />
+          <div>
+            <strong>从 Chrome 复制请求</strong>
+            <span>在网络请求菜单中选择“复制为 cURL (bash)”</span>
+          </div>
+        </div>
+        <textarea
+          className="curl-import-input"
+          aria-label="粘贴从 Chrome 复制的 cURL bash 请求"
+          value={curlRequest}
+          onChange={(event) => onCurlRequestChange(event.target.value)}
+          placeholder="在这里粘贴，自动提取 Cookie 和 User-Agent"
+          rows={3}
+          spellCheck={false}
+          autoComplete="off"
+          disabled={busy}
+        />
+        <CurlImportMessage status={curlImportStatus} />
       </div>
       <label className="login-field">
         User-Agent
@@ -381,6 +419,35 @@ function CookieLoginForm({
           "验证 Cookie 并登录"
         )}
       </button>
+    </div>
+  );
+}
+
+const CURL_IMPORT_MESSAGES: Record<
+  Exclude<CurlImportStatus, "idle">,
+  string
+> = {
+  success: "已识别并填入 Cookie 和 User-Agent，请核对后登录。",
+  invalid: "未识别为 cURL (bash)，请确认复制格式后重新粘贴。",
+  missing_cookie: "已识别 cURL，但请求中没有 Cookie 请求头。",
+  missing_user_agent: "已识别 cURL，但请求中没有 User-Agent 请求头。",
+  missing_both: "已识别 cURL，但请求中没有 Cookie 和 User-Agent 请求头。",
+};
+
+function CurlImportMessage({ status }: { status: CurlImportStatus }) {
+  if (status === "idle") return null;
+  const successful = status === "success";
+  return (
+    <div
+      className={`curl-import-message ${successful ? "is-success" : "is-error"}`}
+      role={successful ? "status" : "alert"}
+    >
+      {successful ? (
+        <CheckCircle weight="fill" />
+      ) : (
+        <WarningCircle weight="fill" />
+      )}
+      <span>{CURL_IMPORT_MESSAGES[status]}</span>
     </div>
   );
 }
