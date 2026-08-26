@@ -225,6 +225,7 @@ function GlamourWorkspace({
       ) : discovery.equipmentResultsOpen ? (
         <EquipmentSearchPage
           query={discovery.query}
+          filters={discovery.activeEquipmentFilters}
           items={discovery.equipmentCandidates}
           page={discovery.equipmentPage}
           pageSize={discovery.equipmentPageSize}
@@ -252,6 +253,8 @@ function GlamourWorkspace({
                 ? discovery.loading
                 : discovery.equipmentSearchLoading
             }
+            canSubmitSearch={discovery.canSubmitSearch}
+            equipmentFilters={discovery.equipmentFilters}
             selectedEquipment={discovery.selectedEquipment}
             equivalentEquipment={discovery.equipmentModelCandidates}
             selectedEquivalentEquipmentIds={discovery.selectedEquipmentModelIds}
@@ -270,6 +273,8 @@ function GlamourWorkspace({
             onQueryChange={discovery.setQuery}
             onSearch={discovery.submitSearch}
             onClearSearch={discovery.clearSearch}
+            onEquipmentFiltersChange={discovery.setEquipmentFilters}
+            onClearEquipmentFilters={discovery.clearEquipmentFilters}
             onRaceChange={discovery.setRaceId}
             onGenderChange={discovery.setGenderId}
             onToggleEquivalent={discovery.toggleEquivalentEquipment}

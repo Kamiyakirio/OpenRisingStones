@@ -7,11 +7,15 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useRef } from "react";
 import { genderIdMap, raceIdMap } from "../models/idsToName";
-import type { EquipmentSearchItem } from "../services/equipmentApi";
+import type {
+  EquipmentSearchFilters as EquipmentSearchFilterValues,
+  EquipmentSearchItem,
+} from "../services/equipmentApi";
 import type { GlamourSearchMode } from "../hooks/useGlamourDiscovery";
 import type { WikiLoadStatus } from "../hooks/useWikiItem";
 import type { WikiModelItem } from "../services/wikiApi";
 import { EquivalentEquipmentSelector } from "./EquivalentEquipmentSelector";
+import { EquipmentSearchFilters } from "./EquipmentSearchFilters";
 import { SelectedEquipmentSummary } from "./EquipmentSearchPage";
 
 type DiscoveryFiltersProps = {
@@ -21,6 +25,8 @@ type DiscoveryFiltersProps = {
   raceId: number | null;
   genderId: number | null;
   searchLoading: boolean;
+  canSubmitSearch: boolean;
+  equipmentFilters: EquipmentSearchFilterValues;
   selectedEquipment: EquipmentSearchItem | null;
   equivalentEquipment: WikiModelItem[];
   selectedEquivalentEquipmentIds: number[];
@@ -31,6 +37,8 @@ type DiscoveryFiltersProps = {
   onQueryChange: (query: string) => void;
   onSearch: () => void;
   onClearSearch: () => void;
+  onEquipmentFiltersChange: (filters: EquipmentSearchFilterValues) => void;
+  onClearEquipmentFilters: () => void;
   onRaceChange: (raceId: number | null) => void;
   onGenderChange: (genderId: number | null) => void;
   onToggleEquivalent: (equipmentId: number) => void;
@@ -45,6 +53,8 @@ export function DiscoveryFilters({
   raceId,
   genderId,
   searchLoading,
+  canSubmitSearch,
+  equipmentFilters,
   selectedEquipment,
   equivalentEquipment,
   selectedEquivalentEquipmentIds,
@@ -55,6 +65,8 @@ export function DiscoveryFilters({
   onQueryChange,
   onSearch,
   onClearSearch,
+  onEquipmentFiltersChange,
+  onClearEquipmentFilters,
   onRaceChange,
   onGenderChange,
   onToggleEquivalent,
@@ -126,7 +138,7 @@ export function DiscoveryFilters({
         <button
           className="search-submit"
           type="submit"
-          disabled={searchLoading || (!query.trim() && !activeQuery)}
+          disabled={searchLoading || !canSubmitSearch}
         >
           {searchLoading
             ? searchMode === "title"
@@ -137,6 +149,13 @@ export function DiscoveryFilters({
               : "查找装备"}
         </button>
       </form>
+      {searchMode === "equipment" && !selectedEquipment && (
+        <EquipmentSearchFilters
+          filters={equipmentFilters}
+          onChange={onEquipmentFiltersChange}
+          onClear={onClearEquipmentFilters}
+        />
+      )}
       {searchMode === "equipment" && selectedEquipment ? (
         <div className="selected-equipment-scope">
           <SelectedEquipmentSummary item={selectedEquipment} />
@@ -153,7 +172,7 @@ export function DiscoveryFilters({
         </div>
       ) : searchMode === "equipment" ? (
         <p className="equipment-search-hint">
-          输入装备名称，搜索结果会在新页面中打开。
+          装备名称和筛选条件可单独使用，也可以自由组合。
         </p>
       ) : null}
       <div className="filter-row">

@@ -12,11 +12,14 @@ import {
 import {
   EQUIPMENT_PAGE_SIZES,
   type EquipmentPageSize,
+  type EquipmentSearchFilters,
   type EquipmentSearchItem,
 } from "../services/equipmentApi";
+import { getEquipmentSearchFilterLabels } from "../utils/equipmentFilterPresentation";
 
 type EquipmentSearchPageProps = {
   query: string;
+  filters: EquipmentSearchFilters;
   items: EquipmentSearchItem[];
   page: number;
   pageSize: EquipmentPageSize;
@@ -34,6 +37,7 @@ type EquipmentSearchPageProps = {
 
 export function EquipmentSearchPage({
   query,
+  filters,
   items,
   page,
   pageSize,
@@ -48,6 +52,8 @@ export function EquipmentSearchPage({
   onRetry,
   onPageSizeChange,
 }: EquipmentSearchPageProps) {
+  const filterLabels = getEquipmentSearchFilterLabels(filters);
+
   return (
     <main className="equipment-results-page" id="top">
       <section
@@ -61,16 +67,29 @@ export function EquipmentSearchPage({
             onClick={onBack}
           >
             <ArrowLeft />
-            返回幻化
+            返回搜索
           </button>
           <div>
             <h1 id="equipment-results-heading">选择装备</h1>
-            <p>“{query}”的搜索结果。选择一件装备后查看相关幻化投稿。</p>
+            <p>
+              {query ? `“${query}”的搜索结果。` : "符合筛选条件的装备。"}
+              选择一件装备后查看相关幻化投稿。
+            </p>
           </div>
           <span>第 {page} 页</span>
         </header>
 
         <div className="equipment-page-content">
+          {filterLabels.length > 0 && (
+            <div className="equipment-active-filters" aria-label="已应用筛选">
+              <strong>已应用筛选</strong>
+              <ul>
+                {filterLabels.map((label) => (
+                  <li key={label}>{label}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {loading ? (
             <EquipmentSearchSkeleton />
           ) : error ? (
@@ -127,7 +146,7 @@ export function EquipmentSearchPage({
                     <EquipmentArtwork item={item} />
                     <span>
                       <strong>{item.name}</strong>
-                      <small>{item.category}</small>
+                      <small>{formatEquipmentMetadata(item)}</small>
                     </span>
                   </button>
                 ))}
@@ -167,6 +186,16 @@ export function EquipmentSearchPage({
       </section>
     </main>
   );
+}
+
+function formatEquipmentMetadata(item: EquipmentSearchItem) {
+  return [
+    item.category,
+    item.levelEquip === undefined ? null : `Lv.${item.levelEquip}`,
+    item.levelItem === undefined ? null : `品级 ${item.levelItem}`,
+  ]
+    .filter((value): value is string => value !== null)
+    .join(" / ");
 }
 
 export function SelectedEquipmentSummary({
