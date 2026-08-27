@@ -17,23 +17,29 @@ import type { LoginProfile } from "../models/auth";
 type AppHeaderProps = {
   dark: boolean;
   feature: "glamour" | "recruit";
+  recruitSection?: "feed" | "advanced";
   profile: LoginProfile | null;
   onGoHome: () => void;
   onToggleTheme: () => void;
   onOpenLogin: () => void;
   onOpenSettings: () => void;
   onLogout: () => Promise<void>;
+  onOpenRecruitFeed?: () => void;
+  onOpenAdvancedRecruit?: () => void;
 };
 
 export function AppHeader({
   dark,
   feature,
+  recruitSection = "feed",
   profile,
   onGoHome,
   onToggleTheme,
   onOpenLogin,
   onOpenSettings,
   onLogout,
+  onOpenRecruitFeed,
+  onOpenAdvancedRecruit,
 }: AppHeaderProps) {
   return (
     <header className="site-header">
@@ -53,9 +59,22 @@ export function AppHeader({
       </button>
       <nav className="main-nav" aria-label="主导航">
         {feature === "recruit" ? (
-          <a className="active" href="#recruit-list">
-            招募大厅
-          </a>
+          <>
+            <button
+              className={recruitSection === "feed" ? "active" : ""}
+              type="button"
+              onClick={onOpenRecruitFeed}
+            >
+              招募
+            </button>
+            <button
+              className={recruitSection === "advanced" ? "active" : ""}
+              type="button"
+              onClick={onOpenAdvancedRecruit}
+            >
+              高级筛选
+            </button>
+          </>
         ) : (
           <>
             <a className="active" href="#discover">
