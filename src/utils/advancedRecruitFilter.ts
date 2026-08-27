@@ -44,6 +44,18 @@ export function filterAdvancedRecruitItems(
       ) {
         return false;
       }
+      const openPositions = item.slots
+        .filter((slot) => slot.jobId === null)
+        .map((slot) => slot.key);
+      if (
+        !matchesValues(
+          openPositions,
+          filters.openPositions,
+          filters.openPositionMode,
+        )
+      ) {
+        return false;
+      }
       const existingJobIds = item.slots
         .map((slot) => slot.jobId)
         .filter((id): id is number => id !== null);
@@ -85,6 +97,14 @@ function matchesIds(
   return mode === "all"
     ? selected.every((id) => values.has(id))
     : selected.some((id) => values.has(id));
+}
+
+function matchesValues<T>(available: T[], selected: T[], mode: "any" | "all") {
+  if (!selected.length) return true;
+  const values = new Set(available);
+  return mode === "all"
+    ? selected.every((value) => values.has(value))
+    : selected.some((value) => values.has(value));
 }
 
 function compileTextRule(rule: AdvancedRecruitTextRule): {

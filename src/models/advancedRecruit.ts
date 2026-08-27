@@ -1,5 +1,5 @@
 /** In-memory contracts for consent-gated advanced recruitment aggregation. */
-import type { RecruitDetail } from "./recruit";
+import type { RecruitDetail, RecruitSlotKey } from "./recruit";
 
 export type AdvancedRecruitField =
   | "dutyName"
@@ -22,8 +22,10 @@ export type AdvancedRecruitTextRule = {
 
 export type AdvancedRecruitFilters = {
   dutyNames: string[];
+  openPositions: RecruitSlotKey[];
   existingJobIds: number[];
   missingJobIds: number[];
+  openPositionMode: "any" | "all";
   existingJobMode: "any" | "all";
   missingJobMode: "any" | "all";
   textRuleMode: "any" | "all";
@@ -48,8 +50,10 @@ export type AdvancedRecruitDataset = {
 export function createEmptyAdvancedRecruitFilters(): AdvancedRecruitFilters {
   return {
     dutyNames: [],
+    openPositions: [],
     existingJobIds: [],
     missingJobIds: [],
+    openPositionMode: "any",
     existingJobMode: "any",
     missingJobMode: "any",
     textRuleMode: "all",

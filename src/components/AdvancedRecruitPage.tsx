@@ -13,7 +13,7 @@ import {
   type AdvancedRecruitField,
   type AdvancedRecruitTextRule,
 } from "../models/advancedRecruit";
-import type { RecruitJob } from "../models/recruit";
+import type { RecruitJob, RecruitSlotKey } from "../models/recruit";
 import { ADVANCED_RECRUIT_FIELD_KEYS } from "../utils/advancedRecruitFilter";
 import type { AdvancedRecruitViewModel } from "../viewmodels/useAdvancedRecruitViewModel";
 import { RecruitCard, RecruitDetailView } from "./RecruitPage";
@@ -31,6 +31,17 @@ const FIELD_LABELS: Record<AdvancedRecruitField, string> = {
   location: "大区与服务器",
   labels: "标签",
 };
+
+const PARTY_POSITIONS: RecruitSlotKey[] = [
+  "MT",
+  "ST",
+  "H1",
+  "H2",
+  "D1",
+  "D2",
+  "D3",
+  "D4",
+];
 
 type AdvancedRecruitPageProps = {
   viewModel: AdvancedRecruitViewModel;
@@ -61,9 +72,8 @@ export function AdvancedRecruitPage({ viewModel }: AdvancedRecruitPageProps) {
     <main className="advanced-recruit-page" id="advanced-recruit">
       <header className="advanced-recruit-heading">
         <div>
-          <span>内存数据集</span>
           <h1>高级筛选</h1>
-          <p>组合副本、职业与字段规则，从完整公开招募中定位队伍。</p>
+          <p>组合副本、空缺位置与字段规则，从完整公开招募中定位队伍。</p>
         </div>
         <div className="advanced-recruit-dataset-summary">
           <strong>{dataset.items.length}</strong>
@@ -75,33 +85,72 @@ export function AdvancedRecruitPage({ viewModel }: AdvancedRecruitPageProps) {
       </header>
 
       <section className="advanced-filter-workbench" aria-label="高级筛选条件">
+        <header className="advanced-filter-heading">
+          <div>
+            <h2>组合条件</h2>
+            <p>同类条件按所选方式匹配，不同类别之间同时满足。</p>
+          </div>
+          <button
+            className="advanced-filter-reset"
+            type="button"
+            onClick={viewModel.clearFilters}
+          >
+            清除全部
+          </button>
+        </header>
+
         <div className="advanced-filter-primary">
-          <FilterPicker
-            title="副本"
-            description="可单选或多选，所选副本之间为任一匹配。"
+          <DutyFilterPicker
             items={viewModel.dutyOptions}
             selected={viewModel.filters.dutyNames}
+            selectedCount={viewModel.selectedDutyChoiceCount}
+            types={viewModel.dutyTypes}
+            activeType={viewModel.dutyType}
             query={viewModel.dutyQuery}
+            onTypeChange={viewModel.setDutyType}
             onQueryChange={viewModel.setDutyQuery}
-            onToggle={viewModel.toggleDuty}
+            onToggle={viewModel.toggleDutyChoice}
           />
-          <JobFilterPicker
-            title="已有职业"
-            jobs={viewModel.existingJobs}
-            selected={viewModel.filters.existingJobIds}
-            mode={viewModel.filters.existingJobMode}
-            onModeChange={viewModel.setExistingJobMode}
-            onToggle={viewModel.toggleExistingJob}
-          />
-          <JobFilterPicker
-            title="缺少职业"
-            jobs={viewModel.missingJobs}
-            selected={viewModel.filters.missingJobIds}
-            mode={viewModel.filters.missingJobMode}
-            onModeChange={viewModel.setMissingJobMode}
-            onToggle={viewModel.toggleMissingJob}
+          <PositionFilter
+            selected={viewModel.filters.openPositions}
+            mode={viewModel.filters.openPositionMode}
+            onModeChange={viewModel.setOpenPositionMode}
+            onToggle={viewModel.toggleOpenPosition}
           />
         </div>
+
+        <details className="advanced-profession-filters">
+          <summary>
+            <span>
+              <strong>更多职业条件</strong>
+              <small>
+                {viewModel.filters.existingJobIds.length +
+                viewModel.filters.missingJobIds.length
+                  ? `已选 ${viewModel.filters.existingJobIds.length + viewModel.filters.missingJobIds.length} 项`
+                  : "按具体职业筛选已有或缺少成员"}
+              </small>
+            </span>
+            <CaretDown weight="bold" />
+          </summary>
+          <div>
+            <JobFilterPicker
+              title="已有职业"
+              jobs={viewModel.existingJobs}
+              selected={viewModel.filters.existingJobIds}
+              mode={viewModel.filters.existingJobMode}
+              onModeChange={viewModel.setExistingJobMode}
+              onToggle={viewModel.toggleExistingJob}
+            />
+            <JobFilterPicker
+              title="缺少职业"
+              jobs={viewModel.missingJobs}
+              selected={viewModel.filters.missingJobIds}
+              mode={viewModel.filters.missingJobMode}
+              onModeChange={viewModel.setMissingJobMode}
+              onToggle={viewModel.toggleMissingJob}
+            />
+          </div>
+        </details>
 
         <div className="advanced-text-rules">
           <header>
@@ -109,27 +158,43 @@ export function AdvancedRecruitPage({ viewModel }: AdvancedRecruitPageProps) {
               <h2>关键词与正则规则</h2>
               <p>每条规则都可以独立指定要检索的字段。</p>
             </div>
-            <div className="advanced-rule-mode" aria-label="规则组合方式">
+            <div className="advanced-rule-toolbar">
+              <div className="advanced-rule-mode" aria-label="规则组合方式">
+                <button
+                  className={
+                    viewModel.filters.textRuleMode === "all" ? "active" : ""
+                  }
+                  type="button"
+                  onClick={() => viewModel.setTextRuleMatchMode("all")}
+                >
+                  全部规则
+                </button>
+                <button
+                  className={
+                    viewModel.filters.textRuleMode === "any" ? "active" : ""
+                  }
+                  type="button"
+                  onClick={() => viewModel.setTextRuleMatchMode("any")}
+                >
+                  任一规则
+                </button>
+              </div>
               <button
-                className={
-                  viewModel.filters.textRuleMode === "all" ? "active" : ""
-                }
+                className="advanced-add-rule"
                 type="button"
-                onClick={() => viewModel.setTextRuleMatchMode("all")}
+                onClick={viewModel.addTextRule}
               >
-                全部规则
-              </button>
-              <button
-                className={
-                  viewModel.filters.textRuleMode === "any" ? "active" : ""
-                }
-                type="button"
-                onClick={() => viewModel.setTextRuleMatchMode("any")}
-              >
-                任一规则
+                <Plus weight="bold" />
+                添加规则
               </button>
             </div>
           </header>
+          {viewModel.filters.textRules.length === 0 && (
+            <div className="advanced-rule-empty">
+              <strong>暂未添加字段规则</strong>
+              <span>当前仅按副本、位置和职业条件筛选。</span>
+            </div>
+          )}
           {viewModel.filters.textRules.map((rule) => (
             <TextRuleEditor
               key={rule.id}
@@ -148,22 +213,7 @@ export function AdvancedRecruitPage({ viewModel }: AdvancedRecruitPageProps) {
               onRemove={() => viewModel.removeTextRule(rule.id)}
             />
           ))}
-          <button
-            className="advanced-add-rule"
-            type="button"
-            onClick={viewModel.addTextRule}
-          >
-            <Plus weight="bold" />
-            添加字段规则
-          </button>
         </div>
-
-        <footer className="advanced-filter-actions">
-          <p>同一筛选类别内按所选模式匹配，不同类别之间同时满足。</p>
-          <button type="button" onClick={viewModel.clearFilters}>
-            清除全部条件
-          </button>
-        </footer>
       </section>
 
       <section
@@ -269,62 +319,141 @@ function AdvancedRecruitLoading({
   );
 }
 
-function FilterPicker({
-  title,
-  description,
+function DutyFilterPicker({
   items,
   selected,
+  selectedCount,
+  types,
+  activeType,
   query,
+  onTypeChange,
   onQueryChange,
   onToggle,
 }: {
-  title: string;
-  description: string;
-  items: Array<{ id: string; label: string }>;
+  items: Array<{ label: string; type: string; dutyNames: string[] }>;
   selected: string[];
+  selectedCount: number;
+  types: string[];
+  activeType: string;
   query: string;
+  onTypeChange: (value: string) => void;
   onQueryChange: (value: string) => void;
-  onToggle: (value: string) => void;
+  onToggle: (dutyNames: string[]) => void;
 }) {
-  const visibleItems = items.filter((item) =>
-    item.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
-  );
   return (
     <details className="advanced-picker">
       <summary>
         <span>
-          <strong>{title}</strong>
-          <small>
-            {selected.length ? `已选 ${selected.length} 项` : "不限"}
-          </small>
+          <strong>副本</strong>
+          <small>{selectedCount ? `已选 ${selectedCount} 项` : "不限"}</small>
         </span>
         <CaretDown weight="bold" />
       </summary>
       <div className="advanced-picker-content">
-        <p>{description}</p>
+        <p>先选择首页使用的副本类别，再单选或多选具体副本。</p>
+        <div className="advanced-duty-types" aria-label="副本类别">
+          <button
+            className={activeType ? "" : "active"}
+            type="button"
+            onClick={() => onTypeChange("")}
+          >
+            全部
+          </button>
+          {types.map((type) => (
+            <button
+              className={activeType === type ? "active" : ""}
+              type="button"
+              key={type}
+              onClick={() => onTypeChange(type)}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
         <label className="advanced-picker-search">
-          <span>搜索{title}</span>
+          <span>搜索具体副本</span>
           <input
             type="search"
             value={query}
-            placeholder={`输入${title}名称`}
+            placeholder="输入副本名称"
             onChange={(event) => onQueryChange(event.target.value)}
           />
         </label>
-        <div className="advanced-picker-options">
-          {visibleItems.map((item) => (
-            <label key={item.id}>
+        <div className="advanced-picker-options duties">
+          {items.map((item) => (
+            <label key={`${item.type}-${item.label}`}>
               <input
                 type="checkbox"
-                checked={selected.includes(item.id)}
-                onChange={() => onToggle(item.id)}
+                checked={item.dutyNames.every((name) =>
+                  selected.includes(name),
+                )}
+                onChange={() => onToggle(item.dutyNames)}
               />
+              <span className="advanced-duty-type">{item.type}</span>
               <span>{item.label}</span>
             </label>
           ))}
         </div>
       </div>
     </details>
+  );
+}
+
+function PositionFilter({
+  selected,
+  mode,
+  onModeChange,
+  onToggle,
+}: {
+  selected: RecruitSlotKey[];
+  mode: "any" | "all";
+  onModeChange: (mode: "any" | "all") => void;
+  onToggle: (position: RecruitSlotKey) => void;
+}) {
+  return (
+    <section
+      className="advanced-position-filter"
+      aria-labelledby="position-filter-title"
+    >
+      <header>
+        <div>
+          <strong id="position-filter-title">空缺位置</strong>
+          <small>
+            {selected.length ? `已选 ${selected.length} 项` : "不限"}
+          </small>
+        </div>
+        <div className="advanced-position-mode" aria-label="位置匹配方式">
+          <button
+            className={mode === "any" ? "active" : ""}
+            type="button"
+            onClick={() => onModeChange("any")}
+          >
+            任一
+          </button>
+          <button
+            className={mode === "all" ? "active" : ""}
+            type="button"
+            onClick={() => onModeChange("all")}
+          >
+            全部
+          </button>
+        </div>
+      </header>
+      <div className="advanced-position-options">
+        {PARTY_POSITIONS.map((position) => (
+          <button
+            className={selected.includes(position) ? "active" : ""}
+            type="button"
+            aria-pressed={selected.includes(position)}
+            key={position}
+            onClick={() => onToggle(position)}
+          >
+            {position}
+          </button>
+        ))}
+      </div>
+      <p>选择你想加入的空缺位置，支持多选。</p>
+    </section>
   );
 }
 

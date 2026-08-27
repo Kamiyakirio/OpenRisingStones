@@ -50,6 +50,21 @@ test("combines duty, existing job, and missing job filters", () => {
   assert.equal(filterAdvancedRecruitItems([detail()], filters).items.length, 0);
 });
 
+test("filters the positions players most commonly want to fill", () => {
+  const filters = createEmptyAdvancedRecruitFilters();
+  filters.openPositions = ["H1"];
+  assert.equal(filterAdvancedRecruitItems([detail()], filters).items.length, 1);
+
+  filters.openPositions = ["H2"];
+  assert.equal(filterAdvancedRecruitItems([detail()], filters).items.length, 0);
+
+  filters.openPositions = ["H1", "H2"];
+  filters.openPositionMode = "any";
+  assert.equal(filterAdvancedRecruitItems([detail()], filters).items.length, 1);
+  filters.openPositionMode = "all";
+  assert.equal(filterAdvancedRecruitItems([detail()], filters).items.length, 0);
+});
+
 test("applies scoped keyword and regex rules with all semantics", () => {
   const filters = createEmptyAdvancedRecruitFilters();
   filters.textRules = [

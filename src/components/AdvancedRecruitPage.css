@@ -70,17 +70,62 @@
 .advanced-filter-workbench {
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--surface);
-  box-shadow: 0 18px 52px color-mix(in srgb, var(--accent) 9%, transparent);
+  box-shadow: 0 14px 40px color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.advanced-filter-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.advanced-filter-heading h2,
+.advanced-filter-heading p {
+  margin: 0;
+}
+
+.advanced-filter-heading h2 {
+  font-size: 15px;
+}
+
+.advanced-filter-heading p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.advanced-filter-reset {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 9px;
+  font-weight: 730;
+}
+
+.advanced-filter-reset:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  color: var(--ink);
+  background: var(--surface-2);
 }
 
 .advanced-filter-primary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(280px, 0.72fr) minmax(460px, 1.28fr);
   gap: 12px;
-  padding: 20px;
-  background: var(--paper);
+  align-items: start;
+  padding: 16px 20px 18px;
+  background: color-mix(in srgb, var(--accent) 2.5%, var(--paper));
 }
 
 .advanced-picker {
@@ -95,7 +140,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  min-height: 58px;
+  min-height: 64px;
   padding: 0 15px;
   cursor: pointer;
   list-style: none;
@@ -133,6 +178,181 @@
   transform: rotate(180deg);
 }
 
+.advanced-position-filter {
+  display: grid;
+  align-content: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.advanced-position-filter > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.advanced-position-filter > header > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.advanced-position-filter strong {
+  font-size: 13px;
+}
+
+.advanced-position-filter small,
+.advanced-position-filter > p {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.advanced-position-filter > p {
+  margin: 0;
+}
+
+.advanced-position-mode,
+.advanced-position-options {
+  display: flex;
+  gap: 5px;
+}
+
+.advanced-position-mode button,
+.advanced-position-options button {
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: transparent;
+  font-weight: 740;
+}
+
+.advanced-position-mode button {
+  min-height: 27px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 9px;
+}
+
+.advanced-position-options {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.advanced-position-options button {
+  min-height: 38px;
+  border-radius: 10px;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+}
+
+.advanced-position-mode button.active,
+.advanced-position-options button.active {
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 11%, var(--surface));
+}
+
+.advanced-position-options button:hover,
+.advanced-position-mode button:hover {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+  color: var(--ink);
+}
+
+@media (min-width: 921px) {
+  .advanced-position-filter {
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    grid-template-rows: 1fr;
+    align-content: normal;
+    align-items: center;
+    min-height: 64px;
+    padding: 8px 12px;
+  }
+
+  .advanced-position-filter > header {
+    display: contents;
+  }
+
+  .advanced-position-filter > header > div:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .advanced-position-options {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .advanced-position-mode {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .advanced-position-filter > p {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+.advanced-profession-filters {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.advanced-profession-filters > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+  padding: 0 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.advanced-profession-filters > summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-profession-filters > summary > span {
+  display: grid;
+  gap: 3px;
+}
+
+.advanced-profession-filters > summary strong {
+  font-size: 12px;
+}
+
+.advanced-profession-filters > summary small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.advanced-profession-filters > summary > svg {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+  transition: transform 160ms ease;
+}
+
+.advanced-profession-filters[open] > summary > svg {
+  color: var(--accent-strong);
+  transform: rotate(180deg);
+}
+
+.advanced-profession-filters > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 20px 20px;
+}
+
 .advanced-picker-content {
   padding: 0 14px 14px;
 }
@@ -142,6 +362,35 @@
   color: var(--muted);
   font-size: 9px;
   line-height: 1.5;
+}
+
+.advanced-duty-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 11px;
+}
+
+.advanced-duty-types button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 9px;
+  font-weight: 730;
+}
+
+.advanced-duty-types button:hover {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+  color: var(--ink);
+}
+
+.advanced-duty-types button.active {
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
 }
 
 .advanced-picker-search {
@@ -209,6 +458,22 @@
   background: var(--surface-2);
 }
 
+.advanced-picker-options.duties label {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+}
+
+.advanced-duty-type {
+  min-width: 46px;
+  padding: 3px 6px;
+  border-radius: 7px;
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  font-size: 8px;
+  font-weight: 760;
+  text-align: center;
+}
+
 .advanced-picker-options input,
 .advanced-rule-card fieldset input {
   flex: 0 0 auto;
@@ -257,14 +522,15 @@
 
 .advanced-text-rules {
   display: grid;
-  gap: 12px;
-  padding: 22px 20px;
+  gap: 10px;
+  padding: 18px 20px 20px;
+  border-top: 1px solid var(--line);
 }
 
 .advanced-text-rules > header {
   display: flex;
   justify-content: space-between;
-  align-items: start;
+  align-items: center;
   gap: 20px;
 }
 
@@ -286,6 +552,12 @@
 .advanced-rule-mode {
   display: flex;
   gap: 5px;
+}
+
+.advanced-rule-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .advanced-rule-card {
@@ -378,41 +650,42 @@
 
 .advanced-add-rule {
   display: inline-flex;
-  justify-self: start;
+  justify-content: center;
   align-items: center;
   gap: 7px;
-  min-height: 38px;
-  padding: 0 12px;
-  border: 1px dashed color-mix(in srgb, var(--accent) 58%, var(--line));
-  border-radius: 11px;
-  color: var(--accent-strong);
-  background: transparent;
-  font-size: 10px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--accent-strong);
+  border-radius: 9px;
+  color: var(--surface);
+  background: var(--accent-strong);
+  font-size: 9px;
   font-weight: 740;
 }
 
 .advanced-add-rule svg {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
 }
 
-.advanced-filter-actions {
+.advanced-rule-empty {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  padding: 15px 20px;
-  border-top: 1px solid var(--line);
-  background: color-mix(in srgb, var(--accent) 5%, var(--paper));
-}
-
-.advanced-filter-actions p {
-  margin: 0;
+  align-items: baseline;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
   color: var(--muted);
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
   font-size: 9px;
 }
 
-.advanced-filter-actions button,
+.advanced-rule-empty strong {
+  color: var(--ink);
+  font-size: 10px;
+}
+
 .advanced-loading-panel button {
   display: inline-flex;
   justify-content: center;
@@ -669,8 +942,11 @@
 .advanced-risk-actions button:active,
 .advanced-risk-close:active,
 .advanced-add-rule:active,
-.advanced-filter-actions button:active,
+.advanced-filter-reset:active,
 .advanced-job-mode button:active,
+.advanced-duty-types button:active,
+.advanced-position-mode button:active,
+.advanced-position-options button:active,
 .advanced-rule-mode button:active,
 .advanced-rule-inputs > button:active {
   transform: translateY(1px) scale(0.985);
@@ -678,6 +954,10 @@
 
 @media (max-width: 920px) {
   .advanced-filter-primary {
+    grid-template-columns: 1fr;
+  }
+
+  .advanced-profession-filters > div {
     grid-template-columns: 1fr;
   }
 
@@ -696,14 +976,21 @@
     flex-direction: column;
   }
 
-  .advanced-text-rules > header,
-  .advanced-filter-actions {
+  .advanced-text-rules > header {
     align-items: flex-start;
     flex-direction: column;
   }
 
+  .advanced-filter-reset {
+    flex: 0 0 auto;
+  }
+
   .advanced-rule-inputs {
     grid-template-columns: 1fr auto;
+  }
+
+  .advanced-position-options {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .advanced-rule-inputs label:first-child {
@@ -714,7 +1001,8 @@
     min-width: 0;
   }
 
-  .advanced-filter-actions button {
+  .advanced-rule-toolbar {
+    justify-content: space-between;
     width: 100%;
   }
 
@@ -725,12 +1013,22 @@
 }
 
 @media (max-width: 460px) {
-  .advanced-rule-mode {
+  .advanced-rule-toolbar {
     width: 100%;
+  }
+
+  .advanced-rule-mode {
+    flex: 1;
   }
 
   .advanced-rule-mode button {
     flex: 1;
+  }
+
+  .advanced-rule-empty {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
   }
 
   .advanced-rule-inputs {

@@ -20,9 +20,12 @@ import type {
   RecruitConfig,
   RecruitDetail,
   RecruitJob,
+  RecruitSlotKey,
 } from "../models/recruit";
 import { loadAdvancedRecruitDataset } from "../services/advancedRecruitApi";
 import { filterAdvancedRecruitItems } from "../utils/advancedRecruitFilter";
+import { buildRecruitDutyChoices } from "../utils/recruitDutyGroups";
+import { useListDetailScrollViewModel } from "./useListDetailScrollViewModel";
 
 export type AdvancedRecruitStatus = "idle" | "loading" | "ready" | "error";
 
@@ -38,9 +41,12 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
     null,
   );
   const [dutyQuery, setDutyQuery] = useState("");
+  const [dutyType, setDutyType] = useState("");
   const nextRuleId = useRef(1);
   const statusRef = useRef<AdvancedRecruitStatus>("idle");
   const controllerRef = useRef<AbortController | null>(null);
+  const { captureListPosition, requestListPositionRestore } =
+    useListDetailScrollViewModel(selectedDetail !== null);
 
   const jobsById = useMemo(
     () => new Map((config?.jobs ?? []).map((job) => [job.id, job] as const)),
@@ -50,12 +56,49 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
     () => filterAdvancedRecruitItems(dataset?.items ?? [], filters),
     [dataset, filters],
   );
-  const dutyOptions = useMemo(
+  const dutyOptions = useMemo(() => {
+    const items = dataset?.items ?? [];
+    const availableNames = new Set(items.map((item) => item.dutyName));
+    const configured = buildRecruitDutyChoices(config?.duties ?? []).filter(
+      (choice) => choice.dutyNames.some((name) => availableNames.has(name)),
+    );
+    const configuredNames = new Set(
+      configured.flatMap((choice) => choice.dutyNames),
+    );
+    const fallback = items
+      .filter((item) => !configuredNames.has(item.dutyName))
+      .filter(
+        (item, index, values) =>
+          values.findIndex(
+            (candidate) => candidate.dutyName === item.dutyName,
+          ) === index,
+      )
+      .map((item) => ({
+        label: item.dutyName,
+        type: item.dutyType,
+        dutyNames: [item.dutyName],
+      }));
+    return [...configured, ...fallback];
+  }, [config, dataset]);
+  const dutyTypes = useMemo(
+    () => [...new Set(dutyOptions.map((option) => option.type))],
+    [dutyOptions],
+  );
+  const visibleDutyOptions = useMemo(() => {
+    const normalizedQuery = dutyQuery.trim().toLocaleLowerCase();
+    return dutyOptions.filter(
+      (option) =>
+        (!dutyType || option.type === dutyType) &&
+        (!normalizedQuery ||
+          option.label.toLocaleLowerCase().includes(normalizedQuery)),
+    );
+  }, [dutyOptions, dutyQuery, dutyType]);
+  const selectedDutyChoiceCount = useMemo(
     () =>
-      [...new Set((dataset?.items ?? []).map((item) => item.dutyName))].map(
-        (name) => ({ id: name, label: name }),
-      ),
-    [dataset],
+      dutyOptions.filter((option) =>
+        option.dutyNames.every((name) => filters.dutyNames.includes(name)),
+      ).length,
+    [dutyOptions, filters.dutyNames],
   );
   const existingJobs = useMemo(
     () => relevantExistingJobs(dataset?.items ?? [], jobsById),
@@ -99,16 +142,22 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
       });
   }, []);
   const retryInitialization = useCallback(() => initialize(true), [initialize]);
-  const toggleDuty = useCallback((name: string) => {
+  const toggleDutyChoice = useCallback((dutyNames: string[]) => {
     setFilters((current) => ({
       ...current,
-      dutyNames: toggleSelection(current.dutyNames, name),
+      dutyNames: toggleSelectionGroup(current.dutyNames, dutyNames),
     }));
   }, []);
   const toggleExistingJob = useCallback((id: number) => {
     setFilters((current) => ({
       ...current,
       existingJobIds: toggleSelection(current.existingJobIds, id),
+    }));
+  }, []);
+  const toggleOpenPosition = useCallback((position: RecruitSlotKey) => {
+    setFilters((current) => ({
+      ...current,
+      openPositions: toggleSelection(current.openPositions, position),
     }));
   }, []);
   const toggleMissingJob = useCallback((id: number) => {
@@ -119,6 +168,9 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
   }, []);
   const setExistingJobMode = useCallback((mode: "any" | "all") => {
     setFilters((current) => ({ ...current, existingJobMode: mode }));
+  }, []);
+  const setOpenPositionMode = useCallback((mode: "any" | "all") => {
+    setFilters((current) => ({ ...current, openPositionMode: mode }));
   }, []);
   const setMissingJobMode = useCallback((mode: "any" | "all") => {
     setFilters((current) => ({ ...current, missingJobMode: mode }));
@@ -170,11 +222,19 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
   const clearFilters = useCallback(() => {
     setFilters(createEmptyAdvancedRecruitFilters());
     setDutyQuery("");
+    setDutyType("");
   }, []);
-  const openDetail = useCallback((item: RecruitDetail) => {
-    setSelectedDetail(item);
-  }, []);
-  const closeDetail = useCallback(() => setSelectedDetail(null), []);
+  const openDetail = useCallback(
+    (item: RecruitDetail) => {
+      captureListPosition();
+      setSelectedDetail(item);
+    },
+    [captureListPosition],
+  );
+  const closeDetail = useCallback(() => {
+    requestListPositionRestore();
+    setSelectedDetail(null);
+  }, [requestListPositionRestore]);
 
   useEffect(
     () => () => {
@@ -191,7 +251,10 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
     filters,
     filteredItems: filtering.items,
     ruleErrors: filtering.ruleErrors,
-    dutyOptions,
+    dutyOptions: visibleDutyOptions,
+    dutyTypes,
+    dutyType,
+    selectedDutyChoiceCount,
     dutyQuery,
     existingJobs,
     missingJobs,
@@ -200,10 +263,13 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
     initialize,
     retryInitialization,
     setDutyQuery,
-    toggleDuty,
+    setDutyType,
+    toggleDutyChoice,
+    toggleOpenPosition,
     toggleExistingJob,
     toggleMissingJob,
     setExistingJobMode,
+    setOpenPositionMode,
     setMissingJobMode,
     setTextRuleMatchMode,
     addTextRule,
@@ -225,6 +291,15 @@ function toggleSelection<T>(values: T[], value: T) {
   return values.includes(value)
     ? values.filter((item) => item !== value)
     : [...values, value];
+}
+
+function toggleSelectionGroup(values: string[], group: string[]) {
+  const selected = new Set(values);
+  if (group.every((value) => selected.has(value))) {
+    return values.filter((value) => !group.includes(value));
+  }
+  group.forEach((value) => selected.add(value));
+  return [...selected];
 }
 
 function updateRule(
