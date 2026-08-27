@@ -44,6 +44,25 @@ GLAMOUR_DETAIL_URL = (
 GLAMOUR_SEARCH_URL = (
     "https://apiff14risingstones.web.sdo.com/api/common/search"
 )
+RECRUIT_JOB_CONFIG_URL = (
+    "https://apiff14risingstones.web.sdo.com/api/home/recruit/getJobConfigList"
+)
+RECRUIT_DUTY_CONFIG_URL = (
+    "https://apiff14risingstones.web.sdo.com/api/home/recruit/getFbConfigList"
+)
+RECRUIT_LABEL_CONFIG_URL = (
+    "https://apiff14risingstones.web.sdo.com/api/home/recruit/fbLabelList"
+)
+RECRUIT_LIST_URL = (
+    "https://apiff14risingstones.web.sdo.com/api/home/recruit/recruitFbList"
+)
+RECRUIT_DETAIL_URL = (
+    "https://apiff14risingstones.web.sdo.com/api/home/recruit/getRecruitFbDetail"
+)
+RECRUIT_AREA_CONFIG_URL = (
+    "https://apiff14risingstones.web.sdo.com/api/home/"
+    "groupAndRole/getAreaAndGroupList"
+)
 WIKI_ORIGIN = "https://ff14.huijiwiki.com"
 WIKI_IMPERSONATE = "safari2601"
 WIKI_ITEM_NAMESPACE = "\u7269\u54c1:"
@@ -759,6 +778,70 @@ def fetch_glamour_detail(client: ApiClient, request: dict[str, Any]) -> dict[str
     }
 
 
+def fetch_recruit_endpoint(
+    client: ApiClient,
+    url: str,
+    params: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Fetch one allowlisted public recruitment endpoint anonymously."""
+    response = client.request(
+        "GET",
+        url,
+        params={**(params or {}), "tempsuid": str(uuid.uuid4())},
+        headers={
+            "Referer": "https://ff14risingstones.web.sdo.com/pc/index.html#/recruit"
+        },
+        discard_cookies=True,
+        allow_redirects=False,
+        error_message="The Rising Stones recruitment request failed.",
+    )
+    try:
+        body = response.content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ApiClientError(
+            "The Rising Stones recruitment endpoint returned invalid text."
+        ) from error
+    return {"status": response.status_code, "body": body}
+
+
+def fetch_recruit_config(client: ApiClient) -> dict[str, Any]:
+    """Fetch the three public datasets used by the recruitment filters."""
+    return {
+        "jobs": fetch_recruit_endpoint(client, RECRUIT_JOB_CONFIG_URL),
+        "duties": fetch_recruit_endpoint(client, RECRUIT_DUTY_CONFIG_URL),
+        "labels": fetch_recruit_endpoint(client, RECRUIT_LABEL_CONFIG_URL),
+        "areas": fetch_recruit_endpoint(client, RECRUIT_AREA_CONFIG_URL),
+    }
+
+
+def fetch_recruit_page(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
+    """Fetch one public recruitment page with the supported filters only."""
+    params = {
+        "page": request["page"],
+        "limit": request["limit"],
+        "fb_name": request.get("dutyName", ""),
+        "fb_type": request.get("dutyType", ""),
+        "position": "",
+        "team_composition": "",
+    }
+    if request.get("targetAreaId") is not None:
+        params["target_area_id"] = request["targetAreaId"]
+    return fetch_recruit_endpoint(
+        client,
+        RECRUIT_LIST_URL,
+        params,
+    )
+
+
+def fetch_recruit_detail(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
+    """Fetch one complete public recruitment record."""
+    return fetch_recruit_endpoint(
+        client,
+        RECRUIT_DETAIL_URL,
+        {"id": request["id"]},
+    )
+
+
 def fetch_wiki_page(
     request: dict[str, Any], session: Any | None = None
 ) -> dict[str, Any]:
@@ -842,6 +925,12 @@ def main() -> None:
         result = fetch_glamour_page(client, request)
     elif operation == "fetchGlamourDetail":
         result = fetch_glamour_detail(client, request)
+    elif operation == "fetchRecruitConfig":
+        result = fetch_recruit_config(client)
+    elif operation == "fetchRecruitPage":
+        result = fetch_recruit_page(client, request)
+    elif operation == "fetchRecruitDetail":
+        result = fetch_recruit_detail(client, request)
     else:
         raise ApiClientError("Unsupported API operation.")
     # ASCII escaping keeps the pipe valid JSON regardless of the Windows console code page.

@@ -4,6 +4,7 @@ mod glamour;
 mod glamour_verification;
 mod network;
 mod python_sidecar;
+mod recruit;
 mod sdo_login;
 mod secure_storage;
 mod wiki;
@@ -79,6 +80,9 @@ pub fn run() {
       glamour::fetch_glamour_detail,
       glamour::fetch_glamour_page,
       network::send_network_request,
+      recruit::fetch_recruit_config,
+      recruit::fetch_recruit_detail,
+      recruit::fetch_recruit_page,
       sdo_login::clear_all_local_data,
       sdo_login::sdo_login_status,
       sdo_login::sdo_start_push_login,

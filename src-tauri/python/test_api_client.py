@@ -11,9 +11,11 @@ from api_client import (
     BASE_HEADERS,
     GLAMOUR_SEARCH_URL,
     NETWORK_CONSOLE_PREFIX,
+    RECRUIT_LIST_URL,
     WIKI_IMPERSONATE,
     fetch_glamour_detail,
     fetch_glamour_page,
+    fetch_recruit_page,
     fetch_wiki_page,
     finalize_authenticated_login,
     normalize_user_agent,
@@ -239,6 +241,31 @@ class ApiClientTests(unittest.TestCase):
 
         _, _, arguments = session.arguments
         self.assertEqual(arguments["params"]["id"], 287009)
+        self.assertTrue(arguments["params"]["tempsuid"])
+
+    def test_recruitment_page_sends_public_filters_without_team_composition(self) -> None:
+        client, session = client_with(FakeResponse())
+
+        fetch_recruit_page(
+            client,
+            {
+                "page": 2,
+                "limit": 9,
+                "dutyName": "Duty",
+                "dutyType": "Ultimate",
+                "targetAreaId": 1,
+            },
+        )
+
+        _, url, arguments = session.arguments
+        self.assertEqual(url, RECRUIT_LIST_URL)
+        self.assertEqual(arguments["params"]["page"], 2)
+        self.assertEqual(arguments["params"]["limit"], 9)
+        self.assertEqual(arguments["params"]["fb_name"], "Duty")
+        self.assertEqual(arguments["params"]["fb_type"], "Ultimate")
+        self.assertEqual(arguments["params"]["position"], "")
+        self.assertEqual(arguments["params"]["team_composition"], "")
+        self.assertEqual(arguments["params"]["target_area_id"], 1)
         self.assertTrue(arguments["params"]["tempsuid"])
 
     def test_wiki_request_uses_encoded_item_name_and_detects_success(self) -> None:
