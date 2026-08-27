@@ -6,7 +6,7 @@ import { SDO_AUTHENTICATION_REQUIRED_EVENT } from "../services/authEvents";
 import { getSdoLoginStatus, logoutSdo } from "../services/sdoLogin";
 import { isTauriRuntime } from "../services/runtime";
 
-export type ActiveFeature = "home" | "glamour";
+export type ActiveFeature = "home" | "glamour" | "recruit";
 
 export function useAppViewModel() {
   const [dark, setDark] = useState(false);
@@ -76,6 +76,7 @@ export function useAppViewModel() {
     setLoginChecking(false);
   }, []);
   const openGlamour = useCallback(() => setActiveFeature("glamour"), []);
+  const openRecruit = useCallback(() => setActiveFeature("recruit"), []);
   const goHome = useCallback(() => setActiveFeature("home"), []);
   const toggleTheme = useCallback(() => setDark((current) => !current), []);
   const openLogin = useCallback(() => setLoginOpen(true), []);
@@ -98,6 +99,7 @@ export function useAppViewModel() {
     loginChecking,
     loginExpired,
     openGlamour,
+    openRecruit,
     goHome,
     toggleTheme,
     openLogin,

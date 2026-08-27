@@ -49,6 +49,12 @@
   --shadow: 0 20px 60px rgba(0, 0, 0, 0.26);
 }
 
+.app.feature-recruit {
+  --accent: var(--home-accent);
+  --accent-strong: var(--home-accent-strong);
+  --accent-soft: color-mix(in srgb, var(--home-accent) 16%, var(--surface));
+}
+
 button,
 a,
 input,

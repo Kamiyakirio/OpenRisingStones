@@ -16,6 +16,7 @@ import type { LoginProfile } from "../models/auth";
 
 type AppHeaderProps = {
   dark: boolean;
+  feature: "glamour" | "recruit";
   profile: LoginProfile | null;
   onGoHome: () => void;
   onToggleTheme: () => void;
@@ -26,6 +27,7 @@ type AppHeaderProps = {
 
 export function AppHeader({
   dark,
+  feature,
   profile,
   onGoHome,
   onToggleTheme,
@@ -46,15 +48,23 @@ export function AppHeader({
         </span>
         <span>
           <strong>OpenRisingStone</strong>
-          <small>GLAMOUR</small>
+          <small>{feature === "recruit" ? "RECRUIT" : "GLAMOUR"}</small>
         </span>
       </button>
       <nav className="main-nav" aria-label="主导航">
-        <a className="active" href="#discover">
-          推荐
-        </a>
-        <a href="#wardrobe">衣橱</a>
-        <a href="#collections">收藏夹</a>
+        {feature === "recruit" ? (
+          <a className="active" href="#recruit-list">
+            招募大厅
+          </a>
+        ) : (
+          <>
+            <a className="active" href="#discover">
+              推荐
+            </a>
+            <a href="#wardrobe">衣橱</a>
+            <a href="#collections">收藏夹</a>
+          </>
+        )}
       </nav>
       <div className="header-actions">
         <button

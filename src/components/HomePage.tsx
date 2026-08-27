@@ -15,6 +15,7 @@ import "./HomePage.css";
 
 type HomePageProps = {
   dark: boolean;
+  onOpenRecruit: () => void;
   onOpenGlamour: () => void;
   onOpenSettings: () => void;
   onToggleTheme: () => void;
@@ -22,6 +23,7 @@ type HomePageProps = {
 
 export function HomePage({
   dark,
+  onOpenRecruit,
   onOpenGlamour,
   onOpenSettings,
   onToggleTheme,
@@ -68,7 +70,7 @@ export function HomePage({
           name="招募"
           englishName="Recruit"
           description="寻找同行者，组织下一次冒险。"
-          disabled
+          onClick={onOpenRecruit}
         />
         <FeatureTile
           icon={<CoatHanger />}

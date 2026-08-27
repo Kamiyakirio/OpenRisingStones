@@ -51,6 +51,7 @@ export function GlamourWorkspaceView({
     <>
       <AppHeader
         dark={dark}
+        feature="glamour"
         profile={profile}
         onGoHome={onGoHome}
         onToggleTheme={onToggleTheme}
