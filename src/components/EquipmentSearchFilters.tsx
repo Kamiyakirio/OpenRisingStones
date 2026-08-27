@@ -1,6 +1,7 @@
 /** Collapsible Item-sheet filters used before opening equipment results. */
 import { CaretDown, SlidersHorizontal, X } from "@phosphor-icons/react";
 import { useId, useState, type ReactNode } from "react";
+import { CLASS_JOB_GROUPS } from "../data/classJobs";
 import {
   countEquipmentSearchFilters,
   type EquipmentClassJob,
@@ -27,75 +28,6 @@ const SLOT_OPTIONS: { value: EquipmentSlot; label: string }[] = [
   { value: "Neck", label: "项链" },
   { value: "Wrists", label: "手镯" },
   { value: "FingerL", label: "戒指" },
-];
-
-const CLASS_JOB_GROUPS: {
-  label: string;
-  options: { value: EquipmentClassJob; label: string }[];
-}[] = [
-  {
-    label: "防护职业",
-    options: [
-      { value: "PLD", label: "骑士" },
-      { value: "WAR", label: "战士" },
-      { value: "DRK", label: "暗黑骑士" },
-      { value: "GNB", label: "绝枪战士" },
-    ],
-  },
-  {
-    label: "治疗职业",
-    options: [
-      { value: "WHM", label: "白魔法师" },
-      { value: "SCH", label: "学者" },
-      { value: "AST", label: "占星术士" },
-      { value: "SGE", label: "贤者" },
-    ],
-  },
-  {
-    label: "近战职业",
-    options: [
-      { value: "MNK", label: "武僧" },
-      { value: "DRG", label: "龙骑士" },
-      { value: "NIN", label: "忍者" },
-      { value: "SAM", label: "武士" },
-      { value: "RPR", label: "钐镰客" },
-      { value: "VPR", label: "蝰蛇剑士" },
-    ],
-  },
-  {
-    label: "远程职业",
-    options: [
-      { value: "BRD", label: "吟游诗人" },
-      { value: "MCH", label: "机工士" },
-      { value: "DNC", label: "舞者" },
-      { value: "BLM", label: "黑魔法师" },
-      { value: "SMN", label: "召唤师" },
-      { value: "RDM", label: "赤魔法师" },
-      { value: "PCT", label: "绘灵法师" },
-      { value: "BLU", label: "青魔法师" },
-    ],
-  },
-  {
-    label: "能工巧匠",
-    options: [
-      { value: "CRP", label: "木工师" },
-      { value: "BSM", label: "锻铁匠" },
-      { value: "ARM", label: "铸甲匠" },
-      { value: "GSM", label: "雕金匠" },
-      { value: "LTW", label: "制革匠" },
-      { value: "WVR", label: "裁衣匠" },
-      { value: "ALC", label: "炼金术士" },
-      { value: "CUL", label: "烹调师" },
-    ],
-  },
-  {
-    label: "大地使者",
-    options: [
-      { value: "MIN", label: "采矿工" },
-      { value: "BTN", label: "园艺工" },
-      { value: "FSH", label: "捕鱼人" },
-    ],
-  },
 ];
 
 const CATEGORY_SUGGESTIONS = [

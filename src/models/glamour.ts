@@ -6,6 +6,7 @@ export type Glamour = {
   race: string;
   raceIds: number[];
   genderIds: number[];
+  jobIds: number[];
   job: string;
   palette: string;
   image: string;

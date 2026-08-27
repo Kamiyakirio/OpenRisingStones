@@ -3,6 +3,7 @@
  * 网络请求由 Tauri Rust 层发送，前端只接收经过大小限制的 JSON 文本。
  */
 import { invoke } from "@tauri-apps/api/core";
+import { CLASS_JOB_LABEL_BY_GLAMOUR_ID } from "../data/classJobs";
 import { genderIdMap, raceIdMap } from "../models/idsToName";
 import type {
   Glamour,
@@ -275,6 +276,7 @@ function toGlamour(
   if (!image) return null;
   const raceIds = readNumberArray(record, ["race_ids", "raceIds"]);
   const genderIds = readNumberArray(record, ["gender_ids", "genderIds"]);
+  const jobIds = readNumberArray(record, ["job_ids", "jobIds"]);
   const raceId =
     readNumber(record, ["race_id", "raceId"]) ?? raceIds[0] ?? filters.raceId;
   const genderId =
@@ -312,6 +314,7 @@ function toGlamour(
         .join(" ") || "种族不限",
     raceIds: raceIds.length ? raceIds : raceId ? [raceId] : [],
     genderIds: genderIds.length ? genderIds : genderId ? [genderId] : [],
+    jobIds,
     job:
       readString(record, [
         "job_name",
@@ -319,7 +322,7 @@ function toGlamour(
         "job",
         "class_name",
         "profession",
-      ]) ?? "全职业",
+      ]) ?? summarizeClassJobs(jobIds),
     palette:
       readString(record, ["color_name", "colorName", "color", "dye_name"]) ??
       "配色未标注",
@@ -357,6 +360,7 @@ function toGlamourDetail(record: UnknownRecord): GlamourDetail {
         Number.isFinite(value),
       )
     : [];
+  const jobIds = readNumberArray(record, ["job_ids", "jobIds"]);
   const equipment = readRecordArray(record.equipments).map(toEquipment);
   const ornament = asRecord(record.ortInfo);
   const glassesId = readNumber(ornament, ["glasses_id"]);
@@ -390,7 +394,8 @@ function toGlamourDetail(record: UnknownRecord): GlamourDetail {
     race: [raceName, genderName].filter(Boolean).join(" ") || "种族不限",
     raceIds,
     genderIds,
-    job: readNamedList(record.job_ids) || "全职业",
+    jobIds,
+    job: readNamedList(record.job_ids) || summarizeClassJobs(jobIds, 4),
     palette: readPrimaryDye(equipment) ?? "配色未标注",
     image: mainImage,
     likes: readNumber(record, ["likes"]) ?? 0,
@@ -445,6 +450,15 @@ function readNamedList(value: unknown) {
     .join("、");
 }
 
+function summarizeClassJobs(jobIds: number[], visibleLabels = 2) {
+  if (!jobIds.length) return "全职业";
+  const labels = jobIds.map(
+    (id) => CLASS_JOB_LABEL_BY_GLAMOUR_ID[id] ?? `职业 ${id}`,
+  );
+  if (labels.length <= visibleLabels) return labels.join("、");
+  return `${labels.slice(0, visibleLabels).join("、")}等${labels.length}个职业`;
+}
+
 function readRecordArray(value: unknown): UnknownRecord[] {
   return Array.isArray(value) ? value.filter(isRecord) : [];
 }
@@ -489,6 +503,7 @@ function readNumberArray(record: UnknownRecord, keys: string[]) {
         if (typeof item === "string" && Number.isFinite(Number(item))) {
           return Number(item);
         }
+        if (isRecord(item)) return readNumber(item, ["id", "value"]);
         return null;
       })
       .filter((item): item is number => item !== null);

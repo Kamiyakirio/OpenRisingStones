@@ -1,9 +1,11 @@
 /** Owns glamour discovery state, commands, filtering, and pagination. */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CLASS_JOB_OPTIONS } from "../data/classJobs";
 import { PREVIEW_GLAMOURS } from "../data/previewGlamours";
 import {
   countEquipmentSearchFilters,
   createEmptyEquipmentSearchFilters,
+  type EquipmentClassJob,
   type EquipmentPageSize,
   type EquipmentSearchFilters,
   type EquipmentSearchItem,
@@ -15,8 +17,18 @@ import type { WikiModelItem } from "../models/wiki";
 import { fetchEquipmentCandidates } from "../services/equipmentApi";
 import { fetchGlamours } from "../services/glamourApi";
 import { isTauriRuntime } from "../services/runtime";
+import {
+  filterGlamoursByJobs,
+  GLAMOUR_FEED_BATCH_SIZE,
+  JOB_FILTER_PREFETCH_COUNT,
+  JOB_FILTER_REQUEST_INTERVAL_MS,
+  matchesSelectedJobs,
+  mergeUniqueGlamours,
+  revealNextGlamourBatch,
+  visibleGlamourFeed,
+} from "../utils/glamourJobFilter";
 
-const DISCOVERY_PAGE_SIZE = 12;
+const DISCOVERY_PAGE_SIZE = GLAMOUR_FEED_BATCH_SIZE;
 const SEARCH_PAGE_SIZE = 20;
 export const MAX_EQUIVALENT_EQUIPMENT_SELECTION = 10;
 
@@ -69,6 +81,7 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
   const [order, setOrder] = useState<GlamourOrder>("latest");
   const [raceId, setRaceId] = useState<number | null>(null);
   const [genderId, setGenderId] = useState<number | null>(null);
+  const [selectedJobs, setSelectedJobs] = useState<EquipmentClassJob[]>([]);
   const [saved, setSaved] = useState<number[]>([2, 6]);
   const [page, setPage] = useState(1);
   const [pageInfo, setPageInfo] = useState<PageInfo | number>(
@@ -80,6 +93,16 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
   const loadingMoreRef = useRef(false);
   const feedRequestVersion = useRef(0);
   const feedAbortController = useRef<AbortController | null>(null);
+  const jobBufferRef = useRef<Glamour[]>([]);
+  const jobVisibleCountRef = useRef(GLAMOUR_FEED_BATCH_SIZE);
+  const jobScanHasMoreRef = useRef(false);
+  const resumeJobScanRef = useRef<() => void>(() => undefined);
+  const [jobVisibleCount, setJobVisibleCount] = useState(
+    GLAMOUR_FEED_BATCH_SIZE,
+  );
+  const [jobScanHasMore, setJobScanHasMore] = useState(false);
+  const [jobScanRunning, setJobScanRunning] = useState(false);
+  const [jobRevealWaiting, setJobRevealWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
@@ -91,6 +114,14 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     searchMode === "title" ? activeTitleQuery : (selectedEquipment?.name ?? "");
   const requestKeywords = searchMode === "title" ? activeTitleQuery : "";
   const searchByEquipment = searchMode === "equipment" && !!selectedEquipment;
+  const selectedJobIds = useMemo(
+    () =>
+      CLASS_JOB_OPTIONS.filter((option) =>
+        selectedJobs.includes(option.value),
+      ).map((option) => option.glamourId),
+    [selectedJobs],
+  );
+  const jobFilterActive = selectedJobIds.length > 0;
   const equipmentSearchIds = useMemo(
     () =>
       selectedEquipment
@@ -119,6 +150,146 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     const controller = new AbortController();
     feedAbortController.current = controller;
     const requestVersion = ++feedRequestVersion.current;
+
+    if (jobFilterActive) {
+      let nextPage = 1;
+      let hasMorePages = true;
+      let scanRunning = false;
+      let initialSettled = false;
+      const seenPageItemIds = new Set<number>();
+
+      loadingMoreRef.current = false;
+      jobBufferRef.current = [];
+      jobVisibleCountRef.current = GLAMOUR_FEED_BATCH_SIZE;
+      jobScanHasMoreRef.current = true;
+
+      const settleInitialLoad = () => {
+        if (
+          initialSettled ||
+          !active ||
+          feedRequestVersion.current !== requestVersion
+        ) {
+          return;
+        }
+        initialSettled = true;
+        setLoading(false);
+        setInitialized(true);
+        setEquipmentRangeUpdating(false);
+      };
+
+      const scan = async () => {
+        if (scanRunning || !active || !hasMorePages) return;
+        scanRunning = true;
+        setJobScanRunning(true);
+        try {
+          while (
+            active &&
+            feedRequestVersion.current === requestVersion &&
+            hasMorePages &&
+            jobBufferRef.current.length <
+              jobVisibleCountRef.current + JOB_FILTER_PREFETCH_COUNT
+          ) {
+            if (nextPage > 1) {
+              await waitForJobFilterInterval(controller.signal);
+            }
+            const requestedPage = nextPage;
+            const result = await fetchGlamours({
+              page: requestedPage,
+              limit: pageSize,
+              order,
+              raceId,
+              genderId,
+              keywords: requestKeywords || undefined,
+              searchByEquipment,
+              equipmentIds: searchByEquipment ? equipmentSearchIds : undefined,
+              signal: controller.signal,
+            });
+            if (!active || feedRequestVersion.current !== requestVersion) {
+              return;
+            }
+
+            const hasNewPageItems = result.items.some(
+              (item) => !seenPageItemIds.has(item.id),
+            );
+            result.items.forEach((item) => seenPageItemIds.add(item.id));
+            const matchingItems = filterGlamoursByJobs(
+              result.items,
+              selectedJobIds,
+            );
+            const merged = mergeUniqueGlamours(
+              jobBufferRef.current,
+              matchingItems,
+            );
+            jobBufferRef.current = merged;
+            setGlamours(merged);
+
+            nextPage = requestedPage + 1;
+            hasMorePages = result.hasMore && hasNewPageItems;
+            jobScanHasMoreRef.current = hasMorePages;
+            setJobScanHasMore(hasMorePages);
+            setPage(requestedPage);
+            setPageInfo({ total: merged.length, hasMore: hasMorePages });
+            setJobRevealWaiting(
+              merged.length < jobVisibleCountRef.current && hasMorePages,
+            );
+
+            if (merged.length || !hasMorePages) settleInitialLoad();
+          }
+        } catch (reason) {
+          if (isAbortError(reason)) return;
+          if (active && feedRequestVersion.current === requestVersion) {
+            hasMorePages = false;
+            jobScanHasMoreRef.current = false;
+            setJobScanHasMore(false);
+            setJobRevealWaiting(false);
+            setError(readError(reason));
+            settleInitialLoad();
+          }
+        } finally {
+          if (active && feedRequestVersion.current === requestVersion) {
+            scanRunning = false;
+            setJobScanRunning(false);
+            if (!hasMorePages) setJobRevealWaiting(false);
+            if (!initialSettled) settleInitialLoad();
+          }
+        }
+      };
+
+      resumeJobScanRef.current = () => void scan();
+      void Promise.resolve().then(() => {
+        if (!active || feedRequestVersion.current !== requestVersion) return;
+        setGlamours([]);
+        setPage(0);
+        setPageInfo({ total: 0, hasMore: true });
+        setLoading(true);
+        setLoadingMore(false);
+        setJobVisibleCount(GLAMOUR_FEED_BATCH_SIZE);
+        setJobScanHasMore(true);
+        setJobScanRunning(false);
+        setJobRevealWaiting(true);
+        setError(null);
+        void scan();
+      });
+
+      return () => {
+        active = false;
+        resumeJobScanRef.current = () => undefined;
+        controller.abort();
+        if (feedAbortController.current === controller) {
+          feedAbortController.current = null;
+        }
+      };
+    }
+
+    jobBufferRef.current = [];
+    jobScanHasMoreRef.current = false;
+    resumeJobScanRef.current = () => undefined;
+    void Promise.resolve().then(() => {
+      if (!active || feedRequestVersion.current !== requestVersion) return;
+      setJobScanHasMore(false);
+      setJobScanRunning(false);
+      setJobRevealWaiting(false);
+    });
     fetchGlamours({
       page: 1,
       limit: pageSize,
@@ -160,6 +331,7 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     genderId,
     equipmentSearchIds,
     enabled,
+    jobFilterActive,
     order,
     pageSize,
     preview,
@@ -167,6 +339,7 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     requestKeywords,
     retryKey,
     searchByEquipment,
+    selectedJobIds,
   ]);
 
   const results = useMemo(() => {
@@ -177,9 +350,14 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
         (!normalized ||
           item.title.toLocaleLowerCase("zh-CN").includes(normalized)) &&
         matchesId(item.raceIds, raceId) &&
-        matchesId(item.genderIds, genderId),
+        matchesId(item.genderIds, genderId) &&
+        matchesSelectedJobs(item.jobIds, selectedJobIds),
     );
-    if (!preview) return matched;
+    if (!preview) {
+      return jobFilterActive
+        ? visibleGlamourFeed(matched, jobVisibleCount)
+        : matched;
+    }
     return [...matched].sort((a, b) =>
       order === "hot" ? b.likes - a.likes : b.id - a.id,
     );
@@ -187,10 +365,13 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     activeTitleQuery,
     genderId,
     glamours,
+    jobFilterActive,
+    jobVisibleCount,
     order,
     preview,
     raceId,
     searchMode,
+    selectedJobIds,
   ]);
 
   const updateFilter = (update: () => void) => {
@@ -202,7 +383,24 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
   };
 
   const loadMore = async () => {
-    if (preview || !enabled || loadingMoreRef.current) return;
+    if (preview || !enabled) return;
+    if (jobFilterActive) {
+      if (jobRevealWaiting) return;
+      const bufferedCount = jobBufferRef.current.length;
+      const currentLimit = jobVisibleCountRef.current;
+      if (bufferedCount <= currentLimit && !jobScanHasMoreRef.current) return;
+
+      const nextLimit = revealNextGlamourBatch(currentLimit);
+      jobVisibleCountRef.current = nextLimit;
+      setJobVisibleCount(nextLimit);
+      setJobRevealWaiting(
+        bufferedCount < nextLimit && jobScanHasMoreRef.current,
+      );
+      setError(null);
+      resumeJobScanRef.current();
+      return;
+    }
+    if (loadingMoreRef.current) return;
     const requestVersion = feedRequestVersion.current;
     const signal = feedAbortController.current?.signal;
     loadingMoreRef.current = true;
@@ -501,6 +699,19 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     }
     setSearchModeState(nextMode);
   };
+  const toggleJob = (job: EquipmentClassJob) => {
+    updateFilter(() =>
+      setSelectedJobs((current) =>
+        current.includes(job)
+          ? current.filter((item) => item !== job)
+          : [...current, job],
+      ),
+    );
+  };
+  const clearJobs = () => {
+    if (!selectedJobs.length) return;
+    updateFilter(() => setSelectedJobs([]));
+  };
   const toggleSave = (id: number) => {
     setSaved((current) =>
       current.includes(id)
@@ -508,6 +719,12 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
         : [...current, id],
     );
   };
+  const canLoadMore =
+    !preview &&
+    enabled &&
+    (jobFilterActive
+      ? glamours.length > jobVisibleCount || jobScanHasMore || jobScanRunning
+      : hasMore);
 
   return {
     preview,
@@ -554,14 +771,17 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     setRaceId: (next: number | null) => updateFilter(() => setRaceId(next)),
     genderId,
     setGenderId: (next: number | null) => updateFilter(() => setGenderId(next)),
+    selectedJobs,
+    toggleJob,
+    clearJobs,
     saved,
     results,
     featured: results[0] ?? glamours[0] ?? PREVIEW_GLAMOURS[0],
-    total: preview || !hasMore ? results.length : total,
+    total: jobFilterActive || preview || !hasMore ? results.length : total,
     loading: loading || (!initialized && enabled),
-    loadingMore,
+    loadingMore: jobFilterActive ? jobRevealWaiting : loadingMore,
     error,
-    canLoadMore: !preview && enabled && hasMore,
+    canLoadMore,
     retry,
     toggleSave,
     loadMore,
@@ -570,6 +790,24 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
 
 function matchesId(ids: number[], selectedId: number | null) {
   return selectedId === null || ids.includes(selectedId);
+}
+
+function waitForJobFilterInterval(signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Request aborted.", "AbortError"));
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      signal.removeEventListener("abort", abort);
+      resolve();
+    }, JOB_FILTER_REQUEST_INTERVAL_MS);
+    const abort = () => {
+      window.clearTimeout(timeout);
+      reject(new DOMException("Request aborted.", "AbortError"));
+    };
+    signal.addEventListener("abort", abort, { once: true });
+  });
 }
 
 function readError(reason: unknown) {

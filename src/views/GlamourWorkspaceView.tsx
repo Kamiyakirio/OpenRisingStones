@@ -100,6 +100,7 @@ export function GlamourWorkspaceView({
             activeQuery={discovery.activeQuery}
             raceId={discovery.raceId}
             genderId={discovery.genderId}
+            selectedJobs={discovery.selectedJobs}
             searchLoading={
               discovery.searchMode === "title"
                 ? discovery.loading
@@ -129,6 +130,8 @@ export function GlamourWorkspaceView({
             onClearEquipmentFilters={discovery.clearEquipmentFilters}
             onRaceChange={discovery.setRaceId}
             onGenderChange={discovery.setGenderId}
+            onToggleJob={discovery.toggleJob}
+            onClearJobs={discovery.clearJobs}
             onToggleEquivalent={discovery.toggleEquivalentEquipment}
             onSelectAllEquivalent={discovery.selectAllEquivalentEquipment}
             onClearEquivalent={discovery.clearEquivalentEquipment}

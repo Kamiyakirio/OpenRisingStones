@@ -6,8 +6,10 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useEffect, useRef } from "react";
+import { CLASS_JOB_GROUPS, CLASS_JOB_OPTIONS } from "../data/classJobs";
 import { genderIdMap, raceIdMap } from "../models/idsToName";
 import type {
+  EquipmentClassJob,
   EquipmentSearchFilters as EquipmentSearchFilterValues,
   EquipmentSearchItem,
 } from "../models/equipment";
@@ -24,6 +26,7 @@ type DiscoveryFiltersProps = {
   activeQuery: string;
   raceId: number | null;
   genderId: number | null;
+  selectedJobs: EquipmentClassJob[];
   searchLoading: boolean;
   canSubmitSearch: boolean;
   equipmentFilters: EquipmentSearchFilterValues;
@@ -41,6 +44,8 @@ type DiscoveryFiltersProps = {
   onClearEquipmentFilters: () => void;
   onRaceChange: (raceId: number | null) => void;
   onGenderChange: (genderId: number | null) => void;
+  onToggleJob: (job: EquipmentClassJob) => void;
+  onClearJobs: () => void;
   onToggleEquivalent: (equipmentId: number) => void;
   onSelectAllEquivalent: () => void;
   onClearEquivalent: () => void;
@@ -52,6 +57,7 @@ export function DiscoveryFilters({
   activeQuery,
   raceId,
   genderId,
+  selectedJobs,
   searchLoading,
   canSubmitSearch,
   equipmentFilters,
@@ -69,6 +75,8 @@ export function DiscoveryFilters({
   onClearEquipmentFilters,
   onRaceChange,
   onGenderChange,
+  onToggleJob,
+  onClearJobs,
   onToggleEquivalent,
   onSelectAllEquivalent,
   onClearEquivalent,
@@ -192,8 +200,87 @@ export function DiscoveryFilters({
           options={genderIdMap}
           onChange={onGenderChange}
         />
+        <JobFilter
+          selectedJobs={selectedJobs}
+          onToggle={onToggleJob}
+          onClear={onClearJobs}
+        />
       </div>
     </section>
+  );
+}
+
+function JobFilter({
+  selectedJobs,
+  onToggle,
+  onClear,
+}: {
+  selectedJobs: EquipmentClassJob[];
+  onToggle: (job: EquipmentClassJob) => void;
+  onClear: () => void;
+}) {
+  const selectedOptions = CLASS_JOB_OPTIONS.filter((option) =>
+    selectedJobs.includes(option.value),
+  );
+  const selectionSummary = !selectedOptions.length
+    ? "不限"
+    : selectedOptions.length <= 2
+      ? selectedOptions.map((option) => option.label).join("、")
+      : `${selectedOptions
+          .slice(0, 2)
+          .map((option) => option.label)
+          .join("、")}等${selectedOptions.length}个`;
+
+  return (
+    <details className="job-filter">
+      <summary className={selectedJobs.length ? "active" : ""}>
+        <span>职业</span>
+        <strong>{selectionSummary}</strong>
+        <CaretDown aria-hidden="true" />
+      </summary>
+      <div className="job-filter-panel">
+        <header>
+          <div>
+            <strong>选择职业</strong>
+            <small>可多选，全职业投稿会自动包含</small>
+          </div>
+          <button
+            type="button"
+            disabled={!selectedJobs.length}
+            onClick={onClear}
+          >
+            清除
+          </button>
+        </header>
+        <div className="job-filter-groups">
+          {CLASS_JOB_GROUPS.map((group) => (
+            <fieldset key={group.label}>
+              <legend>{group.label}</legend>
+              <div>
+                {group.options.map((option) => (
+                  <label
+                    className={
+                      selectedJobs.includes(option.value) ? "selected" : ""
+                    }
+                    key={option.value}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedJobs.includes(option.value)}
+                      onChange={() => onToggle(option.value)}
+                    />
+                    <span>
+                      {option.label}
+                      <small>{option.value}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+        </div>
+      </div>
+    </details>
   );
 }
 
