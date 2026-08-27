@@ -246,7 +246,7 @@ class ApiClientTests(unittest.TestCase):
     def test_recruitment_page_sends_public_filters_without_team_composition(self) -> None:
         client, session = client_with(FakeResponse())
 
-        fetch_recruit_page(
+        result = fetch_recruit_page(
             client,
             {
                 "page": 2,
@@ -267,6 +267,7 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(arguments["params"]["team_composition"], "")
         self.assertEqual(arguments["params"]["target_area_id"], 1)
         self.assertTrue(arguments["params"]["tempsuid"])
+        self.assertEqual(result["url"], RECRUIT_LIST_URL)
 
     def test_wiki_request_uses_encoded_item_name_and_detects_success(self) -> None:
         item_name = "\u6d4b\u8bd5\u624b\u5957"

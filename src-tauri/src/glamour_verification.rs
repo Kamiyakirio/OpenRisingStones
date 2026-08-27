@@ -20,12 +20,18 @@ use crate::sdo_login::{self, SessionSnapshot};
 
 const GLAMOUR_API_HOST: &str = "apiff14risingstones.web.sdo.com";
 const VERIFICATION_TIMEOUT: Duration = Duration::from_secs(90);
+const AUTOMATIC_VERIFICATION_TIMEOUT: Duration = Duration::from_secs(15);
 
 #[derive(Clone, Debug, Deserialize)]
 struct VerificationSnapshot {
   url: String,
   body: String,
   cookie: String,
+}
+
+pub(crate) struct VerificationSolution {
+  pub(crate) body: Option<String>,
+  pub(crate) document_cookie: String,
 }
 
 type VerificationCompletion =
@@ -50,6 +56,38 @@ pub async fn verify(
   raw_url: &str,
   challenge_html: &str,
 ) -> Result<Option<String>, String> {
+  let solution = solve_challenge(app, state, session, raw_url, challenge_html, true).await?;
+  if !solution.document_cookie.is_empty() {
+    let login_state = app.state::<sdo_login::LoginState>();
+    sdo_login::merge_glamour_antibot_cookies(&login_state, &solution.document_cookie)?;
+  }
+  Ok(solution.body)
+}
+
+/// Execute an automatic challenge in a hidden WebView for an anonymous API session.
+pub(crate) async fn verify_anonymous(
+  app: &AppHandle,
+  state: &GlamourVerificationState,
+  session: &SessionSnapshot,
+  raw_url: &str,
+  challenge_html: &str,
+) -> Result<VerificationSolution, String> {
+  solve_challenge(app, state, session, raw_url, challenge_html, false).await
+}
+
+async fn solve_challenge(
+  app: &AppHandle,
+  state: &GlamourVerificationState,
+  session: &SessionSnapshot,
+  raw_url: &str,
+  challenge_html: &str,
+  visible: bool,
+) -> Result<VerificationSolution, String> {
+  let verification_timeout = if visible {
+    VERIFICATION_TIMEOUT
+  } else {
+    AUTOMATIC_VERIFICATION_TIMEOUT
+  };
   let url = Url::parse(raw_url).map_err(|_| "The verification URL is invalid.".to_owned())?;
   if !is_allowed_url(&url) {
     return Err("The verification URL is not supported.".to_owned());
@@ -71,7 +109,7 @@ pub async fn verify(
   }
 
   let request_id = state.next_id.fetch_add(1, Ordering::Relaxed) + 1;
-  let window_label = format!("glamour-verification-{request_id}");
+  let window_label = format!("rising-stones-verification-{request_id}");
   let (sender, receiver) = oneshot::channel();
   let completion: VerificationCompletion = Arc::new(Mutex::new(Some(sender)));
   let page_completion = completion.clone();
@@ -84,10 +122,10 @@ pub async fn verify(
     .title("Rising Stones Access Verification")
     .inner_size(640.0, 520.0)
     .min_inner_size(480.0, 400.0)
-    .always_on_top(true)
-    .skip_taskbar(false)
-    .visible(true)
-    .focused(true)
+    .always_on_top(visible)
+    .skip_taskbar(!visible)
+    .visible(visible)
+    .focused(visible)
     .devtools(false)
     .on_navigation(is_allowed_navigation)
     .on_page_load(move |window, payload| {
@@ -109,11 +147,12 @@ pub async fn verify(
     let _ = window.close();
     return Err("Unable to open the Rising Stones verification page.".to_owned());
   }
-  if window
-    .set_size(LogicalSize::new(640.0, 520.0))
-    .and_then(|_| window.center())
-    .and_then(|_| window.set_focus())
-    .is_err()
+  if visible
+    && window
+      .set_size(LogicalSize::new(640.0, 520.0))
+      .and_then(|_| window.center())
+      .and_then(|_| window.set_focus())
+      .is_err()
   {
     let _ = window.close();
     return Err("Unable to present the Rising Stones verification window.".to_owned());
@@ -139,8 +178,9 @@ pub async fn verify(
 
   let poll_window = window.clone();
   let poll_completion = completion.clone();
+  let poll_attempts = (verification_timeout.as_millis() / 500) as usize;
   tauri::async_runtime::spawn(async move {
-    for _ in 0..180 {
+    for _ in 0..poll_attempts {
       tokio::time::sleep(Duration::from_millis(500)).await;
       if completion_finished(&poll_completion) {
         return;
@@ -154,7 +194,7 @@ pub async fn verify(
     let _ = poll_window.close();
   });
 
-  let result = match tokio::time::timeout(VERIFICATION_TIMEOUT, receiver).await {
+  let result = match tokio::time::timeout(verification_timeout, receiver).await {
     Ok(Ok(result)) => result,
     Ok(Err(_)) => Err("The Rising Stones verification task stopped unexpectedly.".to_owned()),
     Err(_) => Err("Rising Stones access verification timed out.".to_owned()),
@@ -176,11 +216,15 @@ pub async fn verify(
     .map_err(|_| "Unable to clear the verification state.".to_owned())? = None;
   let snapshot = result?;
   if has_required_cookies(&snapshot.cookie) {
-    let login_state = app.state::<sdo_login::LoginState>();
-    sdo_login::merge_glamour_antibot_cookies(&login_state, &snapshot.cookie)?;
-    return Ok(None);
+    return Ok(VerificationSolution {
+      body: None,
+      document_cookie: snapshot.cookie,
+    });
   }
-  Ok(Some(snapshot.body))
+  Ok(VerificationSolution {
+    body: Some(snapshot.body),
+    document_cookie: String::new(),
+  })
 }
 
 fn inspect_webview(window: &WebviewWindow, completion: VerificationCompletion) {

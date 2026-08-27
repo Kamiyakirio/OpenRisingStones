@@ -801,7 +801,11 @@ def fetch_recruit_endpoint(
         raise ApiClientError(
             "The Rising Stones recruitment endpoint returned invalid text."
         ) from error
-    return {"status": response.status_code, "body": body}
+    return {
+        "status": response.status_code,
+        "body": body,
+        "url": str(getattr(response, "url", url) or url),
+    }
 
 
 def fetch_recruit_config(client: ApiClient) -> dict[str, Any]:

@@ -54,6 +54,7 @@ pub fn run() {
       let session_path = app.path().app_local_data_dir()?.join("sdo-session.v1.dat");
       app.manage(sdo_login::LoginState::with_storage_path(session_path));
       app.manage(glamour_verification::GlamourVerificationState::default());
+      app.manage(recruit::RecruitSessionState::default());
       app.manage(wiki::WikiVerificationState::default());
       #[cfg(debug_assertions)]
       {

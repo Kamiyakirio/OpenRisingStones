@@ -43,6 +43,15 @@ pub(crate) struct SessionSnapshot {
   user_agent: Option<String>,
 }
 
+impl SessionSnapshot {
+  pub(crate) fn anonymous() -> Self {
+    Self {
+      cookies: Vec::new(),
+      user_agent: None,
+    }
+  }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SidecarResponse {
@@ -488,21 +497,7 @@ pub(crate) fn merge_glamour_antibot_cookies(
   state: &LoginState,
   document_cookie: &str,
 ) -> Result<(), String> {
-  let parsed = document_cookie
-    .split(';')
-    .filter_map(|part| part.trim().split_once('='))
-    .filter(|(name, _)| GLAMOUR_ANTIBOT_COOKIES.contains(name))
-    .map(|(name, value)| (name.to_owned(), value.trim().to_owned()))
-    .filter(|(_, value)| {
-      !value.is_empty() && value.len() <= 256 && !value.chars().any(char::is_control)
-    })
-    .collect::<Vec<_>>();
-  if !GLAMOUR_ANTIBOT_COOKIES
-    .iter()
-    .all(|required| parsed.iter().any(|(name, _)| name == required))
-  {
-    return Err("The Rising Stones verification cookies are incomplete.".to_owned());
-  }
+  let parsed = parse_antibot_cookies(document_cookie)?;
 
   let mut active = state
     .active
@@ -518,6 +513,34 @@ pub(crate) fn merge_glamour_antibot_cookies(
     .ok_or_else(|| "There is no authenticated session to update.".to_owned())?;
   merge_cookie_records(&mut session, &parsed);
   persist_session(state.storage_path.as_deref(), &session)
+}
+
+pub(crate) fn merge_antibot_cookies(
+  session: &mut SessionSnapshot,
+  document_cookie: &str,
+) -> Result<(), String> {
+  let parsed = parse_antibot_cookies(document_cookie)?;
+  merge_cookie_records(session, &parsed);
+  Ok(())
+}
+
+fn parse_antibot_cookies(document_cookie: &str) -> Result<Vec<(String, String)>, String> {
+  let parsed = document_cookie
+    .split(';')
+    .filter_map(|part| part.trim().split_once('='))
+    .filter(|(name, _)| GLAMOUR_ANTIBOT_COOKIES.contains(name))
+    .map(|(name, value)| (name.to_owned(), value.trim().to_owned()))
+    .filter(|(_, value)| {
+      !value.is_empty() && value.len() <= 256 && !value.chars().any(char::is_control)
+    })
+    .collect::<Vec<_>>();
+  if !GLAMOUR_ANTIBOT_COOKIES
+    .iter()
+    .all(|required| parsed.iter().any(|(name, _)| name == required))
+  {
+    return Err("The Rising Stones verification cookies are incomplete.".to_owned());
+  }
+  Ok(parsed)
 }
 
 fn merge_cookie_records(session: &mut SessionSnapshot, cookies: &[(String, String)]) {
