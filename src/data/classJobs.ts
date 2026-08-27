@@ -14,7 +14,7 @@ export type ClassJobGroup = {
 
 export const CLASS_JOB_GROUPS: ClassJobGroup[] = [
   {
-    label: "防护职业",
+    label: "防护",
     options: [
       { value: "PLD", label: "骑士", glamourId: 19 },
       { value: "WAR", label: "战士", glamourId: 21 },
@@ -23,7 +23,7 @@ export const CLASS_JOB_GROUPS: ClassJobGroup[] = [
     ],
   },
   {
-    label: "治疗职业",
+    label: "治疗",
     options: [
       { value: "WHM", label: "白魔法师", glamourId: 24 },
       { value: "SCH", label: "学者", glamourId: 28 },
@@ -32,7 +32,7 @@ export const CLASS_JOB_GROUPS: ClassJobGroup[] = [
     ],
   },
   {
-    label: "近战职业",
+    label: "近战",
     options: [
       { value: "MNK", label: "武僧", glamourId: 20 },
       { value: "DRG", label: "龙骑士", glamourId: 22 },
@@ -43,11 +43,16 @@ export const CLASS_JOB_GROUPS: ClassJobGroup[] = [
     ],
   },
   {
-    label: "远程职业",
+    label: "远敏",
     options: [
       { value: "BRD", label: "吟游诗人", glamourId: 23 },
       { value: "MCH", label: "机工士", glamourId: 31 },
       { value: "DNC", label: "舞者", glamourId: 38 },
+    ],
+  },
+  {
+    label: "法系",
+    options: [
       { value: "BLM", label: "黑魔法师", glamourId: 25 },
       { value: "SMN", label: "召唤师", glamourId: 27 },
       { value: "RDM", label: "赤魔法师", glamourId: 35 },
@@ -58,7 +63,7 @@ export const CLASS_JOB_GROUPS: ClassJobGroup[] = [
   {
     label: "能工巧匠",
     options: [
-      { value: "CRP", label: "木工师", glamourId: 8 },
+      { value: "CRP", label: "刻木匠", glamourId: 8 },
       { value: "BSM", label: "锻铁匠", glamourId: 9 },
       { value: "ARM", label: "铸甲匠", glamourId: 10 },
       { value: "GSM", label: "雕金匠", glamourId: 11 },
@@ -85,3 +90,14 @@ export const CLASS_JOB_OPTIONS = CLASS_JOB_GROUPS.flatMap(
 export const CLASS_JOB_LABEL_BY_GLAMOUR_ID = Object.fromEntries(
   CLASS_JOB_OPTIONS.map((option) => [option.glamourId, option.label]),
 ) as Readonly<Record<number, string>>;
+
+/** Resolves the in-game class/job icon through XIVAPI's asset endpoint. */
+export function getClassJobIconUrl(glamourId: number) {
+  const iconId = String(62_100 + glamourId).padStart(6, "0");
+  const url = new URL("/api/asset", "https://xivapi-v2.xivcdn.com");
+  url.search = new URLSearchParams({
+    path: `ui/icon/062000/${iconId}_hr1.tex`,
+    format: "png",
+  }).toString();
+  return url.toString();
+}

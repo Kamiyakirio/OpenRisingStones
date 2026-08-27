@@ -6,7 +6,11 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useEffect, useRef } from "react";
-import { CLASS_JOB_GROUPS, CLASS_JOB_OPTIONS } from "../data/classJobs";
+import {
+  CLASS_JOB_GROUPS,
+  CLASS_JOB_OPTIONS,
+  getClassJobIconUrl,
+} from "../data/classJobs";
 import { genderIdMap, raceIdMap } from "../models/idsToName";
 import type {
   EquipmentClassJob,
@@ -270,8 +274,12 @@ function JobFilter({
                       onChange={() => onToggle(option.value)}
                     />
                     <span>
+                      <img
+                        src={getClassJobIconUrl(option.glamourId)}
+                        alt=""
+                        aria-hidden="true"
+                      />
                       {option.label}
-                      <small>{option.value}</small>
                     </span>
                   </label>
                 ))}
