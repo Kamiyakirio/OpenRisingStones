@@ -12,7 +12,15 @@ import type {
   RecruitSlotKey,
   RecruitSummary,
 } from "../models/recruit";
+import {
+  RecruitRateLimitError,
+  isRecruitRateLimitError,
+  rateLimitMessage,
+  readReasonMessage,
+} from "../utils/recruitRateLimit";
 import { isTauriRuntime } from "./runtime";
+
+export { RecruitRateLimitError, isRecruitRateLimitError };
 
 type NetworkResponse = { status: number; body: string };
 type RecruitConfigTransport = {
@@ -248,12 +256,24 @@ async function invokeWithAbort<T>(
   signal?: AbortSignal,
 ) {
   throwIfAborted(signal);
-  const result = await invoke<T>(command, args);
-  throwIfAborted(signal);
-  return result;
+  try {
+    const result = await invoke<T>(command, args);
+    throwIfAborted(signal);
+    return result;
+  } catch (reason) {
+    if (isRecruitRateLimitError(reason)) {
+      throw new RecruitRateLimitError(readReasonMessage(reason));
+    }
+    throw reason;
+  }
 }
 
 function parseSuccessfulPayload(response: NetworkResponse, label: string) {
+  if (response.status === 403 || response.status === 429) {
+    throw new RecruitRateLimitError(
+      `石之家${label}接口返回 HTTP ${response.status}`,
+    );
+  }
   if (response.status < 200 || response.status >= 300) {
     throw new Error(`石之家${label}接口返回 HTTP ${response.status}`);
   }
@@ -266,7 +286,9 @@ function parseSuccessfulPayload(response: NetworkResponse, label: string) {
   }
   const root = asRecord(payload);
   if (readNumber(root, ["code"]) !== 10_000) {
-    throw new Error(readString(root, ["msg", "message"]) ?? `无法读取${label}`);
+    const message = readString(root, ["msg", "message"]) ?? `无法读取${label}`;
+    if (rateLimitMessage(message)) throw new RecruitRateLimitError(message);
+    throw new Error(message);
   }
   return root;
 }
@@ -379,7 +401,7 @@ function rejectBotChallenge(body: string) {
     body.includes("EO_Bot_Ssid") ||
     /<script[^>]*>\s*function\s+a\(/i.test(body)
   ) {
-    throw new Error("石之家触发访问频控，请稍后重试");
+    throw new RecruitRateLimitError("石之家触发访问频控，请稍后重试");
   }
 }
 

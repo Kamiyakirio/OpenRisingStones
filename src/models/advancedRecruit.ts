@@ -31,11 +31,13 @@ export type AdvancedRecruitFilters = {
 };
 
 export type AdvancedRecruitProgress = {
-  stage: "list" | "detail";
+  stage: "list" | "detail" | "rate_limit";
   completed: number;
   total: number;
   overallCompleted: number;
   overallTotal: number;
+  backoffAttempt?: number;
+  retryDelayMs?: number;
 };
 
 export type AdvancedRecruitDataset = {

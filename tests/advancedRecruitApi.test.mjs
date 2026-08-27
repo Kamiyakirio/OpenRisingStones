@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   ADVANCED_RECRUIT_DETAIL_CONCURRENCY,
   collectAdvancedRecruitDataset,
+  rateLimitBackoffMs,
   recruitListIntervalMs,
 } from "../src/utils/advancedRecruitAggregation.ts";
 
@@ -18,6 +19,13 @@ test("keeps list request intervals inside the declared one-to-five-second range"
   assert.equal(
     recruitListIntervalMs(() => 1),
     5000,
+  );
+});
+
+test("uses capped exponential backoff for repeated rate-limit probes", () => {
+  assert.deepEqual(
+    [1, 2, 3, 4, 5, 6, 7].map(rateLimitBackoffMs),
+    [2000, 4000, 8000, 16000, 32000, 60000, 60000],
   );
 });
 
@@ -48,6 +56,7 @@ test("paces list pages and loads details with bounded parallelism", async () => 
         activeDetails -= 1;
         return { ...summary(id), teamDetail: "Detail" };
       },
+      isRateLimitError: () => false,
     },
   );
 
@@ -62,4 +71,62 @@ test("paces list pages and loads details with bounded parallelism", async () => 
     overallCompleted: 62,
     overallTotal: 62,
   });
+});
+
+test("pauses all workers, uses one probe, and can recover repeatedly", async () => {
+  class RateLimitError extends Error {}
+  const waited = [];
+  const progress = [];
+  const probeCallsByEpisode = [0, 0];
+  let episode = 0;
+  let blocked = true;
+  let probeWindow = false;
+  let normalSuccesses = 0;
+
+  const dataset = await collectAdvancedRecruitDataset(
+    { onProgress: (value) => progress.push(value) },
+    {
+      random: () => 0,
+      wait: async (milliseconds) => {
+        waited.push(milliseconds);
+        probeWindow = true;
+        await Promise.resolve();
+      },
+      fetchPage: async () => ({
+        total: 12,
+        hasMore: false,
+        items: Array.from({ length: 12 }, (_, index) => summary(index + 1)),
+      }),
+      fetchDetail: async (id) => {
+        if (blocked) {
+          if (!probeWindow) throw new RateLimitError();
+          probeWindow = false;
+          probeCallsByEpisode[episode] += 1;
+          if (episode === 0 && probeCallsByEpisode[episode] < 2) {
+            throw new RateLimitError();
+          }
+          blocked = false;
+          return { ...summary(id), teamDetail: "Recovered probe" };
+        }
+
+        normalSuccesses += 1;
+        if (episode === 0 && normalSuccesses === 3) {
+          episode = 1;
+          blocked = true;
+          throw new RateLimitError();
+        }
+        return { ...summary(id), teamDetail: "Detail" };
+      },
+      isRateLimitError: (reason) => reason instanceof RateLimitError,
+    },
+  );
+
+  assert.equal(dataset.items.length, 12);
+  assert.equal(dataset.failedDetailCount, 0);
+  assert.deepEqual(waited, [2000, 4000, 2000]);
+  assert.deepEqual(probeCallsByEpisode, [2, 1]);
+  assert.equal(
+    progress.filter((value) => value.stage === "rate_limit").length,
+    3,
+  );
 });

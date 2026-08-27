@@ -250,11 +250,13 @@ function AdvancedRecruitLoading({
         ) : (
           <>
             <p>
-              {progress?.stage === "detail"
-                ? `正在并行读取详情 ${progress.completed} / ${progress.total}`
-                : progress
-                  ? `正在按频控读取列表 ${progress.completed} / ${progress.total}`
-                  : "正在读取第一批公开招募"}
+              {progress?.stage === "rate_limit"
+                ? `已暂停全部请求，仅保留一个探测 worker。第 ${progress.backoffAttempt} 次退避，${Math.ceil((progress.retryDelayMs ?? 0) / 1000)} 秒后探测`
+                : progress?.stage === "detail"
+                  ? `正在并行读取详情 ${progress.completed} / ${progress.total}`
+                  : progress
+                    ? `正在按频控读取列表 ${progress.completed} / ${progress.total}`
+                    : "正在读取第一批公开招募"}
             </p>
             <progress value={percentage} max="100">
               {percentage}%

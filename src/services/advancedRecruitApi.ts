@@ -4,7 +4,11 @@ import {
   waitForRecruitInterval,
   type AdvancedRecruitLoaderOptions,
 } from "../utils/advancedRecruitAggregation";
-import { fetchRecruitDetail, fetchRecruitPage } from "./recruitApi";
+import {
+  fetchRecruitDetail,
+  fetchRecruitPage,
+  isRecruitRateLimitError,
+} from "./recruitApi";
 
 export function loadAdvancedRecruitDataset(
   options: AdvancedRecruitLoaderOptions,
@@ -14,5 +18,6 @@ export function loadAdvancedRecruitDataset(
     fetchDetail: fetchRecruitDetail,
     wait: waitForRecruitInterval,
     random: Math.random,
+    isRateLimitError: isRecruitRateLimitError,
   });
 }
