@@ -17,6 +17,7 @@ import {
   mergeRecruitFeed,
 } from "../utils/recruitFeed";
 import { expandRecruitDutyChoice } from "../utils/recruitDutyGroups";
+import { useListDetailScrollViewModel } from "./useListDetailScrollViewModel";
 
 const PAGE_SIZE = 9;
 
@@ -49,6 +50,8 @@ export function useRecruitViewModel() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailRetryKey, setDetailRetryKey] = useState(0);
+  const { captureListPosition, requestListPositionRestore } =
+    useListDetailScrollViewModel(selectedRecruit !== null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -169,22 +172,27 @@ export function useRecruitViewModel() {
     setConfigError(null);
     setConfigRetryKey((current) => current + 1);
   }, []);
-  const openDetail = useCallback((item: RecruitSummary) => {
-    setDetail(null);
-    setDetailError(null);
-    setDetailLoading(true);
-    setSelectedRecruit(item);
-  }, []);
+  const openDetail = useCallback(
+    (item: RecruitSummary) => {
+      captureListPosition();
+      setDetail(null);
+      setDetailError(null);
+      setDetailLoading(true);
+      setSelectedRecruit(item);
+    },
+    [captureListPosition],
+  );
   const retryDetail = useCallback(() => {
     setDetailLoading(true);
     setDetailError(null);
     setDetailRetryKey((current) => current + 1);
   }, []);
   const closeDetail = useCallback(() => {
+    requestListPositionRestore();
     setSelectedRecruit(null);
     setDetail(null);
     setDetailError(null);
-  }, []);
+  }, [requestListPositionRestore]);
 
   return {
     config,
