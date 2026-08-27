@@ -14,7 +14,7 @@ import type {
   GlamourDetail,
   GlamourEquipment,
 } from "../models/glamour";
-import { replaceBrokenImage } from "../utils/glamourPresentation";
+import { hideBrokenImage } from "../utils/glamourPresentation";
 import { useGlamourDetailViewModel } from "../viewmodels/useGlamourDetailViewModel";
 import type { WikiItemViewModel } from "../viewmodels/useWikiItemViewModel";
 import { EquipmentSourcePopover } from "./EquipmentSourcePopover";
@@ -104,10 +104,11 @@ function DetailContent({
       <section className="detail-media" aria-label="投稿图片">
         <div className="detail-main-image">
           <img
+            key={activeImage}
             src={activeImage}
             alt={`${detail.title}幻化大图`}
             referrerPolicy="no-referrer"
-            onError={(event) => replaceBrokenImage(event.currentTarget, 0)}
+            onError={(event) => hideBrokenImage(event.currentTarget)}
           />
           <span className="detail-image-count">
             <Images />
@@ -129,9 +130,7 @@ function DetailContent({
                   src={image}
                   alt=""
                   referrerPolicy="no-referrer"
-                  onError={(event) =>
-                    replaceBrokenImage(event.currentTarget, index)
-                  }
+                  onError={(event) => hideBrokenImage(event.currentTarget)}
                 />
               </button>
             ))}

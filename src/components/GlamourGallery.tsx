@@ -8,7 +8,7 @@ import {
   Plus,
 } from "@phosphor-icons/react";
 import type { Glamour, GlamourOrder } from "../models/glamour";
-import { replaceBrokenImage } from "../utils/glamourPresentation";
+import { hideBrokenImage } from "../utils/glamourPresentation";
 
 type GlamourGalleryProps = {
   results: Glamour[];
@@ -181,7 +181,7 @@ function GlamourCard({
           alt={`${item.title}幻化展示`}
           loading={index > 2 ? "lazy" : "eager"}
           referrerPolicy="no-referrer"
-          onError={(event) => replaceBrokenImage(event.currentTarget, index)}
+          onError={(event) => hideBrokenImage(event.currentTarget)}
         />
         <button
           className="card-open-area"

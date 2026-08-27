@@ -1,9 +1,6 @@
-/** Presentation helpers shared by glamour hero and gallery components. */
-import { FALLBACK_GLAMOUR_IMAGES } from "../data/previewGlamours";
-
-export function replaceBrokenImage(image: HTMLImageElement, index: number) {
-  image.onerror = null;
-  image.src = FALLBACK_GLAMOUR_IMAGES[index % FALLBACK_GLAMOUR_IMAGES.length];
+/** Presentation helpers shared by glamour views. */
+export function hideBrokenImage(image: HTMLImageElement) {
+  image.hidden = true;
 }
 
 export function formatGlamourCount(value: number) {

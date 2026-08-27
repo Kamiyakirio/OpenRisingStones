@@ -1,23 +1,15 @@
 /** Loads a selected glamour detail and exposes bindable UI state. */
-import { useEffect, useMemo, useState } from "react";
-import { createPreviewGlamourDetail } from "../data/previewGlamours";
+import { useEffect, useState } from "react";
 import type { Glamour, GlamourDetail } from "../models/glamour";
 import { fetchGlamourDetail } from "../services/glamourApi";
-import { isTauriRuntime } from "../services/runtime";
 
 export function useGlamourDetailViewModel(glamour: Glamour) {
-  const preview = !isTauriRuntime();
-  const previewDetail = useMemo(
-    () => (preview ? createPreviewGlamourDetail(glamour) : null),
-    [glamour, preview],
-  );
   const [detail, setDetail] = useState<GlamourDetail | null>(null);
-  const [loading, setLoading] = useState(!preview);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
-    if (preview) return;
     let active = true;
     fetchGlamourDetail(glamour.id)
       .then((result) => {
@@ -34,12 +26,12 @@ export function useGlamourDetailViewModel(glamour: Glamour) {
     return () => {
       active = false;
     };
-  }, [glamour, preview, retryKey]);
+  }, [glamour, retryKey]);
 
   return {
-    detail: preview ? previewDetail : detail,
-    loading: preview ? false : loading,
-    error: preview ? null : error,
+    detail,
+    loading,
+    error,
     retry: () => {
       setLoading(true);
       setError(null);

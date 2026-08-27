@@ -1,7 +1,6 @@
 /** Owns glamour discovery state, commands, filtering, and pagination. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CLASS_JOB_OPTIONS } from "../data/classJobs";
-import { PREVIEW_GLAMOURS } from "../data/previewGlamours";
 import {
   countEquipmentSearchFilters,
   createEmptyEquipmentSearchFilters,
@@ -16,7 +15,6 @@ import type { Glamour, GlamourOrder } from "../models/glamour";
 import type { WikiModelItem } from "../models/wiki";
 import { fetchEquipmentCandidates } from "../services/equipmentApi";
 import { fetchGlamours } from "../services/glamourApi";
-import { isTauriRuntime } from "../services/runtime";
 import {
   filterGlamoursByJobs,
   GLAMOUR_FEED_BATCH_SIZE,
@@ -44,10 +42,7 @@ type EquipmentCandidatePage = EquipmentSearchPage & {
 export type GlamourSearchMode = "title" | "equipment";
 
 export function useGlamourDiscoveryViewModel(enabled = true) {
-  const preview = !isTauriRuntime();
-  const [glamours, setGlamours] = useState<Glamour[]>(
-    preview ? PREVIEW_GLAMOURS : [],
-  );
+  const [glamours, setGlamours] = useState<Glamour[]>([]);
   const [searchMode, setSearchModeState] = useState<GlamourSearchMode>("title");
   const [titleQuery, setTitleQuery] = useState("");
   const [activeTitleQuery, setActiveTitleQuery] = useState("");
@@ -84,11 +79,9 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
   const [selectedJobs, setSelectedJobs] = useState<EquipmentClassJob[]>([]);
   const [saved, setSaved] = useState<number[]>([2, 6]);
   const [page, setPage] = useState(1);
-  const [pageInfo, setPageInfo] = useState<PageInfo | number>(
-    preview ? PREVIEW_GLAMOURS.length : 0,
-  );
-  const [loading, setLoading] = useState(!preview && enabled);
-  const [initialized, setInitialized] = useState(preview);
+  const [pageInfo, setPageInfo] = useState<PageInfo | number>(0);
+  const [loading, setLoading] = useState(enabled);
+  const [initialized, setInitialized] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const feedRequestVersion = useRef(0);
@@ -144,7 +137,7 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
         );
 
   useEffect(() => {
-    if (preview || !enabled) return;
+    if (!enabled) return;
     let active = true;
     feedAbortController.current?.abort();
     const controller = new AbortController();
@@ -334,7 +327,6 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     jobFilterActive,
     order,
     pageSize,
-    preview,
     raceId,
     requestKeywords,
     retryKey,
@@ -353,37 +345,28 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
         matchesId(item.genderIds, genderId) &&
         matchesSelectedJobs(item.jobIds, selectedJobIds),
     );
-    if (!preview) {
-      return jobFilterActive
-        ? visibleGlamourFeed(matched, jobVisibleCount)
-        : matched;
-    }
-    return [...matched].sort((a, b) =>
-      order === "hot" ? b.likes - a.likes : b.id - a.id,
-    );
+    return jobFilterActive
+      ? visibleGlamourFeed(matched, jobVisibleCount)
+      : matched;
   }, [
     activeTitleQuery,
     genderId,
     glamours,
     jobFilterActive,
     jobVisibleCount,
-    order,
-    preview,
     raceId,
     searchMode,
     selectedJobIds,
   ]);
 
   const updateFilter = (update: () => void) => {
-    if (!preview) {
-      setLoading(true);
-      setError(null);
-    }
+    setLoading(true);
+    setError(null);
     update();
   };
 
   const loadMore = async () => {
-    if (preview || !enabled) return;
+    if (!enabled) return;
     if (jobFilterActive) {
       if (jobRevealWaiting) return;
       const bufferedCount = jobBufferRef.current.length;
@@ -597,7 +580,7 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     if (!candidate || candidate.unobtainable) return;
     setError(null);
     if (selectedEquipmentModelIds.includes(equipmentId)) {
-      if (!preview) setEquipmentRangeUpdating(true);
+      setEquipmentRangeUpdating(true);
       setSelectedEquipmentModelIds((current) =>
         current.filter((id) => id !== equipmentId),
       );
@@ -609,7 +592,7 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
       return;
     }
     setError(null);
-    if (!preview) setEquipmentRangeUpdating(true);
+    setEquipmentRangeUpdating(true);
     setSelectedEquipmentModelIds((current) => [...current, equipmentId]);
   };
   const selectAllEquivalentEquipment = () => {
@@ -624,13 +607,13 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     ) {
       return;
     }
-    if (!preview) setEquipmentRangeUpdating(true);
+    setEquipmentRangeUpdating(true);
     setSelectedEquipmentModelIds(nextIds);
   };
   const clearEquivalentEquipment = () => {
     if (!selectedEquipmentModelIds.length) return;
     setError(null);
-    if (!preview) setEquipmentRangeUpdating(true);
+    setEquipmentRangeUpdating(true);
     setSelectedEquipmentModelIds([]);
   };
   const closeEquipmentResults = () => {
@@ -720,14 +703,12 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     );
   };
   const canLoadMore =
-    !preview &&
     enabled &&
     (jobFilterActive
       ? glamours.length > jobVisibleCount || jobScanHasMore || jobScanRunning
       : hasMore);
 
   return {
-    preview,
     searchMode,
     setSearchMode: changeSearchMode,
     query,
@@ -776,8 +757,7 @@ export function useGlamourDiscoveryViewModel(enabled = true) {
     clearJobs,
     saved,
     results,
-    featured: results[0] ?? glamours[0] ?? PREVIEW_GLAMOURS[0],
-    total: jobFilterActive || preview || !hasMore ? results.length : total,
+    total: jobFilterActive || !hasMore ? results.length : total,
     loading: loading || (!initialized && enabled),
     loadingMore: jobFilterActive ? jobRevealWaiting : loadingMore,
     error,
