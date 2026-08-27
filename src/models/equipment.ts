@@ -105,11 +105,11 @@ export function countEquipmentSearchFilters(filters: EquipmentSearchFilters) {
 export function validateEquipmentSearchFilters(
   filters: EquipmentSearchFilters,
 ): string | null {
-  if (!isOptionalIntegerInRange(filters.minEquipLevel, 1, 999)) {
-    return "装备等级必须是 1 至 999 之间的整数";
+  if (!isOptionalIntegerInRange(filters.minEquipLevel, 1, 110)) {
+    return "装备等级必须是 1 至 110 之间的整数";
   }
-  if (!isOptionalIntegerInRange(filters.maxEquipLevel, 1, 999)) {
-    return "最高装备等级必须是 1 至 999 之间的整数";
+  if (!isOptionalIntegerInRange(filters.maxEquipLevel, 1, 110)) {
+    return "最高装备等级必须是 1 至 110 之间的整数";
   }
   if (
     filters.minEquipLevel !== null &&
