@@ -80,12 +80,14 @@ export type RecruitDetail = RecruitSummary & {
 export type RecruitPage = {
   items: RecruitSummary[];
   total: number;
+  hasMore: boolean;
 };
 
 export type RecruitPageOptions = {
   page: number;
   limit: number;
   filters: RecruitFilters;
+  dutyNames?: string[];
   signal?: AbortSignal;
 };
 

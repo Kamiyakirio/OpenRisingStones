@@ -16,6 +16,7 @@ import {
   canLoadMoreRecruitItems,
   mergeRecruitFeed,
 } from "../utils/recruitFeed";
+import { expandRecruitDutyChoice } from "../utils/recruitDutyGroups";
 
 const PAGE_SIZE = 9;
 
@@ -30,8 +31,10 @@ export function useRecruitViewModel() {
   const [activeFilters, setActiveFilters] = useState<RecruitFilters>(
     createEmptyRecruitFilters,
   );
+  const [activeDutyNames, setActiveDutyNames] = useState<string[]>([]);
   const [items, setItems] = useState<RecruitSummary[]>([]);
   const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -66,6 +69,7 @@ export function useRecruitViewModel() {
       page,
       limit: PAGE_SIZE,
       filters: activeFilters,
+      dutyNames: activeDutyNames,
       signal: controller.signal,
     })
       .then((result) => {
@@ -73,6 +77,7 @@ export function useRecruitViewModel() {
           page === 1 ? result.items : mergeRecruitFeed(current, result.items),
         );
         setTotal(result.total);
+        setHasMore(result.hasMore);
       })
       .catch((reason) => {
         if (isAbortError(reason)) return;
@@ -88,7 +93,7 @@ export function useRecruitViewModel() {
         }
       });
     return () => controller.abort();
-  }, [activeFilters, page, retryKey]);
+  }, [activeDutyNames, activeFilters, page, retryKey]);
 
   useEffect(() => {
     if (!selectedRecruit) return;
@@ -104,9 +109,7 @@ export function useRecruitViewModel() {
     return () => controller.abort();
   }, [selectedRecruit, detailRetryKey]);
 
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const canLoadMore =
-    page < pageCount && canLoadMoreRecruitItems(items.length, total);
+  const canLoadMore = hasMore && canLoadMoreRecruitItems(items.length, total);
   const activeFilterCount = useMemo(
     () => Object.values(activeFilters).filter(Boolean).length,
     [activeFilters],
@@ -122,28 +125,34 @@ export function useRecruitViewModel() {
     setLoadingMore(false);
     setError(null);
     setLoadMoreError(null);
+    setHasMore(true);
     setPage(1);
+    setActiveDutyNames(
+      expandRecruitDutyChoice(draftFilters.dutyName, config?.duties ?? []),
+    );
     setActiveFilters({ ...draftFilters });
-  }, [draftFilters]);
+  }, [config, draftFilters]);
   const clearFilters = useCallback(() => {
     const empty = createEmptyRecruitFilters();
     setDraftFilters(empty);
     setActiveFilters(empty);
+    setActiveDutyNames([]);
     setItems([]);
     setLoading(true);
     loadingMoreRef.current = false;
     setLoadingMore(false);
     setError(null);
     setLoadMoreError(null);
+    setHasMore(true);
     setPage(1);
   }, []);
   const loadMore = useCallback(() => {
-    if (loading || loadingMoreRef.current || page >= pageCount) return;
+    if (loading || loadingMoreRef.current || !hasMore) return;
     loadingMoreRef.current = true;
     setLoadingMore(true);
     setLoadMoreError(null);
     setPage((current) => current + 1);
-  }, [loading, page, pageCount]);
+  }, [hasMore, loading]);
   const retry = useCallback(() => {
     if (page === 1) {
       setLoading(true);

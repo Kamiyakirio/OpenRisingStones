@@ -71,6 +71,52 @@ export async function fetchRecruitPage({
   page,
   limit,
   filters,
+  dutyNames,
+  signal,
+}: RecruitPageOptions): Promise<RecruitPage> {
+  const requestedDutyNames = Array.from(
+    new Set(
+      (dutyNames?.length ? dutyNames : [filters.dutyName])
+        .map((name) => name.trim())
+        .filter(Boolean),
+    ),
+  );
+  if (requestedDutyNames.length > 1) {
+    const pages = await Promise.all(
+      requestedDutyNames.map((dutyName) =>
+        fetchSingleRecruitPage({
+          page,
+          limit,
+          filters: { ...filters, dutyName },
+          signal,
+        }),
+      ),
+    );
+    const items = new Map<number, RecruitSummary>();
+    pages.forEach((result) =>
+      result.items.forEach((item) => items.set(item.id, item)),
+    );
+    return {
+      items: [...items.values()],
+      total: pages.reduce((sum, result) => sum + result.total, 0),
+      hasMore: pages.some((result) => result.hasMore),
+    };
+  }
+  return fetchSingleRecruitPage({
+    page,
+    limit,
+    filters: {
+      ...filters,
+      dutyName: requestedDutyNames[0] ?? filters.dutyName,
+    },
+    signal,
+  });
+}
+
+async function fetchSingleRecruitPage({
+  page,
+  limit,
+  filters,
   signal,
 }: RecruitPageOptions): Promise<RecruitPage> {
   const request = {
@@ -107,6 +153,7 @@ export async function fetchRecruitPage({
       .map(parseSummary)
       .filter((item): item is RecruitSummary => item !== null),
     total: readNumber(data, ["count", "total"]) ?? 0,
+    hasMore: page * limit < (readNumber(data, ["count", "total"]) ?? 0),
   };
 }
 

@@ -12,7 +12,6 @@ import {
   MapPin,
   Path,
   ShieldCheck,
-  UsersThree,
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
@@ -24,6 +23,7 @@ import type {
   RecruitSummary,
 } from "../models/recruit";
 import type { RecruitViewModel } from "../viewmodels/useRecruitViewModel";
+import { buildRecruitDutyChoices } from "../utils/recruitDutyGroups";
 import "./RecruitPage.css";
 
 type RecruitPageProps = {
@@ -55,7 +55,6 @@ export function RecruitPage({ viewModel }: RecruitPageProps) {
 
   return (
     <main className="recruit-page" id="recruit-list">
-      <RecruitIntro total={viewModel.total} loading={viewModel.loading} />
       <RecruitFilters viewModel={viewModel} />
       <section
         className="recruit-results"
@@ -131,28 +130,13 @@ export function RecruitPage({ viewModel }: RecruitPageProps) {
   );
 }
 
-function RecruitIntro({ total, loading }: { total: number; loading: boolean }) {
-  return (
-    <section className="recruit-intro" aria-labelledby="recruit-heading">
-      <div>
-        <p className="recruit-kicker">公开招募大厅</p>
-        <h1 id="recruit-heading">找到适合你的下一支队伍。</h1>
-        <p>浏览石之家公开招募，无需登录。按副本和招募大区快速定位。</p>
-      </div>
-      <div className="recruit-intro-mark" aria-hidden="true">
-        <UsersThree weight="duotone" />
-        <strong>{loading ? "···" : total}</strong>
-        <span>条招募</span>
-      </div>
-    </section>
-  );
-}
-
 function RecruitFilters({ viewModel }: { viewModel: RecruitViewModel }) {
   const dutyTypes = unique(
     (viewModel.config?.duties ?? []).map((duty) => duty.type),
   );
-  const dutyOptions = (viewModel.config?.duties ?? []).filter(
+  const dutyOptions = buildRecruitDutyChoices(
+    viewModel.config?.duties ?? [],
+  ).filter(
     (duty) =>
       !viewModel.draftFilters.dutyType ||
       duty.type === viewModel.draftFilters.dutyType,
@@ -221,7 +205,7 @@ function RecruitFilters({ viewModel }: { viewModel: RecruitViewModel }) {
           />
           <datalist id="recruit-duty-options">
             {dutyOptions.map((duty) => (
-              <option key={duty.id} value={duty.name} />
+              <option key={`${duty.type}-${duty.label}`} value={duty.label} />
             ))}
           </datalist>
         </label>
@@ -267,7 +251,7 @@ function RecruitFilters({ viewModel }: { viewModel: RecruitViewModel }) {
   );
 }
 
-function RecruitCard({
+export function RecruitCard({
   item,
   jobsById,
   onOpen,
@@ -277,7 +261,18 @@ function RecruitCard({
   onOpen: () => void;
 }) {
   return (
-    <article className="recruit-card">
+    <article
+      className="recruit-card"
+      role="button"
+      tabIndex={0}
+      aria-label={`查看 ${item.dutyName} 招募详情`}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        onOpen();
+      }}
+    >
       <header className="recruit-card-owner">
         <Avatar item={item} />
         <div>
@@ -337,16 +332,16 @@ function RecruitCard({
           <ChatCircleDots />
           {item.responseCount} 人已响应
         </span>
-        <button type="button" onClick={onOpen}>
+        <span className="recruit-card-detail-action" aria-hidden="true">
           查看详情
           <ArrowRight weight="bold" />
-        </button>
+        </span>
       </footer>
     </article>
   );
 }
 
-function RecruitDetailView({
+export function RecruitDetailView({
   summary,
   detail,
   loading,
@@ -368,7 +363,7 @@ function RecruitDetailView({
     <main className="recruit-detail-page">
       <button className="recruit-detail-back" type="button" onClick={onBack}>
         <ArrowLeft weight="bold" />
-        返回招募大厅
+        返回招募
       </button>
       <article className="recruit-detail-shell">
         <header className="recruit-detail-hero">
@@ -456,30 +451,6 @@ function RecruitDetailView({
                 <p>{detail.strategyDescription}</p>
               </div>
             </section>
-
-            <aside className="recruit-detail-meta">
-              <div>
-                <span>发布者签名</span>
-                <strong>{detail.profile || "未填写"}</strong>
-              </div>
-              <div>
-                <span>发布地区</span>
-                <strong>{detail.ipLocation}</strong>
-              </div>
-              <div>
-                <span>发布日期</span>
-                <strong>{formatPublishedAt(detail.publishedAt)}</strong>
-              </div>
-              <div>
-                <span>剩余期限</span>
-                <strong>{formatRemainingTime(detail.expiresAt)}</strong>
-              </div>
-              <div>
-                <span>已响应</span>
-                <strong>{detail.responseCount} 人</strong>
-              </div>
-              <p>招募内容可直接浏览，无需登录。</p>
-            </aside>
           </div>
         ) : null}
       </article>
@@ -547,6 +518,7 @@ function JobList({ jobs }: { jobs: RecruitJob[] }) {
   if (!jobs.length) return <span className="recruit-needs-any">职业不限</span>;
   return (
     <div className="recruit-job-list">
+      <h2>当前招募职业：</h2>
       {jobs.map((job) => (
         <span key={`${job.id}-${job.name}`} title={job.category}>
           {job.icon && <img src={job.icon} alt="" width="20" height="20" />}
@@ -739,35 +711,4 @@ function formatUpdatedAt(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
-}
-
-function formatPublishedAt(value: string) {
-  const date = parseRecruitDate(value);
-  if (!date) return "未知";
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  }).format(date);
-}
-
-function formatRemainingTime(value: string) {
-  const date = parseRecruitDate(value);
-  if (!date) return "未知";
-  const remainingMs = date.getTime() - Date.now();
-  if (remainingMs <= 0) return "已到期";
-  const hours = Math.ceil(remainingMs / 3_600_000);
-  const days = Math.floor(hours / 24);
-  const restHours = hours % 24;
-  return days > 0 ? `${days} 天 ${restHours} 小时` : `${hours} 小时`;
-}
-
-function parseRecruitDate(value: string) {
-  if (!value) return null;
-  if (/^\d{10}$/.test(value)) {
-    const date = new Date(Number(value) * 1000);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-  const date = new Date(value.replace(" ", "T"));
-  return Number.isNaN(date.getTime()) ? null : date;
 }

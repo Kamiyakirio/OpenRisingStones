@@ -129,8 +129,8 @@ fn validate_page_request(request: &RecruitPageRequest) -> Result<(), String> {
   if request.page == 0 || request.page > 10_000 {
     return Err("The recruitment page number is outside the allowed range.".to_owned());
   }
-  if request.limit == 0 || request.limit > 30 {
-    return Err("The recruitment page size must be between 1 and 30.".to_owned());
+  if request.limit == 0 || request.limit > 50 {
+    return Err("The recruitment page size must be between 1 and 50.".to_owned());
   }
   if request
     .target_area_id
@@ -162,7 +162,9 @@ mod tests {
 
   #[test]
   fn accepts_the_public_recruitment_query_shape() {
-    assert!(validate_page_request(&valid_page_request()).is_ok());
+    let mut request = valid_page_request();
+    request.limit = 50;
+    assert!(validate_page_request(&request).is_ok());
   }
 
   #[test]

@@ -260,7 +260,6 @@
 
 .recruit-filter-submit:active,
 .recruit-filter-clear:active,
-.recruit-card-footer button:active,
 .recruit-state button:active,
 .recruit-feed-status button:active,
 .recruit-detail-back:active {
@@ -330,10 +329,20 @@ button.recruit-config-note.error {
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface);
+  cursor: pointer;
   transition:
     transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
     border-color 180ms ease,
     box-shadow 220ms ease;
+}
+
+.recruit-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.recruit-card:active {
+  transform: translateY(1px) scale(0.992);
 }
 
 .recruit-card:hover {
@@ -534,8 +543,14 @@ button.recruit-config-note.error {
 .recruit-job-list,
 .recruit-card-labels {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.recruit-job-list > h2 {
+  font-size: 15px;
+  margin: 0;
 }
 
 .recruit-job-list > span,
@@ -596,7 +611,7 @@ button.recruit-config-note.error {
   height: 14px;
 }
 
-.recruit-card-footer button {
+.recruit-card-detail-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -608,13 +623,13 @@ button.recruit-config-note.error {
   font-weight: 780;
 }
 
-.recruit-card-footer button svg {
+.recruit-card-detail-action svg {
   width: 14px;
   height: 14px;
   transition: transform 160ms ease;
 }
 
-.recruit-card-footer button:hover svg {
+.recruit-card:hover .recruit-card-detail-action svg {
   transform: translateX(2px);
 }
 
