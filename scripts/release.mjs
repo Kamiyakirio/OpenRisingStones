@@ -26,6 +26,19 @@ const releaseDirectory = join(projectRoot, ".release");
 const sidecarName = "rising-stones-api-client";
 const isWindows = process.platform === "win32";
 const executableExtension = isWindows ? ".exe" : "";
+const windowsInternetSettingsKey =
+  "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings";
+const proxyEnvironmentKeys = [
+  "HTTP_PROXY",
+  "http_proxy",
+  "HTTPS_PROXY",
+  "https_proxy",
+  "ALL_PROXY",
+  "all_proxy",
+  "CARGO_HTTP_PROXY",
+  "npm_config_proxy",
+  "npm_config_https_proxy",
+];
 
 function fail(message) {
   throw new Error(message);
@@ -57,6 +70,168 @@ function capture(command, args) {
     return null;
   }
   return result.stdout.trim();
+}
+
+function isEnabled(value) {
+  return (
+    value === "1" ||
+    /^0x1$/i.test(value ?? "") ||
+    value?.toLowerCase() === "true"
+  );
+}
+
+/** Normalize an OS proxy endpoint to the URL format accepted by build tools. */
+function normalizeProxyUrl(value, defaultScheme = "http") {
+  const endpoint = value?.trim();
+  if (!endpoint) {
+    return null;
+  }
+
+  const candidate = /^[a-z][a-z\d+.-]*:\/\//i.test(endpoint)
+    ? endpoint
+    : `${defaultScheme}://${endpoint}`;
+  try {
+    const url = new URL(candidate);
+    if (!url.hostname) {
+      return null;
+    }
+    return url.href.replace(/\/$/, "");
+  } catch {
+    return null;
+  }
+}
+
+function parseScutilValue(output, key) {
+  return output.match(new RegExp(`^\\s*${key}\\s*:\\s*(.+?)\\s*$`, "m"))?.[1];
+}
+
+function formatProxyHost(host) {
+  const trimmedHost = host.trim();
+  return trimmedHost.includes(":") && !trimmedHost.startsWith("[")
+    ? `[${trimmedHost}]`
+    : trimmedHost;
+}
+
+function parseMacSystemProxy(output) {
+  const proxyCandidates = [
+    ["HTTPSEnable", "HTTPSProxy", "HTTPSPort"],
+    ["HTTPEnable", "HTTPProxy", "HTTPPort"],
+  ];
+  for (const [enabledKey, hostKey, portKey] of proxyCandidates) {
+    if (!isEnabled(parseScutilValue(output, enabledKey))) {
+      continue;
+    }
+    const host = parseScutilValue(output, hostKey);
+    if (!host) {
+      continue;
+    }
+    const port = parseScutilValue(output, portKey);
+    const endpoint = `${formatProxyHost(host)}${port ? `:${port}` : ""}`;
+    const proxyUrl = normalizeProxyUrl(endpoint);
+    if (proxyUrl) {
+      return proxyUrl;
+    }
+  }
+  return null;
+}
+
+function readWindowsRegistryValue(output, key) {
+  return output
+    .match(new RegExp(`^\\s*${key}\\s+REG_\\w+\\s+(.+?)\\s*$`, "im"))?.[1]
+    ?.trim();
+}
+
+function parseWindowsProxyServer(value) {
+  const configuredProxies = new Map();
+  let defaultProxy = null;
+  for (const entry of value.split(";")) {
+    const trimmedEntry = entry.trim();
+    if (!trimmedEntry) {
+      continue;
+    }
+    const separatorIndex = trimmedEntry.indexOf("=");
+    if (separatorIndex === -1) {
+      defaultProxy ??= trimmedEntry;
+      continue;
+    }
+    const scheme = trimmedEntry.slice(0, separatorIndex).trim().toLowerCase();
+    const endpoint = trimmedEntry.slice(separatorIndex + 1).trim();
+    if (scheme && endpoint) {
+      configuredProxies.set(scheme, endpoint);
+    }
+  }
+
+  const endpoint =
+    configuredProxies.get("https") ??
+    configuredProxies.get("http") ??
+    defaultProxy;
+  return normalizeProxyUrl(endpoint);
+}
+
+function detectWindowsSystemProxy() {
+  const settings = capture("reg.exe", ["query", windowsInternetSettingsKey]);
+  if (settings) {
+    const proxyEnabled = readWindowsRegistryValue(settings, "ProxyEnable");
+    const proxyServer = readWindowsRegistryValue(settings, "ProxyServer");
+    if (isEnabled(proxyEnabled) && proxyServer) {
+      const proxyUrl = parseWindowsProxyServer(proxyServer);
+      if (proxyUrl) {
+        return proxyUrl;
+      }
+    }
+  }
+
+  // WinINet can resolve PAC/WPAD settings that are not represented by ProxyServer.
+  const resolvedProxy = capture("powershell.exe", [
+    "-NoLogo",
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+    "$uri = [Uri]'https://github.com'; $proxy = [System.Net.WebRequest]::GetSystemWebProxy(); if (-not $proxy.IsBypassed($uri)) { $proxy.GetProxy($uri).AbsoluteUri }",
+  ]);
+  return normalizeProxyUrl(resolvedProxy);
+}
+
+function detectSystemProxy() {
+  if (process.platform === "darwin") {
+    return parseMacSystemProxy(capture("scutil", ["--proxy"]) ?? "");
+  }
+  if (isWindows) {
+    return detectWindowsSystemProxy();
+  }
+  return null;
+}
+
+function redactProxyUrl(proxyUrl) {
+  try {
+    const url = new URL(proxyUrl);
+    if (url.username || url.password) {
+      url.username = "***";
+      url.password = "***";
+    }
+    return url.href.replace(/\/$/, "");
+  } catch {
+    return "configured proxy";
+  }
+}
+
+/** Make system proxy settings available to every dependency downloader. */
+function configureDependencyProxy() {
+  if (proxyEnvironmentKeys.some((key) => process.env[key]?.trim())) {
+    return;
+  }
+
+  const proxyUrl = detectSystemProxy();
+  if (!proxyUrl) {
+    return;
+  }
+
+  for (const key of proxyEnvironmentKeys) {
+    process.env[key] = proxyUrl;
+  }
+  console.log(
+    `Using system proxy for dependency downloads: ${redactProxyUrl(proxyUrl)}`,
+  );
 }
 
 /** Resolve npm without spawning a Windows command shim, which Node rejects with EINVAL. */
@@ -254,6 +429,7 @@ function ensureFrontendDependencies(npm) {
 
 function main() {
   console.log("Building an OpenRisingStones desktop release...");
+  configureDependencyProxy();
   const targetTriple = detectTargetTriple();
   const python = findPython();
   const npm = findNpm();
