@@ -294,6 +294,23 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(arguments["headers"]["Sec-Fetch-Dest"], "image")
         self.assertTrue(result["dataUrl"].startswith("data:image/jpeg;base64,"))
 
+    def test_avatar_request_accepts_the_default_image_path(self) -> None:
+        avatar_url = (
+            "https://ff14risingstones.gcloud.com.cn/default/2026/user/avatar.jpeg"
+        )
+        client, session = client_with(
+            FakeResponse(
+                content=b"jpeg-bytes",
+                url=avatar_url,
+                headers={"content-type": "image/jpeg"},
+            )
+        )
+
+        result = fetch_avatar(client, {"url": avatar_url})
+
+        self.assertEqual(session.arguments[1], avatar_url)
+        self.assertTrue(result["dataUrl"].startswith("data:image/jpeg;base64,"))
+
     def test_avatar_request_rejects_non_allowlisted_urls(self) -> None:
         client, _ = client_with(FakeResponse())
 

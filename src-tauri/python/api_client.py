@@ -90,6 +90,7 @@ MAX_COOKIE_BYTES = 16 * 1024
 MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 MAX_USER_AGENT_BYTES = 512
 MAX_AVATAR_BYTES = 2 * 1024 * 1024
+AVATAR_PATH_PREFIXES = ("/avatar/", "/default/")
 NETWORK_CONSOLE_ENV = "OPEN_RISING_STONES_NETWORK_CONSOLE"
 NETWORK_CONSOLE_PREFIX = "ORS_NETWORK_CONSOLE "
 
@@ -862,7 +863,7 @@ def fetch_avatar(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
         or parsed.port not in (None, 443)
         or parsed.username is not None
         or parsed.password is not None
-        or not parsed.path.startswith("/avatar/")
+        or not parsed.path.startswith(AVATAR_PATH_PREFIXES)
         or parsed.query
         or parsed.fragment
     ):

@@ -12,6 +12,7 @@ use url::Url;
 use crate::python_sidecar;
 
 const AVATAR_HOST: &str = "ff14risingstones.gcloud.com.cn";
+const AVATAR_PATH_PREFIXES: [&str; 2] = ["/avatar/", "/default/"];
 const MAX_AVATAR_URL_BYTES: usize = 2048;
 const MAX_AVATAR_DATA_URL_BYTES: usize = 3 * 1024 * 1024;
 const MAX_AVATAR_SIDECAR_BYTES: usize = MAX_AVATAR_DATA_URL_BYTES + 1024;
@@ -94,7 +95,9 @@ fn validate_avatar_url(raw_url: &str) -> Result<(), String> {
     || url.port_or_known_default() != Some(443)
     || !url.username().is_empty()
     || url.password().is_some()
-    || !url.path().starts_with("/avatar/")
+    || !AVATAR_PATH_PREFIXES
+      .iter()
+      .any(|prefix| url.path().starts_with(prefix))
     || url.query().is_some()
     || url.fragment().is_some()
   {
@@ -151,9 +154,13 @@ mod tests {
   use super::*;
 
   #[test]
-  fn accepts_only_the_rising_stones_avatar_path() {
+  fn accepts_only_the_rising_stones_avatar_paths() {
     assert!(validate_avatar_url(
       "https://ff14risingstones.gcloud.com.cn/avatar/2026/user/avatar.jpeg"
+    )
+    .is_ok());
+    assert!(validate_avatar_url(
+      "https://ff14risingstones.gcloud.com.cn/default/2026/user/avatar.jpeg"
     )
     .is_ok());
     assert!(

@@ -4,6 +4,7 @@ import {
   fetchRisingStonesAvatar,
   isProxiedRisingStonesAvatar,
 } from "../services/avatarApi";
+import { selectAvatarSource } from "../utils/risingStonesAvatar";
 
 type ResolvedAvatar = {
   url: string | null;
@@ -19,7 +20,7 @@ export function useRisingStonesAvatarViewModel(url: string | null) {
   });
   const proxied = isProxiedRisingStonesAvatar(url);
   const current = resolved.url === url ? resolved : null;
-  const source = proxied ? (current?.source ?? null) : url;
+  const source = selectAvatarSource(url, proxied, current);
 
   useEffect(() => {
     if (!url || !proxied) return;

@@ -1,5 +1,6 @@
 /** Shared avatar transport with request deduplication and bounded concurrency. */
 import { invoke } from "@tauri-apps/api/core";
+import { isSupportedRisingStonesAvatar } from "../utils/risingStonesAvatar";
 import { isTauriRuntime } from "./runtime";
 
 type AvatarResponse = { dataUrl: string };
@@ -9,8 +10,6 @@ type AvatarTask = {
   reject: (reason: unknown) => void;
 };
 
-const AVATAR_HOST = "ff14risingstones.gcloud.com.cn";
-const AVATAR_PATH_PREFIX = "/avatar/";
 const MAX_CONCURRENT_AVATAR_REQUESTS = 4;
 const MAX_FRONTEND_AVATAR_CACHE_ENTRIES = 512;
 
@@ -19,17 +18,7 @@ const queue: AvatarTask[] = [];
 let activeRequests = 0;
 
 export function isProxiedRisingStonesAvatar(url: string | null) {
-  if (!url) return false;
-  try {
-    const parsed = new URL(url);
-    return (
-      parsed.protocol === "https:" &&
-      parsed.hostname === AVATAR_HOST &&
-      parsed.pathname.startsWith(AVATAR_PATH_PREFIX)
-    );
-  } catch {
-    return false;
-  }
+  return isSupportedRisingStonesAvatar(url);
 }
 
 export function fetchRisingStonesAvatar(url: string) {
