@@ -6,12 +6,13 @@
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "node scripts/reset-tauri-dev.js && npm run dev",
     "beforeBuildCommand": "npm run build"
   },
   "app": {
     "windows": [
       {
+        "create": false,
         "title": "OpenRisingStones",
         "width": 1280,
         "height": 720,

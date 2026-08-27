@@ -8,14 +8,45 @@ mod sdo_login;
 mod secure_storage;
 mod wiki;
 
+use std::fs;
+use std::path::PathBuf;
 use tauri::Manager;
 #[cfg(debug_assertions)]
 use tauri_plugin_log::{Target, TargetKind};
 
+/// Returns whether the main window should take focus when it is created.
+///
+/// A new `tauri dev` session removes the marker in `beforeDevCommand`. Rust
+/// watcher restarts keep it, so only the first process in that session focuses.
+fn should_focus_main_window() -> bool {
+  if !cfg!(debug_assertions) {
+    return true;
+  }
+
+  let marker_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".tauri-dev-started");
+  if marker_path.exists() {
+    false
+  } else {
+    let _ = fs::write(marker_path, "");
+    true
+  }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
-    .setup(|app| {
+  let should_focus = should_focus_main_window();
+  let mut app = tauri::Builder::default()
+    .setup(move |app| {
+      let main_window_config = app.config().app.windows.first().ok_or_else(|| {
+        std::io::Error::new(
+          std::io::ErrorKind::NotFound,
+          "main window configuration is missing",
+        )
+      })?;
+      tauri::WebviewWindowBuilder::from_config(app.handle(), main_window_config)?
+        .focused(should_focus)
+        .build()?;
+
       #[cfg(debug_assertions)]
       let session_path = std::env::current_dir()?.join("sdo-session.debug.json");
       #[cfg(not(debug_assertions))]
@@ -60,6 +91,23 @@ pub fn run() {
       wiki::show_wiki_verification,
       wiki::cancel_wiki_verification,
     ])
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    .build(tauri::generate_context!())
+    .expect("error while building tauri application");
+
+  // macOS activates each newly launched process independently of window focus.
+  // Temporarily prohibit activation so a watcher restart stays in the background.
+  #[cfg(target_os = "macos")]
+  if !should_focus {
+    app.set_activation_policy(tauri::ActivationPolicy::Prohibited);
+  }
+
+  app.run(move |app_handle, event| {
+    // Restore normal Dock and user-initiated focus behavior after launch finishes.
+    #[cfg(target_os = "macos")]
+    if !should_focus && matches!(event, tauri::RunEvent::Ready) {
+      app_handle
+        .set_activation_policy(tauri::ActivationPolicy::Regular)
+        .expect("failed to restore the macOS activation policy");
+    }
+  });
 }

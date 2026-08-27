@@ -31,3 +31,5 @@ src-tauri/binaries/
 
 prompt.md
 sdo-session.debug.json
+*.har
+src-tauri/.tauri-dev-started
