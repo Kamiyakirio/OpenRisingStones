@@ -24,6 +24,9 @@ const tauriDirectory = join(projectRoot, "src-tauri");
 const pythonDirectory = join(tauriDirectory, "python");
 const releaseDirectory = join(projectRoot, ".release");
 const sidecarName = "rising-stones-api-client";
+const appBinaryName = "open-rising-stones";
+const productName = "OpenRisingStones";
+const embeddedSidecarEnvironmentKey = "OPEN_RISING_STONES_BUNDLED_CLIENT_PATH";
 const isWindows = process.platform === "win32";
 const executableExtension = isWindows ? ".exe" : "";
 const windowsInternetSettingsKey =
@@ -427,6 +430,57 @@ function ensureFrontendDependencies(npm) {
   }
 }
 
+/** Build the desktop app and return the platform-specific release output. */
+function buildDesktopApp(npm, sidecarPath, targetTriple) {
+  const releaseConfig = isWindows
+    ? JSON.stringify({ bundle: { active: false, externalBin: [] } })
+    : "src-tauri/tauri.release.conf.json";
+  const buildArguments = [
+    ...npm.launcherArgs,
+    "run",
+    "tauri",
+    "--",
+    "build",
+    "--config",
+    releaseConfig,
+    "--features",
+    "bundled-python-sidecar",
+  ];
+
+  if (isWindows) {
+    // Rust embeds these bytes in the app, so the published executable has no
+    // companion sidecar and Tauri does not need to generate an installer.
+    process.env[embeddedSidecarEnvironmentKey] = sidecarPath;
+    buildArguments.push("--no-bundle");
+  }
+
+  run(npm.command, buildArguments);
+
+  if (!isWindows) {
+    return {
+      description: "Installers",
+      path: join(tauriDirectory, "target", "release", "bundle"),
+    };
+  }
+
+  const builtApp = join(
+    tauriDirectory,
+    "target",
+    "release",
+    `${appBinaryName}.exe`,
+  );
+  if (!existsSync(builtApp)) {
+    fail(`Tauri did not create ${builtApp}.`);
+  }
+
+  const artifactDirectory = join(releaseDirectory, "artifacts", targetTriple);
+  rmSync(artifactDirectory, { recursive: true, force: true });
+  mkdirSync(artifactDirectory, { recursive: true });
+  const portableApp = join(artifactDirectory, `${productName}.exe`);
+  copyFileSync(builtApp, portableApp);
+  return { description: "Portable executable", path: portableApp };
+}
+
 function main() {
   console.log("Building an OpenRisingStones desktop release...");
   configureDependencyProxy();
@@ -441,25 +495,9 @@ function main() {
   const sidecarPath = buildSidecar(venvPython, targetTriple);
   console.log(`Packaged sidecar: ${sidecarPath}`);
 
-  run(npm.command, [
-    ...npm.launcherArgs,
-    "run",
-    "tauri",
-    "--",
-    "build",
-    "--config",
-    "src-tauri/tauri.release.conf.json",
-    "--features",
-    "bundled-python-sidecar",
-  ]);
-
+  const releaseOutput = buildDesktopApp(npm, sidecarPath, targetTriple);
   console.log(
-    `\nRelease complete. Installers are under ${join(
-      tauriDirectory,
-      "target",
-      "release",
-      "bundle",
-    )}.`,
+    `\nRelease complete. ${releaseOutput.description}: ${releaseOutput.path}`,
   );
 }
 

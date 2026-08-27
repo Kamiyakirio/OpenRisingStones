@@ -13,12 +13,27 @@ use std::{
   time::{Duration, Instant},
 };
 
+#[cfg(all(feature = "bundled-python-sidecar", windows))]
+use std::{
+  collections::hash_map::DefaultHasher,
+  fs,
+  hash::{Hash, Hasher},
+  path::{Path, PathBuf},
+  sync::{Mutex, OnceLock},
+};
+
 use serde::{de::DeserializeOwned, Serialize};
 
 #[cfg(not(feature = "bundled-python-sidecar"))]
 const CLIENT_SCRIPT: &str = include_str!("../python/api_client.py");
 #[cfg(feature = "bundled-python-sidecar")]
 const BUNDLED_CLIENT_NAME: &str = "rising-stones-api-client";
+#[cfg(all(feature = "bundled-python-sidecar", windows))]
+const BUNDLED_CLIENT_BYTES: &[u8] = include_bytes!(env!("OPEN_RISING_STONES_BUNDLED_CLIENT_PATH"));
+#[cfg(all(feature = "bundled-python-sidecar", windows))]
+static BUNDLED_CLIENT_PATH: OnceLock<PathBuf> = OnceLock::new();
+#[cfg(all(feature = "bundled-python-sidecar", windows))]
+static BUNDLED_CLIENT_MATERIALIZE_LOCK: Mutex<()> = Mutex::new(());
 const MAX_ERROR_BYTES: usize = 8 * 1024;
 const MAX_DEBUG_STDERR_BYTES: usize = 16 * 1024 * 1024;
 const MAX_ERROR_CHARACTERS: usize = 240;
@@ -125,7 +140,7 @@ fn execute(input: &[u8], max_response_bytes: usize) -> Result<Vec<u8>, ProcessEr
   Err(ProcessError::ClientNotFound)
 }
 
-#[cfg(feature = "bundled-python-sidecar")]
+#[cfg(all(feature = "bundled-python-sidecar", not(windows)))]
 fn execute(input: &[u8], max_response_bytes: usize) -> Result<Vec<u8>, ProcessError> {
   let current_executable = std::env::current_exe().map_err(|_| ProcessError::ClientNotFound)?;
   let executable_directory = current_executable
@@ -136,6 +151,78 @@ fn execute(input: &[u8], max_response_bytes: usize) -> Result<Vec<u8>, ProcessEr
     client_path.set_extension("exe");
   }
   execute_with_command(Command::new(client_path), input, max_response_bytes)
+}
+
+#[cfg(all(feature = "bundled-python-sidecar", windows))]
+fn execute(input: &[u8], max_response_bytes: usize) -> Result<Vec<u8>, ProcessError> {
+  let client_path = embedded_client_path()?;
+  execute_with_command(Command::new(client_path), input, max_response_bytes)
+}
+
+/** Materialize the embedded Windows sidecar once per app build and reuse it. */
+#[cfg(all(feature = "bundled-python-sidecar", windows))]
+fn embedded_client_path() -> Result<&'static PathBuf, ProcessError> {
+  if let Some(path) = BUNDLED_CLIENT_PATH.get() {
+    return Ok(path);
+  }
+
+  let _guard = BUNDLED_CLIENT_MATERIALIZE_LOCK
+    .lock()
+    .map_err(|_| ProcessError::ClientNotFound)?;
+  if let Some(path) = BUNDLED_CLIENT_PATH.get() {
+    return Ok(path);
+  }
+
+  let path = materialize_embedded_client()?;
+  let _ = BUNDLED_CLIENT_PATH.set(path);
+  BUNDLED_CLIENT_PATH
+    .get()
+    .ok_or(ProcessError::ClientNotFound)
+}
+
+#[cfg(all(feature = "bundled-python-sidecar", windows))]
+fn materialize_embedded_client() -> Result<PathBuf, ProcessError> {
+  let content_hash = client_content_hash(BUNDLED_CLIENT_BYTES);
+  let sidecar_directory = std::env::temp_dir()
+    .join("OpenRisingStones")
+    .join("sidecars");
+  fs::create_dir_all(&sidecar_directory).map_err(|_| ProcessError::ClientNotFound)?;
+
+  let client_path =
+    sidecar_directory.join(format!("{BUNDLED_CLIENT_NAME}-{content_hash:016x}.exe"));
+  if embedded_client_matches(&client_path) {
+    return Ok(client_path);
+  }
+
+  // Stage the file before renaming so another app process never observes a
+  // partially written executable.
+  let staged_path =
+    sidecar_directory.join(format!(".{BUNDLED_CLIENT_NAME}-{}.tmp", std::process::id()));
+  fs::write(&staged_path, BUNDLED_CLIENT_BYTES).map_err(|_| ProcessError::ClientNotFound)?;
+  if client_path.exists() {
+    let _ = fs::remove_file(&client_path);
+  }
+  if fs::rename(&staged_path, &client_path).is_err() {
+    let _ = fs::remove_file(&staged_path);
+    if !embedded_client_matches(&client_path) {
+      return Err(ProcessError::ClientNotFound);
+    }
+  }
+  Ok(client_path)
+}
+
+#[cfg(all(feature = "bundled-python-sidecar", windows))]
+fn embedded_client_matches(path: &Path) -> bool {
+  fs::read(path)
+    .map(|bytes| bytes == BUNDLED_CLIENT_BYTES)
+    .unwrap_or(false)
+}
+
+#[cfg(all(feature = "bundled-python-sidecar", windows))]
+fn client_content_hash(bytes: &[u8]) -> u64 {
+  let mut hasher = DefaultHasher::new();
+  bytes.hash(&mut hasher);
+  hasher.finish()
 }
 
 #[cfg(not(feature = "bundled-python-sidecar"))]
@@ -411,6 +498,14 @@ mod tests {
     let error_output = forward_network_console(stderr);
 
     assert_eq!(error_output, b"Safe error");
+  }
+
+  #[cfg(all(feature = "bundled-python-sidecar", windows))]
+  #[test]
+  fn materializes_the_embedded_windows_client_without_changes() {
+    let client_path = embedded_client_path().unwrap();
+
+    assert_eq!(fs::read(client_path).unwrap(), BUNDLED_CLIENT_BYTES);
   }
 
   #[test]
