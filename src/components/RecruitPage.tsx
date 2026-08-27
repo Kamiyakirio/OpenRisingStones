@@ -23,6 +23,7 @@ import type {
   RecruitSummary,
 } from "../models/recruit";
 import type { RecruitViewModel } from "../viewmodels/useRecruitViewModel";
+import { useRisingStonesAvatarViewModel } from "../viewmodels/useRisingStonesAvatarViewModel";
 import { buildRecruitDutyChoices } from "../utils/recruitDutyGroups";
 import "./RecruitPage.css";
 
@@ -536,21 +537,20 @@ function Avatar({
   item: RecruitSummary;
   large?: boolean;
 }) {
+  const avatar = useRisingStonesAvatarViewModel(item.avatar);
   return (
     <span
       className={`recruit-avatar ${large ? "large" : ""}`}
       aria-hidden="true"
     >
       <span>{item.author.slice(0, 1)}</span>
-      {item.avatar && (
+      {avatar.source && (
         <img
-          src={item.avatar}
+          src={avatar.source}
           alt=""
           width={large ? 72 : 42}
           height={large ? 72 : 42}
-          onError={(event) => {
-            event.currentTarget.hidden = true;
-          }}
+          onError={avatar.markFailed}
         />
       )}
     </span>

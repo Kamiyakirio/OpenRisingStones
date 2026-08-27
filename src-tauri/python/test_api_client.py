@@ -15,6 +15,7 @@ from api_client import (
     WIKI_IMPERSONATE,
     fetch_glamour_detail,
     fetch_glamour_page,
+    fetch_avatar,
     fetch_recruit_page,
     fetch_wiki_page,
     finalize_authenticated_login,
@@ -268,6 +269,36 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(arguments["params"]["target_area_id"], 1)
         self.assertTrue(arguments["params"]["tempsuid"])
         self.assertEqual(result["url"], RECRUIT_LIST_URL)
+
+    def test_avatar_request_uses_official_headers_and_returns_a_data_url(self) -> None:
+        avatar_url = (
+            "https://ff14risingstones.gcloud.com.cn/avatar/2026/user/avatar.jpeg"
+        )
+        client, session = client_with(
+            FakeResponse(
+                content=b"jpeg-bytes",
+                url=avatar_url,
+                headers={"content-type": "image/jpeg"},
+            )
+        )
+
+        result = fetch_avatar(client, {"url": avatar_url})
+
+        method, url, arguments = session.arguments
+        self.assertEqual(method, "GET")
+        self.assertEqual(url, avatar_url)
+        self.assertEqual(
+            arguments["headers"]["Referer"],
+            "https://ff14risingstones.web.sdo.com/",
+        )
+        self.assertEqual(arguments["headers"]["Sec-Fetch-Dest"], "image")
+        self.assertTrue(result["dataUrl"].startswith("data:image/jpeg;base64,"))
+
+    def test_avatar_request_rejects_non_allowlisted_urls(self) -> None:
+        client, _ = client_with(FakeResponse())
+
+        with self.assertRaisesRegex(ApiClientError, "avatar URL is not supported"):
+            fetch_avatar(client, {"url": "https://example.com/avatar/user.jpeg"})
 
     def test_wiki_request_uses_encoded_item_name_and_detects_success(self) -> None:
         item_name = "\u6d4b\u8bd5\u624b\u5957"

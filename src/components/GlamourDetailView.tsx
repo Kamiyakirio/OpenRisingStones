@@ -16,6 +16,7 @@ import type {
 } from "../models/glamour";
 import { hideBrokenImage } from "../utils/glamourPresentation";
 import { useGlamourDetailViewModel } from "../viewmodels/useGlamourDetailViewModel";
+import { useRisingStonesAvatarViewModel } from "../viewmodels/useRisingStonesAvatarViewModel";
 import type { WikiItemViewModel } from "../viewmodels/useWikiItemViewModel";
 import { EquipmentSourcePopover } from "./EquipmentSourcePopover";
 import "./GlamourDetailView.css";
@@ -98,6 +99,7 @@ function DetailContent({
     () => new Map(detail.equipments.map((item) => [item.slot, item])),
     [detail.equipments],
   );
+  const avatar = useRisingStonesAvatarViewModel(detail.avatar);
 
   return (
     <article className="detail-layout">
@@ -141,11 +143,11 @@ function DetailContent({
       <section className="detail-information">
         <header className="detail-heading">
           <div className="detail-author">
-            {detail.avatar ? (
+            {avatar.source ? (
               <img
-                src={detail.avatar}
+                src={avatar.source}
                 alt={`${detail.author}的头像`}
-                referrerPolicy="no-referrer"
+                onError={avatar.markFailed}
               />
             ) : (
               <span aria-hidden="true">{detail.author.slice(0, 1)}</span>

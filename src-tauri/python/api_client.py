@@ -12,7 +12,7 @@ import sys
 import time
 import uuid
 from typing import Any, Collection
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlparse
 
 try:
     from curl_cffi import requests
@@ -89,6 +89,7 @@ UNBOUND_CHARACTER_CODES = {10103, 10104}
 MAX_COOKIE_BYTES = 16 * 1024
 MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 MAX_USER_AGENT_BYTES = 512
+MAX_AVATAR_BYTES = 2 * 1024 * 1024
 NETWORK_CONSOLE_ENV = "OPEN_RISING_STONES_NETWORK_CONSOLE"
 NETWORK_CONSOLE_PREFIX = "ORS_NETWORK_CONSOLE "
 
@@ -247,6 +248,7 @@ class ApiClient:
         accepted_statuses: Collection[int] = range(200, 300),
         max_bytes: int = MAX_RESPONSE_BYTES,
         error_message: str = "The remote service request failed.",
+        log_response_body: bool = True,
         **kwargs: Any,
     ) -> Any:
         merged_headers = {**self.base_headers, **(headers or {})}
@@ -283,7 +285,11 @@ class ApiClient:
             url=str(getattr(response, "url", request_url)),
             status=response.status_code,
             durationMs=round((time.perf_counter() - started_at) * 1000, 1),
-            body=console_body(response.content),
+            body=(
+                console_body(response.content)
+                if log_response_body
+                else {"binaryBytes": len(response.content)}
+            ),
         )
         if response.status_code not in accepted_statuses:
             raise ApiClientError(f"{error_message} (HTTP {response.status_code})")
@@ -846,6 +852,56 @@ def fetch_recruit_detail(client: ApiClient, request: dict[str, Any]) -> dict[str
     )
 
 
+def fetch_avatar(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
+    """Download one allowlisted Rising Stones avatar with official image headers."""
+    url = str(request.get("url") or "").strip()
+    parsed = urlparse(url)
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != "ff14risingstones.gcloud.com.cn"
+        or parsed.port not in (None, 443)
+        or parsed.username is not None
+        or parsed.password is not None
+        or not parsed.path.startswith("/avatar/")
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ApiClientError("The avatar URL is not supported.")
+    response = client.request(
+        "GET",
+        url,
+        headers={
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "Referer": SITE_REFERER,
+            "Sec-Fetch-Dest": "image",
+            "Sec-Fetch-Mode": "no-cors",
+            "Sec-Fetch-Site": "cross-site",
+            "Sec-Fetch-Storage-Access": "none",
+        },
+        discard_cookies=True,
+        allow_redirects=False,
+        max_bytes=MAX_AVATAR_BYTES,
+        error_message="The Rising Stones avatar request failed.",
+        log_response_body=False,
+    )
+    mime_type = str(response.headers.get("content-type") or "").split(";", 1)[0]
+    if mime_type not in {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/avif",
+        "image/gif",
+    }:
+        raise ApiClientError("The avatar response type is not supported.")
+    return {
+        "dataUrl": f"data:{mime_type};base64,"
+        + base64.b64encode(response.content).decode("ascii")
+    }
+
+
 def fetch_wiki_page(
     request: dict[str, Any], session: Any | None = None
 ) -> dict[str, Any]:
@@ -935,6 +991,8 @@ def main() -> None:
         result = fetch_recruit_page(client, request)
     elif operation == "fetchRecruitDetail":
         result = fetch_recruit_detail(client, request)
+    elif operation == "fetchAvatar":
+        result = fetch_avatar(client, request)
     else:
         raise ApiClientError("Unsupported API operation.")
     # ASCII escaping keeps the pipe valid JSON regardless of the Windows console code page.

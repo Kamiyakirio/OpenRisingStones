@@ -1,5 +1,6 @@
 //! OpenRisingStones 桌面端后端入口及对前端开放的受控命令。
 
+mod avatar;
 mod glamour;
 mod glamour_verification;
 mod network;
@@ -53,6 +54,7 @@ pub fn run() {
       #[cfg(not(debug_assertions))]
       let session_path = app.path().app_local_data_dir()?.join("sdo-session.v1.dat");
       app.manage(sdo_login::LoginState::with_storage_path(session_path));
+      app.manage(avatar::AvatarState::default());
       app.manage(glamour_verification::GlamourVerificationState::default());
       app.manage(recruit::RecruitSessionState::default());
       app.manage(wiki::WikiVerificationState::default());
@@ -78,6 +80,7 @@ pub fn run() {
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
+      avatar::fetch_rising_stones_avatar,
       glamour::fetch_glamour_detail,
       glamour::fetch_glamour_page,
       network::send_network_request,
