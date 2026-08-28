@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createEmptyAdvancedRecruitFilters } from "../src/models/advancedRecruit.ts";
-import { filterAdvancedRecruitItems } from "../src/utils/advancedRecruitFilter.ts";
+import { createEmptyAdvancedRecruitFilters } from "../src/features/recruit/model/advancedRecruit.ts";
+import { filterAdvancedRecruitItems } from "../src/features/recruit/utils/advancedRecruitFilter.ts";
 
 const job = (id, name) => ({ id, name, icon: null, category: "Job" });
 const detail = (overrides = {}) => ({

@@ -11,6 +11,18 @@ npm run tauri dev
 
 开发构建会调用系统中的 Python 3，并使用 `src-tauri/python/requirements.txt` 中的依赖。
 
+## 前端目录
+
+前端源码采用按业务功能聚合的 React 目录结构：
+
+- `src/app/`：应用组合根、全局样式和应用级状态。
+- `src/pages/`：页面级编排，只负责组合功能模块。
+- `src/features/`：按业务域组织组件、Hooks、API、模型和工具函数。
+- `src/shared/`：跨业务功能复用的组件、Hooks 和运行时适配器。
+- `src/assets/`：由构建系统处理的静态资源。
+
+源码内部使用 `@/` 指向 `src/`，避免目录调整时维护脆弱的多级相对路径。
+
 ## 构建发布包
 
 ```bash

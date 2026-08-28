@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-import { hideBrokenImage } from "../src/utils/glamourPresentation.ts";
+import { hideBrokenImage } from "../src/features/glamour/utils/glamourPresentation.ts";
 
 test("hides a failed glamour image without replacing its source", () => {
   const source = "https://cdn.example.com/glamour/failed.jpeg";

@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   grantAdvancedRecruitRiskConsent,
   hasAdvancedRecruitRiskConsent,
-} from "../src/services/recruitRiskConsent.ts";
+} from "../src/features/recruit/lib/recruitRiskConsent.ts";
 
 test("persists accepted advanced recruitment risk consent", () => {
   const values = new Map();
