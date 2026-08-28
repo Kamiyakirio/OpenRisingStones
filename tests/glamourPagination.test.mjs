@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   findGlamourTotal,
   inferGlamourHasMore,
-} from "../src/features/glamour/utils/glamourPagination.ts";
+} from "../src/utils/glamourPagination.ts";
 
 test("ignores the popular feed's page-local count", () => {
   const payload = { data: { count: 12, rows: Array.from({ length: 12 }) } };

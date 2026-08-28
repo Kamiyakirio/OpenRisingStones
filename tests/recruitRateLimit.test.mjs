@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   RecruitRateLimitError,
   isRecruitRateLimitError,
-} from "../src/features/recruit/utils/recruitRateLimit.ts";
+} from "../src/utils/recruitRateLimit.ts";
 
 test("recognizes typed, HTTP, localized, and serialized rate limits", () => {
   assert.equal(isRecruitRateLimitError(new RecruitRateLimitError()), true);

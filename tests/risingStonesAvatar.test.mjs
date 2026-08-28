@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   isSupportedRisingStonesAvatar,
   selectAvatarSource,
-} from "../src/features/auth/utils/risingStonesAvatar.ts";
+} from "../src/utils/risingStonesAvatar.ts";
 
 test("accepts only supported Rising Stones avatar paths", () => {
   assert.equal(

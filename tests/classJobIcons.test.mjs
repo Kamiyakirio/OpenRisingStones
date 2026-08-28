@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getClassJobIconUrl } from "../src/features/equipment/data/classJobs.ts";
+import { getClassJobIconUrl } from "../src/data/classJobs.ts";
 
 test("builds XIVAPI asset URLs from class/job row IDs", () => {
   const paladin = new URL(getClassJobIconUrl(19));

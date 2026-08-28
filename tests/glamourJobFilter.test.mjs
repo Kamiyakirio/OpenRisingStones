@@ -11,7 +11,7 @@ import {
   mergeUniqueGlamours,
   revealNextGlamourBatch,
   visibleGlamourFeed,
-} from "../src/features/glamour/utils/glamourJobFilter.ts";
+} from "../src/utils/glamourJobFilter.ts";
 
 const glamour = (id, jobIds) => ({ id, jobIds });
 
