@@ -3,6 +3,7 @@
 mod avatar;
 mod glamour;
 mod glamour_verification;
+mod game_bridge;
 mod network;
 mod python_sidecar;
 mod recruit;
@@ -58,6 +59,7 @@ pub fn run() {
       app.manage(glamour_verification::GlamourVerificationState::default());
       app.manage(recruit::RecruitSessionState::default());
       app.manage(wiki::WikiVerificationState::default());
+      app.manage(game_bridge::GameBridgeState::new(app.handle().clone())?);
       #[cfg(debug_assertions)]
       {
         app.handle().plugin(
@@ -83,6 +85,13 @@ pub fn run() {
       avatar::fetch_rising_stones_avatar,
       glamour::fetch_glamour_detail,
       glamour::fetch_glamour_page,
+      game_bridge::game_bridge_status,
+      game_bridge::game_bridge_connect,
+      game_bridge::game_bridge_capture_snapshot,
+      game_bridge::game_bridge_return_to_title,
+      game_bridge::game_bridge_switch_region,
+      game_bridge::game_bridge_trigger_login,
+      game_bridge::game_bridge_disconnect,
       network::send_network_request,
       recruit::fetch_recruit_config,
       recruit::fetch_recruit_detail,
