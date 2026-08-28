@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "gameVersion": "REPLACE_WITH_EXACT_GAME_VERSION",
+  "module": {
+    "name": "ffxiv_dx11.exe",
+    "textSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "functions": {
+    "frameworkInstance": {
+      "pattern": "48 8B 1D ?? ?? ?? ?? 8B 7C 24",
+      "resolve": "rip_relative",
+      "offset": 3,
+      "nextInstruction": 7
+    },
+    "getUiModule": {
+      "pattern": "E8 ?? ?? ?? ?? 80 7B 1D 01",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "getAgentByInternalId": {
+      "pattern": "E8 ?? ?? ?? ?? 83 7B 48 00",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "utf8SetString": {
+      "pattern": "E8 ?? ?? ?? ?? 4D 39 2E",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "releaseLobbyContext": {
+      "pattern": "E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 48 8B 85 ?? ?? ?? ?? 48 85 C0",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "returnToTitle": {
+      "pattern": "E8 ?? ?? ?? ?? C6 87 ?? ?? ?? ?? ?? 33 C0",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "getAddonByName": {
+      "pattern": "E8 ?? ?? ?? ?? 48 8B F8 41 B0 01",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "getComponentButtonById": {
+      "pattern": "E8 ?? ?? ?? ?? 8D 3C 36",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    }
+  },
+  "layout": {
+    "frameworkTickVtableIndex": 4,
+    "frameworkNetworkModuleProxy": "0x1678",
+    "frameworkDevConfig": "0x0460",
+    "networkModuleProxyNetworkModule": "0x08",
+    "networkLobbyHosts": "0x0068",
+    "networkSaveDataBankHost": "0x0628",
+    "networkActiveLobbyHost": "0x0708",
+    "agentLobbyData": "0x0040",
+    "agentGameSession": "0x0DC8",
+    "agentSelectedCharacterIndex": "0x1241",
+    "agentSelectedContentId": "0x12D0",
+    "lobbyEntriesVector": "0x08D8",
+    "lobbyUiClient": "0x0008",
+    "lobbyContext": "0x0018",
+    "lobbyState": "0x0158",
+    "entryContentId": "0x0008",
+    "entryLoginFlags": "0x0011",
+    "entryCurrentWorldId": "0x0018",
+    "entryHomeWorldId": "0x001A",
+    "entryName": "0x002C",
+    "entryNameCapacity": 32,
+    "configCount": "0x0014",
+    "configEntries": "0x0018",
+    "configEntrySize": "0x0038",
+    "configEntryName": "0x0010",
+    "configEntryValue": "0x0020",
+    "raptureAtkUnitManager": "0x13430",
+    "componentResNode": "0x00A0",
+    "resNodeEvent": "0x0018",
+    "receiveEventVtableIndex": 2
+  }
+}

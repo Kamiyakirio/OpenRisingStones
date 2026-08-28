@@ -13,6 +13,9 @@ dist-ssr
 *.local
 .release/
 src-tauri/binaries/
+game-bridge/artifacts/
+game-bridge/build/
+game-bridge/target/
 
 # Editor directories and files
 .vscode/*
