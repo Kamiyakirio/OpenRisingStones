@@ -1,9 +1,9 @@
 //! OpenRisingStones 桌面端后端入口及对前端开放的受控命令。
 
 mod avatar;
+mod game_bridge;
 mod glamour;
 mod glamour_verification;
-mod game_bridge;
 mod network;
 mod python_sidecar;
 mod recruit;
