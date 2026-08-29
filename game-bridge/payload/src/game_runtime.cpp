@@ -20,16 +20,46 @@ constexpr std::size_t kMaximumCharacters = 64;
 constexpr std::uint32_t kMaximumConfigEntries = 4096;
 constexpr std::uint32_t kSnapshotIntervalTicks = 30;
 constexpr std::uint8_t kButtonClickEvent = 25;
+constexpr std::int32_t kMaximumInventorySlots = 200;
+constexpr std::size_t kMaximumGlamourDresserSlots = 800;
+
+struct InventoryDefinition final {
+  std::uint32_t type;
+  const char* name;
+};
+
+constexpr std::array<InventoryDefinition, 18> kInventoryDefinitions{{
+    {1000, "equipped"},
+    {0, "inventory_1"},
+    {1, "inventory_2"},
+    {2, "inventory_3"},
+    {3, "inventory_4"},
+    {3500, "armory_main_hand"},
+    {3200, "armory_off_hand"},
+    {3201, "armory_head"},
+    {3202, "armory_body"},
+    {3203, "armory_hands"},
+    {3204, "armory_waist"},
+    {3205, "armory_legs"},
+    {3206, "armory_feet"},
+    {3207, "armory_ear"},
+    {3208, "armory_neck"},
+    {3209, "armory_wrist"},
+    {3300, "armory_rings"},
+    {3400, "armory_soul_crystal"},
+}};
 
 using GetUiModule = void*(__fastcall*)(void* framework);
 using GetAgentByInternalId = void*(__fastcall*)(void* agent_module, std::uint32_t id);
+using GetInventoryContainer = void*(__fastcall*)(void* inventory_manager,
+                                                 std::uint32_t inventory_type);
 using Utf8SetString = void(__fastcall*)(void* value, const char* text);
 using ReleaseLobbyContext = void(__fastcall*)(void* network_module);
 using ReturnToTitle = void(__fastcall*)(void* agent_lobby);
 using GetAddonByName = void*(__fastcall*)(void* unit_manager, const char* name, int index);
 using GetComponentButtonById = void*(__fastcall*)(void* addon, std::uint32_t node_id);
 using ReceiveEvent = void(__fastcall*)(void* addon, std::uint8_t event_type, int event_param,
-                                      void* event, void* event_data);
+                                       void* event, void* event_data);
 
 template <typename T>
 T read_value(const std::byte* base, std::size_t offset) {
@@ -52,7 +82,8 @@ T vtable_function(void* instance, std::size_t index) {
 }
 
 bool valid_hostname(const std::string& value) {
-  if (value.empty() || value.size() > 253 || value.front() == '.' || value.back() == '.') return false;
+  if (value.empty() || value.size() > 253 || value.front() == '.' || value.back() == '.')
+    return false;
   std::size_t label_length = 0;
   bool label_starts_with_hyphen = false;
   unsigned char previous = 0;
@@ -94,27 +125,23 @@ std::string bounded_cstring(const char* value, std::size_t maximum) {
 }
 
 CommandOutcome failure(std::string code, std::string message) {
-  return {false, std::move(code), std::move(message), std::nullopt, std::nullopt, {}};
+  return {false, std::move(code), std::move(message), std::nullopt, std::nullopt, std::nullopt, {}};
 }
 
 CommandOutcome acknowledgement() {
-  return {true, {}, {}, std::nullopt, std::nullopt, {}};
+  return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, {}};
 }
 
 }  // namespace
 
 GameRuntime* GameRuntime::active_ = nullptr;
 
-RegionTarget::~RegionTarget() {
-  SecureZeroMemory(game_session.data(), game_session.size());
-}
+RegionTarget::~RegionTarget() { SecureZeroMemory(game_session.data(), game_session.size()); }
 
 GameRuntime::GameRuntime(VersionManifest manifest, ResolvedAddresses addresses)
     : manifest_(std::move(manifest)), addresses_(addresses) {}
 
-GameRuntime::~GameRuntime() {
-  stop();
-}
+GameRuntime::~GameRuntime() { stop(); }
 
 void GameRuntime::start() {
   if (active_) throw std::runtime_error("game runtime is already active");
@@ -124,6 +151,9 @@ void GameRuntime::start() {
   if (!is_readable(addresses_.local_player_slot, sizeof(void*)) ||
       !is_readable(addresses_.game_main_instance, sizeof(void*))) {
     throw std::runtime_error("active character roots are unreadable");
+  }
+  if (!is_readable(addresses_.inventory_manager_instance, sizeof(void*))) {
+    throw std::runtime_error("inventory manager is unreadable");
   }
   auto* framework = *addresses_.framework_instance_slot;
   if (!framework) throw std::runtime_error("framework instance is null");
@@ -246,6 +276,8 @@ CommandOutcome GameRuntime::run_command(void* framework, PendingCommand& command
       return capture_snapshot(framework);
     case CommandKind::CaptureActiveCharacter:
       return capture_active_character();
+    case CommandKind::CaptureInventory:
+      return capture_inventory(framework);
     case CommandKind::ReturnToTitle:
       return return_to_title(framework);
     case CommandKind::SwitchRegion:
@@ -260,7 +292,8 @@ CommandOutcome GameRuntime::run_command(void* framework, PendingCommand& command
 CommandOutcome GameRuntime::capture_snapshot(void* framework) {
   auto* agent = static_cast<std::byte*>(get_agent_lobby(framework));
   if (!agent) return failure("lobby_unavailable", "The lobby agent is not available.");
-  const auto selected_index = read_value<std::uint8_t>(agent, manifest_.layout.agent_selected_character_index);
+  const auto selected_index =
+      read_value<std::uint8_t>(agent, manifest_.layout.agent_selected_character_index);
   if (selected_index == 0xff) return failure("character_unavailable", "No character is selected.");
 
   auto* vector = agent + manifest_.layout.agent_lobby_data + manifest_.layout.lobby_entries_vector;
@@ -282,21 +315,22 @@ CommandOutcome GameRuntime::capture_snapshot(void* framework) {
     return failure("character_changed", "The selected character changed during capture.");
   }
   snapshot.content_id = std::to_string(content_id);
-  snapshot.character_name = fixed_string(
-      reinterpret_cast<const char*>(entry + manifest_.layout.entry_name),
-      manifest_.layout.entry_name_capacity);
+  snapshot.character_name =
+      fixed_string(reinterpret_cast<const char*>(entry + manifest_.layout.entry_name),
+                   manifest_.layout.entry_name_capacity);
   snapshot.current_world_id =
       read_value<std::uint16_t>(entry, manifest_.layout.entry_current_world_id);
   snapshot.home_world_id = read_value<std::uint16_t>(entry, manifest_.layout.entry_home_world_id);
   snapshot.login_flags = read_value<std::uint8_t>(entry, manifest_.layout.entry_login_flags);
   snapshot.sequence = next_snapshot_sequence_++;
-  return {true, {}, {}, snapshot, std::nullopt, {}};
+  return {true, {}, {}, snapshot, std::nullopt, std::nullopt, {}};
 }
 
 CommandOutcome GameRuntime::capture_active_character() {
   auto* local_player = *addresses_.local_player_slot;
   if (!local_player) {
-    return failure("not_in_world", "The local player is not available. Enter the game world first.");
+    return failure("not_in_world",
+                   "The local player is not available. Enter the game world first.");
   }
 
   auto* game_main = addresses_.game_main_instance;
@@ -350,7 +384,129 @@ CommandOutcome GameRuntime::capture_active_character() {
   snapshot.territory_id = territory_id;
   snapshot.territory_load_state = territory_load_state;
   snapshot.connected_to_zone = connected_to_zone;
-  return {true, {}, {}, std::nullopt, snapshot, {}};
+  return {true, {}, {}, std::nullopt, snapshot, std::nullopt, {}};
+}
+
+CommandOutcome GameRuntime::capture_inventory(void* framework) {
+  if (!*addresses_.local_player_slot) {
+    return failure("not_in_world",
+                   "The local player is not available. Enter the game world first.");
+  }
+
+  PlayerInventorySnapshot snapshot;
+  snapshot.containers.reserve(kInventoryDefinitions.size());
+  auto get_container = reinterpret_cast<GetInventoryContainer>(addresses_.get_inventory_container);
+  for (const auto& definition : kInventoryDefinitions) {
+    InventoryContainerSnapshot container_snapshot;
+    container_snapshot.name = definition.name;
+    container_snapshot.inventory_type = definition.type;
+
+    auto* container = static_cast<std::byte*>(
+        get_container(addresses_.inventory_manager_instance, definition.type));
+    if (!container) {
+      snapshot.containers.push_back(std::move(container_snapshot));
+      continue;
+    }
+
+    container_snapshot.loaded =
+        read_value<bool>(container, manifest_.layout.inventory_container_loaded);
+    container_snapshot.size =
+        read_value<std::int32_t>(container, manifest_.layout.inventory_container_size);
+    if (container_snapshot.size < 0 || container_snapshot.size > kMaximumInventorySlots) {
+      return failure("inventory_size_invalid", "An inventory container has an invalid size.");
+    }
+    if (!container_snapshot.loaded || container_snapshot.size == 0) {
+      snapshot.containers.push_back(std::move(container_snapshot));
+      continue;
+    }
+
+    const auto actual_type =
+        read_value<std::uint32_t>(container, manifest_.layout.inventory_container_type);
+    if (actual_type != definition.type) {
+      return failure("inventory_type_mismatch", "An inventory container has an unexpected type.");
+    }
+    auto* items = read_pointer<std::byte>(container, manifest_.layout.inventory_container_items);
+    if (!items) {
+      return failure("inventory_items_unavailable", "An inventory container has no item array.");
+    }
+
+    container_snapshot.items.reserve(static_cast<std::size_t>(container_snapshot.size));
+    for (std::int32_t index = 0; index < container_snapshot.size; ++index) {
+      auto* item = items + static_cast<std::size_t>(index) * manifest_.layout.inventory_item_size;
+      const auto is_symbolic = read_value<bool>(item, manifest_.layout.inventory_item_symbolic);
+      const auto item_id =
+          is_symbolic ? 0U : read_value<std::uint32_t>(item, manifest_.layout.inventory_item_id);
+      if (!is_symbolic && item_id == 0) continue;
+
+      InventoryItemSnapshot item_snapshot;
+      item_snapshot.inventory_type =
+          read_value<std::uint32_t>(item, manifest_.layout.inventory_item_container);
+      item_snapshot.slot = read_value<std::int16_t>(item, manifest_.layout.inventory_item_slot);
+      item_snapshot.item_id = item_id;
+      item_snapshot.quantity =
+          read_value<std::int32_t>(item, manifest_.layout.inventory_item_quantity);
+      item_snapshot.spiritbond_or_collectability =
+          read_value<std::uint16_t>(item, manifest_.layout.inventory_item_spiritbond);
+      item_snapshot.condition =
+          read_value<std::uint16_t>(item, manifest_.layout.inventory_item_condition);
+      item_snapshot.flags = read_value<std::uint8_t>(item, manifest_.layout.inventory_item_flags);
+      item_snapshot.glamour_id =
+          read_value<std::uint32_t>(item, manifest_.layout.inventory_item_glamour_id);
+      item_snapshot.is_symbolic = is_symbolic;
+      if (is_symbolic) {
+        item_snapshot.linked_slot =
+            read_value<std::uint16_t>(item, manifest_.layout.inventory_item_linked_slot);
+        item_snapshot.linked_inventory_type =
+            read_value<std::uint16_t>(item, manifest_.layout.inventory_item_linked_type);
+      }
+      for (std::size_t materia_index = 0; materia_index < item_snapshot.materia.size();
+           ++materia_index) {
+        item_snapshot.materia[materia_index] = read_value<std::uint16_t>(
+            item, manifest_.layout.inventory_item_materia + materia_index * sizeof(std::uint16_t));
+        item_snapshot.materia_grades[materia_index] = read_value<std::uint8_t>(
+            item, manifest_.layout.inventory_item_materia_grades + materia_index);
+      }
+      for (std::size_t stain_index = 0; stain_index < item_snapshot.stains.size(); ++stain_index) {
+        item_snapshot.stains[stain_index] =
+            read_value<std::uint8_t>(item, manifest_.layout.inventory_item_stains + stain_index);
+      }
+      container_snapshot.items.push_back(std::move(item_snapshot));
+    }
+    snapshot.containers.push_back(std::move(container_snapshot));
+  }
+
+  auto* ui_module = reinterpret_cast<GetUiModule>(addresses_.get_ui_module)(framework);
+  if (ui_module) {
+    auto get_item_finder = vtable_function<void*(__fastcall*)(void*)>(
+        ui_module, manifest_.layout.get_item_finder_module_vtable_index);
+    auto* item_finder = static_cast<std::byte*>(get_item_finder(ui_module));
+    if (item_finder) {
+      snapshot.glamour_dresser.cached =
+          read_value<bool>(item_finder, manifest_.layout.item_finder_glamour_cached);
+      snapshot.glamour_dresser.may_be_stale = snapshot.glamour_dresser.cached;
+      if (snapshot.glamour_dresser.cached) {
+        const auto capacity = manifest_.layout.item_finder_glamour_capacity;
+        if (capacity == 0 || capacity > kMaximumGlamourDresserSlots) {
+          return failure("glamour_cache_invalid",
+                         "The glamour dresser cache has an invalid capacity.");
+        }
+        snapshot.glamour_dresser.items.reserve(capacity);
+        for (std::size_t index = 0; index < capacity; ++index) {
+          const auto item_id =
+              read_value<std::uint32_t>(item_finder, manifest_.layout.item_finder_glamour_item_ids +
+                                                         index * sizeof(std::uint32_t));
+          if (item_id == 0) continue;
+          const auto unlock_bits = read_value<std::uint16_t>(
+              item_finder,
+              manifest_.layout.item_finder_glamour_unlock_bits + index * sizeof(std::uint16_t));
+          snapshot.glamour_dresser.items.push_back(
+              {static_cast<std::uint16_t>(index), item_id, unlock_bits});
+        }
+      }
+    }
+  }
+
+  return {true, {}, {}, std::nullopt, std::nullopt, snapshot, {}};
 }
 
 CommandOutcome GameRuntime::return_to_title(void* framework) {
@@ -366,16 +522,19 @@ CommandOutcome GameRuntime::switch_region(void* framework, RegionTarget& target)
                    "The private Lobby layout has not been verified for this game version.");
   }
   if (!valid_hostname(target.lobby_host) || !valid_hostname(target.save_data_host) ||
-      !valid_hostname(target.gm_host) || target.region_name.empty() || target.game_session.empty() ||
-      target.game_session.size() > 4096) {
+      !valid_hostname(target.gm_host) || target.region_name.empty() ||
+      target.game_session.empty() || target.game_session.size() > 4096) {
     return failure("invalid_region_target", "The region target contains invalid host data.");
   }
   auto* framework_bytes = static_cast<std::byte*>(framework);
-  auto* proxy = read_pointer<std::byte>(framework_bytes, manifest_.layout.framework_network_module_proxy);
+  auto* proxy =
+      read_pointer<std::byte>(framework_bytes, manifest_.layout.framework_network_module_proxy);
   if (!proxy) return failure("network_unavailable", "The network proxy is unavailable.");
-  auto* network = read_pointer<std::byte>(proxy, manifest_.layout.network_module_proxy_network_module);
+  auto* network =
+      read_pointer<std::byte>(proxy, manifest_.layout.network_module_proxy_network_module);
   auto* agent = static_cast<std::byte*>(get_agent_lobby(framework));
-  if (!network || !agent) return failure("network_unavailable", "The lobby network is unavailable.");
+  if (!network || !agent)
+    return failure("network_unavailable", "The lobby network is unavailable.");
 
   auto* config = framework_bytes + manifest_.layout.framework_dev_config;
   const auto count = read_value<std::uint32_t>(config, manifest_.layout.config_count);
@@ -397,9 +556,10 @@ CommandOutcome GameRuntime::switch_region(void* framework, RegionTarget& target)
   auto* lobby_client = agent + manifest_.layout.agent_lobby_data + manifest_.layout.lobby_ui_client;
   auto** context = reinterpret_cast<void**>(lobby_client + manifest_.layout.lobby_context);
   auto* state = reinterpret_cast<std::uint8_t*>(lobby_client + manifest_.layout.lobby_state);
-  if (std::ranges::any_of(config_values, [](const auto* value) {
-        return value == nullptr || !is_writable(value, sizeof(void*));
-      }) ||
+  if (std::ranges::any_of(config_values,
+                          [](const auto* value) {
+                            return value == nullptr || !is_writable(value, sizeof(void*));
+                          }) ||
       !is_writable(network + manifest_.layout.network_active_lobby_host, sizeof(void*)) ||
       !is_writable(network + manifest_.layout.network_lobby_hosts, sizeof(void*)) ||
       !is_writable(network + manifest_.layout.network_save_data_bank_host, sizeof(void*)) ||
@@ -419,7 +579,7 @@ CommandOutcome GameRuntime::switch_region(void* framework, RegionTarget& target)
   reinterpret_cast<ReleaseLobbyContext>(addresses_.release_lobby_context)(network);
   *context = nullptr;
   *state = 0;
-  return {true, {}, {}, std::nullopt, std::nullopt, target.region_name};
+  return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, target.region_name};
 }
 
 CommandOutcome GameRuntime::trigger_login(void* framework) {
@@ -429,18 +589,19 @@ CommandOutcome GameRuntime::trigger_login(void* framework) {
   auto* rapture_module = static_cast<std::byte*>(get_rapture_module(ui_module));
   if (!rapture_module) return failure("ui_unavailable", "The game UI module is unavailable.");
   auto* unit_manager = rapture_module + manifest_.layout.rapture_atk_unit_manager;
-  auto* addon = reinterpret_cast<GetAddonByName>(addresses_.get_addon_by_name)(
-      unit_manager, "_TitleMenu", 1);
+  auto* addon =
+      reinterpret_cast<GetAddonByName>(addresses_.get_addon_by_name)(unit_manager, "_TitleMenu", 1);
   if (!addon) return failure("title_menu_unavailable", "The title menu is unavailable.");
-  auto* button = reinterpret_cast<GetComponentButtonById>(addresses_.get_component_button_by_id)(
-      addon, 4);
+  auto* button =
+      reinterpret_cast<GetComponentButtonById>(addresses_.get_component_button_by_id)(addon, 4);
   if (!button) return failure("login_button_unavailable", "The login button is unavailable.");
-  auto* node = read_pointer<std::byte>(static_cast<std::byte*>(button),
-                                      manifest_.layout.component_res_node);
+  auto* node =
+      read_pointer<std::byte>(static_cast<std::byte*>(button), manifest_.layout.component_res_node);
   if (!node) return failure("login_event_unavailable", "The login event is unavailable.");
   auto* event = read_pointer<void>(node, manifest_.layout.res_node_event);
   if (!event) return failure("login_event_unavailable", "The login event is unavailable.");
-  auto receive_event = vtable_function<ReceiveEvent>(addon, manifest_.layout.receive_event_vtable_index);
+  auto receive_event =
+      vtable_function<ReceiveEvent>(addon, manifest_.layout.receive_event_vtable_index);
   receive_event(addon, kButtonClickEvent, 1, event, nullptr);
   return acknowledgement();
 }
@@ -451,7 +612,8 @@ void* GameRuntime::get_agent_lobby(void* framework) const {
   auto get_agent_module = vtable_function<void*(__fastcall*)(void*)>(ui_module, 37);
   auto* agent_module = get_agent_module(ui_module);
   if (!agent_module) return nullptr;
-  return reinterpret_cast<GetAgentByInternalId>(addresses_.get_agent_by_internal_id)(agent_module, 0);
+  return reinterpret_cast<GetAgentByInternalId>(addresses_.get_agent_by_internal_id)(agent_module,
+                                                                                     0);
 }
 
 void GameRuntime::publish_snapshot(GameSnapshot snapshot) {

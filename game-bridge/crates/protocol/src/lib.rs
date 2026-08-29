@@ -4,7 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use zeroize::Zeroize;
 
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 pub const MAX_FRAME_SIZE: usize = 1024 * 1024;
 pub const PAYLOAD_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -78,6 +78,58 @@ pub struct ActiveCharacterSnapshot {
     pub connected_to_zone: bool,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryItemSnapshot {
+    pub inventory_type: u32,
+    pub slot: i16,
+    pub item_id: u32,
+    pub quantity: i32,
+    pub spiritbond_or_collectability: u16,
+    pub condition: u16,
+    pub flags: u8,
+    pub glamour_id: u32,
+    pub stains: [u8; 2],
+    pub materia: [u16; 5],
+    pub materia_grades: [u8; 5],
+    pub is_symbolic: bool,
+    pub linked_inventory_type: Option<u16>,
+    pub linked_slot: Option<u16>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryContainerSnapshot {
+    pub name: String,
+    pub inventory_type: u32,
+    pub loaded: bool,
+    pub size: i32,
+    pub items: Vec<InventoryItemSnapshot>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlamourDresserItemSnapshot {
+    pub slot: u16,
+    pub item_id: u32,
+    pub set_unlock_bits: u16,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlamourDresserSnapshot {
+    pub cached: bool,
+    pub may_be_stale: bool,
+    pub items: Vec<GlamourDresserItemSnapshot>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerInventorySnapshot {
+    pub containers: Vec<InventoryContainerSnapshot>,
+    pub glamour_dresser: GlamourDresserSnapshot,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RegionTarget {
@@ -93,6 +145,7 @@ pub struct RegionTarget {
 pub enum Command {
     CaptureSnapshot,
     CaptureActiveCharacter,
+    CaptureInventory,
     ReturnToTitle,
     SwitchRegion { target: RegionTarget },
     TriggerLogin,
@@ -122,6 +175,9 @@ pub enum CommandResult {
     },
     ActiveCharacter {
         character: ActiveCharacterSnapshot,
+    },
+    Inventory {
+        inventory: PlayerInventorySnapshot,
     },
     RegionSwitched {
         #[serde(rename = "regionName")]

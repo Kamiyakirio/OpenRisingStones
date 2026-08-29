@@ -133,6 +133,7 @@ UTF-8 JSON payload
 
 - `capture_snapshot`
 - `capture_active_character`
+- `capture_inventory`
 - `return_to_title`
 - `switch_region`
 - `trigger_login`
@@ -260,7 +261,7 @@ source
 verification
 ```
 
-当前 Manifest schema 为版本 3；版本 3 明确规定 `textSha256` 是磁盘 EXE 原始 `.text` section 的哈希，并加入已进入世界角色快照所需的 LocalPlayer、GameMain 与字段布局。
+当前 Manifest schema 为版本 4；版本 4 明确规定 `textSha256` 是磁盘 EXE 原始 `.text` section 的哈希，并包含 LocalPlayer、GameMain、InventoryManager、ItemFinderModule 与相关字段布局。
 
 门禁条件：
 
@@ -355,6 +356,7 @@ LobbyUIClient.State   = +0x158
 - `game_bridge_connect`
 - `game_bridge_capture_snapshot`
 - `game_bridge_capture_active_character`
+- `game_bridge_capture_inventory`
 - `game_bridge_return_to_title`
 - `game_bridge_switch_region`
 - `game_bridge_trigger_login`
@@ -371,6 +373,13 @@ WebView 只能提供进程 ID 和单一 Manifest 文件名，不能指定任意 
 - Territory ID、Territory load state、zone connection 状态。
 
 该命令不读取或写入私有 Lobby context/state，因此不受 `privateLayoutVerified` 切区门禁影响。
+
+`game_bridge_capture_inventory` 使用统一返回模型读取：
+
+- `InventoryManager`：身上装备、四页背包、全部兵装库容器。
+- `ItemFinderModule`：供物品搜索使用的 800 槽投影台本地缓存。
+
+投影台返回 `cached` 和 `mayBeStale`，未缓存时不把全零数组解释为空投影台。`InventoryItem` 为 symbolic link 时返回链接容器与格子，不伪造 Item ID。道具名称不在进程内解析，由 Rust/UI 根据 Item ID 查询独立数据目录。
 
 ## 14. Windows 构建
 

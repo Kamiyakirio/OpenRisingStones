@@ -5,6 +5,7 @@
 #include "manifest.hpp"
 
 #include <atomic>
+#include <array>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -14,6 +15,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace bridge {
 
@@ -50,6 +52,48 @@ struct ActiveCharacterSnapshot final {
   bool connected_to_zone{};
 };
 
+struct InventoryItemSnapshot final {
+  std::uint32_t inventory_type{};
+  std::int16_t slot{};
+  std::uint32_t item_id{};
+  std::int32_t quantity{};
+  std::uint16_t spiritbond_or_collectability{};
+  std::uint16_t condition{};
+  std::uint8_t flags{};
+  std::uint32_t glamour_id{};
+  std::array<std::uint8_t, 2> stains{};
+  std::array<std::uint16_t, 5> materia{};
+  std::array<std::uint8_t, 5> materia_grades{};
+  bool is_symbolic{};
+  std::uint16_t linked_inventory_type{};
+  std::uint16_t linked_slot{};
+};
+
+struct InventoryContainerSnapshot final {
+  std::string name;
+  std::uint32_t inventory_type{};
+  bool loaded{};
+  std::int32_t size{};
+  std::vector<InventoryItemSnapshot> items;
+};
+
+struct GlamourDresserItemSnapshot final {
+  std::uint16_t slot{};
+  std::uint32_t item_id{};
+  std::uint16_t set_unlock_bits{};
+};
+
+struct GlamourDresserSnapshot final {
+  bool cached{};
+  bool may_be_stale{};
+  std::vector<GlamourDresserItemSnapshot> items;
+};
+
+struct PlayerInventorySnapshot final {
+  std::vector<InventoryContainerSnapshot> containers;
+  GlamourDresserSnapshot glamour_dresser;
+};
+
 struct RegionTarget final {
   RegionTarget() = default;
   RegionTarget(const RegionTarget&) = delete;
@@ -69,6 +113,7 @@ struct RegionTarget final {
 enum class CommandKind {
   CaptureSnapshot,
   CaptureActiveCharacter,
+  CaptureInventory,
   ReturnToTitle,
   SwitchRegion,
   TriggerLogin,
@@ -80,6 +125,7 @@ struct CommandOutcome final {
   std::string message;
   std::optional<GameSnapshot> snapshot;
   std::optional<ActiveCharacterSnapshot> active_character;
+  std::optional<PlayerInventorySnapshot> inventory;
   std::string region_name;
 };
 
@@ -112,6 +158,7 @@ class GameRuntime final {
   [[nodiscard]] CommandOutcome run_command(void* framework, PendingCommand& command);
   [[nodiscard]] CommandOutcome capture_snapshot(void* framework);
   [[nodiscard]] CommandOutcome capture_active_character();
+  [[nodiscard]] CommandOutcome capture_inventory(void* framework);
   [[nodiscard]] CommandOutcome return_to_title(void* framework);
   [[nodiscard]] CommandOutcome switch_region(void* framework, RegionTarget& target);
   [[nodiscard]] CommandOutcome trigger_login(void* framework);

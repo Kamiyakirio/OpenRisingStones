@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "privateLayoutVerified": false,
   "gameVersion": "REPLACE_WITH_EXACT_GAME_VERSION",
   "module": {
@@ -24,6 +24,18 @@
       "resolve": "rip_relative",
       "offset": 3,
       "nextInstruction": 7
+    },
+    "inventoryManager": {
+      "pattern": "48 8D 0D ?? ?? ?? ?? 81 C2",
+      "resolve": "rip_relative",
+      "offset": 3,
+      "nextInstruction": 7
+    },
+    "getInventoryContainer": {
+      "pattern": "E8 ?? ?? ?? ?? 88 58 18",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
     },
     "getUiModule": {
       "pattern": "E8 ?? ?? ?? ?? 80 7B 1D 01",
@@ -115,6 +127,30 @@
     "activeCharacterHomeWorld": "0x2362",
     "gameMainConnectedToZone": "0x40FE",
     "gameMainTerritoryLoadState": "0x4100",
-    "gameMainCurrentTerritory": "0x4108"
+    "gameMainCurrentTerritory": "0x4108",
+    "getItemFinderModuleVtableIndex": 17,
+    "inventoryContainerItems": "0x0008",
+    "inventoryContainerType": "0x0010",
+    "inventoryContainerSize": "0x0014",
+    "inventoryContainerLoaded": "0x0018",
+    "inventoryItemSize": "0x0048",
+    "inventoryItemContainer": "0x0008",
+    "inventoryItemSlot": "0x000C",
+    "inventoryItemSymbolic": "0x000E",
+    "inventoryItemId": "0x0010",
+    "inventoryItemLinkedSlot": "0x0010",
+    "inventoryItemLinkedType": "0x0012",
+    "inventoryItemQuantity": "0x0014",
+    "inventoryItemSpiritbond": "0x0018",
+    "inventoryItemCondition": "0x001A",
+    "inventoryItemFlags": "0x001C",
+    "inventoryItemMateria": "0x0028",
+    "inventoryItemMateriaGrades": "0x0032",
+    "inventoryItemStains": "0x0037",
+    "inventoryItemGlamourId": "0x003C",
+    "itemFinderGlamourCached": "0x00AC",
+    "itemFinderGlamourItemIds": "0x0418",
+    "itemFinderGlamourUnlockBits": "0x1098",
+    "itemFinderGlamourCapacity": 800
   }
 }

@@ -3,7 +3,8 @@
 use crate::error::{BridgeError, BridgeResult};
 use crate::world_map::WorldMap;
 use game_bridge_protocol::{
-    ActiveCharacterSnapshot, Command, CommandResult, GameSnapshot, RegionTarget,
+    ActiveCharacterSnapshot, Command, CommandResult, GameSnapshot, PlayerInventorySnapshot,
+    RegionTarget,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -269,6 +270,15 @@ impl BridgeManager {
             }
             _ => Err(BridgeError::InvalidData(
                 "unexpected active character response".to_owned(),
+            )),
+        }
+    }
+
+    pub fn capture_inventory(&self) -> BridgeResult<PlayerInventorySnapshot> {
+        match self.send_command(Command::CaptureInventory)? {
+            CommandResult::Inventory { inventory } => Ok(inventory),
+            _ => Err(BridgeError::InvalidData(
+                "unexpected inventory response".to_owned(),
             )),
         }
     }

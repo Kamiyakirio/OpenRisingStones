@@ -13,7 +13,8 @@ mod process;
 
 pub use error::{BridgeError, BridgeResult};
 pub use game_bridge_protocol::{
-    ActiveCharacterSnapshot, Command, CommandError, CommandResult, GameSnapshot, Position3,
-    RegionTarget, SecretValue,
+    ActiveCharacterSnapshot, Command, CommandError, CommandResult, GameSnapshot,
+    GlamourDresserItemSnapshot, GlamourDresserSnapshot, InventoryContainerSnapshot,
+    InventoryItemSnapshot, PlayerInventorySnapshot, Position3, RegionTarget, SecretValue,
 };
 pub use manager::{BridgeManager, BridgePhase, BridgeStatus, ConnectOptions};

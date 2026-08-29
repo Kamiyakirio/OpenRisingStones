@@ -70,6 +70,30 @@ struct Layout final {
   std::size_t game_main_connected_to_zone{};
   std::size_t game_main_territory_load_state{};
   std::size_t game_main_current_territory{};
+  std::size_t get_item_finder_module_vtable_index{};
+  std::size_t inventory_container_items{};
+  std::size_t inventory_container_type{};
+  std::size_t inventory_container_size{};
+  std::size_t inventory_container_loaded{};
+  std::size_t inventory_item_size{};
+  std::size_t inventory_item_container{};
+  std::size_t inventory_item_slot{};
+  std::size_t inventory_item_symbolic{};
+  std::size_t inventory_item_id{};
+  std::size_t inventory_item_linked_slot{};
+  std::size_t inventory_item_linked_type{};
+  std::size_t inventory_item_quantity{};
+  std::size_t inventory_item_spiritbond{};
+  std::size_t inventory_item_condition{};
+  std::size_t inventory_item_flags{};
+  std::size_t inventory_item_materia{};
+  std::size_t inventory_item_materia_grades{};
+  std::size_t inventory_item_stains{};
+  std::size_t inventory_item_glamour_id{};
+  std::size_t item_finder_glamour_cached{};
+  std::size_t item_finder_glamour_item_ids{};
+  std::size_t item_finder_glamour_unlock_bits{};
+  std::size_t item_finder_glamour_capacity{};
 };
 
 struct VersionManifest final {

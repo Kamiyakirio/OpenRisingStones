@@ -14,6 +14,8 @@ struct ResolvedAddresses final {
   std::byte** framework_instance_slot{};
   std::byte** local_player_slot{};
   std::byte* game_main_instance{};
+  std::byte* inventory_manager_instance{};
+  std::byte* get_inventory_container{};
   std::byte* get_ui_module{};
   std::byte* get_agent_by_internal_id{};
   std::byte* utf8_set_string{};

@@ -6,7 +6,7 @@
 
 namespace bridge {
 
-inline constexpr std::uint32_t kProtocolVersion = 2;
+inline constexpr std::uint32_t kProtocolVersion = 3;
 inline constexpr std::size_t kPipeNameCapacity = 260;
 inline constexpr std::size_t kManifestPathCapacity = 520;
 inline constexpr std::size_t kAuthTokenSize = 32;

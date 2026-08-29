@@ -53,7 +53,7 @@ VersionManifest VersionManifest::load(const std::filesystem::path& path) {
   manifest.game_version = document.at("gameVersion").get<std::string>();
   manifest.module_name = document.at("module").at("name").get<std::string>();
   manifest.text_sha256 = document.at("module").at("textSha256").get<std::string>();
-  if (manifest.schema_version != 3) {
+  if (manifest.schema_version != 4) {
     throw std::runtime_error("unsupported version manifest schema");
   }
   require_non_empty(manifest.game_version, "gameVersion");
@@ -121,10 +121,35 @@ VersionManifest VersionManifest::load(const std::filesystem::path& path) {
   READ_LAYOUT(game_main_connected_to_zone, "gameMainConnectedToZone");
   READ_LAYOUT(game_main_territory_load_state, "gameMainTerritoryLoadState");
   READ_LAYOUT(game_main_current_territory, "gameMainCurrentTerritory");
+  READ_LAYOUT(get_item_finder_module_vtable_index, "getItemFinderModuleVtableIndex");
+  READ_LAYOUT(inventory_container_items, "inventoryContainerItems");
+  READ_LAYOUT(inventory_container_type, "inventoryContainerType");
+  READ_LAYOUT(inventory_container_size, "inventoryContainerSize");
+  READ_LAYOUT(inventory_container_loaded, "inventoryContainerLoaded");
+  READ_LAYOUT(inventory_item_size, "inventoryItemSize");
+  READ_LAYOUT(inventory_item_container, "inventoryItemContainer");
+  READ_LAYOUT(inventory_item_slot, "inventoryItemSlot");
+  READ_LAYOUT(inventory_item_symbolic, "inventoryItemSymbolic");
+  READ_LAYOUT(inventory_item_id, "inventoryItemId");
+  READ_LAYOUT(inventory_item_linked_slot, "inventoryItemLinkedSlot");
+  READ_LAYOUT(inventory_item_linked_type, "inventoryItemLinkedType");
+  READ_LAYOUT(inventory_item_quantity, "inventoryItemQuantity");
+  READ_LAYOUT(inventory_item_spiritbond, "inventoryItemSpiritbond");
+  READ_LAYOUT(inventory_item_condition, "inventoryItemCondition");
+  READ_LAYOUT(inventory_item_flags, "inventoryItemFlags");
+  READ_LAYOUT(inventory_item_materia, "inventoryItemMateria");
+  READ_LAYOUT(inventory_item_materia_grades, "inventoryItemMateriaGrades");
+  READ_LAYOUT(inventory_item_stains, "inventoryItemStains");
+  READ_LAYOUT(inventory_item_glamour_id, "inventoryItemGlamourId");
+  READ_LAYOUT(item_finder_glamour_cached, "itemFinderGlamourCached");
+  READ_LAYOUT(item_finder_glamour_item_ids, "itemFinderGlamourItemIds");
+  READ_LAYOUT(item_finder_glamour_unlock_bits, "itemFinderGlamourUnlockBits");
+  READ_LAYOUT(item_finder_glamour_capacity, "itemFinderGlamourCapacity");
 #undef READ_LAYOUT
 
   constexpr const char* required_functions[] = {
       "frameworkInstance",    "localPlayer",         "gameMain",
+      "inventoryManager",    "getInventoryContainer",
       "getUiModule",         "getAgentByInternalId", "utf8SetString",
       "releaseLobbyContext", "returnToTitle",       "getAddonByName",
       "getComponentButtonById"};

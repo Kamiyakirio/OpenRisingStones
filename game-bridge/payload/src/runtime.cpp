@@ -67,8 +67,8 @@ void Runtime::start() {
       {"payloadVersion", kPayloadVersion},
       {"authToken", encoded_token},
       {"capabilities",
-       {"capture_snapshot", "capture_active_character", "return_to_title", "switch_region",
-        "trigger_login"}},
+       {"capture_snapshot", "capture_active_character", "capture_inventory", "return_to_title",
+        "switch_region", "trigger_login"}},
   });
   SecureZeroMemory(encoded_token.data(), encoded_token.size());
   SecureZeroMemory(args_.auth_token.data(), args_.auth_token.size());
@@ -174,6 +174,9 @@ void Runtime::handle_command(nlohmann::json& message) {
   } else if (type == "capture_active_character") {
     outcome = game_->execute(CommandKind::CaptureActiveCharacter, std::nullopt, kCommandTimeout);
     result_type = "active_character";
+  } else if (type == "capture_inventory") {
+    outcome = game_->execute(CommandKind::CaptureInventory, std::nullopt, kCommandTimeout);
+    result_type = "inventory";
   } else if (type == "return_to_title") {
     outcome = game_->execute(CommandKind::ReturnToTitle, std::nullopt, kCommandTimeout);
   } else if (type == "switch_region") {
@@ -184,7 +187,7 @@ void Runtime::handle_command(nlohmann::json& message) {
     outcome = game_->execute(CommandKind::TriggerLogin, std::nullopt, kCommandTimeout);
   } else {
     outcome = {false, "unsupported_command", "The command is not supported.", std::nullopt,
-               std::nullopt, {}};
+               std::nullopt, std::nullopt, {}};
   }
   send_outcome(request_id, outcome, result_type);
 }
@@ -205,6 +208,7 @@ void Runtime::send_outcome(std::uint64_t request_id, const CommandOutcome& outco
   if (outcome.active_character) {
     result["character"] = active_character_json(*outcome.active_character);
   }
+  if (outcome.inventory) result["inventory"] = inventory_json(*outcome.inventory);
   if (!outcome.region_name.empty()) result["regionName"] = outcome.region_name;
   pipe_.send({
       {"type", "response"},
@@ -251,6 +255,62 @@ nlohmann::json Runtime::active_character_json(const ActiveCharacterSnapshot& cha
       {"territoryId", character.territory_id},
       {"territoryLoadState", character.territory_load_state},
       {"connectedToZone", character.connected_to_zone},
+  };
+}
+
+nlohmann::json Runtime::inventory_json(const PlayerInventorySnapshot& inventory) {
+  nlohmann::json containers = nlohmann::json::array();
+  for (const auto& container : inventory.containers) {
+    nlohmann::json items = nlohmann::json::array();
+    for (const auto& item : container.items) {
+      nlohmann::json linked_inventory_type = nullptr;
+      nlohmann::json linked_slot = nullptr;
+      if (item.is_symbolic) {
+        linked_inventory_type = item.linked_inventory_type;
+        linked_slot = item.linked_slot;
+      }
+      items.push_back({
+          {"inventoryType", item.inventory_type},
+          {"slot", item.slot},
+          {"itemId", item.item_id},
+          {"quantity", item.quantity},
+          {"spiritbondOrCollectability", item.spiritbond_or_collectability},
+          {"condition", item.condition},
+          {"flags", item.flags},
+          {"glamourId", item.glamour_id},
+          {"stains", item.stains},
+          {"materia", item.materia},
+          {"materiaGrades", item.materia_grades},
+          {"isSymbolic", item.is_symbolic},
+          {"linkedInventoryType", std::move(linked_inventory_type)},
+          {"linkedSlot", std::move(linked_slot)},
+      });
+    }
+    containers.push_back({
+        {"name", container.name},
+        {"inventoryType", container.inventory_type},
+        {"loaded", container.loaded},
+        {"size", container.size},
+        {"items", std::move(items)},
+    });
+  }
+
+  nlohmann::json dresser_items = nlohmann::json::array();
+  for (const auto& item : inventory.glamour_dresser.items) {
+    dresser_items.push_back({
+        {"slot", item.slot},
+        {"itemId", item.item_id},
+        {"setUnlockBits", item.set_unlock_bits},
+    });
+  }
+  return {
+      {"containers", std::move(containers)},
+      {"glamourDresser",
+       {
+           {"cached", inventory.glamour_dresser.cached},
+           {"mayBeStale", inventory.glamour_dresser.may_be_stale},
+           {"items", std::move(dresser_items)},
+       }},
   };
 }
 

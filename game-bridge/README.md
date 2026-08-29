@@ -9,7 +9,7 @@ This directory contains the Windows-only bridge between the desktop application 
 - `payload` owns every in-process pointer access, address resolution, Framework-thread command, native call, and hook lifecycle.
 - `src-tauri/src/game_bridge.rs` is intentionally a thin adapter. It does not contain bridge implementation logic.
 
-The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed protocol commands defined by protocol version 2.
+The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed protocol commands defined by protocol version 3.
 
 The Tauri command accepts only a process ID and a single manifest filename. DLL and data paths are resolved from the packaged `game-bridge` resource directory, so webview input cannot select an arbitrary DLL. Debug builds may override that resource directory with `ORS_GAME_BRIDGE_DIR`.
 
@@ -23,7 +23,7 @@ The payload validates all of the following before installing its Framework hook:
 4. Exactly one match for every required signature.
 5. All resolved addresses remain inside the main module.
 
-Manifest schema 3 defines `textSha256` as the SHA-256 of the executable's raw `.text` section and includes the LocalPlayer and GameMain definitions used by the active-character diagnostic. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
+Manifest schema 4 defines `textSha256` as the SHA-256 of the executable's raw `.text` section and includes LocalPlayer, GameMain, InventoryManager, and ItemFinderModule definitions used by the read-only diagnostics. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
 
 The template also sets `privateLayoutVerified` to `false`. The collector intentionally preserves that value. Snapshot collection remains available, but region switching is rejected until the private Lobby context fields have been verified against the exact target version.
 
@@ -51,6 +51,16 @@ console.log(character);
 ```
 
 The response includes character identity, current and home World IDs, class job, level, HP/MP, position, Territory ID, and zone load state. `not_in_world` means no LocalPlayer exists yet; `territory_not_ready` means the character is still zoning. This command does not require the private Lobby layout gate.
+
+## Inventory diagnostic
+
+Use one read-only Tauri command for equipped items, four player inventory pages, the Armoury Chest, and the cached Glamour Dresser:
+
+```ts
+const inventory = await invoke("game_bridge_capture_inventory");
+```
+
+Local containers are enumerated from `InventoryManager`; the Glamour Dresser uses the persistent `ItemFinderModule` cache used by item search. The response marks the dresser as `cached` and `mayBeStale`. It returns Item IDs and item state rather than localized names; the Rust/UI layer should map Item IDs through a separate item catalog.
 
 ## IPC
 

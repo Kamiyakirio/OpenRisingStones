@@ -33,6 +33,8 @@ class Runtime final {
   [[nodiscard]] static nlohmann::json snapshot_json(const GameSnapshot& snapshot);
   [[nodiscard]] static nlohmann::json active_character_json(
       const ActiveCharacterSnapshot& character);
+  [[nodiscard]] static nlohmann::json inventory_json(
+      const PlayerInventorySnapshot& inventory);
   [[nodiscard]] static std::string encode_token(const std::array<std::uint8_t, 32>& token);
 
   BootstrapArgs args_{};
