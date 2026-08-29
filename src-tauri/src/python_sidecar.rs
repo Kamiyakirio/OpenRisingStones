@@ -13,7 +13,10 @@ use std::{
   time::{Duration, Instant},
 };
 
-#[cfg(all(feature = "bundled-python-sidecar", windows))]
+#[cfg(any(
+  not(feature = "bundled-python-sidecar"),
+  all(feature = "bundled-python-sidecar", windows)
+))]
 use std::{
   collections::hash_map::DefaultHasher,
   fs,
@@ -25,7 +28,11 @@ use std::{
 use serde::{de::DeserializeOwned, Serialize};
 
 #[cfg(not(feature = "bundled-python-sidecar"))]
-const CLIENT_SCRIPT: &str = include_str!("../python/api_client.py");
+const CLIENT_SCRIPT_BYTES: &[u8] = include_bytes!("../python/api_client.py");
+#[cfg(not(feature = "bundled-python-sidecar"))]
+static CLIENT_SCRIPT_PATH: OnceLock<PathBuf> = OnceLock::new();
+#[cfg(not(feature = "bundled-python-sidecar"))]
+static CLIENT_SCRIPT_MATERIALIZE_LOCK: Mutex<()> = Mutex::new(());
 #[cfg(feature = "bundled-python-sidecar")]
 const BUNDLED_CLIENT_NAME: &str = "rising-stones-api-client";
 #[cfg(all(feature = "bundled-python-sidecar", windows))]
@@ -182,43 +189,60 @@ fn embedded_client_path() -> Result<&'static PathBuf, ProcessError> {
 
 #[cfg(all(feature = "bundled-python-sidecar", windows))]
 fn materialize_embedded_client() -> Result<PathBuf, ProcessError> {
-  let content_hash = client_content_hash(BUNDLED_CLIENT_BYTES);
-  let sidecar_directory = std::env::temp_dir()
-    .join("OpenRisingStones")
-    .join("sidecars");
-  fs::create_dir_all(&sidecar_directory).map_err(|_| ProcessError::ClientNotFound)?;
+  materialize_embedded_file("sidecars", BUNDLED_CLIENT_NAME, "exe", BUNDLED_CLIENT_BYTES)
+    .map_err(|_| ProcessError::ClientNotFound)
+}
 
-  let client_path =
-    sidecar_directory.join(format!("{BUNDLED_CLIENT_NAME}-{content_hash:016x}.exe"));
-  if embedded_client_matches(&client_path) {
+/** Write an embedded client file atomically and verify any reusable copy. */
+#[cfg(any(
+  not(feature = "bundled-python-sidecar"),
+  all(feature = "bundled-python-sidecar", windows)
+))]
+fn materialize_embedded_file(
+  category: &str,
+  file_stem: &str,
+  extension: &str,
+  bytes: &[u8],
+) -> io::Result<PathBuf> {
+  let content_hash = client_content_hash(bytes);
+  let client_directory = std::env::temp_dir().join("OpenRisingStones").join(category);
+  fs::create_dir_all(&client_directory)?;
+
+  let client_path = client_directory.join(format!("{file_stem}-{content_hash:016x}.{extension}"));
+  if embedded_file_matches(&client_path, bytes) {
     return Ok(client_path);
   }
 
   // Stage the file before renaming so another app process never observes a
-  // partially written executable.
-  let staged_path =
-    sidecar_directory.join(format!(".{BUNDLED_CLIENT_NAME}-{}.tmp", std::process::id()));
-  fs::write(&staged_path, BUNDLED_CLIENT_BYTES).map_err(|_| ProcessError::ClientNotFound)?;
+  // partially written client.
+  let staged_path = client_directory.join(format!(".{file_stem}-{}.tmp", std::process::id()));
+  fs::write(&staged_path, bytes)?;
   if client_path.exists() {
     let _ = fs::remove_file(&client_path);
   }
-  if fs::rename(&staged_path, &client_path).is_err() {
+  if let Err(error) = fs::rename(&staged_path, &client_path) {
     let _ = fs::remove_file(&staged_path);
-    if !embedded_client_matches(&client_path) {
-      return Err(ProcessError::ClientNotFound);
+    if !embedded_file_matches(&client_path, bytes) {
+      return Err(error);
     }
   }
   Ok(client_path)
 }
 
-#[cfg(all(feature = "bundled-python-sidecar", windows))]
-fn embedded_client_matches(path: &Path) -> bool {
+#[cfg(any(
+  not(feature = "bundled-python-sidecar"),
+  all(feature = "bundled-python-sidecar", windows)
+))]
+fn embedded_file_matches(path: &Path, expected_bytes: &[u8]) -> bool {
   fs::read(path)
-    .map(|bytes| bytes == BUNDLED_CLIENT_BYTES)
+    .map(|bytes| bytes == expected_bytes)
     .unwrap_or(false)
 }
 
-#[cfg(all(feature = "bundled-python-sidecar", windows))]
+#[cfg(any(
+  not(feature = "bundled-python-sidecar"),
+  all(feature = "bundled-python-sidecar", windows)
+))]
 fn client_content_hash(bytes: &[u8]) -> u64 {
   let mut hasher = DefaultHasher::new();
   bytes.hash(&mut hasher);
@@ -231,11 +255,34 @@ fn execute_with_interpreter(
   input: &[u8],
   max_response_bytes: usize,
 ) -> Result<Vec<u8>, ProcessError> {
+  let client_path = embedded_script_path()?;
   let mut command = Command::new(interpreter.program);
   command
     .args(interpreter.launcher_arguments)
-    .args(["-c", CLIENT_SCRIPT]);
+    .arg(client_path);
   execute_with_command(command, input, max_response_bytes)
+}
+
+/** Keep the Python source out of the process command line on every platform. */
+#[cfg(not(feature = "bundled-python-sidecar"))]
+fn embedded_script_path() -> Result<&'static PathBuf, ProcessError> {
+  if let Some(path) = CLIENT_SCRIPT_PATH.get() {
+    return Ok(path);
+  }
+
+  let _guard = CLIENT_SCRIPT_MATERIALIZE_LOCK
+    .lock()
+    .map_err(|_| ProcessError::Message("Unable to prepare the Python client.".to_owned()))?;
+  if let Some(path) = CLIENT_SCRIPT_PATH.get() {
+    return Ok(path);
+  }
+
+  let path = materialize_embedded_file("scripts", "api-client", "py", CLIENT_SCRIPT_BYTES)
+    .map_err(|_| ProcessError::Message("Unable to prepare the Python client.".to_owned()))?;
+  let _ = CLIENT_SCRIPT_PATH.set(path);
+  CLIENT_SCRIPT_PATH
+    .get()
+    .ok_or_else(|| ProcessError::Message("Unable to prepare the Python client.".to_owned()))
 }
 
 fn execute_with_command(
@@ -506,6 +553,14 @@ mod tests {
     let client_path = embedded_client_path().unwrap();
 
     assert_eq!(fs::read(client_path).unwrap(), BUNDLED_CLIENT_BYTES);
+  }
+
+  #[cfg(not(feature = "bundled-python-sidecar"))]
+  #[test]
+  fn materializes_the_development_script_without_changes() {
+    let client_path = embedded_script_path().unwrap();
+
+    assert_eq!(fs::read(client_path).unwrap(), CLIENT_SCRIPT_BYTES);
   }
 
   #[test]
