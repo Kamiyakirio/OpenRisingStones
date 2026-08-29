@@ -27,6 +27,7 @@ class PipeClient final {
   [[nodiscard]] bool connected() const noexcept;
 
  private:
+  static void wait_for_data(HANDLE handle);
   static void read_exact(HANDLE handle, void* target, std::size_t length);
   static void write_all(HANDLE handle, const void* source, std::size_t length);
 

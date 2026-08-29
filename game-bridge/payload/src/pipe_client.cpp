@@ -10,6 +10,7 @@ namespace bridge {
 namespace {
 
 constexpr std::uint32_t kMaximumFrameSize = 1024 * 1024;
+constexpr DWORD kPipePollIntervalMilliseconds = 5;
 
 }  // namespace
 
@@ -57,6 +58,9 @@ void PipeClient::send(const nlohmann::json& message) {
 nlohmann::json PipeClient::receive() {
   const auto handle = handle_.load(std::memory_order_acquire);
   if (handle == INVALID_HANDLE_VALUE) throw std::runtime_error("pipe is closed");
+  // Synchronous reads and writes on the same pipe handle can serialize across threads. Only issue
+  // ReadFile when data is available so the publisher thread can send heartbeats independently.
+  wait_for_data(handle);
   std::uint32_t length = 0;
   read_exact(handle, &length, sizeof(length));
   if (length == 0 || length > kMaximumFrameSize) {
@@ -69,6 +73,17 @@ nlohmann::json PipeClient::receive() {
 
 bool PipeClient::connected() const noexcept {
   return handle_.load(std::memory_order_acquire) != INVALID_HANDLE_VALUE;
+}
+
+void PipeClient::wait_for_data(HANDLE handle) {
+  while (true) {
+    DWORD available = 0;
+    if (!PeekNamedPipe(handle, nullptr, 0, nullptr, &available, nullptr)) {
+      throw std::runtime_error("pipe peek failed");
+    }
+    if (available != 0) return;
+    Sleep(kPipePollIntervalMilliseconds);
+  }
 }
 
 void PipeClient::read_exact(HANDLE handle, void* target, std::size_t length) {

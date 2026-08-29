@@ -128,7 +128,19 @@ void Runtime::publisher_loop() {
         published_snapshot = snapshot->sequence;
         pipe_.send({{"type", "snapshot"}, {"snapshot", snapshot_json(*snapshot)}});
       }
+    } catch (const std::exception& error) {
+      try {
+        send_fault("publisher_failed", error.what(), true);
+      } catch (...) {
+      }
+      stopping_.store(true, std::memory_order_release);
+      if (game_) game_->stop();
+      break;
     } catch (...) {
+      try {
+        send_fault("publisher_failed", "The publisher failed unexpectedly.", true);
+      } catch (...) {
+      }
       stopping_.store(true, std::memory_order_release);
       if (game_) game_->stop();
       break;

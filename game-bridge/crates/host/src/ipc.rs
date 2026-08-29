@@ -6,7 +6,6 @@ use game_bridge_protocol::{
     PROTOCOL_VERSION,
 };
 use std::collections::HashMap;
-use std::ffi::c_void;
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::io::AsRawHandle;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -17,17 +16,19 @@ use std::time::Duration;
 use windows_sys::Win32::Foundation::{
     CloseHandle, ERROR_PIPE_CONNECTED, HANDLE, INVALID_HANDLE_VALUE,
 };
-use windows_sys::Win32::Storage::FileSystem::{ReadFile, WriteFile, FILE_FLAG_FIRST_PIPE_INSTANCE};
-use windows_sys::Win32::System::Pipes::{
-    ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PIPE_ACCESS_DUPLEX,
-    PIPE_READMODE_BYTE, PIPE_REJECT_REMOTE_CLIENTS, PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES,
-    PIPE_WAIT,
+use windows_sys::Win32::Storage::FileSystem::{
+    ReadFile, WriteFile, FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_ACCESS_DUPLEX,
 };
-use windows_sys::Win32::System::Threading::CancelSynchronousIo;
+use windows_sys::Win32::System::Pipes::{
+    ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PeekNamedPipe, PIPE_READMODE_BYTE,
+    PIPE_REJECT_REMOTE_CLIENTS, PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
+};
+use windows_sys::Win32::System::IO::CancelSynchronousIo;
 use zeroize::Zeroize;
 
 const PIPE_BUFFER_SIZE: u32 = 64 * 1024;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
+const PIPE_POLL_INTERVAL: Duration = Duration::from_millis(5);
 
 pub(crate) enum SessionEvent {
     Ready {
@@ -51,13 +52,10 @@ struct OutboundCommand {
 }
 
 pub(crate) struct PipeSession {
-    handle: HANDLE,
     command_tx: Sender<OutboundCommand>,
     stopping: Arc<AtomicBool>,
     thread: Option<JoinHandle<()>>,
 }
-
-unsafe impl Send for PipeSession {}
 
 impl PipeSession {
     pub(crate) fn bind(
@@ -88,14 +86,27 @@ impl PipeSession {
         let (command_tx, command_rx) = mpsc::channel();
         let stopping = Arc::new(AtomicBool::new(false));
         let thread_stopping = Arc::clone(&stopping);
-        let thread = thread::Builder::new()
+        // The worker exclusively owns the pipe handle and closes it before exiting.
+        let worker_handle = handle as usize;
+        let thread = match thread::Builder::new()
             .name("game-bridge-pipe".to_owned())
             .spawn(move || {
-                run_pipe_loop(handle, auth_token, command_rx, event_tx, thread_stopping);
-            })?;
+                run_pipe_loop(
+                    worker_handle as HANDLE,
+                    auth_token,
+                    command_rx,
+                    event_tx,
+                    thread_stopping,
+                );
+            }) {
+            Ok(thread) => thread,
+            Err(error) => {
+                unsafe { CloseHandle(handle) };
+                return Err(error.into());
+            }
+        };
 
         Ok(Self {
-            handle,
             command_tx,
             stopping,
             thread: Some(thread),
@@ -222,6 +233,28 @@ fn run_pipe_loop(
             break;
         }
 
+        // A blocking ReadFile would prevent newly queued commands from being written until the
+        // payload happens to publish another event. Polling keeps command latency independent of
+        // the heartbeat interval while preserving exclusive handle ownership on this worker.
+        let mut available = 0;
+        if unsafe {
+            PeekNamedPipe(
+                handle,
+                std::ptr::null_mut(),
+                0,
+                std::ptr::null_mut(),
+                &mut available,
+                std::ptr::null_mut(),
+            )
+        } == 0
+        {
+            break;
+        }
+        if available == 0 {
+            thread::sleep(PIPE_POLL_INTERVAL);
+            continue;
+        }
+
         match read_payload_message(handle) {
             Ok(PayloadMessage::Snapshot { snapshot }) => {
                 let _ = event_tx.send(SessionEvent::Snapshot(snapshot));
@@ -317,7 +350,7 @@ fn read_exact(handle: HANDLE, target: &mut [u8]) -> BridgeResult<()> {
         let success = unsafe {
             ReadFile(
                 handle,
-                target[offset..].as_mut_ptr().cast::<c_void>(),
+                target[offset..].as_mut_ptr(),
                 (target.len() - offset) as u32,
                 &mut read,
                 std::ptr::null_mut(),
@@ -338,7 +371,7 @@ fn write_all(handle: HANDLE, source: &[u8]) -> BridgeResult<()> {
         let success = unsafe {
             WriteFile(
                 handle,
-                source[offset..].as_ptr().cast::<c_void>(),
+                source[offset..].as_ptr(),
                 (source.len() - offset) as u32,
                 &mut written,
                 std::ptr::null_mut(),

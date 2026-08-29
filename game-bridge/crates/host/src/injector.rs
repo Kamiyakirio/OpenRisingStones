@@ -9,6 +9,7 @@ use std::ptr::{null, null_mut};
 use windows_sys::Win32::Foundation::{
     CloseHandle, FreeLibrary, HANDLE, HMODULE, INVALID_HANDLE_VALUE,
 };
+use windows_sys::Win32::Storage::FileSystem::SYNCHRONIZE;
 use windows_sys::Win32::System::Diagnostics::Debug::WriteProcessMemory;
 use windows_sys::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, Module32FirstW, Module32NextW, MODULEENTRY32W, TH32CS_SNAPMODULE,
@@ -23,9 +24,9 @@ use windows_sys::Win32::System::Memory::{
     VirtualAllocEx, VirtualFreeEx, MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE,
 };
 use windows_sys::Win32::System::Threading::{
-    CreateRemoteThread, GetExitCodeThread, OpenProcess, WaitForSingleObject, PROCESS_CREATE_THREAD,
-    PROCESS_QUERY_INFORMATION, PROCESS_VM_OPERATION, PROCESS_VM_READ, PROCESS_VM_WRITE,
-    SYNCHRONIZE,
+    CreateRemoteThread, GetExitCodeThread, OpenProcess, WaitForSingleObject,
+    LPTHREAD_START_ROUTINE, PROCESS_CREATE_THREAD, PROCESS_QUERY_INFORMATION, PROCESS_VM_OPERATION,
+    PROCESS_VM_READ, PROCESS_VM_WRITE,
 };
 use zeroize::Zeroize;
 
@@ -179,7 +180,9 @@ impl InjectedPayload {
     }
 
     pub(crate) fn unload(mut self) -> BridgeResult<()> {
-        let shutdown_offset = local_export_offset(&self.payload_path, "bridge_shutdown")?;
+        // Inspecting exports loads the DLL without resolving imports or running its entry point.
+        let shutdown_offset =
+            unsafe { local_export_offset(&self.payload_path, "bridge_shutdown")? };
         let shutdown_code = unsafe {
             call_remote(
                 self.process,
@@ -276,7 +279,7 @@ unsafe fn call_remote(
     parameter: usize,
     timeout_ms: u32,
 ) -> BridgeResult<u32> {
-    let start_routine = transmute(function);
+    let start_routine = transmute::<usize, LPTHREAD_START_ROUTINE>(function);
     let thread = CreateRemoteThread(
         process,
         null(),

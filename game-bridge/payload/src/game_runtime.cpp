@@ -196,13 +196,21 @@ bool GameRuntime::on_tick(void* framework) noexcept {
       drain_commands(framework);
       if (++sampling_counter_ >= kSnapshotIntervalTicks) {
         sampling_counter_ = 0;
-        auto outcome = capture_snapshot(framework);
-        if (outcome.success && outcome.snapshot) publish_snapshot(std::move(*outcome.snapshot));
+        // Periodic snapshots are best-effort. A transient or version-specific layout failure must
+        // not stop command processing and leave later requests waiting forever in the queue.
+        try {
+          auto outcome = capture_snapshot(framework);
+          if (outcome.success && outcome.snapshot) publish_snapshot(std::move(*outcome.snapshot));
+        } catch (...) {
+        }
       }
     }
     return true;
   } catch (...) {
-    stopping_.store(true, std::memory_order_release);
+    try {
+      fail_pending("game_thread_failed", "The Framework callback failed unexpectedly.");
+    } catch (...) {
+    }
     return false;
   }
 }
