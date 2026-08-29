@@ -36,3 +36,6 @@ prompt.md
 sdo-session.debug.json
 *.har
 src-tauri/.tauri-dev-started
+
+game-bridge/config/**/*.json
+!game-bridge/config/**/*.example.json
