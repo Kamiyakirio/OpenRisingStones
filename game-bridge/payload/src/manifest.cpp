@@ -53,7 +53,7 @@ VersionManifest VersionManifest::load(const std::filesystem::path& path) {
   manifest.game_version = document.at("gameVersion").get<std::string>();
   manifest.module_name = document.at("module").at("name").get<std::string>();
   manifest.text_sha256 = document.at("module").at("textSha256").get<std::string>();
-  if (manifest.schema_version != 2) {
+  if (manifest.schema_version != 3) {
     throw std::runtime_error("unsupported version manifest schema");
   }
   require_non_empty(manifest.game_version, "gameVersion");
@@ -104,11 +104,30 @@ VersionManifest VersionManifest::load(const std::filesystem::path& path) {
   READ_LAYOUT(component_res_node, "componentResNode");
   READ_LAYOUT(res_node_event, "resNodeEvent");
   READ_LAYOUT(receive_event_vtable_index, "receiveEventVtableIndex");
+  READ_LAYOUT(active_character_name, "activeCharacterName");
+  READ_LAYOUT(active_character_name_capacity, "activeCharacterNameCapacity");
+  READ_LAYOUT(active_character_entity_id, "activeCharacterEntityId");
+  READ_LAYOUT(active_character_position, "activeCharacterPosition");
+  READ_LAYOUT(active_character_data, "activeCharacterData");
+  READ_LAYOUT(active_character_health, "activeCharacterHealth");
+  READ_LAYOUT(active_character_max_health, "activeCharacterMaxHealth");
+  READ_LAYOUT(active_character_mana, "activeCharacterMana");
+  READ_LAYOUT(active_character_max_mana, "activeCharacterMaxMana");
+  READ_LAYOUT(active_character_class_job, "activeCharacterClassJob");
+  READ_LAYOUT(active_character_level, "activeCharacterLevel");
+  READ_LAYOUT(active_character_content_id, "activeCharacterContentId");
+  READ_LAYOUT(active_character_current_world, "activeCharacterCurrentWorld");
+  READ_LAYOUT(active_character_home_world, "activeCharacterHomeWorld");
+  READ_LAYOUT(game_main_connected_to_zone, "gameMainConnectedToZone");
+  READ_LAYOUT(game_main_territory_load_state, "gameMainTerritoryLoadState");
+  READ_LAYOUT(game_main_current_territory, "gameMainCurrentTerritory");
 #undef READ_LAYOUT
 
   constexpr const char* required_functions[] = {
-      "frameworkInstance", "getUiModule", "getAgentByInternalId", "utf8SetString",
-      "releaseLobbyContext", "returnToTitle", "getAddonByName", "getComponentButtonById"};
+      "frameworkInstance",    "localPlayer",         "gameMain",
+      "getUiModule",         "getAgentByInternalId", "utf8SetString",
+      "releaseLobbyContext", "returnToTitle",       "getAddonByName",
+      "getComponentButtonById"};
   for (const auto* name : required_functions) {
     if (!manifest.functions.contains(name)) {
       throw std::runtime_error(std::string("missing required function: ") + name);

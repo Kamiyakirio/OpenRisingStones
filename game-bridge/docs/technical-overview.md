@@ -132,6 +132,7 @@ UTF-8 JSON payload
 当前语义命令：
 
 - `capture_snapshot`
+- `capture_active_character`
 - `return_to_title`
 - `switch_region`
 - `trigger_login`
@@ -259,7 +260,7 @@ source
 verification
 ```
 
-当前 Manifest schema 为版本 2；版本 2 明确规定 `textSha256` 是磁盘 EXE 原始 `.text` section 的哈希。
+当前 Manifest schema 为版本 3；版本 3 明确规定 `textSha256` 是磁盘 EXE 原始 `.text` section 的哈希，并加入已进入世界角色快照所需的 LocalPlayer、GameMain 与字段布局。
 
 门禁条件：
 
@@ -353,12 +354,23 @@ LobbyUIClient.State   = +0x158
 - `game_bridge_status`
 - `game_bridge_connect`
 - `game_bridge_capture_snapshot`
+- `game_bridge_capture_active_character`
 - `game_bridge_return_to_title`
 - `game_bridge_switch_region`
 - `game_bridge_trigger_login`
 - `game_bridge_disconnect`
 
 WebView 只能提供进程 ID 和单一 Manifest 文件名，不能指定任意 DLL 路径。DLL、世界映射和 Manifest 路径由 Rust 后端从受控资源目录解析。
+
+`game_bridge_capture_active_character` 是只读注入诊断入口。进入游戏世界后，它返回：
+
+- 角色名、Content ID、Entity ID。
+- 当前 World、原始 World 及外部映射后的大区名。
+- ClassJob ID、等级、当前/最大 HP 与 MP。
+- 世界坐标 X/Y/Z。
+- Territory ID、Territory load state、zone connection 状态。
+
+该命令不读取或写入私有 Lobby context/state，因此不受 `privateLayoutVerified` 切区门禁影响。
 
 ## 14. Windows 构建
 

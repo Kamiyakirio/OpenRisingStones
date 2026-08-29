@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "privateLayoutVerified": false,
   "gameVersion": "REPLACE_WITH_EXACT_GAME_VERSION",
   "module": {
@@ -9,6 +9,18 @@
   "functions": {
     "frameworkInstance": {
       "pattern": "48 8B 1D ?? ?? ?? ?? 8B 7C 24",
+      "resolve": "rip_relative",
+      "offset": 3,
+      "nextInstruction": 7
+    },
+    "localPlayer": {
+      "pattern": "48 8B 2D ?? ?? ?? ?? 75",
+      "resolve": "rip_relative",
+      "offset": 3,
+      "nextInstruction": 7
+    },
+    "gameMain": {
+      "pattern": "48 8D 0D ?? ?? ?? ?? 0F 28 F2 48 89 44 24 ??",
       "resolve": "rip_relative",
       "offset": 3,
       "nextInstruction": 7
@@ -86,6 +98,23 @@
     "raptureAtkUnitManager": "0x13430",
     "componentResNode": "0x00A0",
     "resNodeEvent": "0x0018",
-    "receiveEventVtableIndex": 2
+    "receiveEventVtableIndex": 2,
+    "activeCharacterName": "0x0030",
+    "activeCharacterNameCapacity": 64,
+    "activeCharacterEntityId": "0x0078",
+    "activeCharacterPosition": "0x00B0",
+    "activeCharacterData": "0x01A0",
+    "activeCharacterHealth": "0x000C",
+    "activeCharacterMaxHealth": "0x0010",
+    "activeCharacterMana": "0x0014",
+    "activeCharacterMaxMana": "0x0018",
+    "activeCharacterClassJob": "0x002A",
+    "activeCharacterLevel": "0x002B",
+    "activeCharacterContentId": "0x2358",
+    "activeCharacterCurrentWorld": "0x2360",
+    "activeCharacterHomeWorld": "0x2362",
+    "gameMainConnectedToZone": "0x40FE",
+    "gameMainTerritoryLoadState": "0x4100",
+    "gameMainCurrentTerritory": "0x4108"
   }
 }

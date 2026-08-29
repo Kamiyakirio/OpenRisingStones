@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <cstring>
 #include <stdexcept>
 #include <thread>
@@ -93,11 +94,11 @@ std::string bounded_cstring(const char* value, std::size_t maximum) {
 }
 
 CommandOutcome failure(std::string code, std::string message) {
-  return {false, std::move(code), std::move(message), std::nullopt, {}};
+  return {false, std::move(code), std::move(message), std::nullopt, std::nullopt, {}};
 }
 
 CommandOutcome acknowledgement() {
-  return {true, {}, {}, std::nullopt, {}};
+  return {true, {}, {}, std::nullopt, std::nullopt, {}};
 }
 
 }  // namespace
@@ -119,6 +120,10 @@ void GameRuntime::start() {
   if (active_) throw std::runtime_error("game runtime is already active");
   if (!is_readable(addresses_.framework_instance_slot, sizeof(void*))) {
     throw std::runtime_error("framework instance slot is unreadable");
+  }
+  if (!is_readable(addresses_.local_player_slot, sizeof(void*)) ||
+      !is_readable(addresses_.game_main_instance, sizeof(void*))) {
+    throw std::runtime_error("active character roots are unreadable");
   }
   auto* framework = *addresses_.framework_instance_slot;
   if (!framework) throw std::runtime_error("framework instance is null");
@@ -239,6 +244,8 @@ CommandOutcome GameRuntime::run_command(void* framework, PendingCommand& command
   switch (command.kind) {
     case CommandKind::CaptureSnapshot:
       return capture_snapshot(framework);
+    case CommandKind::CaptureActiveCharacter:
+      return capture_active_character();
     case CommandKind::ReturnToTitle:
       return return_to_title(framework);
     case CommandKind::SwitchRegion:
@@ -283,7 +290,67 @@ CommandOutcome GameRuntime::capture_snapshot(void* framework) {
   snapshot.home_world_id = read_value<std::uint16_t>(entry, manifest_.layout.entry_home_world_id);
   snapshot.login_flags = read_value<std::uint8_t>(entry, manifest_.layout.entry_login_flags);
   snapshot.sequence = next_snapshot_sequence_++;
-  return {true, {}, {}, snapshot, {}};
+  return {true, {}, {}, snapshot, std::nullopt, {}};
+}
+
+CommandOutcome GameRuntime::capture_active_character() {
+  auto* local_player = *addresses_.local_player_slot;
+  if (!local_player) {
+    return failure("not_in_world", "The local player is not available. Enter the game world first.");
+  }
+
+  auto* game_main = addresses_.game_main_instance;
+  const auto connected_to_zone =
+      read_value<bool>(game_main, manifest_.layout.game_main_connected_to_zone);
+  const auto territory_load_state =
+      read_value<std::uint32_t>(game_main, manifest_.layout.game_main_territory_load_state);
+  const auto territory_id =
+      read_value<std::uint32_t>(game_main, manifest_.layout.game_main_current_territory);
+  if (!connected_to_zone || territory_load_state != 2 || territory_id == 0) {
+    return failure("territory_not_ready", "The current territory is not fully loaded.");
+  }
+
+  ActiveCharacterSnapshot snapshot;
+  snapshot.character_name = fixed_string(
+      reinterpret_cast<const char*>(local_player + manifest_.layout.active_character_name),
+      manifest_.layout.active_character_name_capacity);
+  snapshot.entity_id =
+      read_value<std::uint32_t>(local_player, manifest_.layout.active_character_entity_id);
+  const auto position =
+      read_value<Position3>(local_player, manifest_.layout.active_character_position);
+  if (!std::isfinite(position.x) || !std::isfinite(position.y) || !std::isfinite(position.z)) {
+    return failure("position_invalid", "The local player position is invalid.");
+  }
+  snapshot.position = position;
+
+  auto* character_data = local_player + manifest_.layout.active_character_data;
+  snapshot.current_hp =
+      read_value<std::uint32_t>(character_data, manifest_.layout.active_character_health);
+  snapshot.max_hp =
+      read_value<std::uint32_t>(character_data, manifest_.layout.active_character_max_health);
+  snapshot.current_mp =
+      read_value<std::uint32_t>(character_data, manifest_.layout.active_character_mana);
+  snapshot.max_mp =
+      read_value<std::uint32_t>(character_data, manifest_.layout.active_character_max_mana);
+  snapshot.class_job_id =
+      read_value<std::uint8_t>(character_data, manifest_.layout.active_character_class_job);
+  snapshot.level =
+      read_value<std::uint8_t>(character_data, manifest_.layout.active_character_level);
+
+  const auto content_id =
+      read_value<std::uint64_t>(local_player, manifest_.layout.active_character_content_id);
+  if (content_id == 0 || snapshot.character_name.empty()) {
+    return failure("character_invalid", "The local player identity is incomplete.");
+  }
+  snapshot.content_id = std::to_string(content_id);
+  snapshot.current_world_id =
+      read_value<std::uint16_t>(local_player, manifest_.layout.active_character_current_world);
+  snapshot.home_world_id =
+      read_value<std::uint16_t>(local_player, manifest_.layout.active_character_home_world);
+  snapshot.territory_id = territory_id;
+  snapshot.territory_load_state = territory_load_state;
+  snapshot.connected_to_zone = connected_to_zone;
+  return {true, {}, {}, std::nullopt, snapshot, {}};
 }
 
 CommandOutcome GameRuntime::return_to_title(void* framework) {
@@ -352,7 +419,7 @@ CommandOutcome GameRuntime::switch_region(void* framework, RegionTarget& target)
   reinterpret_cast<ReleaseLobbyContext>(addresses_.release_lobby_context)(network);
   *context = nullptr;
   *state = 0;
-  return {true, {}, {}, std::nullopt, target.region_name};
+  return {true, {}, {}, std::nullopt, std::nullopt, target.region_name};
 }
 
 CommandOutcome GameRuntime::trigger_login(void* framework) {

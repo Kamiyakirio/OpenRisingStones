@@ -4,7 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use zeroize::Zeroize;
 
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;
 pub const MAX_FRAME_SIZE: usize = 1024 * 1024;
 pub const PAYLOAD_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -48,6 +48,36 @@ pub struct GameSnapshot {
     pub sequence: u64,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Position3 {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActiveCharacterSnapshot {
+    pub content_id: String,
+    pub character_name: String,
+    pub entity_id: u32,
+    pub current_world_id: u16,
+    pub home_world_id: u16,
+    pub current_region: Option<String>,
+    pub home_region: Option<String>,
+    pub class_job_id: u8,
+    pub level: u8,
+    pub current_hp: u32,
+    pub max_hp: u32,
+    pub current_mp: u32,
+    pub max_mp: u32,
+    pub position: Position3,
+    pub territory_id: u32,
+    pub territory_load_state: u32,
+    pub connected_to_zone: bool,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RegionTarget {
@@ -62,6 +92,7 @@ pub struct RegionTarget {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Command {
     CaptureSnapshot,
+    CaptureActiveCharacter,
     ReturnToTitle,
     SwitchRegion { target: RegionTarget },
     TriggerLogin,
@@ -88,6 +119,9 @@ pub enum CommandResult {
     Ack,
     Snapshot {
         snapshot: GameSnapshot,
+    },
+    ActiveCharacter {
+        character: ActiveCharacterSnapshot,
     },
     RegionSwitched {
         #[serde(rename = "regionName")]

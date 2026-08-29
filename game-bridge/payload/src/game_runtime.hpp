@@ -26,6 +26,30 @@ struct GameSnapshot final {
   std::uint64_t sequence{};
 };
 
+struct Position3 final {
+  float x{};
+  float y{};
+  float z{};
+};
+
+struct ActiveCharacterSnapshot final {
+  std::string content_id;
+  std::string character_name;
+  std::uint32_t entity_id{};
+  std::uint16_t current_world_id{};
+  std::uint16_t home_world_id{};
+  std::uint8_t class_job_id{};
+  std::uint8_t level{};
+  std::uint32_t current_hp{};
+  std::uint32_t max_hp{};
+  std::uint32_t current_mp{};
+  std::uint32_t max_mp{};
+  Position3 position;
+  std::uint32_t territory_id{};
+  std::uint32_t territory_load_state{};
+  bool connected_to_zone{};
+};
+
 struct RegionTarget final {
   RegionTarget() = default;
   RegionTarget(const RegionTarget&) = delete;
@@ -44,6 +68,7 @@ struct RegionTarget final {
 
 enum class CommandKind {
   CaptureSnapshot,
+  CaptureActiveCharacter,
   ReturnToTitle,
   SwitchRegion,
   TriggerLogin,
@@ -54,6 +79,7 @@ struct CommandOutcome final {
   std::string code;
   std::string message;
   std::optional<GameSnapshot> snapshot;
+  std::optional<ActiveCharacterSnapshot> active_character;
   std::string region_name;
 };
 
@@ -85,6 +111,7 @@ class GameRuntime final {
   void drain_commands(void* framework);
   [[nodiscard]] CommandOutcome run_command(void* framework, PendingCommand& command);
   [[nodiscard]] CommandOutcome capture_snapshot(void* framework);
+  [[nodiscard]] CommandOutcome capture_active_character();
   [[nodiscard]] CommandOutcome return_to_title(void* framework);
   [[nodiscard]] CommandOutcome switch_region(void* framework, RegionTarget& target);
   [[nodiscard]] CommandOutcome trigger_login(void* framework);

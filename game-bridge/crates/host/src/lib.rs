@@ -13,6 +13,7 @@ mod process;
 
 pub use error::{BridgeError, BridgeResult};
 pub use game_bridge_protocol::{
-    Command, CommandError, CommandResult, GameSnapshot, RegionTarget, SecretValue,
+    ActiveCharacterSnapshot, Command, CommandError, CommandResult, GameSnapshot, Position3,
+    RegionTarget, SecretValue,
 };
 pub use manager::{BridgeManager, BridgePhase, BridgeStatus, ConnectOptions};

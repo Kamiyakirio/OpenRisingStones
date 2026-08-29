@@ -214,6 +214,8 @@ ResolvedAddresses AddressResolver::resolve() const {
   validate_module();
   return {
       reinterpret_cast<std::byte**>(resolve_one(manifest_.function("frameworkInstance"))),
+      reinterpret_cast<std::byte**>(resolve_one(manifest_.function("localPlayer"))),
+      resolve_one(manifest_.function("gameMain")),
       resolve_one(manifest_.function("getUiModule")),
       resolve_one(manifest_.function("getAgentByInternalId")),
       resolve_one(manifest_.function("utf8SetString")),

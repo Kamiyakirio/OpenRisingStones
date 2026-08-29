@@ -88,6 +88,7 @@ pub fn run() {
       game_bridge::game_bridge_status,
       game_bridge::game_bridge_connect,
       game_bridge::game_bridge_capture_snapshot,
+      game_bridge::game_bridge_capture_active_character,
       game_bridge::game_bridge_return_to_title,
       game_bridge::game_bridge_switch_region,
       game_bridge::game_bridge_trigger_login,

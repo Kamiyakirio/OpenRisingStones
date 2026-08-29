@@ -2,7 +2,9 @@
 
 use crate::error::{BridgeError, BridgeResult};
 use crate::world_map::WorldMap;
-use game_bridge_protocol::{Command, CommandResult, GameSnapshot, RegionTarget};
+use game_bridge_protocol::{
+    ActiveCharacterSnapshot, Command, CommandResult, GameSnapshot, RegionTarget,
+};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock, Weak};
@@ -251,6 +253,22 @@ impl BridgeManager {
             }
             _ => Err(BridgeError::InvalidData(
                 "unexpected capture response".to_owned(),
+            )),
+        }
+    }
+
+    pub fn capture_active_character(&self) -> BridgeResult<ActiveCharacterSnapshot> {
+        match self.send_command(Command::CaptureActiveCharacter)? {
+            CommandResult::ActiveCharacter { mut character } => {
+                self.inner
+                    .lock()
+                    .expect("bridge lock poisoned")
+                    .world_map
+                    .enrich_active(&mut character);
+                Ok(character)
+            }
+            _ => Err(BridgeError::InvalidData(
+                "unexpected active character response".to_owned(),
             )),
         }
     }

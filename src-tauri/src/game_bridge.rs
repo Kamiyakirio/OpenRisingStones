@@ -163,6 +163,30 @@ pub async fn game_bridge_capture_snapshot(
   .map_err(|error| error.to_string())?
 }
 
+#[cfg(windows)]
+#[tauri::command]
+pub async fn game_bridge_capture_active_character(
+  state: tauri::State<'_, GameBridgeState>,
+) -> Result<serde_json::Value, String> {
+  let manager = Arc::clone(&state.manager);
+  tauri::async_runtime::spawn_blocking(move || {
+    manager
+      .capture_active_character()
+      .map_err(|error| error.to_string())
+      .and_then(serialize)
+  })
+  .await
+  .map_err(|error| error.to_string())?
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+pub async fn game_bridge_capture_active_character(
+  _state: tauri::State<'_, GameBridgeState>,
+) -> Result<serde_json::Value, String> {
+  Err("The game bridge is only supported on Windows.".to_owned())
+}
+
 #[cfg(not(windows))]
 #[tauri::command]
 pub async fn game_bridge_capture_snapshot(

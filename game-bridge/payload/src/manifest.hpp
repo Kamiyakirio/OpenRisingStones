@@ -53,6 +53,23 @@ struct Layout final {
   std::size_t component_res_node{};
   std::size_t res_node_event{};
   std::size_t receive_event_vtable_index{};
+  std::size_t active_character_name{};
+  std::size_t active_character_name_capacity{};
+  std::size_t active_character_entity_id{};
+  std::size_t active_character_position{};
+  std::size_t active_character_data{};
+  std::size_t active_character_health{};
+  std::size_t active_character_max_health{};
+  std::size_t active_character_mana{};
+  std::size_t active_character_max_mana{};
+  std::size_t active_character_class_job{};
+  std::size_t active_character_level{};
+  std::size_t active_character_content_id{};
+  std::size_t active_character_current_world{};
+  std::size_t active_character_home_world{};
+  std::size_t game_main_connected_to_zone{};
+  std::size_t game_main_territory_load_state{};
+  std::size_t game_main_current_territory{};
 };
 
 struct VersionManifest final {

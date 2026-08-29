@@ -1,7 +1,7 @@
 //! Build-time world metadata used to enrich raw game snapshots outside the game process.
 
 use crate::{BridgeError, BridgeResult};
-use game_bridge_protocol::GameSnapshot;
+use game_bridge_protocol::{ActiveCharacterSnapshot, GameSnapshot};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
@@ -52,6 +52,11 @@ impl WorldMap {
     }
 
     pub(crate) fn enrich(&self, snapshot: &mut GameSnapshot) {
+        snapshot.current_region = self.regions.get(&snapshot.current_world_id).cloned();
+        snapshot.home_region = self.regions.get(&snapshot.home_world_id).cloned();
+    }
+
+    pub(crate) fn enrich_active(&self, snapshot: &mut ActiveCharacterSnapshot) {
         snapshot.current_region = self.regions.get(&snapshot.current_world_id).cloned();
         snapshot.home_region = self.regions.get(&snapshot.home_world_id).cloned();
     }

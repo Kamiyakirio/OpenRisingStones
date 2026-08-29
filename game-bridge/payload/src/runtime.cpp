@@ -66,7 +66,9 @@ void Runtime::start() {
       {"protocolVersion", kProtocolVersion},
       {"payloadVersion", kPayloadVersion},
       {"authToken", encoded_token},
-      {"capabilities", {"capture_snapshot", "return_to_title", "switch_region", "trigger_login"}},
+      {"capabilities",
+       {"capture_snapshot", "capture_active_character", "return_to_title", "switch_region",
+        "trigger_login"}},
   });
   SecureZeroMemory(encoded_token.data(), encoded_token.size());
   SecureZeroMemory(args_.auth_token.data(), args_.auth_token.size());
@@ -169,6 +171,9 @@ void Runtime::handle_command(nlohmann::json& message) {
   if (type == "capture_snapshot") {
     outcome = game_->execute(CommandKind::CaptureSnapshot, std::nullopt, kCommandTimeout);
     result_type = "snapshot";
+  } else if (type == "capture_active_character") {
+    outcome = game_->execute(CommandKind::CaptureActiveCharacter, std::nullopt, kCommandTimeout);
+    result_type = "active_character";
   } else if (type == "return_to_title") {
     outcome = game_->execute(CommandKind::ReturnToTitle, std::nullopt, kCommandTimeout);
   } else if (type == "switch_region") {
@@ -178,7 +183,8 @@ void Runtime::handle_command(nlohmann::json& message) {
   } else if (type == "trigger_login") {
     outcome = game_->execute(CommandKind::TriggerLogin, std::nullopt, kCommandTimeout);
   } else {
-    outcome = {false, "unsupported_command", "The command is not supported.", std::nullopt, {}};
+    outcome = {false, "unsupported_command", "The command is not supported.", std::nullopt,
+               std::nullopt, {}};
   }
   send_outcome(request_id, outcome, result_type);
 }
@@ -196,6 +202,9 @@ void Runtime::send_outcome(std::uint64_t request_id, const CommandOutcome& outco
   }
   nlohmann::json result = {{"type", result_type}};
   if (outcome.snapshot) result["snapshot"] = snapshot_json(*outcome.snapshot);
+  if (outcome.active_character) {
+    result["character"] = active_character_json(*outcome.active_character);
+  }
   if (!outcome.region_name.empty()) result["regionName"] = outcome.region_name;
   pipe_.send({
       {"type", "response"},
@@ -219,6 +228,29 @@ nlohmann::json Runtime::snapshot_json(const GameSnapshot& snapshot) {
       {"currentRegion", nullptr},
       {"homeRegion", nullptr},
       {"sequence", snapshot.sequence},
+  };
+}
+
+nlohmann::json Runtime::active_character_json(const ActiveCharacterSnapshot& character) {
+  return {
+      {"contentId", character.content_id},
+      {"characterName", character.character_name},
+      {"entityId", character.entity_id},
+      {"currentWorldId", character.current_world_id},
+      {"homeWorldId", character.home_world_id},
+      {"currentRegion", nullptr},
+      {"homeRegion", nullptr},
+      {"classJobId", character.class_job_id},
+      {"level", character.level},
+      {"currentHp", character.current_hp},
+      {"maxHp", character.max_hp},
+      {"currentMp", character.current_mp},
+      {"maxMp", character.max_mp},
+      {"position",
+       {{"x", character.position.x}, {"y", character.position.y}, {"z", character.position.z}}},
+      {"territoryId", character.territory_id},
+      {"territoryLoadState", character.territory_load_state},
+      {"connectedToZone", character.connected_to_zone},
   };
 }
 

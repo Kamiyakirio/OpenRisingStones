@@ -31,6 +31,8 @@ class Runtime final {
                     const std::string& result_type);
   void send_fault(const std::string& code, const std::string& message, bool fatal);
   [[nodiscard]] static nlohmann::json snapshot_json(const GameSnapshot& snapshot);
+  [[nodiscard]] static nlohmann::json active_character_json(
+      const ActiveCharacterSnapshot& character);
   [[nodiscard]] static std::string encode_token(const std::array<std::uint8_t, 32>& token);
 
   BootstrapArgs args_{};
