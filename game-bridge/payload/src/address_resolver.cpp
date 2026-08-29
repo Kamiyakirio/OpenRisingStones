@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <ranges>
 #include <sstream>
 #include <stdexcept>
@@ -99,6 +100,72 @@ std::string read_game_version(HMODULE module) {
   if (!stream) throw std::runtime_error("unable to read game version file");
   std::string version((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
   return trim(std::move(version));
+}
+
+std::filesystem::path get_module_path(HMODULE module) {
+  std::wstring module_path(32768, L'\0');
+  const auto length = GetModuleFileNameW(module, module_path.data(),
+                                         static_cast<DWORD>(module_path.size()));
+  if (length == 0 || length >= module_path.size()) {
+    throw std::runtime_error("unable to resolve game executable path");
+  }
+  module_path.resize(length);
+  return module_path;
+}
+
+std::vector<std::byte> read_raw_text_section(const std::filesystem::path& path) {
+  std::ifstream stream(path, std::ios::binary | std::ios::ate);
+  if (!stream) throw std::runtime_error("unable to open game executable");
+  const auto file_position = stream.tellg();
+  if (file_position <= std::streampos{0}) {
+    throw std::runtime_error("invalid game executable size");
+  }
+  const auto file_size = static_cast<std::uint64_t>(static_cast<std::streamoff>(file_position));
+  if (file_size > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
+    throw std::runtime_error("game executable is too large");
+  }
+  std::vector<std::byte> image(static_cast<std::size_t>(file_size));
+  stream.seekg(0, std::ios::beg);
+  stream.read(reinterpret_cast<char*>(image.data()), static_cast<std::streamsize>(image.size()));
+  if (!stream) throw std::runtime_error("unable to read game executable");
+
+  if (image.size() < sizeof(IMAGE_NT_HEADERS64)) {
+    throw std::runtime_error("truncated executable headers");
+  }
+  const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(image.data());
+  if (dos->e_magic != IMAGE_DOS_SIGNATURE || dos->e_lfanew < 0 ||
+      static_cast<std::size_t>(dos->e_lfanew) > image.size() - sizeof(IMAGE_NT_HEADERS64)) {
+    throw std::runtime_error("invalid executable DOS header");
+  }
+  const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(image.data() + dos->e_lfanew);
+  if (nt->Signature != IMAGE_NT_SIGNATURE ||
+      nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
+    throw std::runtime_error("invalid executable NT header");
+  }
+  const auto section_table_offset = static_cast<std::size_t>(dos->e_lfanew) +
+                                    offsetof(IMAGE_NT_HEADERS64, OptionalHeader) +
+                                    nt->FileHeader.SizeOfOptionalHeader;
+  const auto section_table_size =
+      static_cast<std::size_t>(nt->FileHeader.NumberOfSections) * sizeof(IMAGE_SECTION_HEADER);
+  if (section_table_offset > image.size() || section_table_size > image.size() - section_table_offset) {
+    throw std::runtime_error("truncated executable section table");
+  }
+
+  const auto* sections =
+      reinterpret_cast<const IMAGE_SECTION_HEADER*>(image.data() + section_table_offset);
+  for (std::uint16_t index = 0; index < nt->FileHeader.NumberOfSections; ++index) {
+    const std::string name(reinterpret_cast<const char*>(sections[index].Name),
+                           strnlen(reinterpret_cast<const char*>(sections[index].Name), 8));
+    if (name != ".text") continue;
+    const auto raw_offset = static_cast<std::size_t>(sections[index].PointerToRawData);
+    const auto raw_size = static_cast<std::size_t>(sections[index].SizeOfRawData);
+    if (raw_size == 0 || raw_offset > image.size() || raw_size > image.size() - raw_offset) {
+      throw std::runtime_error("invalid executable text section");
+    }
+    return {image.begin() + static_cast<std::ptrdiff_t>(raw_offset),
+            image.begin() + static_cast<std::ptrdiff_t>(raw_offset + raw_size)};
+  }
+  throw std::runtime_error("executable text section not found");
 }
 
 bool has_access(const void* address, std::size_t length, bool require_write) {
@@ -194,11 +261,8 @@ std::byte* AddressResolver::scan_unique(const std::string& pattern_text) const {
 
 void AddressResolver::validate_module() const {
   const auto module = reinterpret_cast<HMODULE>(module_base_);
-  std::wstring path(32768, L'\0');
-  const auto length = GetModuleFileNameW(module, path.data(), static_cast<DWORD>(path.size()));
-  if (length == 0 || length >= path.size()) throw std::runtime_error("unable to resolve module name");
-  path.resize(length);
-  const auto file_name = std::filesystem::path(path).filename().string();
+  const auto path = get_module_path(module);
+  const auto file_name = path.filename().string();
   if (_stricmp(file_name.c_str(), manifest_.module_name.c_str()) != 0) {
     throw std::runtime_error("unexpected main module name");
   }
@@ -208,7 +272,8 @@ void AddressResolver::validate_module() const {
   auto expected_hash = manifest_.text_sha256;
   std::ranges::transform(expected_hash, expected_hash.begin(),
                          [](const unsigned char value) { return static_cast<char>(std::tolower(value)); });
-  if (sha256(text_base_, text_size_) != expected_hash) {
+  const auto raw_text = read_raw_text_section(path);
+  if (sha256(raw_text.data(), raw_text.size()) != expected_hash) {
     throw std::runtime_error("executable text hash does not match the manifest");
   }
 }

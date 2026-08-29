@@ -1,5 +1,6 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "privateLayoutVerified": false,
   "gameVersion": "REPLACE_WITH_EXACT_GAME_VERSION",
   "module": {
     "name": "ffxiv_dx11.exe",

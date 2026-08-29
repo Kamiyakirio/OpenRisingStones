@@ -57,6 +57,7 @@ struct Layout final {
 
 struct VersionManifest final {
   std::uint32_t schema_version{};
+  bool private_layout_verified{};
   std::string game_version;
   std::string module_name;
   std::string text_sha256;

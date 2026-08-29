@@ -49,10 +49,11 @@ VersionManifest VersionManifest::load(const std::filesystem::path& path) {
 
   VersionManifest manifest;
   manifest.schema_version = document.at("schemaVersion").get<std::uint32_t>();
+  manifest.private_layout_verified = document.value("privateLayoutVerified", false);
   manifest.game_version = document.at("gameVersion").get<std::string>();
   manifest.module_name = document.at("module").at("name").get<std::string>();
   manifest.text_sha256 = document.at("module").at("textSha256").get<std::string>();
-  if (manifest.schema_version != 1) {
+  if (manifest.schema_version != 2) {
     throw std::runtime_error("unsupported version manifest schema");
   }
   require_non_empty(manifest.game_version, "gameVersion");

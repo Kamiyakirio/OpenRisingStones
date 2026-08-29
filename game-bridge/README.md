@@ -19,11 +19,25 @@ The payload validates all of the following before installing its Framework hook:
 
 1. Exact game version from `ffxivgame.ver`.
 2. Main executable filename.
-3. SHA-256 of the mapped `.text` section.
+3. SHA-256 of the executable's raw `.text` section.
 4. Exactly one match for every required signature.
 5. All resolved addresses remain inside the main module.
 
-The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
+Manifest schema 2 defines `textSha256` as the SHA-256 of the executable's raw `.text` section. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
+
+The template also sets `privateLayoutVerified` to `false`. The collector intentionally preserves that value. Snapshot collection remains available, but region switching is rejected until the private Lobby context fields have been verified against the exact target version.
+
+## Manifest collection
+
+Run the collector against an existing Windows game installation:
+
+```powershell
+.\game-bridge\collect-manifest.ps1 `
+  -GamePath "D:\Games\FFXIV\game" `
+  -ExpectedVersion "2026.08.05.0000.0000"
+```
+
+The collector reads `ffxivgame.ver`, parses the PE section table, hashes the raw `.text` bytes, verifies that every AOB matches exactly once, resolves direct and relative addresses to module RVAs, and writes the completed file under `config\manifests`. It does not derive private structure offsets.
 
 ## IPC
 

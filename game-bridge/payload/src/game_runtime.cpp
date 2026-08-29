@@ -286,6 +286,10 @@ CommandOutcome GameRuntime::return_to_title(void* framework) {
 }
 
 CommandOutcome GameRuntime::switch_region(void* framework, RegionTarget& target) {
+  if (!manifest_.private_layout_verified) {
+    return failure("private_layout_unverified",
+                   "The private Lobby layout has not been verified for this game version.");
+  }
   if (!valid_hostname(target.lobby_host) || !valid_hostname(target.save_data_host) ||
       !valid_hostname(target.gm_host) || target.region_name.empty() || target.game_session.empty() ||
       target.game_session.size() > 4096) {
