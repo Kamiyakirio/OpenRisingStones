@@ -354,6 +354,8 @@ LobbyUIClient.State   = +0x158
 
 - `game_bridge_status`
 - `game_bridge_connect`
+- `game_bridge_prepare`
+- `game_bridge_read`
 - `game_bridge_capture_snapshot`
 - `game_bridge_capture_active_character`
 - `game_bridge_capture_inventory`
@@ -362,7 +364,9 @@ LobbyUIClient.State   = +0x158
 - `game_bridge_trigger_login`
 - `game_bridge_disconnect`
 
-WebView 只能提供进程 ID 和单一 Manifest 文件名，不能指定任意 DLL 路径。DLL、世界映射和 Manifest 路径由 Rust 后端从受控资源目录解析。
+WebView 只能提供进程 ID、可选的单一 Manifest 文件名和固定语义的读取资源，不能指定任意 DLL 路径。DLL、世界映射和 Manifest 路径由 Rust 后端从受控资源目录解析。未指定 Manifest 时，后端自动选择资源目录中版本号最新的文件。
+
+`game_bridge_prepare` 负责复用已就绪连接、恢复故障连接、选择受控资源并等待握手完成。`game_bridge_read` 是推荐给新前端功能的版本化批量读取入口，当前支持 `active_character` 和 `inventory`。返回值包含 `schemaVersion`、各资源的可选结果和逐资源失败信息；Tauri 命令错误统一使用 `{ code, message }` 结构。
 
 `game_bridge_capture_active_character` 是只读注入诊断入口。进入游戏世界后，它返回：
 
@@ -384,13 +388,15 @@ WebView 只能提供进程 ID 和单一 Manifest 文件名，不能指定任意 
 ## 14. Windows 构建
 
 ```powershell
-.\game-bridge\build-windows.ps1 -Configuration Release -Compiler ClangCL
+.\game-bridge\build-windows.ps1 -Configuration Release
 ```
 
 支持：
 
 - `ClangCL`
 - `MSVC`
+
+默认使用 `MSVC`。两个编译器使用独立 CMake 构建目录，只有安装 Visual Studio ClangCL 工具集后才应显式选择 `-Compiler ClangCL`。
 
 目标固定为 Windows x64 和 `x86_64-pc-windows-msvc`。不考虑其他平台的 Payload 构建。
 

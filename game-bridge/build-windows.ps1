@@ -5,7 +5,7 @@ param(
   [string]$Configuration = "Release",
 
   [ValidateSet("MSVC", "ClangCL")]
-  [string]$Compiler = "ClangCL",
+  [string]$Compiler = "MSVC",
 
   [switch]$Clean
 )
@@ -18,7 +18,8 @@ if ($env:OS -ne "Windows_NT") {
 
 $BridgeRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $BuildRoot = Join-Path $BridgeRoot "build\windows"
-$PayloadBuild = Join-Path $BuildRoot "payload"
+$CompilerBuildName = "payload-{0}" -f $Compiler.ToLowerInvariant()
+$PayloadBuild = Join-Path $BuildRoot $CompilerBuildName
 $ArtifactRoot = Join-Path $BridgeRoot "artifacts\$Configuration\game-bridge"
 
 if ($Clean -and (Test-Path $BuildRoot)) {
@@ -70,11 +71,22 @@ if (Test-Path $PayloadPdb) {
 
 $ManifestSource = Join-Path $BridgeRoot "config\manifests"
 if (Test-Path $ManifestSource) {
-  Copy-Item -Recurse -Force $ManifestSource (Join-Path $ArtifactRoot "manifests")
+  $ManifestArtifactRoot = Join-Path $ArtifactRoot "manifests"
+  # Reset the directory so legacy builds cannot leave nested or stale manifests.
+  if (Test-Path $ManifestArtifactRoot) {
+    Remove-Item -LiteralPath $ManifestArtifactRoot -Recurse -Force
+  }
+  New-Item -ItemType Directory -Force -Path $ManifestArtifactRoot | Out-Null
+  Get-ChildItem -LiteralPath $ManifestSource -File -Filter "*.json" | ForEach-Object {
+    Copy-Item -LiteralPath $_.FullName -Destination $ManifestArtifactRoot -Force
+  }
 }
 $WorldMapSource = Join-Path $BridgeRoot "config\worlds-cn.json"
+if (-not (Test-Path $WorldMapSource)) {
+  $WorldMapSource = Join-Path $BridgeRoot "config\worlds-cn.example.json"
+}
 if (Test-Path $WorldMapSource) {
-  Copy-Item -Force $WorldMapSource $ArtifactRoot
+  Copy-Item -LiteralPath $WorldMapSource -Destination (Join-Path $ArtifactRoot "worlds-cn.json") -Force
 }
 
 Write-Host "Windows artifacts are available at $ArtifactRoot"

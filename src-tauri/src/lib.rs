@@ -87,6 +87,8 @@ pub fn run() {
       glamour::fetch_glamour_page,
       game_bridge::game_bridge_status,
       game_bridge::game_bridge_connect,
+      game_bridge::game_bridge_prepare,
+      game_bridge::game_bridge_read,
       game_bridge::game_bridge_capture_snapshot,
       game_bridge::game_bridge_capture_active_character,
       game_bridge::game_bridge_capture_inventory,

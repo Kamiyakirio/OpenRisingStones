@@ -7,11 +7,11 @@ This directory contains the Windows-only bridge between the desktop application 
 - `crates/host` owns process discovery, DLL loading, authenticated IPC, monitoring, world metadata, and semantic commands.
 - `crates/protocol` owns Rust wire types and the protocol version.
 - `payload` owns every in-process pointer access, address resolution, Framework-thread command, native call, and hook lifecycle.
-- `src-tauri/src/game_bridge.rs` is intentionally a thin adapter. It does not contain bridge implementation logic.
+- `src-tauri/src/game_bridge.rs` owns the typed desktop API, resource selection, lifecycle preparation, and versioned read batching. It does not contain process or game-memory implementation logic.
 
 The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed protocol commands defined by protocol version 3.
 
-The Tauri command accepts only a process ID and a single manifest filename. DLL and data paths are resolved from the packaged `game-bridge` resource directory, so webview input cannot select an arbitrary DLL. Debug builds may override that resource directory with `ORS_GAME_BRIDGE_DIR`.
+The Tauri API accepts only a process ID, an optional manifest filename, and fixed semantic read resources. DLL and data paths are resolved from the packaged `game-bridge` resource directory, so webview input cannot select an arbitrary DLL. When no manifest is supplied, the adapter selects the newest packaged manifest. Debug builds may override the resource directory with `ORS_GAME_BRIDGE_DIR`.
 
 ## Safety gates
 
@@ -52,6 +52,21 @@ console.log(character);
 
 The response includes character identity, current and home World IDs, class job, level, HP/MP, position, Territory ID, and zone load state. `not_in_world` means no LocalPlayer exists yet; `territory_not_ready` means the character is still zoning. This command does not require the private Lobby layout gate.
 
+## Versioned Tauri read API
+
+Frontend features should prefer the typed preparation and batch read commands:
+
+```ts
+await invoke("game_bridge_prepare", {
+  request: { processId: null, manifestFile: null },
+});
+const response = await invoke("game_bridge_read", {
+  request: { resources: ["active_character", "inventory"] },
+});
+```
+
+`game_bridge_prepare` reuses a ready connection, recovers a faulted connection, selects controlled resources, and waits for the payload handshake. `game_bridge_read` returns a `schemaVersion`, optional typed resource values, and per-resource failures so adding another semantic read does not require another frontend lifecycle implementation. Tauri failures use a stable `{ code, message }` envelope.
+
 ## Inventory diagnostic
 
 Use one read-only Tauri command for equipped items, four player inventory pages, the Armoury Chest, and the cached Glamour Dresser:
@@ -70,10 +85,10 @@ The payload has separate IPC and publisher threads. Neither performs game access
 
 ## Windows build
 
-Run from a Visual Studio Developer PowerShell:
+Run from PowerShell:
 
 ```powershell
-.\game-bridge\build-windows.ps1 -Configuration Release -Compiler ClangCL
+.\game-bridge\build-windows.ps1 -Configuration Release
 ```
 
 Requirements:
@@ -84,7 +99,7 @@ Requirements:
 - Git, because CMake downloads pinned C++ dependencies
 - Rust toolchain with `x86_64-pc-windows-msvc`
 
-Use `-Compiler MSVC` to build with `cl.exe`. The script intentionally supports Windows only.
+MSVC is the default. Use `-Compiler ClangCL` only when the Visual Studio ClangCL toolset is installed. Each compiler uses a separate CMake directory so switching toolsets does not corrupt an existing cache. The script intentionally supports Windows only.
 
 The output directory has the resource layout expected by the Tauri adapter:
 
