@@ -25,6 +25,7 @@ import type {
   InventoryItemSnapshot,
   PlayerInventorySnapshot,
 } from "../models/gameBridge";
+import type { ItemSheetInfo } from "../models/item";
 import type { TeleportWorkspaceViewModel } from "../viewmodels/useTeleportWorkspaceViewModel";
 import "./TeleportPage.css";
 
@@ -48,6 +49,8 @@ type DisplayItem = {
   linkedInventoryType: number | null;
   linkedSlot: number | null;
   setUnlockBits: number | null;
+  details: ItemSheetInfo | null;
+  glamourDetails: ItemSheetInfo | null;
 };
 
 type DisplayGroup = {
@@ -90,6 +93,9 @@ export function TeleportPage({ viewModel }: TeleportPageProps) {
     inventory,
     failures,
     error,
+    itemDetails,
+    itemMetadataError,
+    itemMetadataLoading,
     loading,
     disconnecting,
     query,
@@ -100,7 +106,10 @@ export function TeleportPage({ viewModel }: TeleportPageProps) {
     setQuery,
     setSelectedContainer,
   } = viewModel;
-  const groups = useMemo(() => buildDisplayGroups(inventory), [inventory]);
+  const groups = useMemo(
+    () => buildDisplayGroups(inventory, itemDetails),
+    [inventory, itemDetails],
+  );
   const visibleGroups = useMemo(
     () => filterGroups(groups, selectedContainer, query),
     [groups, query, selectedContainer],
@@ -190,7 +199,7 @@ export function TeleportPage({ viewModel }: TeleportPageProps) {
               <SectionHeading
                 icon={<Backpack />}
                 title="物品存储"
-                description="显示读取层返回的全部非空槽位。名称目录尚未接入，当前以物品 ID 标识。"
+                description="显示全部非空槽位，并按物品 ID 读取中文名称、图标和基础资料。"
               />
               {inventory && (
                 <dl className="inventory-totals">
@@ -218,11 +227,11 @@ export function TeleportPage({ viewModel }: TeleportPageProps) {
                 <div className="inventory-toolbar">
                   <label className="inventory-search">
                     <MagnifyingGlass aria-hidden="true" />
-                    <span className="sr-only">搜索物品 ID</span>
+                    <span className="sr-only">搜索物品名称或 ID</span>
                     <input
                       type="search"
                       value={query}
-                      placeholder="搜索物品 ID、投影 ID 或容器"
+                      placeholder="搜索名称、物品 ID、投影或容器"
                       onChange={(event) => setQuery(event.target.value)}
                     />
                   </label>
@@ -252,6 +261,8 @@ export function TeleportPage({ viewModel }: TeleportPageProps) {
 
                 <p className="inventory-result-count" aria-live="polite">
                   当前显示 {visibleItemCount.toLocaleString("zh-CN")} 个物品槽位
+                  {itemMetadataLoading && "，正在读取物品资料"}
+                  {itemMetadataError && `，${itemMetadataError}`}
                 </p>
                 {visibleGroups.length ? (
                   <div className="inventory-groups">
@@ -263,7 +274,7 @@ export function TeleportPage({ viewModel }: TeleportPageProps) {
                   <EmptyState
                     icon={<MagnifyingGlass />}
                     title="没有匹配的物品"
-                    description="请更换物品 ID 或容器关键词。"
+                    description="请更换物品名称、ID 或容器关键词。"
                   />
                 )}
               </>
@@ -436,14 +447,63 @@ function InventoryItem({ item }: { item: DisplayItem }) {
     <article className="inventory-item" role="listitem">
       <div className="inventory-item-mark" aria-hidden="true">
         <Package weight="duotone" />
+        {item.details?.iconUrl && (
+          <img
+            src={item.details.iconUrl}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={(event) => {
+              event.currentTarget.hidden = true;
+            }}
+          />
+        )}
       </div>
       <div className="inventory-item-main">
-        <span>物品 ID</span>
-        <strong>{item.isSymbolic ? "链接槽位" : item.itemId}</strong>
-        <small>槽位 {item.slot + 1}</small>
+        <span>{item.details?.category || "物品"}</span>
+        <strong title={item.details?.name}>
+          {item.isSymbolic
+            ? "链接槽位"
+            : item.details?.name || `物品 ${item.itemId}`}
+        </strong>
+        <small>
+          ID {item.itemId} / 槽位 {item.slot + 1}
+        </small>
       </div>
       <span className="inventory-quantity">×{item.quantity}</span>
+      {item.details?.description && (
+        <p
+          className="inventory-item-description"
+          title={item.details.description}
+        >
+          {item.details.description}
+        </p>
+      )}
       <dl className="inventory-item-meta">
+        {item.details && item.details.levelEquip > 1 && (
+          <div>
+            <dt>装备等级</dt>
+            <dd>{item.details.levelEquip}</dd>
+          </div>
+        )}
+        {item.details && item.details.levelItem > 1 && (
+          <div>
+            <dt>品级</dt>
+            <dd>{item.details.levelItem}</dd>
+          </div>
+        )}
+        {item.details && item.details.rarity > 1 && (
+          <div>
+            <dt>稀有度</dt>
+            <dd>{item.details.rarity}</dd>
+          </div>
+        )}
+        {item.details && item.details.stackSize > 1 && (
+          <div>
+            <dt>堆叠上限</dt>
+            <dd>{formatNumber(item.details.stackSize)}</dd>
+          </div>
+        )}
         {item.condition !== null && item.condition > 0 && (
           <div>
             <dt>耐久</dt>
@@ -453,7 +513,7 @@ function InventoryItem({ item }: { item: DisplayItem }) {
         {item.glamourId !== null && item.glamourId > 0 && (
           <div>
             <dt>投影</dt>
-            <dd>{item.glamourId}</dd>
+            <dd>{item.glamourDetails?.name || item.glamourId}</dd>
           </div>
         )}
         {stains.length > 0 && (
@@ -588,6 +648,7 @@ function TeleportLoadingState() {
 
 function buildDisplayGroups(
   inventory: PlayerInventorySnapshot | null,
+  itemDetails: ReadonlyMap<number, ItemSheetInfo>,
 ): DisplayGroup[] {
   if (!inventory) return [];
   const groups: DisplayGroup[] = inventory.containers.map((container) => ({
@@ -598,7 +659,7 @@ function buildDisplayGroups(
     capacity: container.size,
     cached: null,
     mayBeStale: false,
-    items: container.items.map(toDisplayItem),
+    items: container.items.map((item) => toDisplayItem(item, itemDetails)),
   }));
   groups.push({
     key: "glamour_dresser",
@@ -624,12 +685,17 @@ function buildDisplayGroups(
       linkedInventoryType: null,
       linkedSlot: null,
       setUnlockBits: item.setUnlockBits,
+      details: itemDetails.get(item.itemId) ?? null,
+      glamourDetails: null,
     })),
   });
   return groups;
 }
 
-function toDisplayItem(item: InventoryItemSnapshot): DisplayItem {
+function toDisplayItem(
+  item: InventoryItemSnapshot,
+  itemDetails: ReadonlyMap<number, ItemSheetInfo>,
+): DisplayItem {
   return {
     key: `${item.inventoryType}-${item.slot}-${item.itemId}`,
     itemId: item.itemId,
@@ -646,6 +712,9 @@ function toDisplayItem(item: InventoryItemSnapshot): DisplayItem {
     linkedInventoryType: item.linkedInventoryType,
     linkedSlot: item.linkedSlot,
     setUnlockBits: null,
+    details: itemDetails.get(item.itemId) ?? null,
+    glamourDetails:
+      item.glamourId > 0 ? (itemDetails.get(item.glamourId) ?? null) : null,
   };
 }
 
@@ -663,7 +732,15 @@ function filterGroups(
       ...group,
       items: normalizedQuery
         ? group.items.filter((item) =>
-            [group.label, item.itemId, item.glamourId ?? ""]
+            [
+              group.label,
+              item.itemId,
+              item.details?.name ?? "",
+              item.details?.description ?? "",
+              item.details?.category ?? "",
+              item.glamourId ?? "",
+              item.glamourDetails?.name ?? "",
+            ]
               .join(" ")
               .toLocaleLowerCase("zh-CN")
               .includes(normalizedQuery),

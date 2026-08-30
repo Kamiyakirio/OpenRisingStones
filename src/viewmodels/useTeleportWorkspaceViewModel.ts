@@ -7,6 +7,7 @@ import type {
   GameReadFailure,
   PlayerInventorySnapshot,
 } from "../models/gameBridge";
+import type { ItemSheetInfo } from "../models/item";
 import {
   disconnectGameBridge,
   normalizeGameBridgeError,
@@ -14,6 +15,8 @@ import {
   prepareGameBridge,
   readGameBridge,
 } from "../services/gameBridge";
+import { fetchItemSheetInfo } from "../services/itemSheetApi";
+import { collectInventoryItemIds } from "../utils/itemSheet";
 
 export function useTeleportWorkspaceViewModel() {
   const [status, setStatus] = useState<GameBridgeStatus | null>(null);
@@ -25,6 +28,13 @@ export function useTeleportWorkspaceViewModel() {
   );
   const [failures, setFailures] = useState<GameReadFailure[]>([]);
   const [error, setError] = useState<GameBridgeApiError | null>(null);
+  const [itemDetails, setItemDetails] = useState<
+    ReadonlyMap<number, ItemSheetInfo>
+  >(() => new Map());
+  const [itemMetadataError, setItemMetadataError] = useState<string | null>(
+    null,
+  );
+  const [itemMetadataLoading, setItemMetadataLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
   const [query, setQuery] = useState("");
@@ -39,6 +49,7 @@ export function useTeleportWorkspaceViewModel() {
       setLoading(true);
       setError(null);
       setFailures([]);
+      setItemMetadataError(null);
       try {
         const ready = await prepareGameBridge();
         setStatus(ready);
@@ -50,6 +61,24 @@ export function useTeleportWorkspaceViewModel() {
         setInventory(response.inventory);
         setFailures(response.failures);
         setLastUpdatedAt(new Date());
+        if (response.inventory) {
+          setItemMetadataLoading(true);
+          try {
+            setItemDetails(
+              await fetchItemSheetInfo(
+                collectInventoryItemIds(response.inventory),
+              ),
+            );
+          } catch {
+            setItemMetadataError(
+              "无法读取物品名称和资料，当前仍显示原始物品 ID。",
+            );
+          } finally {
+            setItemMetadataLoading(false);
+          }
+        } else {
+          setItemDetails(new Map());
+        }
       } catch (reason) {
         setError(normalizeGameBridgeError(reason));
       } finally {
@@ -94,6 +123,9 @@ export function useTeleportWorkspaceViewModel() {
       setCharacter(null);
       setInventory(null);
       setFailures([]);
+      setItemDetails(new Map());
+      setItemMetadataError(null);
+      setItemMetadataLoading(false);
       setLastUpdatedAt(null);
     } catch (reason) {
       setError(normalizeGameBridgeError(reason));
@@ -108,6 +140,9 @@ export function useTeleportWorkspaceViewModel() {
     inventory,
     failures,
     error,
+    itemDetails,
+    itemMetadataError,
+    itemMetadataLoading,
     loading,
     disconnecting,
     query,
