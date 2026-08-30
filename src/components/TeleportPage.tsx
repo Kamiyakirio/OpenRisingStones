@@ -800,6 +800,7 @@ function gameBridgeErrorTitle(code: string) {
   if (code === "payload_already_initialized") return "游戏读取已被占用";
   if (code === "process_not_found") return "没有找到游戏进程";
   if (code === "windows_operation_failed") return "无法访问游戏进程";
+  if (code === "unsupported_platform") return "当前平台不支持游戏读取";
   if (code === "bridge_asset_missing" || code === "bridge_manifest_missing") {
     return "读取层资源不完整";
   }
@@ -822,6 +823,9 @@ function gameBridgeErrorMessage(error: GameBridgeApiError) {
   }
   if (error.code === "windows_operation_failed") {
     return "请使用管理员权限启动 OpenRisingStones。";
+  }
+  if (error.code === "unsupported_platform") {
+    return "游戏读取功能仅支持 Windows 桌面端，请在 Windows 上打开 OpenRisingStones。";
   }
   if (error.code === "not_in_world") {
     return "当前没有 LocalPlayer。请登录角色并进入游戏世界。";

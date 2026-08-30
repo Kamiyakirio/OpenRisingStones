@@ -2,6 +2,8 @@
 
 mod avatar;
 mod elevation;
+#[cfg_attr(windows, path = "game_bridge.rs")]
+#[cfg_attr(not(windows), path = "game_bridge_unsupported.rs")]
 mod game_bridge;
 mod glamour;
 mod glamour_verification;

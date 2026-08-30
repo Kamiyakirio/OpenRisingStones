@@ -5,24 +5,16 @@ use game_bridge_host::{
   GameSnapshot, PlayerInventorySnapshot, RegionTarget, SecretValue,
 };
 use serde::{Deserialize, Serialize};
-#[cfg(windows)]
 use std::collections::HashSet;
-#[cfg(windows)]
 use std::path::{Path, PathBuf};
-#[cfg(windows)]
 use std::sync::Arc;
-#[cfg(windows)]
 use std::time::{Duration, Instant};
-use tauri::AppHandle;
-#[cfg(windows)]
-use tauri::Emitter;
-#[cfg(all(windows, not(debug_assertions)))]
+#[cfg(not(debug_assertions))]
 use tauri::Manager;
+use tauri::{AppHandle, Emitter};
 
-#[cfg(windows)]
 const STATUS_EVENT: &str = "game-bridge://status";
 const READ_SCHEMA_VERSION: u32 = 1;
-#[cfg(windows)]
 const READY_TIMEOUT: Duration = Duration::from_secs(20);
 
 type ApiResult<T> = Result<T, GameBridgeApiError>;
@@ -127,60 +119,48 @@ pub struct SwitchRegionRequest {
 }
 
 pub struct GameBridgeState {
-  #[cfg(windows)]
   manager: Arc<BridgeManager>,
-  #[cfg(windows)]
   asset_root: PathBuf,
 }
 
 impl GameBridgeState {
   pub fn new(app_handle: AppHandle) -> Result<Self, std::io::Error> {
-    #[cfg(windows)]
-    {
-      let manager = BridgeManager::new();
-      let event_handle = app_handle.clone();
-      manager.observe(Arc::new(move |status| {
-        let _ = event_handle.emit(STATUS_EVENT, status);
-      }));
-      #[cfg(debug_assertions)]
-      let asset_root = std::env::var_os("ORS_GAME_BRIDGE_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-          PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("game-bridge")
-            .join("artifacts")
-            .join("Debug")
-            .join("game-bridge")
-        });
-      #[cfg(not(debug_assertions))]
-      let asset_root = app_handle
-        .path()
-        .resource_dir()
-        .map_err(|error| std::io::Error::other(error.to_string()))?
-        .join("game-bridge");
-      Ok(Self {
-        manager,
-        asset_root,
-      })
-    }
-    #[cfg(not(windows))]
-    {
-      let _ = app_handle;
-      Ok(Self {})
-    }
+    let manager = BridgeManager::new();
+    let event_handle = app_handle.clone();
+    manager.observe(Arc::new(move |status| {
+      let _ = event_handle.emit(STATUS_EVENT, status);
+    }));
+    #[cfg(debug_assertions)]
+    let asset_root = std::env::var_os("ORS_GAME_BRIDGE_DIR")
+      .map(PathBuf::from)
+      .unwrap_or_else(|| {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+          .join("..")
+          .join("game-bridge")
+          .join("artifacts")
+          .join("Debug")
+          .join("game-bridge")
+      });
+    #[cfg(not(debug_assertions))]
+    let asset_root = app_handle
+      .path()
+      .resource_dir()
+      .map_err(|error| std::io::Error::other(error.to_string()))?
+      .join("game-bridge");
+    Ok(Self {
+      manager,
+      asset_root,
+    })
   }
 
   /// Disconnects and unloads the payload before the desktop process exits.
   pub fn shutdown(&self) {
-    #[cfg(windows)]
     if !matches!(self.manager.status().phase, BridgePhase::Disconnected) {
       let _ = self.manager.disconnect();
     }
   }
 }
 
-#[cfg(windows)]
 async fn run_bridge_task<T, F>(task: F) -> ApiResult<T>
 where
   T: Send + 'static,
@@ -191,7 +171,6 @@ where
     .map_err(|error| GameBridgeApiError::new("task_failed", error.to_string()))?
 }
 
-#[cfg(windows)]
 fn connect_options(
   asset_root: &Path,
   process_id: Option<u32>,
@@ -209,7 +188,6 @@ fn connect_options(
   })
 }
 
-#[cfg(windows)]
 fn ensure_file(path: &Path, label: &str) -> ApiResult<()> {
   if path.is_file() {
     Ok(())
@@ -221,7 +199,6 @@ fn ensure_file(path: &Path, label: &str) -> ApiResult<()> {
   }
 }
 
-#[cfg(windows)]
 fn resolve_manifest_path(asset_root: &Path, requested: Option<&str>) -> ApiResult<PathBuf> {
   let manifest_root = asset_root.join("manifests");
   if let Some(value) = requested {
@@ -259,7 +236,6 @@ fn resolve_manifest_path(asset_root: &Path, requested: Option<&str>) -> ApiResul
   })
 }
 
-#[cfg(windows)]
 fn validate_manifest_file(value: &str) -> ApiResult<String> {
   let path = Path::new(value);
   let is_single_component = path.components().count() == 1 && path.file_name().is_some();
@@ -275,7 +251,6 @@ fn validate_manifest_file(value: &str) -> ApiResult<String> {
   Ok(value.to_owned())
 }
 
-#[cfg(windows)]
 fn prepare_bridge(
   manager: &Arc<BridgeManager>,
   options: ConnectOptions,
@@ -324,7 +299,6 @@ fn prepare_bridge(
   }
 }
 
-#[cfg(windows)]
 fn read_resources(
   manager: &BridgeManager,
   request: GameReadRequest,
@@ -370,19 +344,11 @@ fn read_resources(
   Ok(response)
 }
 
-#[cfg(windows)]
 #[tauri::command]
 pub fn game_bridge_status(state: tauri::State<'_, GameBridgeState>) -> ApiResult<BridgeStatus> {
   Ok(state.manager.status())
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub fn game_bridge_status(_state: tauri::State<'_, GameBridgeState>) -> ApiResult<BridgeStatus> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(windows)]
 #[tauri::command]
 pub async fn game_bridge_connect(
   state: tauri::State<'_, GameBridgeState>,
@@ -397,16 +363,6 @@ pub async fn game_bridge_connect(
   run_bridge_task(move || manager.connect(options).map_err(Into::into)).await
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub async fn game_bridge_connect(
-  _state: tauri::State<'_, GameBridgeState>,
-  _request: ConnectRequest,
-) -> ApiResult<BridgeStatus> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(windows)]
 #[tauri::command]
 pub async fn game_bridge_prepare(
   state: tauri::State<'_, GameBridgeState>,
@@ -421,16 +377,6 @@ pub async fn game_bridge_prepare(
   run_bridge_task(move || prepare_bridge(&manager, options)).await
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub async fn game_bridge_prepare(
-  _state: tauri::State<'_, GameBridgeState>,
-  _request: PrepareRequest,
-) -> ApiResult<BridgeStatus> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(windows)]
 #[tauri::command]
 pub async fn game_bridge_read(
   state: tauri::State<'_, GameBridgeState>,
@@ -440,16 +386,6 @@ pub async fn game_bridge_read(
   run_bridge_task(move || read_resources(&manager, request)).await
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub async fn game_bridge_read(
-  _state: tauri::State<'_, GameBridgeState>,
-  _request: GameReadRequest,
-) -> ApiResult<GameReadResponse> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(windows)]
 #[tauri::command]
 pub async fn game_bridge_capture_snapshot(
   state: tauri::State<'_, GameBridgeState>,
@@ -458,15 +394,6 @@ pub async fn game_bridge_capture_snapshot(
   run_bridge_task(move || manager.capture_snapshot().map_err(Into::into)).await
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub async fn game_bridge_capture_snapshot(
-  _state: tauri::State<'_, GameBridgeState>,
-) -> ApiResult<GameSnapshot> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(windows)]
 #[tauri::command]
 pub async fn game_bridge_capture_active_character(
   state: tauri::State<'_, GameBridgeState>,
@@ -475,15 +402,6 @@ pub async fn game_bridge_capture_active_character(
   run_bridge_task(move || manager.capture_active_character().map_err(Into::into)).await
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub async fn game_bridge_capture_active_character(
-  _state: tauri::State<'_, GameBridgeState>,
-) -> ApiResult<ActiveCharacterSnapshot> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(windows)]
 #[tauri::command]
 pub async fn game_bridge_capture_inventory(
   state: tauri::State<'_, GameBridgeState>,
@@ -492,15 +410,6 @@ pub async fn game_bridge_capture_inventory(
   run_bridge_task(move || manager.capture_inventory().map_err(Into::into)).await
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub async fn game_bridge_capture_inventory(
-  _state: tauri::State<'_, GameBridgeState>,
-) -> ApiResult<PlayerInventorySnapshot> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(windows)]
 #[tauri::command]
 pub async fn game_bridge_return_to_title(
   state: tauri::State<'_, GameBridgeState>,
@@ -509,15 +418,6 @@ pub async fn game_bridge_return_to_title(
   run_bridge_task(move || manager.return_to_title().map_err(Into::into)).await
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub async fn game_bridge_return_to_title(
-  _state: tauri::State<'_, GameBridgeState>,
-) -> ApiResult<()> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(windows)]
 #[tauri::command]
 pub async fn game_bridge_switch_region(
   state: tauri::State<'_, GameBridgeState>,
@@ -538,29 +438,12 @@ pub async fn game_bridge_switch_region(
   .await
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub async fn game_bridge_switch_region(
-  _state: tauri::State<'_, GameBridgeState>,
-  _request: SwitchRegionRequest,
-) -> ApiResult<String> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(windows)]
 #[tauri::command]
 pub async fn game_bridge_trigger_login(state: tauri::State<'_, GameBridgeState>) -> ApiResult<()> {
   let manager = Arc::clone(&state.manager);
   run_bridge_task(move || manager.trigger_login().map_err(Into::into)).await
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub async fn game_bridge_trigger_login(_state: tauri::State<'_, GameBridgeState>) -> ApiResult<()> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(windows)]
 #[tauri::command]
 pub async fn game_bridge_disconnect(
   state: tauri::State<'_, GameBridgeState>,
@@ -569,15 +452,7 @@ pub async fn game_bridge_disconnect(
   run_bridge_task(move || manager.disconnect().map_err(Into::into)).await
 }
 
-#[cfg(not(windows))]
-#[tauri::command]
-pub async fn game_bridge_disconnect(
-  _state: tauri::State<'_, GameBridgeState>,
-) -> ApiResult<BridgeStatus> {
-  Err(BridgeError::UnsupportedPlatform.into())
-}
-
-#[cfg(all(test, windows))]
+#[cfg(test)]
 mod tests {
   use super::{validate_manifest_file, GameBridgeApiError};
   use game_bridge_host::BridgeError;
