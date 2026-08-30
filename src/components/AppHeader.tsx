@@ -16,7 +16,7 @@ import type { LoginProfile } from "../models/auth";
 
 type AppHeaderProps = {
   dark: boolean;
-  feature: "glamour" | "recruit";
+  feature: "glamour" | "recruit" | "teleport";
   recruitSection?: "feed" | "advanced";
   profile: LoginProfile | null;
   onGoHome: () => void;
@@ -54,7 +54,7 @@ export function AppHeader({
         </span>
         <span>
           <strong>OpenRisingStone</strong>
-          <small>{feature === "recruit" ? "RECRUIT" : "GLAMOUR"}</small>
+          <small>{feature.toUpperCase()}</small>
         </span>
       </button>
       <nav className="main-nav" aria-label="主导航">
@@ -75,13 +75,20 @@ export function AppHeader({
               高级筛选
             </button>
           </>
-        ) : (
+        ) : feature === "glamour" ? (
           <>
             <a className="active" href="#discover">
               推荐
             </a>
             <a href="#wardrobe">衣橱</a>
             <a href="#collections">收藏夹</a>
+          </>
+        ) : (
+          <>
+            <a className="active" href="#teleport-character">
+              当前角色
+            </a>
+            <a href="#teleport-inventory">物品存储</a>
           </>
         )}
       </nav>

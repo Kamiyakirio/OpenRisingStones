@@ -6,11 +6,12 @@ import { SDO_AUTHENTICATION_REQUIRED_EVENT } from "../services/authEvents";
 import { getSdoLoginStatus, logoutSdo } from "../services/sdoLogin";
 import { isTauriRuntime } from "../services/runtime";
 
-export type ActiveFeature = "home" | "glamour" | "recruit";
+export type ActiveFeature = "home" | "glamour" | "recruit" | "teleport";
 
 export function useAppViewModel() {
   const [dark, setDark] = useState(false);
-  const [activeFeature, setActiveFeature] = useState<ActiveFeature>("home");
+  const [activeFeature, setActiveFeature] =
+    useState<ActiveFeature>(readInitialFeature);
   const [loginOpen, setLoginOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [loginProfile, setLoginProfile] = useState<LoginProfile | null>(null);
@@ -75,9 +76,22 @@ export function useAppViewModel() {
     setLoginExpired(false);
     setLoginChecking(false);
   }, []);
-  const openGlamour = useCallback(() => setActiveFeature("glamour"), []);
-  const openRecruit = useCallback(() => setActiveFeature("recruit"), []);
-  const goHome = useCallback(() => setActiveFeature("home"), []);
+  const openGlamour = useCallback(
+    () => navigateToFeature(setActiveFeature, "glamour"),
+    [],
+  );
+  const openRecruit = useCallback(
+    () => navigateToFeature(setActiveFeature, "recruit"),
+    [],
+  );
+  const openTeleport = useCallback(
+    () => navigateToFeature(setActiveFeature, "teleport"),
+    [],
+  );
+  const goHome = useCallback(
+    () => navigateToFeature(setActiveFeature, "home"),
+    [],
+  );
   const toggleTheme = useCallback(() => setDark((current) => !current), []);
   const openLogin = useCallback(() => setLoginOpen(true), []);
   const closeLogin = useCallback(() => setLoginOpen(false), []);
@@ -100,6 +114,7 @@ export function useAppViewModel() {
     loginExpired,
     openGlamour,
     openRecruit,
+    openTeleport,
     goHome,
     toggleTheme,
     openLogin,
@@ -117,6 +132,30 @@ type BackendLogPayload = {
   message: string;
   level: string;
 };
+
+function readInitialFeature(): ActiveFeature {
+  const feature = window.location.hash.slice(1);
+  // Section hashes preserve the owning workspace when the webview reloads.
+  if (feature.startsWith("teleport-")) return "teleport";
+  return feature === "glamour" ||
+    feature === "recruit" ||
+    feature === "teleport"
+    ? feature
+    : "home";
+}
+
+function navigateToFeature(
+  setFeature: (feature: ActiveFeature) => void,
+  feature: ActiveFeature,
+) {
+  const hash = feature === "home" ? "" : `#${feature}`;
+  window.history.replaceState(
+    null,
+    "",
+    `${window.location.pathname}${window.location.search}${hash}`,
+  );
+  setFeature(feature);
+}
 
 function writeNetworkConsole(message: string) {
   try {

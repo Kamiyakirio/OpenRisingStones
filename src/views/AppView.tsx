@@ -4,6 +4,7 @@ import { SettingsDialog } from "../components/SettingsDialog";
 import type { AppViewModel } from "../viewmodels/useAppViewModel";
 import { GlamourWorkspaceView } from "./GlamourWorkspaceView";
 import { RecruitWorkspaceView } from "./RecruitWorkspaceView";
+import { TeleportWorkspaceView } from "./TeleportWorkspaceView";
 
 type AppViewProps = {
   viewModel: AppViewModel;
@@ -19,6 +20,7 @@ export function AppView({ viewModel }: AppViewProps) {
           dark={viewModel.dark}
           onOpenGlamour={viewModel.openGlamour}
           onOpenRecruit={viewModel.openRecruit}
+          onOpenTeleport={viewModel.openTeleport}
           onOpenSettings={viewModel.openSettings}
           onToggleTheme={viewModel.toggleTheme}
         />
@@ -37,8 +39,21 @@ export function AppView({ viewModel }: AppViewProps) {
           onLoginSuccess={viewModel.loginSucceeded}
           onLogout={viewModel.logout}
         />
-      ) : (
+      ) : viewModel.activeFeature === "recruit" ? (
         <RecruitWorkspaceView
+          dark={viewModel.dark}
+          loginOpen={viewModel.loginOpen}
+          profile={viewModel.loginProfile}
+          onCloseLogin={viewModel.closeLogin}
+          onGoHome={viewModel.goHome}
+          onToggleTheme={viewModel.toggleTheme}
+          onOpenLogin={viewModel.openLogin}
+          onOpenSettings={viewModel.openSettings}
+          onLoginSuccess={viewModel.loginSucceeded}
+          onLogout={viewModel.logout}
+        />
+      ) : (
+        <TeleportWorkspaceView
           dark={viewModel.dark}
           loginOpen={viewModel.loginOpen}
           profile={viewModel.loginProfile}

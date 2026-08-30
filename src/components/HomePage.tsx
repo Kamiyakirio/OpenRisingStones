@@ -17,6 +17,7 @@ type HomePageProps = {
   dark: boolean;
   onOpenRecruit: () => void;
   onOpenGlamour: () => void;
+  onOpenTeleport: () => void;
   onOpenSettings: () => void;
   onToggleTheme: () => void;
 };
@@ -25,6 +26,7 @@ export function HomePage({
   dark,
   onOpenRecruit,
   onOpenGlamour,
+  onOpenTeleport,
   onOpenSettings,
   onToggleTheme,
 }: HomePageProps) {
@@ -86,7 +88,7 @@ export function HomePage({
           name="超域传送"
           englishName="Regional Teleport"
           description="规划跨区路线，快速抵达目的地。"
-          disabled
+          onClick={onOpenTeleport}
         />
       </section>
 
