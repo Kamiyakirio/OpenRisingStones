@@ -59,6 +59,12 @@ export async function disconnectGameBridge() {
   return invoke<GameBridgeStatus>("game_bridge_disconnect");
 }
 
+/** Relaunches the desktop process through the Windows UAC prompt. */
+export function restartAsAdministrator() {
+  requireDesktopRuntime();
+  return invoke<void>("restart_as_administrator");
+}
+
 export async function observeGameBridgeStatus(
   observer: (status: GameBridgeStatus) => void,
 ): Promise<UnlistenFn> {

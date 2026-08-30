@@ -14,6 +14,7 @@ import {
   observeGameBridgeStatus,
   prepareGameBridge,
   readGameBridge,
+  restartAsAdministrator,
 } from "../services/gameBridge";
 import { fetchItemSheetInfo } from "../services/itemSheetApi";
 import { collectInventoryItemIds } from "../utils/itemSheet";
@@ -37,6 +38,7 @@ export function useTeleportWorkspaceViewModel() {
   const [itemMetadataLoading, setItemMetadataLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [elevating, setElevating] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedContainer, setSelectedContainer] = useState("all");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -134,6 +136,16 @@ export function useTeleportWorkspaceViewModel() {
     }
   }, []);
 
+  const requestElevation = useCallback(async () => {
+    setElevating(true);
+    try {
+      await restartAsAdministrator();
+    } catch (reason) {
+      setError(normalizeGameBridgeError(reason));
+      setElevating(false);
+    }
+  }, []);
+
   return {
     status,
     character,
@@ -145,11 +157,13 @@ export function useTeleportWorkspaceViewModel() {
     itemMetadataLoading,
     loading,
     disconnecting,
+    elevating,
     query,
     selectedContainer,
     lastUpdatedAt,
     refresh,
     disconnect,
+    requestElevation,
     setQuery,
     setSelectedContainer,
   };

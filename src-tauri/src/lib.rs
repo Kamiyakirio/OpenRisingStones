@@ -1,6 +1,7 @@
 //! OpenRisingStones 桌面端后端入口及对前端开放的受控命令。
 
 mod avatar;
+mod elevation;
 mod game_bridge;
 mod glamour;
 mod glamour_verification;
@@ -83,6 +84,7 @@ pub fn run() {
     })
     .invoke_handler(tauri::generate_handler![
       avatar::fetch_rising_stones_avatar,
+      elevation::restart_as_administrator,
       glamour::fetch_glamour_detail,
       glamour::fetch_glamour_page,
       game_bridge::game_bridge_status,

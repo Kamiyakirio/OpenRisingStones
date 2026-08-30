@@ -98,11 +98,13 @@ export function TeleportPage({ viewModel }: TeleportPageProps) {
     itemMetadataLoading,
     loading,
     disconnecting,
+    elevating,
     query,
     selectedContainer,
     lastUpdatedAt,
     refresh,
     disconnect,
+    requestElevation,
     setQuery,
     setSelectedContainer,
   } = viewModel;
@@ -168,7 +170,14 @@ export function TeleportPage({ viewModel }: TeleportPageProps) {
         </div>
       </section>
 
-      {error && <BridgeErrorBanner error={error} onRetry={refresh} />}
+      {error && (
+        <BridgeErrorBanner
+          error={error}
+          elevating={elevating}
+          onRetry={refresh}
+          onRequestElevation={requestElevation}
+        />
+      )}
       {failures.map((failure) => (
         <ReadFailureBanner key={failure.resource} failure={failure} />
       ))}
@@ -577,11 +586,20 @@ function SectionHeading({
 
 function BridgeErrorBanner({
   error,
+  elevating,
   onRetry,
+  onRequestElevation,
 }: {
   error: GameBridgeApiError;
+  elevating: boolean;
   onRetry: () => Promise<void>;
+  onRequestElevation: () => Promise<void>;
 }) {
+  const requiresElevation = [
+    "windows_operation_failed",
+    "elevation_denied",
+    "elevation_launch_failed",
+  ].includes(error.code);
   return (
     <div className="teleport-error" role="alert">
       <WarningCircle weight="fill" />
@@ -590,8 +608,18 @@ function BridgeErrorBanner({
         <p>{gameBridgeErrorMessage(error)}</p>
         <code>{error.code}</code>
       </div>
-      <button type="button" onClick={() => void onRetry()}>
-        重试
+      <button
+        type="button"
+        disabled={elevating}
+        onClick={() =>
+          void (requiresElevation ? onRequestElevation() : onRetry())
+        }
+      >
+        {requiresElevation
+          ? elevating
+            ? "正在请求授权…"
+            : "授权并重启"
+          : "重试"}
       </button>
     </div>
   );
@@ -767,6 +795,8 @@ function formatCondition(value: number) {
 }
 
 function gameBridgeErrorTitle(code: string) {
+  if (code === "elevation_denied") return "未授予管理员权限";
+  if (code === "elevation_launch_failed") return "无法请求管理员权限";
   if (code === "payload_already_initialized") return "游戏读取已被占用";
   if (code === "process_not_found") return "没有找到游戏进程";
   if (code === "windows_operation_failed") return "无法访问游戏进程";
@@ -778,6 +808,12 @@ function gameBridgeErrorTitle(code: string) {
 }
 
 function gameBridgeErrorMessage(error: GameBridgeApiError) {
+  if (error.code === "elevation_denied") {
+    return "UAC 请求已取消。读取游戏进程需要管理员权限，可再次点击授权并重启。";
+  }
+  if (error.code === "elevation_launch_failed") {
+    return "无法启动管理员实例，请检查 Windows UAC 设置后重试。";
+  }
   if (error.code === "payload_already_initialized") {
     return "游戏读取层正被另一个 OpenRisingStones 实例使用。请关闭另一个实例后重试；若其已异常退出，请稍等后重试，仍失败则重启游戏。";
   }
