@@ -767,6 +767,7 @@ function formatCondition(value: number) {
 }
 
 function gameBridgeErrorTitle(code: string) {
+  if (code === "payload_already_initialized") return "游戏读取已被占用";
   if (code === "process_not_found") return "没有找到游戏进程";
   if (code === "windows_operation_failed") return "无法访问游戏进程";
   if (code === "bridge_asset_missing" || code === "bridge_manifest_missing") {
@@ -777,6 +778,9 @@ function gameBridgeErrorTitle(code: string) {
 }
 
 function gameBridgeErrorMessage(error: GameBridgeApiError) {
+  if (error.code === "payload_already_initialized") {
+    return "游戏读取层正被另一个 OpenRisingStones 实例使用。请关闭另一个实例后重试；若其已异常退出，请稍等后重试，仍失败则重启游戏。";
+  }
   if (error.code === "process_not_found") {
     return "请先启动游戏，再重新连接。";
   }

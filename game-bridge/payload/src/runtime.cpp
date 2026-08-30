@@ -98,6 +98,10 @@ void Runtime::stop() {
   }
 }
 
+bool Runtime::is_restartable() const noexcept {
+  return stopping_.load(std::memory_order_acquire) || stopped_.load(std::memory_order_acquire);
+}
+
 void Runtime::ipc_loop() {
   try {
     while (!stopping_.load(std::memory_order_acquire)) {

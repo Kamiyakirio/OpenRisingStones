@@ -123,6 +123,12 @@ pub fn run() {
   }
 
   app.run(move |app_handle, event| {
+    if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
+      if let Some(state) = app_handle.try_state::<game_bridge::GameBridgeState>() {
+        state.shutdown();
+      }
+    }
+
     // Restore normal Dock and user-initiated focus behavior after launch finishes.
     #[cfg(target_os = "macos")]
     if !should_focus && matches!(event, tauri::RunEvent::Ready) {

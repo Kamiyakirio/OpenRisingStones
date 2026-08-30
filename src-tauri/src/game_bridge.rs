@@ -57,6 +57,7 @@ impl From<BridgeError> for GameBridgeApiError {
       BridgeError::MultipleProcesses => "multiple_processes",
       BridgeError::UnexpectedProcess => "unexpected_process",
       BridgeError::InvalidPath(_) => "invalid_path",
+      BridgeError::InitializationRejected(2) => "payload_already_initialized",
       BridgeError::InitializationRejected(_) => "initialization_rejected",
       BridgeError::ProtocolMismatch { .. } => "protocol_mismatch",
       BridgeError::Timeout(_) => "bridge_timeout",
@@ -167,6 +168,14 @@ impl GameBridgeState {
     {
       let _ = app_handle;
       Ok(Self {})
+    }
+  }
+
+  /// Disconnects and unloads the payload before the desktop process exits.
+  pub fn shutdown(&self) {
+    #[cfg(windows)]
+    if !matches!(self.manager.status().phase, BridgePhase::Disconnected) {
+      let _ = self.manager.disconnect();
     }
   }
 }
@@ -570,7 +579,14 @@ pub async fn game_bridge_disconnect(
 
 #[cfg(all(test, windows))]
 mod tests {
-  use super::validate_manifest_file;
+  use super::{validate_manifest_file, GameBridgeApiError};
+  use game_bridge_host::BridgeError;
+
+  #[test]
+  fn duplicate_payload_has_a_stable_error_code() {
+    let error = GameBridgeApiError::from(BridgeError::InitializationRejected(2));
+    assert_eq!(error.code, "payload_already_initialized");
+  }
 
   #[test]
   fn manifest_file_accepts_a_single_json_name() {

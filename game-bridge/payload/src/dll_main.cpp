@@ -17,7 +17,11 @@ std::unique_ptr<bridge::Runtime> g_runtime;
 extern "C" __declspec(dllexport) DWORD WINAPI bridge_initialize(void* raw_args) {
   if (!raw_args) return 1;
   std::lock_guard lock(g_runtime_mutex);
-  if (g_runtime) return 2;
+  if (g_runtime) {
+    if (!g_runtime->is_restartable()) return 2;
+    g_runtime->stop();
+    g_runtime.reset();
+  }
   try {
     const auto args = *static_cast<const bridge::BootstrapArgs*>(raw_args);
     auto runtime = std::make_unique<bridge::Runtime>(args);

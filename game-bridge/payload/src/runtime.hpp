@@ -23,6 +23,9 @@ class Runtime final {
   void start();
   void stop();
 
+  /// Returns true after the host connection has begun shutting down.
+  [[nodiscard]] bool is_restartable() const noexcept;
+
  private:
   void ipc_loop();
   void publisher_loop();
