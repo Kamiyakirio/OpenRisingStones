@@ -1,0 +1,908 @@
+/**
+ * Regional Teleport diagnostics use 16px data surfaces, 12px controls, and
+ * the existing teal product accent. Compact slot tiles mirror game storage.
+ */
+.app.feature-teleport {
+  --accent: var(--home-accent);
+  --accent-strong: var(--home-accent-strong);
+  --accent-soft: color-mix(in srgb, var(--home-accent) 14%, var(--surface));
+}
+
+.teleport-page {
+  width: min(1480px, 100%);
+  min-height: calc(100dvh - 74px);
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 76px) 72px;
+}
+
+.teleport-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: clamp(32px, 6vw, 96px);
+  align-items: end;
+  padding: clamp(42px, 7vw, 82px) 0 42px;
+  border-bottom: 1px solid var(--line);
+}
+
+.teleport-kicker {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.16em;
+}
+
+.teleport-intro h1 {
+  margin: 0;
+  font-family:
+    "Segoe UI Variable Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: clamp(46px, 6vw, 78px);
+  font-weight: 660;
+  line-height: 0.98;
+  letter-spacing: -0.065em;
+}
+
+.teleport-intro > div:first-child > p {
+  max-width: 580px;
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.teleport-intro-side {
+  display: grid;
+  justify-items: start;
+  gap: 15px;
+}
+
+.bridge-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.bridge-state-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.bridge-state.phase-ready {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.bridge-state.phase-connecting,
+.bridge-state.phase-shutting_down {
+  color: var(--accent-strong);
+}
+
+.bridge-state.phase-faulted {
+  border-color: var(--danger-line);
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.teleport-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.teleport-action {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 740;
+  white-space: nowrap;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.teleport-action:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.teleport-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.teleport-action svg {
+  width: 17px;
+  height: 17px;
+}
+
+.teleport-action.primary {
+  border: 1px solid var(--accent-strong);
+  color: var(--surface);
+  background: var(--accent-strong);
+}
+
+.theme-dark .teleport-action.primary {
+  color: var(--paper);
+}
+
+.teleport-action.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-strong) 88%, var(--ink));
+}
+
+.teleport-action.secondary {
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.teleport-action.secondary:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.teleport-intro-side time {
+  color: var(--muted);
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+}
+
+.teleport-error,
+.teleport-read-warning {
+  display: grid;
+  align-items: center;
+  margin-top: 24px;
+  border: 1px solid var(--danger-line);
+  border-radius: 16px;
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.teleport-error {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.teleport-error > svg,
+.teleport-read-warning > svg {
+  width: 23px;
+  height: 23px;
+}
+
+.teleport-error > div {
+  display: grid;
+  gap: 3px;
+}
+
+.teleport-error strong,
+.teleport-read-warning strong {
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.teleport-error p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.teleport-error code {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.teleport-error button {
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--danger-line);
+  border-radius: 12px;
+  color: var(--danger);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.teleport-read-warning {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 11px;
+  padding: 13px 16px;
+}
+
+.teleport-read-warning span {
+  display: grid;
+  gap: 2px;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.character-section,
+.inventory-section {
+  scroll-margin-top: 94px;
+  padding-top: 54px;
+}
+
+.teleport-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.teleport-section-heading > span {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: 12px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.teleport-section-heading svg {
+  width: 21px;
+  height: 21px;
+}
+
+.teleport-section-heading h2 {
+  margin: 0;
+  font-size: clamp(24px, 2.8vw, 34px);
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+
+.teleport-section-heading p {
+  max-width: 650px;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.character-overview {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+  gap: 1px;
+  margin-top: 24px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--line);
+  box-shadow: var(--shadow);
+}
+
+.character-identity,
+.character-vitals {
+  background: var(--surface);
+}
+
+.character-identity {
+  display: flex;
+  align-items: center;
+  gap: 19px;
+  min-width: 0;
+  padding: clamp(24px, 3vw, 38px);
+}
+
+.character-identity img {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.character-identity > div {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.character-identity span {
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.character-identity h2 {
+  overflow: hidden;
+  margin: 0;
+  font-size: clamp(26px, 3vw, 39px);
+  line-height: 1.06;
+  letter-spacing: -0.045em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.character-identity code {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+}
+
+.character-vitals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--line);
+}
+
+.character-vitals > div {
+  min-width: 0;
+  padding: 17px 20px;
+  background: var(--surface);
+}
+
+.character-vitals dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.character-vitals dt svg {
+  width: 15px;
+  height: 15px;
+  color: var(--accent);
+}
+
+.character-vitals dd {
+  overflow: hidden;
+  margin: 7px 0 0;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.character-vitals small {
+  display: block;
+  overflow: hidden;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 32px;
+}
+
+.inventory-totals {
+  display: flex;
+  flex: 0 0 auto;
+  gap: clamp(18px, 3vw, 42px);
+  margin: 0;
+}
+
+.inventory-totals > div {
+  display: grid;
+  gap: 4px;
+}
+
+.inventory-totals dt {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.inventory-totals dd {
+  margin: 0;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.inventory-toolbar {
+  position: sticky;
+  top: 74px;
+  z-index: 8;
+  display: grid;
+  gap: 12px;
+  margin: 24px 0 0;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.inventory-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 440px;
+}
+
+.inventory-search > svg {
+  position: absolute;
+  left: 14px;
+  width: 17px;
+  height: 17px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.inventory-search input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 14px 0 41px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.inventory-search input::placeholder {
+  color: color-mix(in srgb, var(--muted) 84%, transparent);
+}
+
+.container-selector {
+  display: flex;
+  gap: 7px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.container-selector button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 10px;
+  font-weight: 680;
+  white-space: nowrap;
+}
+
+.container-selector button:hover,
+.container-selector button.active {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.container-selector button:active {
+  transform: translateY(1px);
+}
+
+.container-selector button span {
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+}
+
+.inventory-result-count {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.inventory-groups {
+  display: grid;
+  gap: 42px;
+  margin-top: 22px;
+}
+
+.inventory-group > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+  margin-bottom: 13px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--line);
+}
+
+.inventory-group h3 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -0.025em;
+}
+
+.inventory-group header > div:first-child > span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.container-state {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.container-state code,
+.container-state span {
+  min-height: 24px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 8px;
+}
+
+.inventory-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.inventory-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  transition:
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+
+.inventory-item:hover {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+  transform: translateY(-1px);
+}
+
+.inventory-item-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.inventory-item-mark svg {
+  width: 20px;
+  height: 20px;
+}
+
+.inventory-item-main {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 1px;
+}
+
+.inventory-item-main span,
+.inventory-item-main small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.inventory-item-main strong {
+  overflow: hidden;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-quantity {
+  align-self: start;
+  min-width: 27px;
+  padding: 3px 5px;
+  border-radius: 7px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.inventory-item-meta {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  margin: 2px 0 0;
+}
+
+.inventory-item-meta > div {
+  display: flex;
+  gap: 4px;
+}
+
+.inventory-item-meta dt,
+.inventory-item-meta dd {
+  margin: 0;
+  font-size: 8px;
+}
+
+.inventory-item-meta dt {
+  color: var(--muted);
+}
+
+.inventory-item-meta dd {
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+}
+
+.container-empty {
+  margin: 0;
+  padding: 20px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.teleport-empty {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  min-height: 132px;
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+}
+
+.teleport-empty > span {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.teleport-empty svg {
+  width: 25px;
+  height: 25px;
+}
+
+.teleport-empty h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.teleport-empty p {
+  margin: 5px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.teleport-loading {
+  display: grid;
+  gap: 16px;
+  padding-top: 54px;
+}
+
+.teleport-loading-title,
+.teleport-loading-panel,
+.teleport-loading-grid span {
+  background: linear-gradient(
+    100deg,
+    var(--surface-2) 20%,
+    color-mix(in srgb, var(--surface) 84%, var(--accent-soft)) 45%,
+    var(--surface-2) 70%
+  );
+  background-size: 240% 100%;
+}
+
+.teleport-loading-title {
+  width: 260px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.teleport-loading-title.short {
+  width: 190px;
+  margin-top: 28px;
+}
+
+.teleport-loading-panel {
+  height: 230px;
+  border-radius: 16px;
+}
+
+.teleport-loading-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.teleport-loading-grid span {
+  height: 92px;
+  border-radius: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 1000px) {
+  .teleport-intro {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 28px;
+  }
+
+  .character-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-heading-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .inventory-totals {
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .teleport-page {
+    padding-inline: 16px;
+  }
+
+  .teleport-intro {
+    padding-top: 38px;
+  }
+
+  .teleport-intro h1 {
+    font-size: clamp(44px, 15vw, 66px);
+  }
+
+  .character-vitals {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-toolbar {
+    top: 64px;
+  }
+
+  .inventory-search {
+    max-width: none;
+  }
+
+  .inventory-slot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .teleport-loading-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 500px) {
+  .teleport-actions,
+  .teleport-action {
+    width: 100%;
+  }
+
+  .teleport-error {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .teleport-error button {
+    grid-column: 1 / -1;
+  }
+
+  .character-identity {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .character-identity h2 {
+    white-space: normal;
+  }
+
+  .inventory-totals {
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .inventory-slot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-group > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .container-state {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .inventory-toolbar {
+    background: var(--paper);
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .teleport-intro,
+  .character-section,
+  .inventory-section {
+    animation: teleport-enter 520ms both cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .character-section {
+    animation-delay: 70ms;
+  }
+
+  .inventory-section {
+    animation-delay: 120ms;
+  }
+
+  .teleport-loading-title,
+  .teleport-loading-panel,
+  .teleport-loading-grid span {
+    animation: teleport-shimmer 1.5s infinite linear;
+  }
+}
+
+@keyframes teleport-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes teleport-shimmer {
+  to {
+    background-position-x: -240%;
+  }
+}
