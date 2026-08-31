@@ -12,14 +12,18 @@ from api_client import (
     GLAMOUR_SEARCH_URL,
     NETWORK_CONSOLE_PREFIX,
     RECRUIT_LIST_URL,
+    TELEPORT_ENDPOINTS,
+    TELEPORT_ORIGIN,
     WIKI_IMPERSONATE,
     fetch_glamour_detail,
     fetch_glamour_page,
     fetch_avatar,
     fetch_recruit_page,
+    fetch_teleport,
     fetch_wiki_page,
     finalize_authenticated_login,
     normalize_user_agent,
+    start_teleport_push,
 )
 
 
@@ -38,6 +42,10 @@ class FakeResponse:
 
     def json(self):
         return json.loads(self.content)
+
+    @property
+    def text(self):
+        return self.content.decode("utf-8")
 
 
 class FakeCookies:
@@ -269,6 +277,95 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(arguments["params"]["target_area_id"], 1)
         self.assertTrue(arguments["params"]["tempsuid"])
         self.assertEqual(result["url"], RECRUIT_LIST_URL)
+
+    def test_teleport_roles_use_only_the_selected_official_server(self) -> None:
+        client, session = client_with(FakeResponse())
+
+        result = fetch_teleport(
+            client,
+            {"action": "roles", "areaId": 1, "groupId": 30},
+        )
+
+        method, url, arguments = session.arguments
+        self.assertEqual(method, "GET")
+        self.assertEqual(url, f"{TELEPORT_ORIGIN}{TELEPORT_ENDPOINTS['roles']}")
+        self.assertEqual(
+            arguments["params"],
+            {"appId": 100001900, "areaId": 1, "groupId": 30},
+        )
+        self.assertIn("session", result)
+
+    def test_teleport_push_uses_the_service_specific_cas_application(self) -> None:
+        ok = b'sdoCallback({"return_code":0,"data":{}})'
+        configured = (
+            b'sdoCallback({"return_code":0,"data":{"bizContext":"context"}})'
+        )
+        client, session = client_with(
+            [
+                FakeResponse(),
+                FakeResponse(content=ok),
+                FakeResponse(content=configured),
+                FakeResponse(content=ok),
+                FakeResponse(content=ok),
+            ]
+        )
+
+        result = start_teleport_push(client, {"account": "13800138000"})
+
+        _, url, arguments = session.arguments
+        self.assertEqual(url, "https://w.cas.sdo.com/authen/sendPushMessage.jsonp")
+        self.assertEqual(arguments["params"]["appId"], 100001900)
+        self.assertEqual(arguments["params"]["areaId"], 1001)
+        self.assertEqual(arguments["params"]["inputUserId"], "13800138000")
+        self.assertEqual(result["status"], "awaiting_confirmation")
+
+    def test_teleport_order_serializes_the_selected_role_as_a_string_id(self) -> None:
+        client, session = client_with(FakeResponse())
+
+        fetch_teleport(
+            client,
+            {
+                "action": "createOrder",
+                "areaId": 1,
+                "areaName": "Source Area",
+                "groupId": 30,
+                "groupCode": "SourceWorld",
+                "groupName": "Source World",
+                "targetAreaId": 7,
+                "targetAreaName": "Target Area",
+                "targetGroupId": 6,
+                "targetGroupCode": "TargetWorld",
+                "targetGroupName": "Target World",
+                "role": {
+                    "roleId": "123456789012345678",
+                    "roleName": "Test Role",
+                    "key": 2,
+                },
+            },
+        )
+
+        _, url, arguments = session.arguments
+        role_list = json.loads(arguments["params"]["roleList"])
+        self.assertEqual(url, f"{TELEPORT_ORIGIN}{TELEPORT_ENDPOINTS['createOrder']}")
+        self.assertEqual(role_list[0]["roleId"], "123456789012345678")
+        self.assertEqual(arguments["params"]["migrationType"], 4)
+
+    def test_teleport_rejects_untrusted_codes_and_order_identifiers(self) -> None:
+        client, _ = client_with(FakeResponse())
+
+        with self.assertRaisesRegex(ApiClientError, "group code is invalid"):
+            fetch_teleport(
+                client,
+                {
+                    "action": "travelBack",
+                    "orderId": "GM017624121826083122310200001263",
+                    "groupId": 6,
+                    "groupCode": "world&admin=1",
+                    "groupName": "World",
+                },
+            )
+        with self.assertRaisesRegex(ApiClientError, "order identifier is invalid"):
+            fetch_teleport(client, {"action": "orderStatus", "orderId": "../../x"})
 
     def test_avatar_request_uses_official_headers_and_returns_a_data_url(self) -> None:
         avatar_url = (

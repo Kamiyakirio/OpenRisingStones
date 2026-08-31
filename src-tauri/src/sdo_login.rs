@@ -492,6 +492,23 @@ pub(crate) fn current_session(state: &LoginState) -> Result<Option<SessionSnapsh
   load_stored_session(state)
 }
 
+/// Persist a trusted sidecar session update without exposing credentials to the webview.
+pub(crate) fn replace_current_session(
+  state: &LoginState,
+  session: SessionSnapshot,
+) -> Result<(), String> {
+  let mut active = state
+    .active
+    .lock()
+    .map_err(|_| "Unable to update the authenticated session.".to_owned())?;
+  let login = active
+    .as_mut()
+    .ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
+  persist_session(state.storage_path.as_deref(), &session)?;
+  login.session = session;
+  Ok(())
+}
+
 /// Merge WebView-generated anti-bot cookies back into the trusted API session.
 pub(crate) fn merge_glamour_antibot_cookies(
   state: &LoginState,
