@@ -8,14 +8,14 @@ use game_bridge_protocol::{
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, RwLock, Weak};
 #[cfg(windows)]
-use zeroize::Zeroize;
+use std::sync::Weak;
+use std::sync::{Arc, Mutex, RwLock};
 
 #[cfg(windows)]
 use crate::injector::{BootstrapArgs, InjectedPayload};
 #[cfg(windows)]
-use crate::ipc::{PipeSession, SessionEvent};
+use crate::shared_memory::{SessionEvent, SharedSession};
 
 type Observer = Arc<dyn Fn(BridgeStatus) + Send + Sync + 'static>;
 
@@ -68,10 +68,11 @@ pub struct ConnectOptions {
 
 struct Inner {
     status: BridgeStatus,
+    #[cfg(windows)]
     next_request_id: u64,
     world_map: WorldMap,
     #[cfg(windows)]
-    session: Option<PipeSession>,
+    session: Option<SharedSession>,
     #[cfg(windows)]
     payload: Option<InjectedPayload>,
 }
@@ -80,6 +81,7 @@ impl Default for Inner {
     fn default() -> Self {
         Self {
             status: BridgeStatus::default(),
+            #[cfg(windows)]
             next_request_id: 1,
             world_map: WorldMap::default(),
             #[cfg(windows)]
@@ -159,24 +161,16 @@ impl BridgeManager {
 
         let world_map = WorldMap::load(&options.world_map_path)?;
         let process_id = crate::process::resolve_process_id(options.process_id)?;
-        let mut random = [0u8; 40];
-        fill_random(&mut random)?;
-        let mut token = [0u8; 32];
-        token.copy_from_slice(&random[..32]);
-        let pipe_suffix = u64::from_le_bytes(random[32..].try_into().expect("fixed random suffix"));
-        let pipe_name = format!(
-            r"\\.\pipe\open-rising-stones-game-bridge-{process_id}-{:016x}",
-            pipe_suffix
-        );
-        random.zeroize();
         let manifest_path = options
             .manifest_path
             .canonicalize()
             .map_err(|_| BridgeError::InvalidPath(options.manifest_path.display().to_string()))?;
-        let bootstrap = BootstrapArgs::new(&pipe_name, &manifest_path, token)?;
 
         let (event_tx, event_rx) = std::sync::mpsc::channel();
-        let session = PipeSession::bind(&pipe_name, token, event_tx)?;
+        let session = SharedSession::create(event_tx)?;
+        session.configure_game_api(&manifest_path, process_id)?;
+        let shared_memory_handle = session.duplicate_into(process_id)?;
+        let bootstrap = BootstrapArgs::new(shared_memory_handle);
         {
             let mut inner = self.inner.lock().expect("bridge lock poisoned");
             inner.world_map = world_map;
@@ -412,6 +406,7 @@ impl BridgeManager {
         }
     }
 
+    #[cfg(windows)]
     fn set_fault(&self, code: &str, message: String) {
         {
             let mut inner = self.inner.lock().expect("bridge lock poisoned");
@@ -452,26 +447,4 @@ fn run_event_loop(manager: Weak<BridgeManager>, event_rx: std::sync::mpsc::Recei
         };
         manager.handle_event(event);
     }
-}
-
-#[cfg(windows)]
-fn fill_random(target: &mut [u8]) -> BridgeResult<()> {
-    use windows_sys::Win32::Security::Cryptography::{
-        BCryptGenRandom, BCRYPT_USE_SYSTEM_PREFERRED_RNG,
-    };
-
-    let status = unsafe {
-        BCryptGenRandom(
-            std::ptr::null_mut(),
-            target.as_mut_ptr(),
-            target.len() as u32,
-            BCRYPT_USE_SYSTEM_PREFERRED_RNG,
-        )
-    };
-    if status < 0 {
-        return Err(BridgeError::InvalidData(format!(
-            "secure random generation failed: status={status}"
-        )));
-    }
-    Ok(())
 }

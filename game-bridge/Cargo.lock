@@ -56,7 +56,6 @@ dependencies = [
  "sha2",
  "thiserror",
  "windows-sys",
- "zeroize",
 ]
 
 [[package]]
