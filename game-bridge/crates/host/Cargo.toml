@@ -9,6 +9,7 @@ rust-version.workspace = true
 game-bridge-protocol = { path = "../protocol" }
 serde.workspace = true
 serde_json.workspace = true
+sha2 = "0.10"
 thiserror.workspace = true
 zeroize.workspace = true
 
