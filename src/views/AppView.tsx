@@ -56,6 +56,7 @@ export function AppView({ viewModel }: AppViewProps) {
         <TeleportWorkspaceView
           dark={viewModel.dark}
           loginOpen={viewModel.loginOpen}
+          loginChecking={viewModel.loginChecking}
           profile={viewModel.loginProfile}
           onCloseLogin={viewModel.closeLogin}
           onGoHome={viewModel.goHome}

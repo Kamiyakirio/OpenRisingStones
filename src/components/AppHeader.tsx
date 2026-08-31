@@ -85,10 +85,10 @@ export function AppHeader({
           </>
         ) : (
           <>
-            <a className="active" href="#teleport-character">
-              当前角色
+            <a className="active" href="#teleport-departure">
+              超域出发
             </a>
-            <a href="#teleport-inventory">物品存储</a>
+            <a href="#teleport-orders">订单记录</a>
           </>
         )}
       </nav>

@@ -9,6 +9,7 @@ import { useTeleportWorkspaceViewModel } from "../viewmodels/useTeleportWorkspac
 type TeleportWorkspaceViewProps = {
   dark: boolean;
   loginOpen: boolean;
+  loginChecking: boolean;
   profile: LoginProfile | null;
   onCloseLogin: () => void;
   onGoHome: () => void;
@@ -22,6 +23,7 @@ type TeleportWorkspaceViewProps = {
 export function TeleportWorkspaceView({
   dark,
   loginOpen,
+  loginChecking,
   profile,
   onCloseLogin,
   onGoHome,
@@ -31,7 +33,11 @@ export function TeleportWorkspaceView({
   onLoginSuccess,
   onLogout,
 }: TeleportWorkspaceViewProps) {
-  const viewModel = useTeleportWorkspaceViewModel();
+  const viewModel = useTeleportWorkspaceViewModel({
+    authenticated: Boolean(profile),
+    loginChecking,
+    account: profile?.displayAccount ?? "",
+  });
 
   return (
     <>
@@ -45,7 +51,7 @@ export function TeleportWorkspaceView({
         onOpenSettings={onOpenSettings}
         onLogout={onLogout}
       />
-      <TeleportPage viewModel={viewModel} />
+      <TeleportPage viewModel={viewModel} onOpenLogin={onOpenLogin} />
       <SiteFooter feature="teleport" />
       {loginOpen && (
         <LoginDialog onClose={onCloseLogin} onSuccess={onLoginSuccess} />
