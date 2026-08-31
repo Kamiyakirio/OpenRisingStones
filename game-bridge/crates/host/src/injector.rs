@@ -28,7 +28,6 @@ use windows_sys::Win32::System::Threading::{
     LPTHREAD_START_ROUTINE, PROCESS_CREATE_THREAD, PROCESS_QUERY_INFORMATION, PROCESS_VM_OPERATION,
     PROCESS_VM_READ, PROCESS_VM_WRITE,
 };
-use zeroize::Zeroize;
 
 const REMOTE_CALL_TIMEOUT_MS: u32 = 15_000;
 const WAIT_OBJECT_0_VALUE: u32 = 0;
@@ -36,38 +35,21 @@ const WAIT_OBJECT_0_VALUE: u32 = 0;
 #[repr(C)]
 pub(crate) struct BootstrapArgs {
     pub struct_size: u32,
-    pub protocol_version: u32,
+    pub abi_version: u32,
     pub flags: u32,
     pub reserved: u32,
-    pub pipe_name: [u16; 260],
-    pub manifest_path: [u16; 520],
-    pub auth_token: [u8; 32],
-}
-
-impl Drop for BootstrapArgs {
-    fn drop(&mut self) {
-        self.auth_token.zeroize();
-    }
+    pub shared_memory_handle: usize,
 }
 
 impl BootstrapArgs {
-    pub(crate) fn new(
-        pipe_name: &str,
-        manifest_path: &Path,
-        auth_token: [u8; 32],
-    ) -> BridgeResult<Self> {
-        let mut args = Self {
+    pub(crate) fn new(shared_memory_handle: usize) -> Self {
+        Self {
             struct_size: size_of::<Self>() as u32,
-            protocol_version: game_bridge_protocol::PROTOCOL_VERSION,
+            abi_version: 1,
             flags: 0,
             reserved: 0,
-            pipe_name: [0; 260],
-            manifest_path: [0; 520],
-            auth_token,
-        };
-        copy_utf16(pipe_name, &mut args.pipe_name, "pipe name")?;
-        copy_path_utf16(manifest_path, &mut args.manifest_path, "manifest path")?;
-        Ok(args)
+            shared_memory_handle,
+        }
     }
 }
 
@@ -399,24 +381,6 @@ unsafe fn find_remote_module(process_id: u32, module_name: &str) -> BridgeResult
     Err(BridgeError::InvalidData(format!(
         "remote module not found: {module_name}"
     )))
-}
-
-fn copy_utf16(value: &str, target: &mut [u16], label: &str) -> BridgeResult<()> {
-    let encoded: Vec<u16> = value.encode_utf16().collect();
-    if encoded.len() >= target.len() {
-        return Err(BridgeError::InvalidData(format!("{label} is too long")));
-    }
-    target[..encoded.len()].copy_from_slice(&encoded);
-    Ok(())
-}
-
-fn copy_path_utf16(path: &Path, target: &mut [u16], label: &str) -> BridgeResult<()> {
-    let encoded: Vec<u16> = path.as_os_str().encode_wide().collect();
-    if encoded.len() >= target.len() {
-        return Err(BridgeError::InvalidData(format!("{label} is too long")));
-    }
-    target[..encoded.len()].copy_from_slice(&encoded);
-    Ok(())
 }
 
 fn wide_null(value: &OsStr) -> Vec<u16> {

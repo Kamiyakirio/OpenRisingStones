@@ -1,10 +1,14 @@
 //! Build-time world metadata used to enrich raw game snapshots outside the game process.
 
+#[cfg(windows)]
 use crate::{BridgeError, BridgeResult};
 use game_bridge_protocol::{ActiveCharacterSnapshot, GameSnapshot};
+#[cfg(windows)]
 use serde::Deserialize;
 use std::collections::HashMap;
+#[cfg(windows)]
 use std::fs;
+#[cfg(windows)]
 use std::path::Path;
 
 #[derive(Default)]
@@ -14,6 +18,7 @@ pub(crate) struct WorldMap {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(windows)]
 struct WorldMapFile {
     schema_version: u32,
     worlds: HashMap<String, WorldEntry>,
@@ -21,11 +26,13 @@ struct WorldMapFile {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(windows)]
 struct WorldEntry {
     region_name: String,
 }
 
 impl WorldMap {
+    #[cfg(windows)]
     pub(crate) fn load(path: &Path) -> BridgeResult<Self> {
         let bytes = fs::read(path)?;
         let file: WorldMapFile = serde_json::from_slice(&bytes)?;

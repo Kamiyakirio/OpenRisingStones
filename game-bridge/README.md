@@ -4,18 +4,18 @@ This directory contains the Windows-only bridge between the desktop application 
 
 ## Ownership boundary
 
-- `crates/host` owns process discovery, DLL loading, authenticated IPC, monitoring, world metadata, and semantic commands.
-- `crates/protocol` owns Rust wire types and the protocol version.
-- `payload` owns every in-process pointer access, address resolution, Framework-thread command, native call, and hook lifecycle.
+- `crates/host` owns process discovery, DLL loading, shared-memory command encoding, monitoring, world metadata, and semantic commands.
+- `crates/protocol` owns the Rust-facing semantic models.
+- `payload` owns only resolved-address validation, pointer access, Framework-thread commands, native calls, and hook lifecycle.
 - `src-tauri/src/game_bridge.rs` owns the typed desktop API, resource selection, lifecycle preparation, and versioned read batching. It does not contain process or game-memory implementation logic.
 
-The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed protocol commands defined by protocol version 3.
+The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed command IDs defined by shared-memory ABI version 1.
 
 The Tauri API accepts only a process ID, an optional manifest filename, and fixed semantic read resources. DLL and data paths are resolved from the packaged `game-bridge` resource directory, so webview input cannot select an arbitrary DLL. When no manifest is supplied, the adapter selects the newest packaged manifest. Debug builds may override the resource directory with `ORS_GAME_BRIDGE_DIR`.
 
 ## Safety gates
 
-The payload validates all of the following before installing its Framework hook:
+The Rust host validates all of the following before loading the payload:
 
 1. Exact game version from `ffxivgame.ver`.
 2. Main executable filename.
@@ -77,11 +77,13 @@ const inventory = await invoke("game_bridge_capture_inventory");
 
 Local containers are enumerated from `InventoryManager`; the Glamour Dresser uses the persistent `ItemFinderModule` cache used by item search. The response marks the dresser as `cached` and `mayBeStale`. It returns Item IDs and item state rather than localized names; the Rust/UI layer should map Item IDs through a separate item catalog.
 
-## IPC
+## Shared-memory transport
 
-The Rust host creates a randomized local Named Pipe and a 256-bit one-time token before loading the payload. Frames use a little-endian four-byte length followed by UTF-8 JSON. The maximum frame size is 1 MiB.
+The Rust host creates an anonymous Windows file mapping and duplicates only its kernel handle into the target process. There is no global object name, token, socket, Named Pipe, or JSON parser in the command path.
 
-The payload has separate IPC and publisher threads. Neither performs game access. Commands are copied into a bounded Framework-thread queue, and snapshots are copied out before the IPC thread serializes them.
+Rust owns command encoding, result decoding, timeouts, monitoring, and all user-facing serialization. The payload checks an atomic request sequence during Framework Tick, performs one fixed semantic command, writes POD output, and publishes the response sequence with release ordering.
+
+Rust also parses the Manifest, hashes the executable, performs unique AOB scans, resolves RVAs, and writes a verified `SharedGameApi` POD. The payload contains no JSON dependency or signature scanner.
 
 ## Windows build
 

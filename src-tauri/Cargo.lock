@@ -978,9 +978,9 @@ dependencies = [
  "game-bridge-protocol",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 2.0.20",
  "windows-sys 0.59.0",
- "zeroize",
 ]
 
 [[package]]

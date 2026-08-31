@@ -15,20 +15,12 @@ FetchContent_Declare(
   GIT_TAG v1.3.4
   GIT_SHALLOW TRUE
 )
-FetchContent_Declare(
-  nlohmann_json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG v3.11.3
-  GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(minhook nlohmann_json)
+FetchContent_MakeAvailable(minhook)
 
 add_library(game_bridge_payload SHARED
-  src/address_resolver.cpp
   src/dll_main.cpp
+  src/game_api.cpp
   src/game_runtime.cpp
-  src/manifest.cpp
-  src/pipe_client.cpp
   src/runtime.cpp
 )
 
@@ -41,9 +33,7 @@ target_compile_definitions(game_bridge_payload PRIVATE
 )
 target_include_directories(game_bridge_payload PRIVATE include src)
 target_link_libraries(game_bridge_payload PRIVATE
-  bcrypt
   minhook
-  nlohmann_json::nlohmann_json
 )
 
 if(MSVC)

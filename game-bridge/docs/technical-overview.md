@@ -32,15 +32,15 @@ Tauri WebView
 Rust bridge-host
     ├─ 查找并验证 ffxiv_dx11.exe
     ├─ 加载 C++ DLL
-    ├─ 建立 Named Pipe
+    ├─ 创建匿名共享内存并复制 HANDLE
+    ├─ 解析 Manifest、校验 EXE 并解析地址
     ├─ 监控连接和角色快照
     ├─ 维护世界到大区映射
     ├─ 执行外部业务状态机
     └─ 向前端发布状态事件
-              ↓ versioned IPC
+              ↓ fixed POD shared-memory ABI
 C++ bridge-payload.dll
-    ├─ 校验游戏版本和 Manifest
-    ├─ 解析 PE 与扫描 AOB
+    ├─ 校验 SharedGameApi 地址和页面权限
     ├─ Hook Framework Tick
     ├─ 在游戏线程采集角色快照
     ├─ 返回标题
@@ -54,7 +54,9 @@ C++ bridge-payload.dll
 
 - Tauri command 和 event。
 - 目标进程发现与 DLL 加载。
-- IPC 鉴权、请求 ID、超时、断线和状态管理。
+- Manifest JSON、EXE hash、AOB 扫描和 RVA 解析。
+- 共享内存 ABI、请求 ID、超时、监控和状态管理。
+- 所有 JSON、Tauri 序列化和用户鉴权。
 - 网络请求、订单轮询、取消和业务逻辑。
 - 世界 ID 到大区名称的转换。
 - Session 的外部生命周期与敏感缓冲清理。
@@ -64,11 +66,13 @@ C++ bridge-payload.dll
 - 所有游戏指针解引用。
 - 所有游戏内存读写。
 - 所有游戏原生函数和虚函数调用。
-- Framework 线程命令队列。
+- Framework Tick 中的固定命令执行。
 - Hook 安装、回调计数和逆序卸载。
 - 将原始角色数据复制为不含游戏指针的快照。
 
 C++ 层不接受“读取任意地址”“写入任意地址”或“调用任意函数”命令。Rust 只能发送固定的语义命令。
+
+C++ 构建不包含 JSON、HTTP、Pipe、token 或用户鉴权依赖；它只消费 Rust 写入的固定 `SharedGameApi` 和命令 POD。
 
 ## 3. 为什么采用 Rust + C++
 
@@ -77,7 +81,7 @@ Rust 更适合外部宿主：
 - 可以直接作为 Tauri 的 Cargo path dependency。
 - serde 适合版本化协议和状态模型。
 - 所有权模型适合 IPC buffer、Session 和异步状态机。
-- Windows 进程和 Named Pipe API 有稳定绑定。
+- Windows 进程和共享内存 API 有稳定绑定。
 
 C++ 更适合最小进程内层：
 
@@ -111,23 +115,17 @@ bridge_shutdown(void*)
 
 未采用入口点改写方案，因为当前功能不需要在游戏主入口执行前完成初始化。
 
-## 5. IPC 协议
+## 5. 共享内存 ABI
 
-Rust 创建随机 Named Pipe，并生成独立的 256-bit 一次性令牌。Pipe 名称中的随机后缀不复用令牌字节。
+Rust 创建匿名 Windows file mapping，并把 HANDLE 复制进目标进程。共享对象没有全局名称，因此 C++ 不处理身份、token、网络端点或用户鉴权。
 
-帧格式：
+共享区包含：
 
-```text
-u32 little-endian payload length
-UTF-8 JSON payload
-```
-
-最大帧长度为 1 MiB。握手校验：
-
-- 协议版本。
-- 一次性令牌。
-- Payload 版本。
-- Capability 列表。
+- ABI magic、版本和结构大小。
+- payload state、heartbeat 和 sequence。
+- 固定大小 command POD。
+- 固定大小 response POD。
+- 最新角色选择快照。
 
 当前语义命令：
 
@@ -139,19 +137,20 @@ UTF-8 JSON payload
 - `trigger_login`
 - `shutdown`
 
-游戏线程不执行 JSON、Pipe I/O、网络请求或长时间等待。IPC 线程只把命令复制到有界队列，再等待 Framework 线程返回结果。
+JSON、超时和业务状态均由 Rust 处理。C++ 不启动通信线程；Framework Tick 只检查 request sequence，执行固定命令，写回 POD，并以 release ordering 发布 response sequence。
 
 ## 6. 游戏线程模型
 
 所有游戏结构访问均在 Framework Tick Hook 中进行：
 
 ```text
-IPC thread
-  → PendingCommand queue
+Rust writes POD command
+  → request sequence
   → Framework Tick detour
-  → 最多处理固定数量命令
-  → promise result
-  → IPC thread
+  → fixed memory/native operation
+  → POD response
+  → response sequence
+  → Rust decodes result
 ```
 
 每帧限制命令数，避免阻塞游戏。角色状态按固定 Tick 间隔采集，只有快照内容变化时才向外发布。
@@ -159,11 +158,11 @@ IPC thread
 卸载顺序：
 
 1. 禁止新命令。
-2. 关闭 Pipe 并停止发布线程。
+2. 停止 Rust 共享内存监控。
 3. 禁用 Framework Hook。
 4. 等待 active callback 归零。
-5. 移除 Hook 并释放队列。
-6. 清理 Session 和认证令牌。
+5. 移除 Hook。
+6. 清理共享区中的 Session buffer。
 7. 调用远程 `FreeLibrary`。
 
 ## 7. 地址与偏移的三种来源
