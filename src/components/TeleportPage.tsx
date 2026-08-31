@@ -1,846 +1,823 @@
-/** Read-only game bridge test page for character and inventory diagnostics. */
+/** Official Regional Teleport workspace with guarded departure and return actions. */
+import { useState } from "react";
 import {
+  AirplaneTilt,
   ArrowClockwise,
-  Backpack,
-  Database,
-  MagnifyingGlass,
+  ArrowRight,
+  ArrowUUpLeft,
+  CheckCircle,
+  Clock,
+  Coins,
+  DeviceMobile,
   MapPin,
-  Package,
-  PlugsConnected,
-  Power,
-  Pulse,
+  QrCode,
+  ShieldWarning,
   SpinnerGap,
+  Ticket,
   UserCircle,
   WarningCircle,
-  WifiHigh,
+  X,
 } from "@phosphor-icons/react";
-import { useMemo } from "react";
-import {
-  CLASS_JOB_LABEL_BY_GLAMOUR_ID,
-  getClassJobIconUrl,
-} from "../data/classJobs";
-import type {
-  GameBridgeApiError,
-  GameReadFailure,
-  InventoryItemSnapshot,
-  PlayerInventorySnapshot,
-} from "../models/gameBridge";
-import type { ItemSheetInfo } from "../models/item";
+import type { TeleportOrder } from "../models/teleport";
 import type { TeleportWorkspaceViewModel } from "../viewmodels/useTeleportWorkspaceViewModel";
 import "./TeleportPage.css";
 
 type TeleportPageProps = {
   viewModel: TeleportWorkspaceViewModel;
+  onOpenLogin: () => void;
 };
 
-type DisplayItem = {
-  key: string;
-  itemId: number;
-  slot: number;
-  quantity: number;
-  condition: number | null;
-  spiritbondOrCollectability: number | null;
-  flags: number | null;
-  glamourId: number | null;
-  stains: number[];
-  materia: number[];
-  materiaGrades: number[];
-  isSymbolic: boolean;
-  linkedInventoryType: number | null;
-  linkedSlot: number | null;
-  setUnlockBits: number | null;
-  details: ItemSheetInfo | null;
-  glamourDetails: ItemSheetInfo | null;
-};
-
-type DisplayGroup = {
-  key: string;
-  label: string;
-  inventoryType: number | null;
-  loaded: boolean;
-  capacity: number;
-  cached: boolean | null;
-  mayBeStale: boolean;
-  items: DisplayItem[];
-};
-
-const CONTAINER_LABELS: Readonly<Record<string, string>> = {
-  equipped: "当前装备",
-  inventory_1: "背包第 1 页",
-  inventory_2: "背包第 2 页",
-  inventory_3: "背包第 3 页",
-  inventory_4: "背包第 4 页",
-  armory_main_hand: "兵装库：主手",
-  armory_off_hand: "兵装库：副手",
-  armory_head: "兵装库：头部",
-  armory_body: "兵装库：身体",
-  armory_hands: "兵装库：手部",
-  armory_waist: "兵装库：腰部",
-  armory_legs: "兵装库：腿部",
-  armory_feet: "兵装库：脚部",
-  armory_ear: "兵装库：耳饰",
-  armory_neck: "兵装库：项链",
-  armory_wrist: "兵装库：手镯",
-  armory_rings: "兵装库：戒指",
-  armory_soul_crystal: "兵装库：灵魂水晶",
-  glamour_dresser: "投影台缓存",
-};
-
-export function TeleportPage({ viewModel }: TeleportPageProps) {
-  const {
-    status,
-    character,
-    inventory,
-    failures,
-    error,
-    itemDetails,
-    itemMetadataError,
-    itemMetadataLoading,
-    loading,
-    disconnecting,
-    elevating,
-    query,
-    selectedContainer,
-    lastUpdatedAt,
-    refresh,
-    disconnect,
-    requestElevation,
-    setQuery,
-    setSelectedContainer,
-  } = viewModel;
-  const groups = useMemo(
-    () => buildDisplayGroups(inventory, itemDetails),
-    [inventory, itemDetails],
+export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const canSubmit = Boolean(
+    viewModel.selectedSourceArea &&
+    viewModel.selectedSourceGroup &&
+    viewModel.selectedRole &&
+    viewModel.selectedTargetArea &&
+    viewModel.selectedTargetGroup &&
+    viewModel.termsAccepted &&
+    !viewModel.actionLoading,
   );
-  const visibleGroups = useMemo(
-    () => filterGroups(groups, selectedContainer, query),
-    [groups, query, selectedContainer],
-  );
-  const itemCount = groups.reduce(
-    (total, group) => total + group.items.length,
-    0,
-  );
-  const totalQuantity = groups.reduce(
-    (total, group) =>
-      total +
-      group.items.reduce((subtotal, item) => subtotal + item.quantity, 0),
-    0,
-  );
-  const visibleItemCount = visibleGroups.reduce(
-    (total, group) => total + group.items.length,
-    0,
-  );
-  const bridgeReady = status?.phase === "ready";
 
   return (
     <main className="teleport-page" id="top">
-      <section className="teleport-intro" aria-labelledby="teleport-heading">
+      <header className="teleport-hero">
         <div>
-          <span className="teleport-kicker">只读连接测试</span>
-          <h1 id="teleport-heading">超域传送</h1>
-          <p>验证桌面端与游戏读取层的连接，并检查当前角色和物品存储。</p>
+          <span className="teleport-kicker">盛趣官方服务</span>
+          <h1>超域传送</h1>
+          <p>选择角色与目标服务器，直接提交至官方超域传送接口。</p>
         </div>
-        <div className="teleport-intro-side">
-          <BridgeState phase={status?.phase ?? "disconnected"} />
-          <div className="teleport-actions">
-            <button
-              className="teleport-action primary"
-              type="button"
-              disabled={loading || disconnecting}
-              onClick={() => void refresh()}
-            >
-              {loading ? <SpinnerGap className="spin" /> : <ArrowClockwise />}
-              {character || inventory ? "重新读取" : "连接并读取"}
-            </button>
-            <button
-              className="teleport-action secondary"
-              type="button"
-              disabled={!bridgeReady || loading || disconnecting}
-              onClick={() => void disconnect()}
-            >
-              {disconnecting ? <SpinnerGap className="spin" /> : <Power />}
-              断开连接
-            </button>
-          </div>
-          {lastUpdatedAt && (
-            <time dateTime={lastUpdatedAt.toISOString()}>
-              最近读取 {lastUpdatedAt.toLocaleTimeString("zh-CN")}
-            </time>
-          )}
-        </div>
-      </section>
+        <button
+          className="teleport-refresh"
+          type="button"
+          disabled={viewModel.loading || !viewModel.authenticated}
+          onClick={() => void viewModel.refresh()}
+        >
+          <ArrowClockwise className={viewModel.loading ? "spin" : ""} />
+          刷新数据
+        </button>
+      </header>
 
-      {error && (
-        <BridgeErrorBanner
-          error={error}
-          elevating={elevating}
-          onRetry={refresh}
-          onRequestElevation={requestElevation}
-        />
+      {viewModel.error && (
+        <div className="teleport-alert is-error" role="alert">
+          <WarningCircle weight="fill" />
+          <span>{viewModel.error}</span>
+        </div>
       )}
-      {failures.map((failure) => (
-        <ReadFailureBanner key={failure.resource} failure={failure} />
-      ))}
 
-      {loading && !character && !inventory ? (
-        <TeleportLoadingState />
+      {viewModel.loginChecking ? (
+        <TeleportSkeleton />
+      ) : !viewModel.authenticated ? (
+        <AccountGate onOpenLogin={onOpenLogin} />
+      ) : viewModel.crossAuthenticationRequired ? (
+        <CrossAuthenticationGate viewModel={viewModel} />
+      ) : viewModel.loading && !viewModel.sourceAreas.length ? (
+        <TeleportSkeleton />
       ) : (
         <>
-          <section className="character-section" id="teleport-character">
-            <SectionHeading
-              icon={<UserCircle />}
-              title="已登录角色"
-              description="数据直接来自当前游戏进程中的 LocalPlayer。"
-            />
-            {character ? (
-              <CharacterOverview character={character} />
-            ) : (
-              <EmptyState
-                icon={<UserCircle />}
-                title="尚未读取到角色"
-                description="请进入游戏世界并等待区域加载完成，然后重新读取。"
-              />
-            )}
-          </section>
+          <ServiceSummary viewModel={viewModel} />
 
-          <section className="inventory-section" id="teleport-inventory">
-            <div className="inventory-heading-row">
-              <SectionHeading
-                icon={<Backpack />}
-                title="物品存储"
-                description="显示全部非空槽位，并按物品 ID 读取中文名称、图标和基础资料。"
-              />
-              {inventory && (
-                <dl className="inventory-totals">
+          <div className="teleport-alert is-warning" role="note">
+            <ShieldWarning weight="fill" />
+            <div>
+              <strong>提交前请完全退出游戏客户端</strong>
+              <span>
+                传送期间重新登录可能导致角色数据异常，请等待订单完成。
+              </span>
+            </div>
+          </div>
+
+          <section
+            className="teleport-builder"
+            id="teleport-departure"
+            aria-labelledby="journey-title"
+          >
+            <div className="teleport-form-panel">
+              <div className="teleport-section-heading">
+                <span>出发设置</span>
+                <h2 id="journey-title">安排本次旅程</h2>
+              </div>
+
+              <div className="teleport-field-grid">
+                <SelectField
+                  label="当前大区"
+                  value={viewModel.selectedSourceAreaId}
+                  placeholder="选择角色所在大区"
+                  options={viewModel.sourceAreas.map((area) => ({
+                    value: area.areaId,
+                    label: area.areaName,
+                  }))}
+                  onChange={viewModel.selectSourceArea}
+                />
+                <SelectField
+                  label="当前服务器"
+                  value={viewModel.selectedSourceGroupId}
+                  placeholder="选择角色所在服务器"
+                  disabled={!viewModel.selectedSourceArea}
+                  options={(viewModel.selectedSourceArea?.groups ?? []).map(
+                    (group) => ({
+                      value: group.groupId,
+                      label: group.groupName,
+                    }),
+                  )}
+                  onChange={viewModel.selectSourceGroup}
+                />
+              </div>
+
+              <button
+                className="teleport-secondary-action"
+                type="button"
+                disabled={
+                  !viewModel.selectedSourceArea ||
+                  !viewModel.selectedSourceGroup ||
+                  viewModel.selectionLoading
+                }
+                onClick={() => void viewModel.findRolesAndTargets()}
+              >
+                {viewModel.selectionLoading ? (
+                  <SpinnerGap className="spin" />
+                ) : (
+                  <UserCircle />
+                )}
+                查找角色与可用目标
+              </button>
+
+              {viewModel.roles.length > 0 && (
+                <fieldset className="teleport-role-picker">
+                  <legend>选择角色</legend>
                   <div>
-                    <dt>物品堆栈</dt>
-                    <dd>{itemCount.toLocaleString("zh-CN")}</dd>
+                    {viewModel.roles.map((role) => (
+                      <label key={role.roleId}>
+                        <input
+                          type="radio"
+                          name="teleport-role"
+                          checked={viewModel.selectedRoleId === role.roleId}
+                          onChange={() =>
+                            viewModel.setSelectedRoleId(role.roleId)
+                          }
+                        />
+                        <UserCircle weight="duotone" />
+                        <span>
+                          <strong>{role.roleName}</strong>
+                          <small>{role.roleId}</small>
+                        </span>
+                        <CheckCircle weight="fill" />
+                      </label>
+                    ))}
                   </div>
-                  <div>
-                    <dt>总数量</dt>
-                    <dd>{totalQuantity.toLocaleString("zh-CN")}</dd>
-                  </div>
-                  <div>
-                    <dt>已加载容器</dt>
-                    <dd>
-                      {groups.filter((group) => group.loaded).length}/
-                      {groups.length}
-                    </dd>
-                  </div>
-                </dl>
+                </fieldset>
               )}
+
+              {viewModel.roles.length === 0 &&
+                viewModel.targetAreas.length > 0 && (
+                  <div className="teleport-inline-empty">
+                    当前服务器没有可用于超域传送的角色。
+                  </div>
+                )}
+
+              {viewModel.targetAreas.length > 0 && (
+                <div className="teleport-target-fields">
+                  <div className="teleport-field-grid">
+                    <SelectField
+                      label="目标大区"
+                      value={viewModel.selectedTargetAreaId}
+                      placeholder="选择目标大区"
+                      options={viewModel.targetAreas.map((area) => ({
+                        value: area.areaId,
+                        label: `${area.areaName}${area.state === 0 ? "（暂不可用）" : ""}`,
+                        disabled: area.state === 0,
+                      }))}
+                      onChange={viewModel.selectTargetArea}
+                    />
+                    <SelectField
+                      label="目标服务器"
+                      value={viewModel.selectedTargetGroupId}
+                      placeholder="选择目标服务器"
+                      disabled={!viewModel.selectedTargetArea}
+                      options={(viewModel.selectedTargetArea?.groups ?? []).map(
+                        (group) => ({
+                          value: group.groupId,
+                          label: group.groupName,
+                        }),
+                      )}
+                      onChange={(value) =>
+                        void viewModel.selectTargetGroup(value)
+                      }
+                    />
+                  </div>
+                  {viewModel.selectedTargetGroup && (
+                    <div className="teleport-queue-note">
+                      <Clock />
+                      {viewModel.queueMinutes === null
+                        ? "当前排队时间暂无法估算"
+                        : `预计等待约 ${roundQueueMinutes(viewModel.queueMinutes)} 分钟`}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <label className="teleport-terms">
+                <input
+                  type="checkbox"
+                  checked={viewModel.termsAccepted}
+                  onChange={(event) =>
+                    viewModel.setTermsAccepted(event.target.checked)
+                  }
+                />
+                <span>我已退出游戏，并确认角色不在跨界或超域旅行状态中。</span>
+              </label>
+
+              <button
+                className="teleport-primary-action"
+                type="button"
+                disabled={!canSubmit}
+                onClick={() => setReviewOpen(true)}
+              >
+                <AirplaneTilt weight="fill" />
+                核对并提交
+              </button>
             </div>
 
-            {inventory ? (
-              <>
-                <div className="inventory-toolbar">
-                  <label className="inventory-search">
-                    <MagnifyingGlass aria-hidden="true" />
-                    <span className="sr-only">搜索物品名称或 ID</span>
-                    <input
-                      type="search"
-                      value={query}
-                      placeholder="搜索名称、物品 ID、投影或容器"
-                      onChange={(event) => setQuery(event.target.value)}
-                    />
-                  </label>
-                  <div className="container-selector" aria-label="物品容器">
-                    <button
-                      className={selectedContainer === "all" ? "active" : ""}
-                      type="button"
-                      onClick={() => setSelectedContainer("all")}
-                    >
-                      全部
-                    </button>
-                    {groups.map((group) => (
-                      <button
-                        className={
-                          selectedContainer === group.key ? "active" : ""
-                        }
-                        type="button"
-                        key={group.key}
-                        onClick={() => setSelectedContainer(group.key)}
-                      >
-                        {group.label}
-                        <span>{group.items.length}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <p className="inventory-result-count" aria-live="polite">
-                  当前显示 {visibleItemCount.toLocaleString("zh-CN")} 个物品槽位
-                  {itemMetadataLoading && "，正在读取物品资料"}
-                  {itemMetadataError && `，${itemMetadataError}`}
-                </p>
-                {visibleGroups.length ? (
-                  <div className="inventory-groups">
-                    {visibleGroups.map((group) => (
-                      <InventoryGroup key={group.key} group={group} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    icon={<MagnifyingGlass />}
-                    title="没有匹配的物品"
-                    description="请更换物品名称、ID 或容器关键词。"
-                  />
-                )}
-              </>
-            ) : (
-              <EmptyState
-                icon={<Backpack />}
-                title="尚未读取到物品"
-                description="角色进入游戏世界后，可以读取背包、装备和兵装库。"
-              />
-            )}
+            <JourneyRoute viewModel={viewModel} />
           </section>
+
+          <OrderHistory viewModel={viewModel} />
         </>
       )}
+
+      {reviewOpen && (
+        <ActionDialog
+          title="确认本次超域传送"
+          onClose={() => setReviewOpen(false)}
+          actions={
+            <>
+              <button type="button" onClick={() => setReviewOpen(false)}>
+                返回修改
+              </button>
+              <button
+                className="is-primary"
+                type="button"
+                disabled={viewModel.actionLoading}
+                onClick={() => {
+                  setReviewOpen(false);
+                  void viewModel.submitTravel();
+                }}
+              >
+                确认提交
+              </button>
+            </>
+          }
+        >
+          <JourneyReview viewModel={viewModel} />
+          <div className="dialog-warning">
+            <WarningCircle weight="fill" />
+            请再次确认游戏客户端已经完全退出。
+          </div>
+        </ActionDialog>
+      )}
+
+      {viewModel.activeOrderId && !viewModel.orderConfirmationRequired && (
+        <OrderProgress viewModel={viewModel} />
+      )}
+
+      {viewModel.orderConfirmationRequired && (
+        <ActionDialog
+          title="官方预检已完成"
+          onClose={() => undefined}
+          actions={
+            <>
+              <button
+                type="button"
+                disabled={viewModel.actionLoading}
+                onClick={() => void viewModel.resolveOrderConfirmation(false)}
+              >
+                放弃传送
+              </button>
+              <button
+                className="is-primary"
+                type="button"
+                disabled={viewModel.actionLoading}
+                onClick={() => void viewModel.resolveOrderConfirmation(true)}
+              >
+                确认传送
+              </button>
+            </>
+          }
+        >
+          <p>官方接口要求在角色预检后再次确认，请检查以下结果。</p>
+          <StatusMessages status={viewModel.activeOrderStatus} />
+        </ActionDialog>
+      )}
+
+      {viewModel.returnOrder && <ReturnDialog viewModel={viewModel} />}
     </main>
   );
 }
 
-function BridgeState({ phase }: { phase: string }) {
-  const label =
-    {
-      disconnected: "未连接",
-      connecting: "正在连接",
-      ready: "读取层已就绪",
-      faulted: "连接故障",
-      shutting_down: "正在断开",
-    }[phase] ?? "未知状态";
+function ServiceSummary({
+  viewModel,
+}: {
+  viewModel: TeleportWorkspaceViewModel;
+}) {
   return (
-    <span className={`bridge-state phase-${phase}`} aria-live="polite">
-      <span className="bridge-state-indicator" aria-hidden="true" />
-      {label}
-    </span>
+    <dl className="teleport-summary">
+      <div>
+        <Coins />
+        <dt>账户余额</dt>
+        <dd>{viewModel.balance.toLocaleString("zh-CN")}</dd>
+      </div>
+      <div>
+        <Clock />
+        <dt>基础间隔</dt>
+        <dd>{viewModel.serviceLimitDays} 天</dd>
+      </div>
+      <div>
+        <Ticket />
+        <dt>当前限制</dt>
+        <dd>{viewModel.migrationLimitDays || "无"}</dd>
+      </div>
+      <div>
+        <MapPin />
+        <dt>可选大区</dt>
+        <dd>{viewModel.sourceAreas.length}</dd>
+      </div>
+    </dl>
   );
 }
 
-function CharacterOverview({
-  character,
+function JourneyRoute({
+  viewModel,
 }: {
-  character: NonNullable<TeleportWorkspaceViewModel["character"]>;
+  viewModel: TeleportWorkspaceViewModel;
 }) {
-  const classJob =
-    CLASS_JOB_LABEL_BY_GLAMOUR_ID[character.classJobId] ??
-    `职业 ${character.classJobId}`;
-  const currentWorld = formatWorld(
-    character.currentRegion,
-    character.currentWorldId,
-  );
-  const homeWorld = formatWorld(character.homeRegion, character.homeWorldId);
   return (
-    <article className="character-overview">
-      <div className="character-identity">
-        <img
-          src={getClassJobIconUrl(character.classJobId)}
-          alt=""
-          width="72"
-          height="72"
-        />
+    <aside className="journey-route" aria-label="传送路线预览">
+      <div className="route-caption">
+        <span>路线预览</span>
+        <AirplaneTilt weight="duotone" />
+      </div>
+      <div className="route-stop is-source">
+        <span className="route-marker" />
         <div>
+          <small>当前服务器</small>
+          <strong>
+            {viewModel.selectedSourceGroup?.groupName ?? "尚未选择"}
+          </strong>
           <span>
-            {classJob} / 等级 {character.level}
+            {viewModel.selectedSourceArea?.areaName ?? "选择出发大区"}
           </span>
-          <h2>{character.characterName}</h2>
-          <code>Content ID {character.contentId}</code>
         </div>
       </div>
-      <dl className="character-vitals">
-        <CharacterFact
-          icon={<Pulse />}
-          label="生命"
-          value={`${formatNumber(character.currentHp)} / ${formatNumber(character.maxHp)}`}
-        />
-        <CharacterFact
-          icon={<Database />}
-          label="魔力"
-          value={`${formatNumber(character.currentMp)} / ${formatNumber(character.maxMp)}`}
-        />
-        <CharacterFact
-          icon={<WifiHigh />}
-          label="当前世界"
-          value={currentWorld}
-        />
-        <CharacterFact
-          icon={<PlugsConnected />}
-          label="初始世界"
-          value={homeWorld}
-        />
-        <CharacterFact
-          icon={<MapPin />}
-          label="区域"
-          value={`Territory ${character.territoryId}`}
-          detail={`X ${character.position.x.toFixed(2)} / Y ${character.position.y.toFixed(2)} / Z ${character.position.z.toFixed(2)}`}
-        />
-        <CharacterFact
-          icon={<UserCircle />}
-          label="实体"
-          value={`Entity ${character.entityId}`}
-          detail={
-            character.connectedToZone ? "区域连接正常" : "区域连接尚未完成"
-          }
-        />
-      </dl>
-    </article>
-  );
-}
-
-function CharacterFact({
-  icon,
-  label,
-  value,
-  detail,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  detail?: string;
-}) {
-  return (
-    <div>
-      <dt>
-        {icon}
-        {label}
-      </dt>
-      <dd>{value}</dd>
-      {detail && <small>{detail}</small>}
-    </div>
-  );
-}
-
-function InventoryGroup({ group }: { group: DisplayGroup }) {
-  return (
-    <section className="inventory-group" aria-labelledby={`group-${group.key}`}>
-      <header>
+      <div className="route-line">
+        <ArrowRight />
+        <span>{viewModel.selectedRole?.roleName ?? "等待角色"}</span>
+      </div>
+      <div className="route-stop is-target">
+        <span className="route-marker" />
         <div>
-          <h3 id={`group-${group.key}`}>{group.label}</h3>
+          <small>目标服务器</small>
+          <strong>
+            {viewModel.selectedTargetGroup?.groupName ?? "尚未选择"}
+          </strong>
           <span>
-            {group.items.length} 个物品 / {group.capacity} 个槽位
+            {viewModel.selectedTargetArea?.areaName ?? "选择目标大区"}
           </span>
         </div>
-        <div className="container-state">
-          {group.inventoryType !== null && (
-            <code>Type {group.inventoryType}</code>
-          )}
-          {group.cached === false && <span>缓存不可用</span>}
-          {group.mayBeStale && <span>缓存可能已过期</span>}
-          {!group.loaded && <span>未加载</span>}
+      </div>
+      <p>目标服务器状态和排队时间均来自本次实时请求。</p>
+    </aside>
+  );
+}
+
+function OrderHistory({
+  viewModel,
+}: {
+  viewModel: TeleportWorkspaceViewModel;
+}) {
+  return (
+    <section
+      className="teleport-orders"
+      id="teleport-orders"
+      aria-labelledby="orders-title"
+    >
+      <header>
+        <div>
+          <span>官方订单</span>
+          <h2 id="orders-title">最近的传送记录</h2>
         </div>
+        <strong>{viewModel.totalOrders.toLocaleString("zh-CN")} 条</strong>
       </header>
-      {group.items.length ? (
-        <div className="inventory-slot-grid" role="list">
-          {group.items.map((item) => (
-            <InventoryItem key={item.key} item={item} />
+      {viewModel.orders.length ? (
+        <div className="order-list">
+          {viewModel.orders.map((order) => (
+            <OrderRow
+              key={order.orderId}
+              order={order}
+              busy={viewModel.actionLoading}
+              onReturn={viewModel.prepareReturn}
+            />
           ))}
         </div>
       ) : (
-        <p className="container-empty">
-          {group.cached === false
-            ? "游戏尚未提供该缓存。"
-            : "当前容器没有物品。"}
-        </p>
+        <div className="teleport-orders-empty">
+          <Ticket weight="duotone" />
+          <strong>暂无传送记录</strong>
+          <span>提交后的官方订单会显示在这里。</span>
+        </div>
+      )}
+      {viewModel.totalOrderPages > 1 && (
+        <nav className="order-pagination" aria-label="订单分页">
+          <button
+            type="button"
+            disabled={viewModel.loading || viewModel.ordersPage <= 1}
+            onClick={() => void viewModel.loadOrders(viewModel.ordersPage - 1)}
+          >
+            上一页
+          </button>
+          <span>
+            {viewModel.ordersPage} / {viewModel.totalOrderPages}
+          </span>
+          <button
+            type="button"
+            disabled={
+              viewModel.loading ||
+              viewModel.ordersPage >= viewModel.totalOrderPages
+            }
+            onClick={() => void viewModel.loadOrders(viewModel.ordersPage + 1)}
+          >
+            下一页
+          </button>
+        </nav>
       )}
     </section>
   );
 }
 
-function InventoryItem({ item }: { item: DisplayItem }) {
-  const materia = item.materia
-    .map((id, index) => ({ id, grade: item.materiaGrades[index] }))
-    .filter((entry) => entry.id > 0);
-  const stains = item.stains.filter((stain) => stain > 0);
+function OrderRow({
+  order,
+  busy,
+  onReturn,
+}: {
+  order: TeleportOrder;
+  busy: boolean;
+  onReturn: (order: TeleportOrder) => Promise<void>;
+}) {
+  const canReturn =
+    order.migrationType === 4 &&
+    order.migrationStatus === 5 &&
+    order.travelStatus === 1;
   return (
-    <article className="inventory-item" role="listitem">
-      <div className="inventory-item-mark" aria-hidden="true">
-        <Package weight="duotone" />
-        {item.details?.iconUrl && (
-          <img
-            src={item.details.iconUrl}
-            alt=""
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            onError={(event) => {
-              event.currentTarget.hidden = true;
-            }}
-          />
+    <article className="order-row">
+      <div className="order-kind">
+        {order.migrationType === 5 ? (
+          <ArrowUUpLeft weight="duotone" />
+        ) : (
+          <AirplaneTilt weight="duotone" />
         )}
+        <span>{order.migrationType === 5 ? "返回" : "出发"}</span>
       </div>
-      <div className="inventory-item-main">
-        <span>{item.details?.category || "物品"}</span>
-        <strong title={item.details?.name}>
-          {item.isSymbolic
-            ? "链接槽位"
-            : item.details?.name || `物品 ${item.itemId}`}
+      <div className="order-route">
+        <strong>
+          {order.areaName} / {order.groupName}
         </strong>
-        <small>
-          ID {item.itemId} / 槽位 {item.slot + 1}
-        </small>
+        <ArrowRight />
+        <strong>
+          {order.targetAreaName} / {order.targetGroupName}
+        </strong>
       </div>
-      <span className="inventory-quantity">×{item.quantity}</span>
-      {item.details?.description && (
-        <p
-          className="inventory-item-description"
-          title={item.details.description}
+      <div className="order-meta">
+        <span>{order.migrationStatusDesc || "处理中"}</span>
+        <time>{order.createTime}</time>
+        <code>{order.orderId}</code>
+      </div>
+      {canReturn && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void onReturn(order)}
         >
-          {item.details.description}
-        </p>
+          返回原服
+        </button>
       )}
-      <dl className="inventory-item-meta">
-        {item.details && item.details.levelEquip > 1 && (
-          <div>
-            <dt>装备等级</dt>
-            <dd>{item.details.levelEquip}</dd>
-          </div>
-        )}
-        {item.details && item.details.levelItem > 1 && (
-          <div>
-            <dt>品级</dt>
-            <dd>{item.details.levelItem}</dd>
-          </div>
-        )}
-        {item.details && item.details.rarity > 1 && (
-          <div>
-            <dt>稀有度</dt>
-            <dd>{item.details.rarity}</dd>
-          </div>
-        )}
-        {item.details && item.details.stackSize > 1 && (
-          <div>
-            <dt>堆叠上限</dt>
-            <dd>{formatNumber(item.details.stackSize)}</dd>
-          </div>
-        )}
-        {item.condition !== null && item.condition > 0 && (
-          <div>
-            <dt>耐久</dt>
-            <dd>{formatCondition(item.condition)}</dd>
-          </div>
-        )}
-        {item.glamourId !== null && item.glamourId > 0 && (
-          <div>
-            <dt>投影</dt>
-            <dd>{item.glamourDetails?.name || item.glamourId}</dd>
-          </div>
-        )}
-        {stains.length > 0 && (
-          <div>
-            <dt>染剂</dt>
-            <dd>{stains.join(" / ")}</dd>
-          </div>
-        )}
-        {materia.length > 0 && (
-          <div>
-            <dt>魔晶石</dt>
-            <dd>
-              {materia.map((entry) => `${entry.id}:${entry.grade}`).join(" / ")}
-            </dd>
-          </div>
-        )}
-        {item.setUnlockBits !== null && item.setUnlockBits > 0 && (
-          <div>
-            <dt>套装标记</dt>
-            <dd>{item.setUnlockBits}</dd>
-          </div>
-        )}
-        {item.flags !== null && item.flags > 0 && (
-          <div>
-            <dt>标记</dt>
-            <dd>0x{item.flags.toString(16).padStart(2, "0")}</dd>
-          </div>
-        )}
-        {item.isSymbolic && (
-          <div>
-            <dt>目标</dt>
-            <dd>
-              {item.linkedInventoryType ?? "?"}:{item.linkedSlot ?? "?"}
-            </dd>
-          </div>
-        )}
-      </dl>
     </article>
   );
 }
 
-function SectionHeading({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
+function AccountGate({ onOpenLogin }: { onOpenLogin: () => void }) {
   return (
-    <header className="teleport-section-heading">
-      <span aria-hidden="true">{icon}</span>
-      <div>
-        <h2>{title}</h2>
-        <p>{description}</p>
-      </div>
-    </header>
+    <section className="teleport-gate">
+      <UserCircle weight="duotone" />
+      <span>需要盛趣账号</span>
+      <h2>先登录，再读取传送角色</h2>
+      <p>账号凭据仅保存在本机受保护存储中，不会交给页面脚本。</p>
+      <button
+        className="teleport-gate-primary"
+        type="button"
+        onClick={onOpenLogin}
+      >
+        登录盛趣通行证
+      </button>
+    </section>
   );
 }
 
-function BridgeErrorBanner({
-  error,
-  elevating,
-  onRetry,
-  onRequestElevation,
+function CrossAuthenticationGate({
+  viewModel,
 }: {
-  error: GameBridgeApiError;
-  elevating: boolean;
-  onRetry: () => Promise<void>;
-  onRequestElevation: () => Promise<void>;
+  viewModel: TeleportWorkspaceViewModel;
 }) {
-  const requiresElevation = [
-    "windows_operation_failed",
-    "elevation_denied",
-    "elevation_launch_failed",
-  ].includes(error.code);
   return (
-    <div className="teleport-error" role="alert">
-      <WarningCircle weight="fill" />
+    <section className="teleport-gate cross-auth-gate">
+      {viewModel.crossLogin?.qrImageDataUrl ? (
+        <div className="teleport-qr">
+          <img
+            src={viewModel.crossLogin.qrImageDataUrl}
+            alt="超域传送登录二维码"
+          />
+        </div>
+      ) : viewModel.crossLoginMethod === "push" ? (
+        <DeviceMobile weight="duotone" />
+      ) : (
+        <QrCode weight="duotone" />
+      )}
+      <span>超域传送专属验证</span>
+      <h2>
+        {viewModel.crossLoginMethod === "push"
+          ? "请在叨鱼中确认登录"
+          : viewModel.crossLogin
+            ? viewModel.crossLoginProgress === "scanned"
+              ? "已扫描，请在叨鱼中确认"
+              : "使用叨鱼扫描二维码"
+            : "一键确认超域传送登录"}
+      </h2>
+      <p>超域服务使用独立的官方应用票据，可直接发送叨鱼一键确认。</p>
+      {!viewModel.crossLogin && (
+        <>
+          <label className="teleport-field cross-auth-account">
+            <span>盛趣账号或手机号</span>
+            <input
+              value={viewModel.crossAccount}
+              autoComplete="username"
+              placeholder="输入完整账号"
+              onChange={(event) =>
+                viewModel.setCrossAccount(event.target.value)
+              }
+            />
+          </label>
+          <div className="cross-auth-actions">
+            <button
+              className="teleport-gate-primary"
+              type="button"
+              disabled={
+                viewModel.actionLoading ||
+                viewModel.crossAccount.trim().length < 5
+              }
+              onClick={() => void viewModel.startCrossAuthentication("push")}
+            >
+              {viewModel.actionLoading ? (
+                <SpinnerGap className="spin" />
+              ) : (
+                <DeviceMobile />
+              )}
+              发送叨鱼确认
+            </button>
+            <button
+              className="teleport-secondary-action"
+              type="button"
+              disabled={viewModel.actionLoading}
+              onClick={() => void viewModel.startCrossAuthentication("qr")}
+            >
+              <QrCode />
+              改用二维码
+            </button>
+          </div>
+        </>
+      )}
+      {viewModel.crossLogin && (
+        <div className="teleport-qr-status" role="status">
+          <SpinnerGap className="spin" />
+          {viewModel.crossLoginMethod === "push"
+            ? "等待叨鱼确认"
+            : viewModel.crossLoginProgress === "scanned"
+              ? "等待手机确认"
+              : "等待扫描"}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function JourneyReview({
+  viewModel,
+}: {
+  viewModel: TeleportWorkspaceViewModel;
+}) {
+  return (
+    <div className="journey-review">
       <div>
-        <strong>{gameBridgeErrorTitle(error.code)}</strong>
-        <p>{gameBridgeErrorMessage(error)}</p>
-        <code>{error.code}</code>
+        <span>角色</span>
+        <strong>{viewModel.selectedRole?.roleName}</strong>
       </div>
-      <button
-        type="button"
-        disabled={elevating}
-        onClick={() =>
-          void (requiresElevation ? onRequestElevation() : onRetry())
+      <div>
+        <span>当前服务器</span>
+        <strong>
+          {viewModel.selectedSourceArea?.areaName} /{" "}
+          {viewModel.selectedSourceGroup?.groupName}
+        </strong>
+      </div>
+      <div>
+        <span>目标服务器</span>
+        <strong>
+          {viewModel.selectedTargetArea?.areaName} /{" "}
+          {viewModel.selectedTargetGroup?.groupName}
+        </strong>
+      </div>
+    </div>
+  );
+}
+
+function OrderProgress({
+  viewModel,
+}: {
+  viewModel: TeleportWorkspaceViewModel;
+}) {
+  return (
+    <div className="teleport-progress-overlay" role="status">
+      <div className="teleport-progress-panel">
+        <SpinnerGap className="spin" />
+        <span>官方订单处理中</span>
+        <h2>{orderProgressText(viewModel.activeOrderStatus)}</h2>
+        <code>{viewModel.activeOrderId}</code>
+        <p>页面会每 3 秒查询一次订单状态，请保持应用开启。</p>
+      </div>
+    </div>
+  );
+}
+
+function ReturnDialog({
+  viewModel,
+}: {
+  viewModel: TeleportWorkspaceViewModel;
+}) {
+  const currentArea =
+    viewModel.returnAreas.find(
+      (area) => area.areaId === viewModel.returnAreaId,
+    ) ?? null;
+  return (
+    <ActionDialog
+      title="申请返回原服"
+      onClose={viewModel.closeReturn}
+      actions={
+        <>
+          <button type="button" onClick={viewModel.closeReturn}>
+            取消
+          </button>
+          <button
+            className="is-primary"
+            type="button"
+            disabled={!viewModel.selectedReturnGroup || viewModel.actionLoading}
+            onClick={() => void viewModel.submitReturn()}
+          >
+            提交返回申请
+          </button>
+        </>
+      }
+    >
+      <p>请选择角色当前所在服务器，官方将据此创建返回订单。</p>
+      <div className="teleport-field-grid">
+        <SelectField
+          label="当前大区"
+          value={viewModel.returnAreaId}
+          placeholder="选择当前大区"
+          options={viewModel.returnAreas.map((area) => ({
+            value: area.areaId,
+            label: area.areaName,
+          }))}
+          onChange={viewModel.selectReturnArea}
+        />
+        <SelectField
+          label="当前服务器"
+          value={viewModel.returnGroupId}
+          placeholder="选择当前服务器"
+          options={(currentArea?.groups ?? []).map((group) => ({
+            value: group.groupId,
+            label: group.groupName,
+          }))}
+          onChange={viewModel.setReturnGroupId}
+        />
+      </div>
+    </ActionDialog>
+  );
+}
+
+function ActionDialog({
+  title,
+  children,
+  actions,
+  onClose,
+}: {
+  title: string;
+  children: React.ReactNode;
+  actions: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div className="teleport-dialog-backdrop">
+      <section
+        className="teleport-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="teleport-dialog-title"
+      >
+        <header>
+          <h2 id="teleport-dialog-title">{title}</h2>
+          <button type="button" aria-label="关闭" onClick={onClose}>
+            <X />
+          </button>
+        </header>
+        <div className="teleport-dialog-body">{children}</div>
+        <footer>{actions}</footer>
+      </section>
+    </div>
+  );
+}
+
+function StatusMessages({
+  status,
+}: {
+  status: TeleportWorkspaceViewModel["activeOrderStatus"];
+}) {
+  if (!status?.messages.length) return <p>角色预检通过，可以继续传送。</p>;
+  return (
+    <div className="status-message-list">
+      {status.messages.map((message) => (
+        <div key={message.roleId}>
+          <strong>{message.roleName}</strong>
+          <span>{message.checkMsg || message.migrationMsg || "预检通过"}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  placeholder,
+  options,
+  disabled = false,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  placeholder: string;
+  options: Array<{ value: number; label: string; disabled?: boolean }>;
+  disabled?: boolean;
+  onChange: (value: number | null) => void;
+}) {
+  return (
+    <label className="teleport-field">
+      <span>{label}</span>
+      <select
+        value={value ?? ""}
+        disabled={disabled}
+        onChange={(event) =>
+          onChange(event.target.value ? Number(event.target.value) : null)
         }
       >
-        {requiresElevation
-          ? elevating
-            ? "正在请求授权…"
-            : "授权并重启"
-          : "重试"}
-      </button>
-    </div>
-  );
-}
-
-function ReadFailureBanner({ failure }: { failure: GameReadFailure }) {
-  return (
-    <div className="teleport-read-warning" role="status">
-      <WarningCircle />
-      <span>
-        <strong>
-          {failure.resource === "active_character" ? "角色读取" : "库存读取"}
-        </strong>
-        {gameBridgeErrorMessage(failure.error)}
-      </span>
-    </div>
-  );
-}
-
-function EmptyState({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="teleport-empty">
-      <span>{icon}</span>
-      <div>
-        <h3>{title}</h3>
-        <p>{description}</p>
-      </div>
-    </div>
-  );
-}
-
-function TeleportLoadingState() {
-  return (
-    <div className="teleport-loading" aria-label="正在连接游戏读取层">
-      <div className="teleport-loading-title" />
-      <div className="teleport-loading-panel" />
-      <div className="teleport-loading-title short" />
-      <div className="teleport-loading-grid">
-        {Array.from({ length: 8 }, (_, index) => (
-          <span key={index} />
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option
+            key={option.value}
+            value={option.value}
+            disabled={option.disabled}
+          >
+            {option.label}
+          </option>
         ))}
-      </div>
+      </select>
+    </label>
+  );
+}
+
+function TeleportSkeleton() {
+  return (
+    <div className="teleport-skeleton" aria-label="正在读取超域传送数据">
+      <div />
+      <div />
+      <div />
     </div>
   );
 }
 
-function buildDisplayGroups(
-  inventory: PlayerInventorySnapshot | null,
-  itemDetails: ReadonlyMap<number, ItemSheetInfo>,
-): DisplayGroup[] {
-  if (!inventory) return [];
-  const groups: DisplayGroup[] = inventory.containers.map((container) => ({
-    key: container.name,
-    label: CONTAINER_LABELS[container.name] ?? container.name,
-    inventoryType: container.inventoryType,
-    loaded: container.loaded,
-    capacity: container.size,
-    cached: null,
-    mayBeStale: false,
-    items: container.items.map((item) => toDisplayItem(item, itemDetails)),
-  }));
-  groups.push({
-    key: "glamour_dresser",
-    label: CONTAINER_LABELS.glamour_dresser,
-    inventoryType: null,
-    loaded: inventory.glamourDresser.cached,
-    capacity: 800,
-    cached: inventory.glamourDresser.cached,
-    mayBeStale: inventory.glamourDresser.mayBeStale,
-    items: inventory.glamourDresser.items.map((item) => ({
-      key: `glamour-${item.slot}-${item.itemId}`,
-      itemId: item.itemId,
-      slot: item.slot,
-      quantity: 1,
-      condition: null,
-      spiritbondOrCollectability: null,
-      flags: null,
-      glamourId: null,
-      stains: [],
-      materia: [],
-      materiaGrades: [],
-      isSymbolic: false,
-      linkedInventoryType: null,
-      linkedSlot: null,
-      setUnlockBits: item.setUnlockBits,
-      details: itemDetails.get(item.itemId) ?? null,
-      glamourDetails: null,
-    })),
-  });
-  return groups;
+function roundQueueMinutes(minutes: number) {
+  return Math.max(30, (Math.floor(minutes / 30) + 1) * 30);
 }
 
-function toDisplayItem(
-  item: InventoryItemSnapshot,
-  itemDetails: ReadonlyMap<number, ItemSheetInfo>,
-): DisplayItem {
-  return {
-    key: `${item.inventoryType}-${item.slot}-${item.itemId}`,
-    itemId: item.itemId,
-    slot: item.slot,
-    quantity: item.quantity,
-    condition: item.condition,
-    spiritbondOrCollectability: item.spiritbondOrCollectability,
-    flags: item.flags,
-    glamourId: item.glamourId,
-    stains: item.stains,
-    materia: item.materia,
-    materiaGrades: item.materiaGrades,
-    isSymbolic: item.isSymbolic,
-    linkedInventoryType: item.linkedInventoryType,
-    linkedSlot: item.linkedSlot,
-    setUnlockBits: null,
-    details: itemDetails.get(item.itemId) ?? null,
-    glamourDetails:
-      item.glamourId > 0 ? (itemDetails.get(item.glamourId) ?? null) : null,
-  };
-}
-
-function filterGroups(
-  groups: DisplayGroup[],
-  selectedContainer: string,
-  query: string,
+function orderProgressText(
+  status: TeleportWorkspaceViewModel["activeOrderStatus"],
 ) {
-  const normalizedQuery = query.trim().toLocaleLowerCase("zh-CN");
-  return groups
-    .filter(
-      (group) => selectedContainer === "all" || group.key === selectedContainer,
-    )
-    .map((group) => ({
-      ...group,
-      items: normalizedQuery
-        ? group.items.filter((item) =>
-            [
-              group.label,
-              item.itemId,
-              item.details?.name ?? "",
-              item.details?.description ?? "",
-              item.details?.category ?? "",
-              item.glamourId ?? "",
-              item.glamourDetails?.name ?? "",
-            ]
-              .join(" ")
-              .toLocaleLowerCase("zh-CN")
-              .includes(normalizedQuery),
-          )
-        : group.items,
-    }))
-    .filter(
-      (group) =>
-        group.items.length > 0 ||
-        (!normalizedQuery && selectedContainer !== "all"),
-    );
-}
-
-function formatWorld(region: string | null, worldId: number) {
-  return region ? `${region} / World ${worldId}` : `World ${worldId}`;
-}
-
-function formatNumber(value: number) {
-  return value.toLocaleString("zh-CN");
-}
-
-function formatCondition(value: number) {
-  return value <= 30_000 ? `${Math.round(value / 300)}%` : String(value);
-}
-
-function gameBridgeErrorTitle(code: string) {
-  if (code === "elevation_denied") return "未授予管理员权限";
-  if (code === "elevation_launch_failed") return "无法请求管理员权限";
-  if (code === "payload_already_initialized") return "游戏读取已被占用";
-  if (code === "process_not_found") return "没有找到游戏进程";
-  if (code === "windows_operation_failed") return "无法访问游戏进程";
-  if (code === "unsupported_platform") return "当前平台不支持游戏读取";
-  if (code === "bridge_asset_missing" || code === "bridge_manifest_missing") {
-    return "读取层资源不完整";
-  }
-  if (code === "desktop_runtime_required") return "需要桌面端运行环境";
-  return "游戏读取连接失败";
-}
-
-function gameBridgeErrorMessage(error: GameBridgeApiError) {
-  if (error.code === "elevation_denied") {
-    return "UAC 请求已取消。读取游戏进程需要管理员权限，可再次点击授权并重启。";
-  }
-  if (error.code === "elevation_launch_failed") {
-    return "无法启动管理员实例，请检查 Windows UAC 设置后重试。";
-  }
-  if (error.code === "payload_already_initialized") {
-    return "游戏读取层正被另一个 OpenRisingStones 实例使用。请关闭另一个实例后重试；若其已异常退出，请稍等后重试，仍失败则重启游戏。";
-  }
-  if (error.code === "process_not_found") {
-    return "请先启动游戏，再重新连接。";
-  }
-  if (error.code === "windows_operation_failed") {
-    return "请使用管理员权限启动 OpenRisingStones。";
-  }
-  if (error.code === "unsupported_platform") {
-    return "游戏读取功能仅支持 Windows 桌面端，请在 Windows 上打开 OpenRisingStones。";
-  }
-  if (error.code === "not_in_world") {
-    return "当前没有 LocalPlayer。请登录角色并进入游戏世界。";
-  }
-  if (error.code === "territory_not_ready") {
-    return "角色正在切换区域，请等待加载完成后重试。";
-  }
-  if (error.code === "bridge_asset_missing") {
-    return "请先构建 Debug 游戏读取层资源。";
-  }
-  if (error.code === "bridge_manifest_missing") {
-    return "没有找到与游戏版本对应的 manifest。";
-  }
-  if (error.code === "desktop_runtime_required") {
-    return "浏览器预览无法注入游戏，请从 Tauri 桌面端打开。";
-  }
-  return error.message;
+  if (!status || [0, 1].includes(status.migrationStatus)) return "正在检查角色";
+  if ([3, 4].includes(status.migrationStatus)) return "正在执行传送";
+  return "正在等待官方状态";
 }
