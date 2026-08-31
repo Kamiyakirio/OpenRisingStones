@@ -1,14 +1,13 @@
-// PE section validation, SHA-256 checking, and unique wildcard signature resolution.
+// Resolved game addresses and memory-page validation used by the native access layer.
 #pragma once
 
-#include "manifest.hpp"
+#include "bridge/shared_bridge.hpp"
 
 #include <cstddef>
-#include <cstdint>
-#include <string>
-#include <unordered_map>
 
 namespace bridge {
+
+using Layout = SharedGameLayout;
 
 struct ResolvedAddresses final {
   std::byte** framework_instance_slot{};
@@ -25,24 +24,7 @@ struct ResolvedAddresses final {
   std::byte* get_component_button_by_id{};
 };
 
-class AddressResolver final {
- public:
-  AddressResolver(const VersionManifest& manifest, void* main_module);
-
-  [[nodiscard]] ResolvedAddresses resolve() const;
-
- private:
-  [[nodiscard]] std::byte* resolve_one(const FunctionSpec& spec) const;
-  [[nodiscard]] std::byte* scan_unique(const std::string& pattern) const;
-  void validate_module() const;
-
-  const VersionManifest& manifest_;
-  std::byte* module_base_{};
-  std::size_t module_size_{};
-  std::byte* text_base_{};
-  std::size_t text_size_{};
-};
-
+[[nodiscard]] ResolvedAddresses resolve_addresses(const SharedGameApi& api);
 [[nodiscard]] bool is_readable(const void* address, std::size_t length);
 [[nodiscard]] bool is_writable(const void* address, std::size_t length);
 
