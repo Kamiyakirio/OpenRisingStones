@@ -3,8 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   TeleportArea,
   TeleportGroup,
-  TeleportLoginMethod,
-  TeleportLoginStart,
   TeleportOrder,
   TeleportOrderStatus,
   TeleportRole,
@@ -20,12 +18,7 @@ import {
   fetchTeleportReturnGroups,
   fetchTeleportRoles,
   fetchTeleportTargets,
-  pollTeleportPushLogin,
-  pollTeleportQrLogin,
-  startTeleportPushLogin,
-  startTeleportQrLogin,
   submitTeleportReturn,
-  TeleportApiError,
 } from "../services/teleportApi";
 import {
   applyTeleportGameRegion,
@@ -55,7 +48,6 @@ export type AutomaticTeleportStage =
 type Options = {
   authenticated: boolean;
   loginChecking: boolean;
-  account: string;
 };
 
 type MemoryCharacter = ActiveCharacterSnapshot | GameSnapshot;
@@ -63,7 +55,6 @@ type MemoryCharacter = ActiveCharacterSnapshot | GameSnapshot;
 export function useTeleportWorkspaceViewModel({
   authenticated,
   loginChecking,
-  account,
 }: Options) {
   const [loading, setLoading] = useState(false);
   const [selectionLoading, setSelectionLoading] = useState(false);
@@ -89,8 +80,6 @@ export function useTeleportWorkspaceViewModel({
   );
   const [automaticCharacter, setAutomaticCharacter] =
     useState<MemoryCharacter | null>(null);
-  const [crossAuthenticationRequired, setCrossAuthenticationRequired] =
-    useState(false);
   const [balance, setBalance] = useState(0);
   const [migrationLimitDays, setMigrationLimitDays] = useState(0);
   const [serviceLimitDays, setServiceLimitDays] = useState(0);
@@ -116,14 +105,6 @@ export function useTeleportWorkspaceViewModel({
   >(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [queueMinutes, setQueueMinutes] = useState<number | null>(null);
-  const [crossAccountOverride, setCrossAccount] = useState<string | null>(null);
-  const crossAccount = crossAccountOverride ?? usableAccount(account);
-  const [crossLogin, setCrossLogin] = useState<TeleportLoginStart | null>(null);
-  const [crossLoginMethod, setCrossLoginMethod] =
-    useState<TeleportLoginMethod | null>(null);
-  const [crossLoginProgress, setCrossLoginProgress] = useState<
-    "awaiting_confirmation" | "awaiting_scan" | "scanned" | null
-  >(null);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [activeOrderStatus, setActiveOrderStatus] =
     useState<TeleportOrderStatus | null>(null);
@@ -197,16 +178,8 @@ export function useTeleportWorkspaceViewModel({
       setOrdersPage(1);
       setTotalOrders(overview.totalOrders);
       setTotalOrderPages(overview.totalPages);
-      setCrossAuthenticationRequired(false);
     } catch (reason) {
-      if (
-        reason instanceof TeleportApiError &&
-        reason.code === "cross_authentication_required"
-      ) {
-        setCrossAuthenticationRequired(true);
-      } else {
-        setError(errorMessage(reason));
-      }
+      setError(errorMessage(reason));
     } finally {
       setLoading(false);
     }
@@ -222,42 +195,6 @@ export function useTeleportWorkspaceViewModel({
       disposed = true;
     };
   }, [authenticated, loginChecking, refresh]);
-
-  useEffect(() => {
-    if (!crossLogin || !crossLoginMethod) return;
-    let disposed = false;
-    let timer: number | undefined;
-    const poll = async () => {
-      try {
-        const result = await (crossLoginMethod === "push"
-          ? pollTeleportPushLogin(crossLogin.loginId)
-          : pollTeleportQrLogin(crossLogin.loginId));
-        if (disposed) return;
-        if (result.status === "success") {
-          setCrossLogin(null);
-          setCrossLoginMethod(null);
-          setCrossLoginProgress(null);
-          setCrossAuthenticationRequired(false);
-          await refresh();
-          return;
-        }
-        setCrossLoginProgress(result.status);
-        timer = window.setTimeout(() => void poll(), 1500);
-      } catch (reason) {
-        if (!disposed) {
-          setCrossLogin(null);
-          setCrossLoginMethod(null);
-          setCrossLoginProgress(null);
-          setError(errorMessage(reason));
-        }
-      }
-    };
-    timer = window.setTimeout(() => void poll(), 1000);
-    return () => {
-      disposed = true;
-      if (timer) window.clearTimeout(timer);
-    };
-  }, [crossLogin, crossLoginMethod, refresh]);
 
   useEffect(() => {
     if (!activeOrderId || orderConfirmationRequired) return;
@@ -334,32 +271,6 @@ export function useTeleportWorkspaceViewModel({
     orderConfirmationRequired,
     refresh,
   ]);
-
-  const startCrossAuthentication = useCallback(
-    async (method: TeleportLoginMethod) => {
-      const normalizedAccount = crossAccount.trim();
-      if (method === "push" && normalizedAccount.length < 5) {
-        setError("请输入完整的盛趣账号或手机号");
-        return;
-      }
-      setActionLoading(true);
-      setError(null);
-      try {
-        const started =
-          method === "push"
-            ? await startTeleportPushLogin(normalizedAccount)
-            : await startTeleportQrLogin();
-        setCrossLogin(started);
-        setCrossLoginMethod(method);
-        setCrossLoginProgress(started.status);
-      } catch (reason) {
-        setError(errorMessage(reason));
-      } finally {
-        setActionLoading(false);
-      }
-    },
-    [crossAccount],
-  );
 
   const requestMode = useCallback((nextMode: TeleportMode) => {
     if (nextMode === "automatic") {
@@ -469,8 +380,9 @@ export function useTeleportWorkspaceViewModel({
       setAutomaticStage("connecting");
       const readiness = await fetchAutomaticTeleportReadiness();
       if (!readiness.gameAuthReady) {
-        setCrossAuthenticationRequired(true);
-        throw new Error("自动模式需要重新完成一次推送或扫码认证");
+        throw new Error(
+          "当前主账号会话无法刷新游戏票据，请使用一键确认或扫码重新登录主账号",
+        );
       }
       const bridgeStatus = await prepareGameBridge();
       setAutomaticStage("reading_character");
@@ -510,7 +422,6 @@ export function useTeleportWorkspaceViewModel({
       setTargetAreas(
         targets.filter((area) => area.areaId !== source.area.areaId),
       );
-      setCrossAuthenticationRequired(false);
       setAutomaticStage("idle");
     } catch (reason) {
       setAutomaticStage("failed");
@@ -598,8 +509,9 @@ export function useTeleportWorkspaceViewModel({
       setAutomaticStage("connecting");
       const readiness = await fetchAutomaticTeleportReadiness();
       if (!readiness.gameAuthReady) {
-        setCrossAuthenticationRequired(true);
-        throw new Error("自动模式需要重新完成一次推送或扫码认证");
+        throw new Error(
+          "当前主账号会话无法刷新游戏票据，请使用一键确认或扫码重新登录主账号",
+        );
       }
       await prepareGameBridge();
       setAutomaticStage("reading_character");
@@ -802,7 +714,6 @@ export function useTeleportWorkspaceViewModel({
     logoutConfirmationRequired,
     completionMessage,
     automaticCharacter,
-    crossAuthenticationRequired,
     balance,
     migrationLimitDays,
     serviceLimitDays,
@@ -826,10 +737,6 @@ export function useTeleportWorkspaceViewModel({
     selectedTargetGroupId,
     termsAccepted,
     queueMinutes,
-    crossAccount,
-    crossLogin,
-    crossLoginMethod,
-    crossLoginProgress,
     activeOrderId,
     activeOrderStatus,
     orderConfirmationRequired,
@@ -840,8 +747,6 @@ export function useTeleportWorkspaceViewModel({
     selectedReturnGroup,
     returnLocationOverride,
     refresh,
-    setCrossAccount,
-    startCrossAuthentication,
     requestMode,
     confirmAutomaticRisk,
     cancelAutomaticRisk,
@@ -870,11 +775,6 @@ export function useTeleportWorkspaceViewModel({
 export type TeleportWorkspaceViewModel = ReturnType<
   typeof useTeleportWorkspaceViewModel
 >;
-
-function usableAccount(account: string) {
-  const normalized = account.trim();
-  return normalized.includes("*") ? "" : normalized;
-}
 
 function errorMessage(reason: unknown) {
   return reason instanceof Error

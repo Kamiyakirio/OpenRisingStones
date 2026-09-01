@@ -8,9 +8,7 @@ import {
   CheckCircle,
   Clock,
   Coins,
-  DeviceMobile,
   MapPin,
-  QrCode,
   ShieldWarning,
   SpinnerGap,
   Ticket,
@@ -72,8 +70,6 @@ export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
         <TeleportSkeleton />
       ) : !viewModel.authenticated ? (
         <AccountGate onOpenLogin={onOpenLogin} />
-      ) : viewModel.crossAuthenticationRequired ? (
-        <CrossAuthenticationGate viewModel={viewModel} />
       ) : viewModel.loading && !viewModel.sourceAreas.length ? (
         <TeleportSkeleton />
       ) : (
@@ -690,92 +686,6 @@ function AccountGate({ onOpenLogin }: { onOpenLogin: () => void }) {
       >
         登录盛趣通行证
       </button>
-    </section>
-  );
-}
-
-function CrossAuthenticationGate({
-  viewModel,
-}: {
-  viewModel: TeleportWorkspaceViewModel;
-}) {
-  return (
-    <section className="teleport-gate cross-auth-gate">
-      {viewModel.crossLogin?.qrImageDataUrl ? (
-        <div className="teleport-qr">
-          <img
-            src={viewModel.crossLogin.qrImageDataUrl}
-            alt="超域传送登录二维码"
-          />
-        </div>
-      ) : viewModel.crossLoginMethod === "push" ? (
-        <DeviceMobile weight="duotone" />
-      ) : (
-        <QrCode weight="duotone" />
-      )}
-      <span>超域传送专属验证</span>
-      <h2>
-        {viewModel.crossLoginMethod === "push"
-          ? "请在叨鱼中确认登录"
-          : viewModel.crossLogin
-            ? viewModel.crossLoginProgress === "scanned"
-              ? "已扫描，请在叨鱼中确认"
-              : "使用叨鱼扫描二维码"
-            : "一键确认超域传送登录"}
-      </h2>
-      <p>超域服务使用独立的官方应用票据，可直接发送叨鱼一键确认。</p>
-      {!viewModel.crossLogin && (
-        <>
-          <label className="teleport-field cross-auth-account">
-            <span>盛趣账号或手机号</span>
-            <input
-              value={viewModel.crossAccount}
-              autoComplete="username"
-              placeholder="输入完整账号"
-              onChange={(event) =>
-                viewModel.setCrossAccount(event.target.value)
-              }
-            />
-          </label>
-          <div className="cross-auth-actions">
-            <button
-              className="teleport-gate-primary"
-              type="button"
-              disabled={
-                viewModel.actionLoading ||
-                viewModel.crossAccount.trim().length < 5
-              }
-              onClick={() => void viewModel.startCrossAuthentication("push")}
-            >
-              {viewModel.actionLoading ? (
-                <SpinnerGap className="spin" />
-              ) : (
-                <DeviceMobile />
-              )}
-              发送叨鱼确认
-            </button>
-            <button
-              className="teleport-secondary-action"
-              type="button"
-              disabled={viewModel.actionLoading}
-              onClick={() => void viewModel.startCrossAuthentication("qr")}
-            >
-              <QrCode />
-              改用二维码
-            </button>
-          </div>
-        </>
-      )}
-      {viewModel.crossLogin && (
-        <div className="teleport-qr-status" role="status">
-          <SpinnerGap className="spin" />
-          {viewModel.crossLoginMethod === "push"
-            ? "等待叨鱼确认"
-            : viewModel.crossLoginProgress === "scanned"
-              ? "等待手机确认"
-              : "等待扫描"}
-        </div>
-      )}
     </section>
   );
 }

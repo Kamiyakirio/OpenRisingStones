@@ -67,13 +67,6 @@ RECRUIT_AREA_CONFIG_URL = (
 TELEPORT_ORIGIN = "https://ff14bjz.sdo.com"
 TELEPORT_PAGE_URL = f"{TELEPORT_ORIGIN}/RegionKanTelepo"
 TELEPORT_REFERER = f"{TELEPORT_PAGE_URL}"
-TELEPORT_LOGIN_FRAME_URL = (
-    "https://login.u.sdo.com/sdo/Login/LoginFrameFC.php"
-    "?pm=2&appId=100001900&areaId=1001&customSecurityLevel=2"
-    "&target=top&thirdParty=wegame"
-    "&returnURL=https%3A%2F%2Fff14bjz.sdo.com%2FRegionKanTelepo"
-    "&backUrl=https%3A%2F%2Fff14bjz.sdo.com%2FRegionKanTelepo"
-)
 TELEPORT_ENDPOINTS = {
     "pageInit": "/api/orderserivce/pageInit",
     "sources": "/api/orderserivce/queryGroupListTravelSource",
@@ -229,6 +222,20 @@ def normalize_game_auth(value: Any) -> dict[str, str] | None:
     return {"tgt": tgt, "guid": guid}
 
 
+def game_auth_from_cookies(cookies: Any) -> dict[str, str] | None:
+    """Recover refresh material from a restored CAS session when available."""
+    tgt = ""
+    guid = ""
+    for cookie in cookies:
+        name = str(getattr(cookie, "name", "") or "").lower()
+        value = str(getattr(cookie, "value", "") or "").strip()
+        if name == "castgc":
+            tgt = value
+        elif name == "web_guidid":
+            guid = value
+    return normalize_game_auth({"tgt": tgt, "guid": guid}) if tgt and guid else None
+
+
 class ApiClient:
     """Own the fingerprinted session and enforce one network/error policy."""
 
@@ -251,6 +258,8 @@ class ApiClient:
             snapshot.get("gameAuth") if snapshot else None
         )
         self._restore_cookies(snapshot)
+        if not self.game_auth:
+            self.game_auth = game_auth_from_cookies(self.session.cookies.jar)
 
     def _restore_cookies(self, snapshot: dict[str, Any] | None) -> None:
         if not snapshot:
@@ -639,6 +648,8 @@ def finish_ticket_login(
     if not ticket:
         raise ApiClientError("The successful login response is missing its ticket.")
 
+    preserve_game_auth(client, payload)
+
     params = common_params()
     params.update(
         {
@@ -780,205 +791,6 @@ def now_ms() -> int:
     return int(time.time() * 1000)
 
 
-def bootstrap_teleport(client: ApiClient) -> str:
-    """Create the app-specific CAS session used by Regional Teleport."""
-    if not any(cookie.name == "web_guidid" for cookie in client.session.cookies.jar):
-        client.session.cookies.set(
-            "web_guidid",
-            str(int(time.time() * 1000))[-11:],
-            domain="login.u.sdo.com",
-            path="/",
-        )
-    client.request(
-        "GET",
-        TELEPORT_LOGIN_FRAME_URL,
-        headers={"Referer": TELEPORT_PAGE_URL},
-        error_message="Unable to initialize the Regional Teleport login.",
-    )
-    params = teleport_login_params()
-    params.update(
-        {"callback": "ssoLogin_JSONPMethod", "extendInfo": "{}", "_": now_ms()}
-    )
-    get_jsonp(client, "https://w.cas.sdo.com/authen/ssoLogin.jsonp", params)
-
-    params = teleport_login_params()
-    params.update(
-        {
-            "callback": "getSystemConfig_JSONPMethod",
-            "scene": "sendSms",
-            "extendInfo": "{}",
-            "_": now_ms(),
-        }
-    )
-    payload = get_jsonp(
-        client, "https://n2.cas.sdo.com/authen/v2/getSystemConfig.jsonp", params
-    )
-    biz_context = payload.get("data", {}).get("bizContext")
-    if payload.get("return_code") != 0 or not biz_context:
-        raise ApiClientError("Unable to initialize the Regional Teleport login.")
-    return str(biz_context)
-
-
-def start_teleport_push(
-    client: ApiClient, request: dict[str, Any]
-) -> dict[str, Any]:
-    """Send a one-tap confirmation for the Regional Teleport application."""
-    account = bounded_account(request.get("account"))
-    biz_context = bootstrap_teleport(client)
-
-    params = teleport_login_params()
-    params.update(
-        {
-            "callback": "checkAccountType_JSONPMethod",
-            "inputUserId": account,
-            "extendInfo": extend_info(biz_context),
-            "_": now_ms(),
-        }
-    )
-    checked = get_jsonp(
-        client, "https://w.cas.sdo.com/authen/checkAccountType.jsonp", params
-    )
-    require_success(checked, "Unable to verify the Regional Teleport account.")
-
-    params["callback"] = "sendPushMessage_JSONPMethod"
-    params["_"] = now_ms()
-    pushed = get_jsonp(
-        client, "https://w.cas.sdo.com/authen/sendPushMessage.jsonp", params
-    )
-    require_success(pushed, "Unable to send the Regional Teleport confirmation.")
-    return {
-        "status": "awaiting_confirmation",
-        "session": client.snapshot(),
-        "bizContext": biz_context,
-    }
-
-
-def poll_teleport_push(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
-    """Poll a Regional Teleport one-tap confirmation and redeem its ticket."""
-    biz_context = bounded_biz_context(request.get("bizContext"))
-    params = teleport_login_params()
-    params.update(
-        {
-            "callback": "pushMessageLogin_JSONPMethod",
-            "extendInfo": extend_info(biz_context),
-            "_": now_ms(),
-        }
-    )
-    payload = get_jsonp(
-        client, "https://w.cas.sdo.com/authen/pushMessageLogin.jsonp", params
-    )
-    if payload.get("return_code") == PENDING_PUSH_CODE:
-        return {
-            "status": "awaiting_confirmation",
-            "session": client.snapshot(),
-            "bizContext": biz_context,
-        }
-    require_success(payload, "The Regional Teleport confirmation failed.")
-    return finish_teleport_ticket_login(client, biz_context, payload)
-
-
-def start_teleport_qr(client: ApiClient) -> dict[str, Any]:
-    """Create an app-specific CAS QR session for Regional Teleport."""
-    biz_context = bootstrap_teleport(client)
-
-    response = client.request(
-        "GET",
-        "https://w.cas.sdo.com/authen/getcodekey.jsonp",
-        params={
-            "maxsize": 145,
-            "appId": TELEPORT_APP_ID,
-            "areaId": TELEPORT_AREA_ID,
-            "authenSource": 2,
-            "source": "pc",
-            "r": str(time.time() % 1),
-        },
-        headers={"Referer": LOGIN_REFERER},
-        error_message="Unable to request the Regional Teleport QR code.",
-    )
-    if not response.content.startswith(b"\x89PNG"):
-        raise ApiClientError("SDO did not return a valid Regional Teleport QR code.")
-    return {
-        "status": "awaiting_scan",
-        "session": client.snapshot(),
-        "bizContext": biz_context,
-        "qrImageDataUrl": "data:image/png;base64,"
-        + base64.b64encode(response.content).decode("ascii"),
-    }
-
-
-def poll_teleport_qr(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
-    """Poll the Regional Teleport QR code and redeem its service ticket."""
-    biz_context = bounded_biz_context(request.get("bizContext"))
-    params = teleport_login_params("3.1.0")
-    params.update(
-        {
-            "callback": "codeKeyLogin_JSONPMethod",
-            "codeKey": "",
-            "code": "300",
-            "extendInfo": extend_info(biz_context),
-            "_": now_ms(),
-        }
-    )
-    payload = get_jsonp(
-        client, "https://w.cas.sdo.com/authen/codeKeyLogin.jsonp", params
-    )
-    if payload.get("return_code") == PENDING_QR_CODE:
-        status = (
-            "scanned"
-            if payload.get("data", {}).get("isScanned") == 1
-            else "awaiting_scan"
-        )
-        return {
-            "status": status,
-            "session": client.snapshot(),
-            "bizContext": biz_context,
-        }
-    require_success(payload, "The Regional Teleport QR confirmation failed.")
-    return finish_teleport_ticket_login(client, biz_context, payload)
-
-
-def finish_teleport_ticket_login(
-    client: ApiClient, biz_context: str, payload: dict[str, Any]
-) -> dict[str, Any]:
-    """Redeem and validate a successful Regional Teleport CAS ticket."""
-    ticket = str(payload.get("data", {}).get("ticket") or "")
-    if not ticket:
-        raise ApiClientError("The Regional Teleport login response has no ticket.")
-
-    preserve_game_auth(client, payload)
-
-    promotion_params = teleport_login_params()
-    promotion_params.update(
-        {
-            "callback": "getPromotionInfo_JSONPMethod",
-            "extendInfo": extend_info(biz_context),
-            "_": now_ms(),
-        }
-    )
-    promotion = get_jsonp(
-        client,
-        "https://w.cas.sdo.com/authen/getPromotionInfo.jsonp",
-        promotion_params,
-    )
-    require_success(promotion, "Unable to complete the Regional Teleport login.")
-
-    client.request(
-        "GET",
-        TELEPORT_PAGE_URL,
-        params={"ticket": ticket},
-        allow_redirects=False,
-        accepted_statuses=(200, 302),
-        error_message="The Regional Teleport ticket could not be redeemed.",
-    )
-    validation = teleport_request(
-        client,
-        TELEPORT_ENDPOINTS["validateTicket"],
-        {"ticket": ticket},
-    )
-    require_success(validation, "The Regional Teleport ticket was rejected.")
-    return {"status": "success", "session": client.snapshot()}
-
-
 def preserve_game_auth(client: ApiClient, payload: dict[str, Any]) -> None:
     """Capture refresh material without exposing it to the webview response."""
     data = payload.get("data")
@@ -1091,6 +903,72 @@ def prepare_teleport_game_region(
         "gameSession": game_session,
         "session": client.snapshot(),
     }
+
+
+def refresh_teleport_service_session(client: ApiClient) -> dict[str, Any]:
+    """Silently mint and redeem the independent Regional Teleport app ticket."""
+    auth = normalize_game_auth(client.game_auth)
+    if not auth:
+        raise ApiClientError(
+            "The current account session cannot refresh Regional Teleport. "
+            "Sign in to the application with push or QR authentication."
+        )
+    tgt = auth["tgt"]
+    guid = auth["guid"]
+    client.session.cookies.set("CASTGC", tgt, domain=".sdo.com", path="/", secure=True)
+    client.session.cookies.set(
+        "CAS_LOGIN_STATE", "1", domain=".sdo.com", path="/", secure=True
+    )
+
+    promotion_params = teleport_login_params()
+    promotion_params.update(
+        {
+            "callback": "getPromotionInfo_JSONPMethod",
+            "tgt": tgt,
+            "extendInfo": "{}",
+            "_": now_ms(),
+        }
+    )
+    promotion = get_jsonp(
+        client,
+        "https://w.cas.sdo.com/authen/getPromotionInfo.jsonp",
+        promotion_params,
+    )
+    require_success(promotion, "Unable to refresh the Regional Teleport session.")
+
+    ticket_params = teleport_login_params()
+    ticket_params.update(
+        {
+            "callback": "ssoLogin_JSONPMethod",
+            "tgt": tgt,
+            "guid": guid,
+            "extendInfo": "{}",
+            "_": now_ms(),
+        }
+    )
+    ticket_payload = get_jsonp(
+        client, "https://w.cas.sdo.com/authen/ssoLogin.jsonp", ticket_params
+    )
+    require_success(ticket_payload, "Unable to refresh the Regional Teleport session.")
+    ticket = str(ticket_payload.get("data", {}).get("ticket") or "").strip()
+    if not ticket:
+        raise ApiClientError("The Regional Teleport refresh returned no ticket.")
+
+    client.request(
+        "GET",
+        TELEPORT_PAGE_URL,
+        params={"ticket": ticket},
+        allow_redirects=False,
+        accepted_statuses=(200, 302),
+        error_message="The Regional Teleport ticket could not be redeemed.",
+    )
+    validation = teleport_request(
+        client,
+        TELEPORT_ENDPOINTS["validateTicket"],
+        {"ticket": ticket},
+    )
+    require_success(validation, "The Regional Teleport ticket was rejected.")
+    return {"session": client.snapshot()}
 
 
 def official_game_host(value: Any, label: str) -> str:
@@ -1267,22 +1145,6 @@ def bounded_int(value: Any, minimum: int, maximum: int, label: str) -> int:
     if parsed < minimum or parsed > maximum:
         raise ApiClientError(f"The Regional Teleport {label} is invalid.")
     return parsed
-
-
-def bounded_account(value: Any) -> str:
-    text = str(value or "").strip()
-    if len(text) < 5 or len(text) > 64 or any(
-        ord(character) < 32 or ord(character) == 127 for character in text
-    ):
-        raise ApiClientError("The Regional Teleport account is invalid.")
-    return text
-
-
-def bounded_biz_context(value: Any) -> str:
-    text = str(value or "")
-    if not text or len(text) > 512:
-        raise ApiClientError("The Regional Teleport login session is invalid.")
-    return text
 
 
 def bounded_text(value: Any, maximum: int, label: str) -> str:
@@ -1602,18 +1464,12 @@ def main() -> None:
         result = fetch_recruit_detail(client, request)
     elif operation == "fetchAvatar":
         result = fetch_avatar(client, request)
-    elif operation == "startTeleportQr":
-        result = start_teleport_qr(client)
-    elif operation == "pollTeleportQr":
-        result = poll_teleport_qr(client, request)
-    elif operation == "startTeleportPush":
-        result = start_teleport_push(client, request)
-    elif operation == "pollTeleportPush":
-        result = poll_teleport_push(client, request)
     elif operation == "fetchTeleport":
         result = fetch_teleport(client, request)
     elif operation == "prepareTeleportGameRegion":
         result = prepare_teleport_game_region(client, request)
+    elif operation == "refreshTeleportServiceSession":
+        result = refresh_teleport_service_session(client)
     else:
         raise ApiClientError("Unsupported API operation.")
     # ASCII escaping keeps the pipe valid JSON regardless of the Windows console code page.

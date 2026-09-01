@@ -9,8 +9,6 @@ import type {
   TeleportOrder,
   TeleportOrderStatus,
   TeleportOverview,
-  TeleportLoginPoll,
-  TeleportLoginStart,
   TeleportRole,
 } from "../models/teleport";
 import {
@@ -179,26 +177,6 @@ export async function submitTeleportReturn(
   return returnOrderId;
 }
 
-export async function startTeleportPushLogin(account: string) {
-  requireDesktopRuntime();
-  return invoke<TeleportLoginStart>("start_teleport_push_login", { account });
-}
-
-export async function startTeleportQrLogin() {
-  requireDesktopRuntime();
-  return invoke<TeleportLoginStart>("start_teleport_qr_login");
-}
-
-export async function pollTeleportPushLogin(loginId: number) {
-  requireDesktopRuntime();
-  return invoke<TeleportLoginPoll>("poll_teleport_push_login", { loginId });
-}
-
-export async function pollTeleportQrLogin(loginId: number) {
-  requireDesktopRuntime();
-  return invoke<TeleportLoginPoll>("poll_teleport_qr_login", { loginId });
-}
-
 export async function fetchAutomaticTeleportReadiness() {
   requireDesktopRuntime();
   return invoke<{ gameAuthReady: boolean }>("teleport_automatic_preflight");
@@ -207,11 +185,26 @@ export async function fetchAutomaticTeleportReadiness() {
 async function invokeTeleport(request: Record<string, unknown>) {
   requireDesktopRuntime();
   try {
+    const response = await invoke<unknown>("fetch_teleport", { request });
+    if (!hasCrossAuthenticationFailure(response)) return response;
+    await invoke<void>("refresh_teleport_service_session");
     return await invoke<unknown>("fetch_teleport", { request });
   } catch (reason) {
     if (isSdoAuthenticationFailure(reason)) throw authenticationRequired();
     throw reason;
   }
+}
+
+function hasCrossAuthenticationFailure(value: unknown, depth = 0): boolean {
+  if (depth > 4 || typeof value !== "object" || value === null) return false;
+  if (Array.isArray(value)) {
+    return value.some((item) => hasCrossAuthenticationFailure(item, depth + 1));
+  }
+  const record = value as UnknownRecord;
+  if (Number(record.return_code) === CROSS_AUTHENTICATION_CODE) return true;
+  return Object.values(record).some((item) =>
+    hasCrossAuthenticationFailure(item, depth + 1),
+  );
 }
 
 function requireDesktopRuntime() {

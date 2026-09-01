@@ -36,7 +36,6 @@ export function TeleportWorkspaceView({
   const viewModel = useTeleportWorkspaceViewModel({
     authenticated: Boolean(profile),
     loginChecking,
-    account: profile?.displayAccount ?? "",
   });
 
   return (

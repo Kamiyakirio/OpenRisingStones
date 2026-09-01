@@ -841,54 +841,6 @@
   line-height: 1.65;
 }
 
-.cross-auth-account {
-  width: min(360px, 100%);
-  margin-top: 2px;
-  text-align: left;
-}
-
-.cross-auth-account input {
-  padding: 0 13px;
-}
-
-.cross-auth-actions {
-  display: flex;
-  justify-content: center;
-  gap: 9px;
-  width: 100%;
-  margin-top: 4px;
-}
-
-.cross-auth-actions .teleport-secondary-action {
-  margin-top: 0;
-}
-
-.teleport-qr {
-  width: 176px;
-  height: 176px;
-  margin-bottom: 8px;
-  padding: 11px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #f9faf8;
-}
-
-.teleport-qr img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  image-rendering: pixelated;
-}
-
-.teleport-qr-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--accent-strong);
-  font-size: 11px;
-  font-weight: 700;
-}
-
 .teleport-dialog-backdrop,
 .teleport-progress-overlay {
   position: fixed;
@@ -1261,15 +1213,6 @@
   }
 
   .teleport-dialog > footer button {
-    width: 100%;
-  }
-
-  .cross-auth-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .cross-auth-actions button {
     width: 100%;
   }
 }

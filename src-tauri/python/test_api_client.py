@@ -23,10 +23,11 @@ from api_client import (
     fetch_teleport,
     fetch_wiki_page,
     finalize_authenticated_login,
+    game_auth_from_cookies,
     normalize_game_auth,
     normalize_user_agent,
     preserve_game_auth,
-    start_teleport_push,
+    refresh_teleport_service_session,
 )
 
 
@@ -162,6 +163,16 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(
             client.snapshot()["gameAuth"],
             {"tgt": "game-tgt", "guid": "67890"},
+        )
+
+    def test_restored_cas_cookies_recover_game_refresh_context(self) -> None:
+        cookies = FakeCookies()
+        cookies.set("CASTGC", "restored-tgt")
+        cookies.set("web_guidid", "restored-guid")
+
+        self.assertEqual(
+            game_auth_from_cookies(cookies.jar),
+            {"tgt": "restored-tgt", "guid": "restored-guid"},
         )
 
     def test_request_applies_shared_headers_and_timeout(self) -> None:
@@ -338,30 +349,6 @@ class ApiClientTests(unittest.TestCase):
         )
         self.assertIn("session", result)
 
-    def test_teleport_push_uses_the_service_specific_cas_application(self) -> None:
-        ok = b'sdoCallback({"return_code":0,"data":{}})'
-        configured = (
-            b'sdoCallback({"return_code":0,"data":{"bizContext":"context"}})'
-        )
-        client, session = client_with(
-            [
-                FakeResponse(),
-                FakeResponse(content=ok),
-                FakeResponse(content=configured),
-                FakeResponse(content=ok),
-                FakeResponse(content=ok),
-            ]
-        )
-
-        result = start_teleport_push(client, {"account": "13800138000"})
-
-        _, url, arguments = session.arguments
-        self.assertEqual(url, "https://w.cas.sdo.com/authen/sendPushMessage.jsonp")
-        self.assertEqual(arguments["params"]["appId"], 100001900)
-        self.assertEqual(arguments["params"]["areaId"], 1001)
-        self.assertEqual(arguments["params"]["inputUserId"], "13800138000")
-        self.assertEqual(result["status"], "awaiting_confirmation")
-
     def test_teleport_order_serializes_the_selected_role_as_a_string_id(self) -> None:
         client, session = client_with(FakeResponse())
 
@@ -392,6 +379,28 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(url, f"{TELEPORT_ORIGIN}{TELEPORT_ENDPOINTS['createOrder']}")
         self.assertEqual(role_list[0]["roleId"], "123456789012345678")
         self.assertEqual(arguments["params"]["migrationType"], 4)
+
+    def test_teleport_service_session_refreshes_without_another_login(self) -> None:
+        success = b'sdoCallback({"return_code":0,"data":{}})'
+        ticket = b'sdoCallback({"return_code":0,"data":{"ticket":"service-ticket"}})'
+        validation = b'{"return_code":0,"data":{}}'
+        client, session = client_with(
+            [
+                FakeResponse(content=success),
+                FakeResponse(content=ticket),
+                FakeResponse(),
+                FakeResponse(content=validation),
+            ]
+        )
+        client.game_auth = {"tgt": "existing-tgt", "guid": "existing-guid"}
+
+        result = refresh_teleport_service_session(client)
+
+        self.assertEqual(
+            result["session"]["gameAuth"],
+            {"tgt": "existing-tgt", "guid": "existing-guid"},
+        )
+        self.assertEqual(session.responses, [])
 
     def test_teleport_rejects_untrusted_codes_and_order_identifiers(self) -> None:
         client, _ = client_with(FakeResponse())

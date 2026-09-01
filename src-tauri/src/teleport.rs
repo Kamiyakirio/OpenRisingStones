@@ -3,14 +3,6 @@
 //! The webview can select only allowlisted operations. Authentication cookies
 //! stay in Rust memory, encrypted storage, and the constrained Python sidecar.
 
-use std::{
-  sync::{
-    atomic::{AtomicU64, Ordering},
-    Mutex,
-  },
-  time::{Duration, Instant},
-};
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::State;
@@ -23,7 +15,6 @@ use crate::{
 use game_bridge_host::{RegionTarget, SecretValue};
 
 const MAX_TELEPORT_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
-const TELEPORT_LOGIN_TIMEOUT: Duration = Duration::from_secs(120);
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -60,13 +51,9 @@ struct TeleportSidecarResponse {
   session: SessionSnapshot,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct TeleportLoginSidecarResponse {
-  status: String,
+#[derive(Deserialize)]
+struct TeleportSessionRefreshSidecarResponse {
   session: SessionSnapshot,
-  biz_context: Option<String>,
-  qr_image_data_url: Option<String>,
 }
 
 #[cfg(windows)]
@@ -83,43 +70,8 @@ struct TeleportGameRegionSidecarResponse {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TeleportLoginStart {
-  login_id: u64,
-  status: String,
-  expires_in_seconds: u64,
-  qr_image_data_url: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct TeleportLoginPoll {
-  status: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct AutomaticTeleportReadiness {
   game_auth_ready: bool,
-}
-
-#[derive(Clone, Debug)]
-enum TeleportLoginKind {
-  Push,
-  Qr,
-}
-
-#[derive(Clone, Debug)]
-struct PendingTeleportLogin {
-  id: u64,
-  kind: TeleportLoginKind,
-  started_at: Instant,
-  session: SessionSnapshot,
-  biz_context: String,
-}
-
-#[derive(Default)]
-pub struct TeleportState {
-  next_id: AtomicU64,
-  pending: Mutex<Option<PendingTeleportLogin>>,
 }
 
 /// Report only readiness metadata; refresh credentials remain inside protected Rust state.
@@ -146,13 +98,31 @@ struct TeleportSidecarRequest {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct TeleportLoginSidecarRequest {
+struct TeleportSessionRefreshSidecarRequest {
   operation: &'static str,
   session: SessionSnapshot,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  biz_context: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  account: Option<String>,
+}
+
+/// Refresh the independent service cookie from the existing account SSO context.
+#[tauri::command]
+pub async fn refresh_teleport_service_session(
+  login_state: State<'_, LoginState>,
+) -> Result<(), String> {
+  let session = sdo_login::current_session(&login_state)?
+    .ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
+  let response = tauri::async_runtime::spawn_blocking(move || {
+    python_sidecar::request::<_, TeleportSessionRefreshSidecarResponse>(
+      &TeleportSessionRefreshSidecarRequest {
+        operation: "refreshTeleportServiceSession",
+        session,
+      },
+      MAX_TELEPORT_RESPONSE_BYTES,
+      "Regional Teleport session refresh",
+    )
+  })
+  .await
+  .map_err(|_| "The Regional Teleport session refresh stopped unexpectedly.".to_owned())??;
+  sdo_login::replace_current_session(&login_state, response.session)
 }
 
 #[cfg(windows)]
@@ -226,202 +196,6 @@ pub async fn fetch_teleport(
   .map_err(|_| "The Regional Teleport task stopped unexpectedly.".to_owned())??;
   sdo_login::replace_current_session(&login_state, response.session)?;
   Ok(response.payload)
-}
-
-/// Start the service-specific QR login required by the Regional Teleport site.
-#[tauri::command]
-pub async fn start_teleport_qr_login(
-  login_state: State<'_, LoginState>,
-  teleport_state: State<'_, TeleportState>,
-) -> Result<TeleportLoginStart, String> {
-  let session = sdo_login::current_session(&login_state)?
-    .ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
-  let response = tauri::async_runtime::spawn_blocking(move || {
-    python_sidecar::request::<_, TeleportLoginSidecarResponse>(
-      &TeleportLoginSidecarRequest {
-        operation: "startTeleportQr",
-        session,
-        biz_context: None,
-        account: None,
-      },
-      MAX_TELEPORT_RESPONSE_BYTES,
-      "Regional Teleport login",
-    )
-  })
-  .await
-  .map_err(|_| "The Regional Teleport login task stopped unexpectedly.".to_owned())??;
-  let biz_context = response
-    .biz_context
-    .ok_or_else(|| "The Regional Teleport login response is incomplete.".to_owned())?;
-  let login_id = teleport_state.next_id.fetch_add(1, Ordering::Relaxed) + 1;
-  *teleport_state
-    .pending
-    .lock()
-    .map_err(|_| "Unable to store the Regional Teleport login.".to_owned())? =
-    Some(PendingTeleportLogin {
-      id: login_id,
-      kind: TeleportLoginKind::Qr,
-      started_at: Instant::now(),
-      session: response.session,
-      biz_context,
-    });
-  Ok(TeleportLoginStart {
-    login_id,
-    status: response.status,
-    expires_in_seconds: TELEPORT_LOGIN_TIMEOUT.as_secs(),
-    qr_image_data_url: response.qr_image_data_url,
-  })
-}
-
-/// Start a one-tap confirmation for the Regional Teleport application.
-#[tauri::command]
-pub async fn start_teleport_push_login(
-  account: String,
-  login_state: State<'_, LoginState>,
-  teleport_state: State<'_, TeleportState>,
-) -> Result<TeleportLoginStart, String> {
-  let account = account.trim().to_owned();
-  if account.len() < 5 || account.len() > 64 || account.chars().any(char::is_control) {
-    return Err("Enter a valid SDO account or mobile number.".to_owned());
-  }
-  let session = sdo_login::current_session(&login_state)?
-    .ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
-  let response = tauri::async_runtime::spawn_blocking(move || {
-    python_sidecar::request::<_, TeleportLoginSidecarResponse>(
-      &TeleportLoginSidecarRequest {
-        operation: "startTeleportPush",
-        session,
-        biz_context: None,
-        account: Some(account),
-      },
-      MAX_TELEPORT_RESPONSE_BYTES,
-      "Regional Teleport login",
-    )
-  })
-  .await
-  .map_err(|_| "The Regional Teleport login task stopped unexpectedly.".to_owned())??;
-  let biz_context = response
-    .biz_context
-    .ok_or_else(|| "The Regional Teleport login response is incomplete.".to_owned())?;
-  let login_id = teleport_state.next_id.fetch_add(1, Ordering::Relaxed) + 1;
-  *teleport_state
-    .pending
-    .lock()
-    .map_err(|_| "Unable to store the Regional Teleport login.".to_owned())? =
-    Some(PendingTeleportLogin {
-      id: login_id,
-      kind: TeleportLoginKind::Push,
-      started_at: Instant::now(),
-      session: response.session,
-      biz_context,
-    });
-  Ok(TeleportLoginStart {
-    login_id,
-    status: response.status,
-    expires_in_seconds: TELEPORT_LOGIN_TIMEOUT.as_secs(),
-    qr_image_data_url: None,
-  })
-}
-
-/// Poll an active Regional Teleport QR login without returning session data.
-#[tauri::command]
-pub async fn poll_teleport_qr_login(
-  login_id: u64,
-  login_state: State<'_, LoginState>,
-  teleport_state: State<'_, TeleportState>,
-) -> Result<TeleportLoginPoll, String> {
-  poll_teleport_login(
-    login_id,
-    TeleportLoginKind::Qr,
-    "pollTeleportQr",
-    &login_state,
-    &teleport_state,
-  )
-  .await
-}
-
-/// Poll an active Regional Teleport one-tap confirmation.
-#[tauri::command]
-pub async fn poll_teleport_push_login(
-  login_id: u64,
-  login_state: State<'_, LoginState>,
-  teleport_state: State<'_, TeleportState>,
-) -> Result<TeleportLoginPoll, String> {
-  poll_teleport_login(
-    login_id,
-    TeleportLoginKind::Push,
-    "pollTeleportPush",
-    &login_state,
-    &teleport_state,
-  )
-  .await
-}
-
-async fn poll_teleport_login(
-  login_id: u64,
-  expected_kind: TeleportLoginKind,
-  operation: &'static str,
-  login_state: &State<'_, LoginState>,
-  teleport_state: &State<'_, TeleportState>,
-) -> Result<TeleportLoginPoll, String> {
-  let pending = teleport_state
-    .pending
-    .lock()
-    .map_err(|_| "Unable to read the Regional Teleport login.".to_owned())?
-    .clone()
-    .ok_or_else(|| "The Regional Teleport login was cancelled or expired.".to_owned())?;
-  if pending.id != login_id {
-    return Err("The Regional Teleport login was replaced.".to_owned());
-  }
-  if std::mem::discriminant(&pending.kind) != std::mem::discriminant(&expected_kind) {
-    return Err("The Regional Teleport login method changed.".to_owned());
-  }
-  if pending.started_at.elapsed() >= TELEPORT_LOGIN_TIMEOUT {
-    clear_pending(&teleport_state)?;
-    return Err("The Regional Teleport login timed out.".to_owned());
-  }
-  let response = tauri::async_runtime::spawn_blocking(move || {
-    python_sidecar::request::<_, TeleportLoginSidecarResponse>(
-      &TeleportLoginSidecarRequest {
-        operation,
-        session: pending.session,
-        biz_context: Some(pending.biz_context),
-        account: None,
-      },
-      MAX_TELEPORT_RESPONSE_BYTES,
-      "Regional Teleport login",
-    )
-  })
-  .await
-  .map_err(|_| "The Regional Teleport login task stopped unexpectedly.".to_owned())??;
-  if response.status == "success" {
-    sdo_login::replace_current_session(&login_state, response.session)?;
-    clear_pending(&teleport_state)?;
-  } else {
-    let mut current = teleport_state
-      .pending
-      .lock()
-      .map_err(|_| "Unable to update the Regional Teleport login.".to_owned())?;
-    let pending = current
-      .as_mut()
-      .filter(|pending| pending.id == login_id)
-      .ok_or_else(|| "The Regional Teleport login was replaced.".to_owned())?;
-    pending.session = response.session;
-    if let Some(biz_context) = response.biz_context {
-      pending.biz_context = biz_context;
-    }
-  }
-  Ok(TeleportLoginPoll {
-    status: response.status,
-  })
-}
-
-fn clear_pending(state: &TeleportState) -> Result<(), String> {
-  *state
-    .pending
-    .lock()
-    .map_err(|_| "Unable to clear the Regional Teleport login.".to_owned())? = None;
-  Ok(())
 }
 
 fn validate_request(request: &TeleportRequest) -> Result<(), String> {

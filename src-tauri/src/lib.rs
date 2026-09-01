@@ -62,7 +62,6 @@ pub fn run() {
       app.manage(avatar::AvatarState::default());
       app.manage(glamour_verification::GlamourVerificationState::default());
       app.manage(recruit::RecruitSessionState::default());
-      app.manage(teleport::TeleportState::default());
       app.manage(wiki::WikiVerificationState::default());
       app.manage(game_bridge::GameBridgeState::new(app.handle().clone())?);
       #[cfg(debug_assertions)]
@@ -117,11 +116,8 @@ pub fn run() {
       sdo_login::sdo_login_with_cookie,
       sdo_login::sdo_cancel_login,
       teleport::fetch_teleport,
-      teleport::start_teleport_push_login,
-      teleport::start_teleport_qr_login,
-      teleport::poll_teleport_push_login,
-      teleport::poll_teleport_qr_login,
       teleport::teleport_automatic_preflight,
+      teleport::refresh_teleport_service_session,
       wiki::fetch_wiki_item_page,
       wiki::show_wiki_verification,
       wiki::cancel_wiki_verification,

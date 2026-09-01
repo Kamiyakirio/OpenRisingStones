@@ -79,16 +79,3 @@ export type TeleportCreateOrderRequest = {
   targetGroup: TeleportGroup;
   role: TeleportRole;
 };
-
-export type TeleportLoginMethod = "push" | "qr";
-
-export type TeleportLoginStart = {
-  loginId: number;
-  status: "awaiting_confirmation" | "awaiting_scan" | "scanned";
-  expiresInSeconds: number;
-  qrImageDataUrl: string | null;
-};
-
-export type TeleportLoginPoll = {
-  status: "awaiting_confirmation" | "awaiting_scan" | "scanned" | "success";
-};
