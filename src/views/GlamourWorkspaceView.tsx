@@ -5,7 +5,9 @@ import { EquipmentSearchPage } from "../components/EquipmentSearchPage";
 import { GlamourDetailView } from "../components/GlamourDetailView";
 import { GlamourGallery } from "../components/GlamourGallery";
 import { GlamourLoginWall } from "../components/GlamourLoginWall";
+import { GlamourOwnedItemsPanel } from "../components/GlamourOwnedItemsPanel";
 import { LoginDialog } from "../components/LoginDialog";
+import { RiskDialog } from "../components/RiskDialog";
 import { SiteFooter } from "../components/SiteFooter";
 import { WikiVerificationStatus } from "../components/WikiVerificationStatus";
 import type { LoginProfile } from "../models/auth";
@@ -71,6 +73,7 @@ export function GlamourWorkspaceView({
           glamour={viewModel.selectedGlamour}
           saved={discovery.saved.includes(viewModel.selectedGlamour.id)}
           wiki={wiki}
+          ownedItems={viewModel.ownedItems}
           onBack={viewModel.closeDetail}
           onSearchEquipment={viewModel.searchDetailEquipment}
           onToggleSave={discovery.toggleSave}
@@ -137,6 +140,7 @@ export function GlamourWorkspaceView({
             onSelectAllEquivalent={discovery.selectAllEquivalentEquipment}
             onClearEquivalent={discovery.clearEquivalentEquipment}
           />
+          <GlamourOwnedItemsPanel viewModel={viewModel.ownedItems} />
           <GlamourGallery
             results={discovery.results}
             saved={discovery.saved}
@@ -152,6 +156,7 @@ export function GlamourWorkspaceView({
             onClearSearch={discovery.clearSearch}
             onRetry={discovery.retry}
             onLoadMore={discovery.loadMore}
+            ownedItems={viewModel.ownedItems}
           />
         </main>
       )}
@@ -170,6 +175,24 @@ export function GlamourWorkspaceView({
           onShow={() => void wiki.showVerification()}
           onCancel={() => void wiki.cancelVerification()}
           onDismiss={wiki.dismissError}
+        />
+      )}
+      {viewModel.ownedItems.riskOpen && (
+        <RiskDialog
+          title="读取游戏物品前请确认风险"
+          items={[
+            "本功能需要向当前 FF14 游戏进程注入只读组件。",
+            "在多数语境下，进程注入可能被视为使用外部辅助程序。",
+            "本次操作只读取当前角色的物品 ID，不会修改游戏数据或执行物品操作。",
+          ]}
+          description={
+            <p>
+              读取结果会使用当前游戏登录会话派生的密钥加密后保存在本机，只有登录有效时才能解密；“清除本地数据”会删除密文。
+            </p>
+          }
+          confirmLabel="确认并读取物品"
+          onConfirm={() => void viewModel.ownedItems.confirmSync()}
+          onCancel={viewModel.ownedItems.cancelSync}
         />
       )}
     </>

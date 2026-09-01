@@ -4,20 +4,26 @@ import {
   ArrowLeft,
   BookmarkSimple,
   CalendarBlank,
+  CheckCircle,
+  CircleNotch,
   Heart,
   Images,
   MapPin,
+  Stack,
   Star,
+  XCircle,
 } from "@phosphor-icons/react";
 import type {
   Glamour,
   GlamourDetail,
   GlamourEquipment,
 } from "../models/glamour";
+import type { OwnedItemMatch, OwnedItemSource } from "../models/ownedItems";
 import { hideBrokenImage } from "../utils/glamourPresentation";
 import { useGlamourDetailViewModel } from "../viewmodels/useGlamourDetailViewModel";
 import { useRisingStonesAvatarViewModel } from "../viewmodels/useRisingStonesAvatarViewModel";
 import type { WikiItemViewModel } from "../viewmodels/useWikiItemViewModel";
+import type { OwnedItemsViewModel } from "../viewmodels/useOwnedItemsViewModel";
 import { EquipmentSourcePopover } from "./EquipmentSourcePopover";
 import "./GlamourDetailView.css";
 
@@ -25,6 +31,7 @@ type GlamourDetailViewProps = {
   glamour: Glamour;
   saved: boolean;
   wiki: WikiItemViewModel;
+  ownedItems: OwnedItemsViewModel;
   onBack: () => void;
   onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
   onToggleSave: (id: number) => void;
@@ -49,6 +56,7 @@ export function GlamourDetailView({
   glamour,
   saved,
   wiki,
+  ownedItems,
   onBack,
   onSearchEquipment,
   onToggleSave,
@@ -73,6 +81,7 @@ export function GlamourDetailView({
           detail={detail}
           saved={saved}
           wiki={wiki}
+          ownedItems={ownedItems}
           onSearchEquipment={onSearchEquipment}
           onToggleSave={onToggleSave}
         />
@@ -85,12 +94,14 @@ function DetailContent({
   detail,
   saved,
   wiki,
+  ownedItems,
   onSearchEquipment,
   onToggleSave,
 }: {
   detail: GlamourDetail;
   saved: boolean;
   wiki: WikiItemViewModel;
+  ownedItems: OwnedItemsViewModel;
   onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
   onToggleSave: (id: number) => void;
 }) {
@@ -100,6 +111,12 @@ function DetailContent({
     [detail.equipments],
   );
   const avatar = useRisingStonesAvatarViewModel(detail.avatar);
+
+  useEffect(() => {
+    void ownedItems.ensureItemMetadata(
+      detail.equipments.map((item) => item.equipmentId),
+    );
+  }, [detail.equipments, ownedItems]);
 
   return (
     <article className="detail-layout">
@@ -207,6 +224,11 @@ function DetailContent({
                 label={label}
                 equipment={equipment.get(slot)}
                 wiki={wiki}
+                ownership={
+                  equipment.get(slot)
+                    ? ownedItems.matchItem(equipment.get(slot)!.equipmentId)
+                    : { kind: "unavailable" }
+                }
                 onSearchEquipment={onSearchEquipment}
                 key={slot}
               />
@@ -216,6 +238,9 @@ function DetailContent({
                 label="面部配饰"
                 equipment={equipment.get("FACE")}
                 wiki={wiki}
+                ownership={ownedItems.matchItem(
+                  equipment.get("FACE")!.equipmentId,
+                )}
                 onSearchEquipment={onSearchEquipment}
               />
             )}
@@ -230,11 +255,13 @@ function EquipmentSlot({
   label,
   equipment,
   wiki,
+  ownership,
   onSearchEquipment,
 }: {
   label: string;
   equipment?: GlamourEquipment;
   wiki: WikiItemViewModel;
+  ownership: OwnedItemMatch;
   onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
 }) {
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -310,6 +337,9 @@ function EquipmentSlot({
         ) : (
           <span className="equipment-muted">无染剂记录</span>
         )}
+        {equipment?.name && equipment.equipmentId > 0 && (
+          <EquipmentOwnership match={ownership} />
+        )}
       </span>
     </>
   );
@@ -361,6 +391,56 @@ function EquipmentSlot({
       )}
     </div>
   );
+}
+
+function EquipmentOwnership({ match }: { match: OwnedItemMatch }) {
+  if (match.kind === "exact") {
+    return (
+      <span className="equipment-ownership is-owned">
+        <CheckCircle weight="fill" />
+        已持有
+        <small>{formatOwnedSources(match.sources)}</small>
+      </span>
+    );
+  }
+  if (match.kind === "same_model") {
+    return (
+      <span className="equipment-ownership is-same-model">
+        <Stack weight="fill" />
+        持有同模
+        {match.ownedItemName && <small>{match.ownedItemName}</small>}
+      </span>
+    );
+  }
+  if (match.kind === "checking") {
+    return (
+      <span className="equipment-ownership is-checking">
+        <CircleNotch className="spin" />
+        正在匹配同模
+      </span>
+    );
+  }
+  return (
+    <span className="equipment-ownership is-missing">
+      <XCircle />
+      {match.kind === "not_owned"
+        ? "未持有"
+        : match.kind === "metadata_unavailable"
+          ? "同模状态暂不可用"
+          : "尚未同步物品"}
+    </span>
+  );
+}
+
+function formatOwnedSources(sources: OwnedItemSource[]) {
+  const labels: Record<OwnedItemSource, string> = {
+    equipped: "身上装备",
+    inventory: "背包",
+    armoury_chest: "兵装库",
+    glamour_dresser: "投影台",
+    armoire: "收藏柜",
+  };
+  return sources.map((source) => labels[source]).join("、");
 }
 
 function DetailSkeleton() {

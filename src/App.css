@@ -2892,6 +2892,20 @@ button.equipment-card:active {
   height: 10px;
   background: var(--line);
 }
+.card-owned-match {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -5px 0 13px;
+  color: var(--accent-strong);
+  font-size: 10px;
+  font-weight: 700;
+}
+.card-owned-match svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
 .card-footer {
   display: flex;
   justify-content: space-between;

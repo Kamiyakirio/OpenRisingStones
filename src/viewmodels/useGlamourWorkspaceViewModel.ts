@@ -4,6 +4,7 @@ import type { LoginProfile } from "../models/auth";
 import type { EquipmentSearchItem } from "../models/equipment";
 import type { Glamour, GlamourEquipment } from "../models/glamour";
 import { useGlamourDiscoveryViewModel } from "./useGlamourDiscoveryViewModel";
+import { useOwnedItemsViewModel } from "./useOwnedItemsViewModel";
 import { useWikiItemViewModel } from "./useWikiItemViewModel";
 
 type GlamourWorkspaceViewModelOptions = {
@@ -20,6 +21,7 @@ export function useGlamourWorkspaceViewModel({
   const discovery = useGlamourDiscoveryViewModel(
     authenticated && !loginChecking,
   );
+  const ownedItems = useOwnedItemsViewModel(authenticated && !loginChecking);
   const wiki = useWikiItemViewModel();
   const [selectedGlamour, setSelectedGlamour] = useState<Glamour | null>(null);
   const galleryScrollPosition = useRef(0);
@@ -67,6 +69,7 @@ export function useGlamourWorkspaceViewModel({
 
   return {
     discovery,
+    ownedItems,
     wiki,
     selectedGlamour,
     loginSucceeded,

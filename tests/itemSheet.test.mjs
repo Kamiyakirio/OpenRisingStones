@@ -3,10 +3,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildCabinetSheetUrl,
   buildItemSheetUrl,
   collectInventoryItemIds,
+  itemModelKey,
+  parseCabinetSheetResponse,
   parseItemSheetResponse,
   readMissingItemId,
+  readMissingSheetRowId,
 } from "../src/utils/itemSheet.ts";
 
 test("builds bounded Chinese Item sheet batch requests", () => {
@@ -36,6 +40,9 @@ test("normalizes Item sheet fields and asset URLs", () => {
           "LevelItem@as(raw)": 15,
           Rarity: 2,
           StackSize: 99,
+          ModelMain: 65578,
+          ModelSub: 0,
+          "EquipSlotCategory@as(raw)": 4,
         },
       },
     ],
@@ -52,7 +59,11 @@ test("normalizes Item sheet fields and asset URLs", () => {
     levelItem: 15,
     rarity: 2,
     stackSize: 99,
+    modelMain: 65578,
+    modelSub: 0,
+    equipSlotCategory: 4,
   });
+  assert.equal(itemModelKey(item), "4:65578:0");
 });
 
 test("identifies a missing Item row without treating every 404 as missing data", () => {
@@ -63,6 +74,31 @@ test("identifies a missing Item row without treating every 404 as missing data",
     999999,
   );
   assert.equal(readMissingItemId("route not found"), null);
+  assert.equal(
+    readMissingSheetRowId(
+      "not found: the Excel row Cabinet/123 could not be found",
+      "Cabinet",
+    ),
+    123,
+  );
+});
+
+test("builds and parses compact Cabinet item mappings", () => {
+  const url = buildCabinetSheetUrl([1, 3]);
+  assert.equal(url.pathname, "/api/sheet/Cabinet");
+  assert.equal(url.searchParams.get("fields"), "Item@as(raw)");
+  assert.deepEqual(
+    parseCabinetSheetResponse({
+      rows: [
+        { row_id: 1, fields: { "Item@as(raw)": 3220 } },
+        { row_id: 3, fields: { "Item@as(raw)": 3682 } },
+      ],
+    }),
+    [
+      { cabinetId: 1, itemId: 3220 },
+      { cabinetId: 3, itemId: 3682 },
+    ],
+  );
 });
 
 test("collects unique concrete item and glamour IDs", () => {
@@ -76,6 +112,7 @@ test("collects unique concrete item and glamour IDs", () => {
       },
     ],
     glamourDresser: { items: [{ itemId: 126 }] },
+    armoire: { cabinetItemIds: [1, 2] },
   };
 
   assert.deepEqual(collectInventoryItemIds(inventory), [42, 84, 126]);

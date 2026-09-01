@@ -1,0 +1,172 @@
+/** Owned-item status follows the gallery's restrained paper-and-copper visual system. */
+.owned-items-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+  padding: 17px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--accent-soft));
+}
+
+.owned-items-mark {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.owned-items-mark svg {
+  width: 25px;
+  height: 25px;
+}
+
+.owned-items-copy {
+  min-width: 0;
+}
+
+.owned-items-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.owned-items-heading h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.owned-items-heading > span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.owned-items-copy > p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.owned-items-copy > p strong {
+  color: var(--ink);
+}
+
+.owned-items-coverage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 9px;
+}
+
+.owned-items-coverage > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.owned-items-coverage svg {
+  width: 12px;
+  height: 12px;
+}
+
+.owned-items-coverage .is-complete svg {
+  color: var(--accent);
+}
+
+.owned-items-coverage .is-incomplete svg {
+  color: var(--danger);
+}
+
+.owned-items-partial-warning {
+  display: block;
+  margin-top: 7px;
+  color: var(--danger);
+  font-size: 9px;
+}
+
+.owned-items-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 108px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 730;
+  white-space: nowrap;
+}
+
+.owned-items-action:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.owned-items-action:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.owned-items-action:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.owned-items-action svg {
+  width: 15px;
+  height: 15px;
+}
+
+.owned-items-error {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  color: var(--danger);
+  font-size: 10px;
+}
+
+.owned-items-error > svg {
+  width: 14px;
+  height: 14px;
+}
+
+.owned-items-error button {
+  padding: 2px 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .owned-items-panel {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 14px;
+  }
+
+  .owned-items-mark {
+    width: 40px;
+    height: 40px;
+  }
+
+  .owned-items-action {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}

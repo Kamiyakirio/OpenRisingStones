@@ -12,6 +12,7 @@ export type Glamour = {
   image: string;
   likes: number;
   saved: number;
+  equipmentIds: number[];
   featured?: boolean;
 };
 

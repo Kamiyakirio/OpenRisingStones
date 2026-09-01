@@ -444,6 +444,41 @@
   font-size: 9px;
 }
 
+.equipment-ownership {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-top: 6px;
+  font-size: 9px;
+  font-weight: 720;
+}
+
+.equipment-ownership svg {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+}
+
+.equipment-ownership small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.equipment-ownership.is-owned,
+.equipment-ownership.is-same-model {
+  color: var(--accent-strong);
+}
+
+.equipment-ownership.is-checking,
+.equipment-ownership.is-missing {
+  color: var(--muted);
+}
+
 .equipment-source-popover {
   position: fixed;
   z-index: 120;

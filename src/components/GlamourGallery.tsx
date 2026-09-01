@@ -2,6 +2,7 @@
 import { useEffect, useRef, type CSSProperties } from "react";
 import {
   BookmarkSimple,
+  CheckCircle,
   CircleNotch,
   Heart,
   MagnifyingGlass,
@@ -9,6 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Glamour, GlamourOrder } from "../models/glamour";
 import { hideBrokenImage } from "../utils/glamourPresentation";
+import type { OwnedItemsViewModel } from "../viewmodels/useOwnedItemsViewModel";
 
 type GlamourGalleryProps = {
   results: Glamour[];
@@ -25,6 +27,7 @@ type GlamourGalleryProps = {
   onClearSearch: () => void;
   onRetry: () => void;
   onLoadMore: () => Promise<void>;
+  ownedItems: OwnedItemsViewModel;
 };
 
 export function GlamourGallery({
@@ -42,6 +45,7 @@ export function GlamourGallery({
   onClearSearch,
   onRetry,
   onLoadMore,
+  ownedItems,
 }: GlamourGalleryProps) {
   const loadMoreTrigger = useRef<HTMLDivElement>(null);
   const loadMoreCallback = useRef(onLoadMore);
@@ -67,6 +71,12 @@ export function GlamourGallery({
     observer.observe(trigger);
     return () => observer.disconnect();
   }, [canLoadMore, error, loading, loadingMore]);
+
+  useEffect(() => {
+    void ownedItems.ensureItemMetadata(
+      results.flatMap((item) => item.equipmentIds),
+    );
+  }, [ownedItems, results]);
 
   return (
     <section className="gallery-section" id="recommendations">
@@ -125,6 +135,7 @@ export function GlamourGallery({
               saved={saved.includes(item.id)}
               onToggleSave={onToggleSave}
               onOpenDetail={onOpenDetail}
+              ownedItems={ownedItems}
             />
           ))}
         </div>
@@ -163,13 +174,22 @@ function GlamourCard({
   saved,
   onToggleSave,
   onOpenDetail,
+  ownedItems,
 }: {
   item: Glamour;
   index: number;
   saved: boolean;
   onToggleSave: (id: number) => void;
   onOpenDetail: (glamour: Glamour) => void;
+  ownedItems: OwnedItemsViewModel;
 }) {
+  const ownershipMatches = item.equipmentIds
+    .map(ownedItems.matchItem)
+    .filter((match) => match.kind === "exact" || match.kind === "same_model");
+  const sameModelCount = ownershipMatches.filter(
+    (match) => match.kind === "same_model",
+  ).length;
+
   return (
     <article
       className="glamour-card"
@@ -209,6 +229,15 @@ function GlamourCard({
           {/* <span />
           {item.palette} */}
         </p>
+        {ownershipMatches.length > 0 && (
+          <div className="card-owned-match">
+            <CheckCircle weight="fill" />
+            <span>
+              已匹配 {ownershipMatches.length} 件
+              {sameModelCount > 0 ? "，含 " + sameModelCount + " 件同模" : ""}
+            </span>
+          </div>
+        )}
         <div className="card-footer">
           <span>by {item.author}</span>
           <span>

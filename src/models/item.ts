@@ -9,4 +9,7 @@ export type ItemSheetInfo = {
   levelItem: number;
   rarity: number;
   stackSize: number;
+  modelMain: number;
+  modelSub: number;
+  equipSlotCategory: number;
 };

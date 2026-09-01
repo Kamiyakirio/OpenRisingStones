@@ -342,6 +342,7 @@ function toGlamour(
         "favorites",
         "favorite_count",
       ]) ?? 0,
+    equipmentIds: readGlamourEquipmentIds(record),
     featured: index === 0,
   };
 }
@@ -400,6 +401,9 @@ function toGlamourDetail(record: UnknownRecord): GlamourDetail {
     image: mainImage,
     likes: readNumber(record, ["likes"]) ?? 0,
     saved: readNumber(record, ["favorites"]) ?? 0,
+    equipmentIds: equipment
+      .map((item) => item.equipmentId)
+      .filter((itemId) => itemId > 0),
     description: readString(record, ["desc", "description"]) ?? "",
     images: [mainImage, ...extraImages.filter((image) => image !== mainImage)],
     createdAt: readString(record, ["created_at", "createdAt"]) ?? "",
@@ -414,6 +418,29 @@ function toGlamourDetail(record: UnknownRecord): GlamourDetail {
     avatar: readString(user, ["avatar"]),
     equipments: equipment,
   };
+}
+
+function readGlamourEquipmentIds(record: UnknownRecord) {
+  const direct = readNumberArray(record, [
+    "equipment_ids",
+    "equipmentIds",
+    "item_ids",
+    "itemIds",
+  ]);
+  const nested = ["equipments", "equipment_list", "equipmentList"].flatMap(
+    (key) =>
+      readRecordArray(record[key]).flatMap((equipment) => {
+        const itemId = readNumber(equipment, [
+          "equipment_id",
+          "equipmentId",
+          "item_id",
+          "itemId",
+          "id",
+        ]);
+        return itemId && itemId > 0 ? [itemId] : [];
+      }),
+  );
+  return [...new Set([...direct, ...nested])];
 }
 
 function toEquipment(record: UnknownRecord): GlamourEquipment {
