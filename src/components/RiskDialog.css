@@ -1,0 +1,130 @@
+.risk-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(18, 28, 28, 0.64);
+  backdrop-filter: blur(9px);
+}
+
+.risk-dialog {
+  position: relative;
+  width: min(600px, 100%);
+  padding: clamp(26px, 4vw, 38px);
+  border: 1px solid var(--danger-line);
+  border-radius: 18px;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 30px 90px rgba(14, 27, 28, 0.3);
+}
+
+.risk-dialog > svg {
+  width: 48px;
+  height: 48px;
+  color: var(--danger);
+}
+
+.risk-dialog h2 {
+  margin: 17px 0 0;
+  font-size: clamp(22px, 3vw, 29px);
+}
+
+.risk-dialog ul {
+  display: grid;
+  gap: 11px;
+  margin: 22px 0 0;
+  padding: 18px 18px 18px 36px;
+  border-radius: 14px;
+  color: var(--ink);
+  background: var(--danger-soft);
+}
+
+.risk-dialog li,
+.risk-dialog-description {
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.risk-dialog li {
+  padding-left: 4px;
+}
+
+.risk-dialog-description {
+  margin-top: 16px;
+  color: var(--muted);
+}
+
+.risk-dialog-description p {
+  margin: 0;
+}
+
+.risk-dialog-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--muted);
+  background: transparent;
+}
+
+.risk-dialog-close:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.risk-dialog-close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.risk-dialog-storage-error {
+  margin: 13px 0 0;
+  color: var(--danger);
+  font-size: 10px;
+}
+
+.risk-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 24px;
+}
+
+.risk-dialog-actions button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.risk-dialog-actions button.primary {
+  border-color: var(--danger-strong);
+  color: #fff8f6;
+  background: var(--danger-strong);
+}
+
+.risk-dialog-actions button:active,
+.risk-dialog-close:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+@media (max-width: 620px) {
+  .risk-dialog-actions {
+    flex-direction: column-reverse;
+  }
+
+  .risk-dialog-actions button {
+    width: 100%;
+  }
+}
