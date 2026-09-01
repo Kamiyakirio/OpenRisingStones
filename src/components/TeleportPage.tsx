@@ -14,12 +14,15 @@ import {
   ShieldWarning,
   SpinnerGap,
   Ticket,
+  ToggleLeft,
+  ToggleRight,
   UserCircle,
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
 import type { TeleportOrder } from "../models/teleport";
 import type { TeleportWorkspaceViewModel } from "../viewmodels/useTeleportWorkspaceViewModel";
+import { RiskDialog } from "./RiskDialog";
 import "./TeleportPage.css";
 
 type TeleportPageProps = {
@@ -34,7 +37,7 @@ export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
     viewModel.selectedSourceGroup &&
     viewModel.selectedRole &&
     viewModel.selectedTargetArea &&
-    viewModel.selectedTargetGroup &&
+    viewModel.resolvedTargetGroup &&
     viewModel.termsAccepted &&
     !viewModel.actionLoading,
   );
@@ -77,12 +80,52 @@ export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
         <>
           <ServiceSummary viewModel={viewModel} />
 
+          <section className="teleport-mode-switch" aria-label="传送操作模式">
+            <div>
+              <span>操作模式</span>
+              <strong>
+                {viewModel.mode === "manual" ? "手动模式" : "自动模式"}
+              </strong>
+              <small>
+                {viewModel.mode === "manual"
+                  ? "保持官方网页操作链路，不连接游戏进程。"
+                  : "由桌面端读取角色、返回标题并准备目标大区连接。"}
+              </small>
+            </div>
+            <div role="group" aria-label="选择操作模式">
+              <button
+                className={viewModel.mode === "manual" ? "is-active" : ""}
+                type="button"
+                disabled={viewModel.actionLoading}
+                onClick={() => viewModel.requestMode("manual")}
+              >
+                <ToggleLeft />
+                手动
+              </button>
+              <button
+                className={viewModel.mode === "automatic" ? "is-active" : ""}
+                type="button"
+                disabled={viewModel.actionLoading}
+                onClick={() => viewModel.requestMode("automatic")}
+              >
+                <ToggleRight />
+                自动
+              </button>
+            </div>
+          </section>
+
           <div className="teleport-alert is-warning" role="note">
             <ShieldWarning weight="fill" />
             <div>
-              <strong>提交前请完全退出游戏客户端</strong>
+              <strong>
+                {viewModel.mode === "manual"
+                  ? "提交前请完全退出游戏客户端"
+                  : "提交后桌面端可能自动登出当前角色"}
+              </strong>
               <span>
-                传送期间重新登录可能导致角色数据异常，请等待订单完成。
+                {viewModel.mode === "manual"
+                  ? "传送期间重新登录可能导致角色数据异常，请等待订单完成。"
+                  : "执行前会再次请求确认；订单完成前请勿重新登录。"}
               </span>
             </div>
           </div>
@@ -98,82 +141,88 @@ export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
                 <h2 id="journey-title">安排本次旅程</h2>
               </div>
 
-              <div className="teleport-field-grid">
-                <SelectField
-                  label="当前大区"
-                  value={viewModel.selectedSourceAreaId}
-                  placeholder="选择角色所在大区"
-                  options={viewModel.sourceAreas.map((area) => ({
-                    value: area.areaId,
-                    label: area.areaName,
-                  }))}
-                  onChange={viewModel.selectSourceArea}
-                />
-                <SelectField
-                  label="当前服务器"
-                  value={viewModel.selectedSourceGroupId}
-                  placeholder="选择角色所在服务器"
-                  disabled={!viewModel.selectedSourceArea}
-                  options={(viewModel.selectedSourceArea?.groups ?? []).map(
-                    (group) => ({
-                      value: group.groupId,
-                      label: group.groupName,
-                    }),
+              {viewModel.mode === "manual" ? (
+                <>
+                  <div className="teleport-field-grid">
+                    <SelectField
+                      label="当前大区"
+                      value={viewModel.selectedSourceAreaId}
+                      placeholder="选择角色所在大区"
+                      options={viewModel.sourceAreas.map((area) => ({
+                        value: area.areaId,
+                        label: area.areaName,
+                      }))}
+                      onChange={viewModel.selectSourceArea}
+                    />
+                    <SelectField
+                      label="当前服务器"
+                      value={viewModel.selectedSourceGroupId}
+                      placeholder="选择角色所在服务器"
+                      disabled={!viewModel.selectedSourceArea}
+                      options={(viewModel.selectedSourceArea?.groups ?? []).map(
+                        (group) => ({
+                          value: group.groupId,
+                          label: group.groupName,
+                        }),
+                      )}
+                      onChange={viewModel.selectSourceGroup}
+                    />
+                  </div>
+
+                  <button
+                    className="teleport-secondary-action"
+                    type="button"
+                    disabled={
+                      !viewModel.selectedSourceArea ||
+                      !viewModel.selectedSourceGroup ||
+                      viewModel.selectionLoading
+                    }
+                    onClick={() => void viewModel.findRolesAndTargets()}
+                  >
+                    {viewModel.selectionLoading ? (
+                      <SpinnerGap className="spin" />
+                    ) : (
+                      <UserCircle />
+                    )}
+                    查找角色与可用目标
+                  </button>
+
+                  {viewModel.roles.length > 0 && (
+                    <fieldset className="teleport-role-picker">
+                      <legend>选择角色</legend>
+                      <div>
+                        {viewModel.roles.map((role) => (
+                          <label key={role.roleId}>
+                            <input
+                              type="radio"
+                              name="teleport-role"
+                              checked={viewModel.selectedRoleId === role.roleId}
+                              onChange={() =>
+                                viewModel.setSelectedRoleId(role.roleId)
+                              }
+                            />
+                            <UserCircle weight="duotone" />
+                            <span>
+                              <strong>{role.roleName}</strong>
+                              <small>{role.roleId}</small>
+                            </span>
+                            <CheckCircle weight="fill" />
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
                   )}
-                  onChange={viewModel.selectSourceGroup}
-                />
-              </div>
 
-              <button
-                className="teleport-secondary-action"
-                type="button"
-                disabled={
-                  !viewModel.selectedSourceArea ||
-                  !viewModel.selectedSourceGroup ||
-                  viewModel.selectionLoading
-                }
-                onClick={() => void viewModel.findRolesAndTargets()}
-              >
-                {viewModel.selectionLoading ? (
-                  <SpinnerGap className="spin" />
-                ) : (
-                  <UserCircle />
-                )}
-                查找角色与可用目标
-              </button>
-
-              {viewModel.roles.length > 0 && (
-                <fieldset className="teleport-role-picker">
-                  <legend>选择角色</legend>
-                  <div>
-                    {viewModel.roles.map((role) => (
-                      <label key={role.roleId}>
-                        <input
-                          type="radio"
-                          name="teleport-role"
-                          checked={viewModel.selectedRoleId === role.roleId}
-                          onChange={() =>
-                            viewModel.setSelectedRoleId(role.roleId)
-                          }
-                        />
-                        <UserCircle weight="duotone" />
-                        <span>
-                          <strong>{role.roleName}</strong>
-                          <small>{role.roleId}</small>
-                        </span>
-                        <CheckCircle weight="fill" />
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
+                  {viewModel.roles.length === 0 &&
+                    viewModel.targetAreas.length > 0 && (
+                      <div className="teleport-inline-empty">
+                        当前服务器没有可用于超域传送的角色。
+                      </div>
+                    )}
+                </>
+              ) : (
+                <AutomaticSource viewModel={viewModel} />
               )}
-
-              {viewModel.roles.length === 0 &&
-                viewModel.targetAreas.length > 0 && (
-                  <div className="teleport-inline-empty">
-                    当前服务器没有可用于超域传送的角色。
-                  </div>
-                )}
 
               {viewModel.targetAreas.length > 0 && (
                 <div className="teleport-target-fields">
@@ -190,9 +239,9 @@ export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
                       onChange={viewModel.selectTargetArea}
                     />
                     <SelectField
-                      label="目标服务器"
+                      label="目标服务器（可选）"
                       value={viewModel.selectedTargetGroupId}
-                      placeholder="选择目标服务器"
+                      placeholder="由系统在该大区内选择"
                       disabled={!viewModel.selectedTargetArea}
                       options={(viewModel.selectedTargetArea?.groups ?? []).map(
                         (group) => ({
@@ -224,7 +273,11 @@ export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
                     viewModel.setTermsAccepted(event.target.checked)
                   }
                 />
-                <span>我已退出游戏，并确认角色不在跨界或超域旅行状态中。</span>
+                <span>
+                  {viewModel.mode === "manual"
+                    ? "我已退出游戏，并确认角色不在跨界或超域旅行状态中。"
+                    : "我确认角色当前不在跨界或超域旅行状态中。"}
+                </span>
               </label>
 
               <button
@@ -271,7 +324,9 @@ export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
           <JourneyReview viewModel={viewModel} />
           <div className="dialog-warning">
             <WarningCircle weight="fill" />
-            请再次确认游戏客户端已经完全退出。
+            {viewModel.mode === "manual"
+              ? "请再次确认游戏客户端已经完全退出。"
+              : "提交后将检查游戏状态；如需登出，会再次请求确认。"}
           </div>
         </ActionDialog>
       )}
@@ -310,6 +365,80 @@ export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
       )}
 
       {viewModel.returnOrder && <ReturnDialog viewModel={viewModel} />}
+
+      {viewModel.automaticRiskOpen && (
+        <RiskDialog
+          title="使用自动模式前请确认风险"
+          items={[
+            "本功能需要进行对游戏程序的注入。",
+            "在大多数语境下，该行为被视同开挂/使用外部辅助程序。",
+            "进行下一步前，您需要确认是否确实要使用该功能。",
+          ]}
+          description={
+            <p>
+              我们不建议任何对外部辅助程序抱有无法接受的态度的使用者使用该功能。
+            </p>
+          }
+          confirmLabel="确认使用自动模式"
+          onConfirm={viewModel.confirmAutomaticRisk}
+          onCancel={viewModel.cancelAutomaticRisk}
+        />
+      )}
+
+      {viewModel.logoutConfirmationRequired && (
+        <ActionDialog
+          title="需要退出当前游戏角色"
+          onClose={() => void viewModel.resolveLogoutConfirmation(false)}
+          actions={
+            <>
+              <button
+                type="button"
+                onClick={() => void viewModel.resolveLogoutConfirmation(false)}
+              >
+                取消
+              </button>
+              <button
+                className="is-primary"
+                type="button"
+                onClick={() => void viewModel.resolveLogoutConfirmation(true)}
+              >
+                确认并退出到标题画面
+              </button>
+            </>
+          }
+        >
+          <p>已读取并核对当前角色。继续操作将自动退出登录并等待标题画面。</p>
+          <div className="dialog-warning">
+            <WarningCircle weight="fill" />
+            若角色处于战斗、任务或过场等无法登出的状态，本次操作会停止并提示错误。
+          </div>
+        </ActionDialog>
+      )}
+
+      {viewModel.completionMessage && (
+        <ActionDialog
+          title="超域传送已完成"
+          onClose={viewModel.dismissCompletion}
+          actions={
+            <button
+              className="is-primary"
+              type="button"
+              onClick={viewModel.dismissCompletion}
+            >
+              知道了
+            </button>
+          }
+        >
+          <p>{viewModel.completionMessage}</p>
+        </ActionDialog>
+      )}
+
+      {viewModel.mode === "automatic" &&
+        viewModel.actionLoading &&
+        !viewModel.activeOrderId &&
+        !viewModel.logoutConfirmationRequired && (
+          <AutomaticProgress stage={viewModel.automaticStage} />
+        )}
     </main>
   );
 }
@@ -345,6 +474,49 @@ function ServiceSummary({
   );
 }
 
+function AutomaticSource({
+  viewModel,
+}: {
+  viewModel: TeleportWorkspaceViewModel;
+}) {
+  const ready = Boolean(
+    viewModel.automaticCharacter &&
+    viewModel.selectedSourceArea &&
+    viewModel.selectedSourceGroup &&
+    viewModel.selectedRole,
+  );
+  return (
+    <section className={`teleport-memory-source${ready ? " is-ready" : ""}`}>
+      <div className="teleport-memory-source-icon">
+        {ready ? (
+          <CheckCircle weight="fill" />
+        ) : (
+          <UserCircle weight="duotone" />
+        )}
+      </div>
+      <div>
+        <span>游戏内存读取</span>
+        <strong>
+          {ready ? viewModel.selectedRole?.roleName : "尚未读取当前角色"}
+        </strong>
+        <small>
+          {ready
+            ? `${viewModel.selectedSourceArea?.areaName} / ${viewModel.selectedSourceGroup?.groupName} · World ${viewModel.automaticCharacter?.currentWorldId}`
+            : "自动模式不需要手动选择当前大区、服务器或角色。"}
+        </small>
+      </div>
+      <button
+        type="button"
+        disabled={viewModel.actionLoading}
+        onClick={() => void viewModel.initializeAutomaticSource()}
+      >
+        <ArrowClockwise />
+        {ready ? "重新读取" : "读取游戏数据"}
+      </button>
+    </section>
+  );
+}
+
 function JourneyRoute({
   viewModel,
 }: {
@@ -377,7 +549,8 @@ function JourneyRoute({
         <div>
           <small>目标服务器</small>
           <strong>
-            {viewModel.selectedTargetGroup?.groupName ?? "尚未选择"}
+            {viewModel.selectedTargetGroup?.groupName ??
+              (viewModel.selectedTargetArea ? "系统自动选择" : "尚未选择")}
           </strong>
           <span>
             {viewModel.selectedTargetArea?.areaName ?? "选择目标大区"}
@@ -629,7 +802,8 @@ function JourneyReview({
         <span>目标服务器</span>
         <strong>
           {viewModel.selectedTargetArea?.areaName} /{" "}
-          {viewModel.selectedTargetGroup?.groupName}
+          {viewModel.selectedTargetGroup?.groupName ??
+            `${viewModel.resolvedTargetGroup?.groupName ?? "无可用服务器"}（自动选择）`}
         </strong>
       </div>
     </div>
@@ -649,6 +823,35 @@ function OrderProgress({
         <h2>{orderProgressText(viewModel.activeOrderStatus)}</h2>
         <code>{viewModel.activeOrderId}</code>
         <p>页面会每 3 秒查询一次订单状态，请保持应用开启。</p>
+      </div>
+    </div>
+  );
+}
+
+function AutomaticProgress({
+  stage,
+}: {
+  stage: TeleportWorkspaceViewModel["automaticStage"];
+}) {
+  const copy = {
+    idle: "正在准备自动流程",
+    connecting: "正在连接游戏进程",
+    reading_character: "正在读取并核对当前角色",
+    awaiting_logout_confirmation: "正在等待退出确认",
+    logging_out: "正在退出角色并等待标题画面",
+    submitting: "正在创建超域传送订单",
+    waiting_order: "正在等待官方订单完成",
+    switching_region: "正在准备目标大区连接",
+    ready: "目标大区已经准备完成",
+    failed: "自动流程已经停止",
+  } satisfies Record<TeleportWorkspaceViewModel["automaticStage"], string>;
+  return (
+    <div className="teleport-progress-overlay" role="status">
+      <div className="teleport-progress-panel">
+        <SpinnerGap className="spin" />
+        <span>自动模式</span>
+        <h2>{copy[stage]}</h2>
+        <p>所有提示均显示在当前外部窗口中。</p>
       </div>
     </div>
   );
@@ -683,29 +886,48 @@ function ReturnDialog({
         </>
       }
     >
-      <p>请选择角色当前所在服务器，官方将据此创建返回订单。</p>
-      <div className="teleport-field-grid">
-        <SelectField
-          label="当前大区"
-          value={viewModel.returnAreaId}
-          placeholder="选择当前大区"
-          options={viewModel.returnAreas.map((area) => ({
-            value: area.areaId,
-            label: area.areaName,
-          }))}
-          onChange={viewModel.selectReturnArea}
-        />
-        <SelectField
-          label="当前服务器"
-          value={viewModel.returnGroupId}
-          placeholder="选择当前服务器"
-          options={(currentArea?.groups ?? []).map((group) => ({
-            value: group.groupId,
-            label: group.groupName,
-          }))}
-          onChange={viewModel.setReturnGroupId}
-        />
+      <p>默认使用出发订单记录的目的地作为角色当前所在地。</p>
+      <div className="teleport-return-default">
+        <span>当前所在地</span>
+        <strong>
+          {currentArea?.areaName ?? "未知大区"} /{" "}
+          {viewModel.selectedReturnGroup?.groupName ?? "未知服务器"}
+        </strong>
       </div>
+      <label className="teleport-return-override">
+        <input
+          type="checkbox"
+          checked={viewModel.returnLocationOverride}
+          onChange={(event) =>
+            viewModel.setReturnLocationOverride(event.target.checked)
+          }
+        />
+        <span>角色中途去过其他服务器，手动选择当前所在地</span>
+      </label>
+      {viewModel.returnLocationOverride && (
+        <div className="teleport-field-grid">
+          <SelectField
+            label="当前大区"
+            value={viewModel.returnAreaId}
+            placeholder="选择当前大区"
+            options={viewModel.returnAreas.map((area) => ({
+              value: area.areaId,
+              label: area.areaName,
+            }))}
+            onChange={viewModel.selectReturnArea}
+          />
+          <SelectField
+            label="当前服务器"
+            value={viewModel.returnGroupId}
+            placeholder="选择当前服务器"
+            options={(currentArea?.groups ?? []).map((group) => ({
+              value: group.groupId,
+              label: group.groupName,
+            }))}
+            onChange={viewModel.setReturnGroupId}
+          />
+        </div>
+      )}
     </ActionDialog>
   );
 }

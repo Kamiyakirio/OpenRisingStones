@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   TeleportArea,
+  TeleportGroup,
   TeleportLoginMethod,
   TeleportLoginStart,
   TeleportOrder,
@@ -11,6 +12,7 @@ import type {
 import {
   confirmTeleportOrder,
   createTeleportOrder,
+  fetchAutomaticTeleportReadiness,
   fetchTeleportOrders,
   fetchTeleportOrderStatus,
   fetchTeleportOverview,
@@ -25,12 +27,38 @@ import {
   submitTeleportReturn,
   TeleportApiError,
 } from "../services/teleportApi";
+import {
+  applyTeleportGameRegion,
+  logoutGameToTitle,
+  normalizeGameBridgeError,
+  prepareGameBridge,
+  readGameBridge,
+} from "../services/gameBridge";
+import type {
+  ActiveCharacterSnapshot,
+  GameSnapshot,
+} from "../models/gameBridge";
+
+export type TeleportMode = "manual" | "automatic";
+export type AutomaticTeleportStage =
+  | "idle"
+  | "connecting"
+  | "reading_character"
+  | "awaiting_logout_confirmation"
+  | "logging_out"
+  | "submitting"
+  | "waiting_order"
+  | "switching_region"
+  | "ready"
+  | "failed";
 
 type Options = {
   authenticated: boolean;
   loginChecking: boolean;
   account: string;
 };
+
+type MemoryCharacter = ActiveCharacterSnapshot | GameSnapshot;
 
 export function useTeleportWorkspaceViewModel({
   authenticated,
@@ -41,6 +69,26 @@ export function useTeleportWorkspaceViewModel({
   const [selectionLoading, setSelectionLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<TeleportMode>("manual");
+  const [automaticRiskOpen, setAutomaticRiskOpen] = useState(false);
+  const [automaticStage, setAutomaticStage] =
+    useState<AutomaticTeleportStage>("idle");
+  const [logoutConfirmationRequired, setLogoutConfirmationRequired] =
+    useState(false);
+  const [pendingAutomaticTarget, setPendingAutomaticTarget] =
+    useState<TeleportGroup | null>(null);
+  const [activeTravelMode, setActiveTravelMode] = useState<TeleportMode | null>(
+    null,
+  );
+  const [activeDestination, setActiveDestination] = useState<{
+    area: TeleportArea;
+    group: TeleportGroup;
+  } | null>(null);
+  const [completionMessage, setCompletionMessage] = useState<string | null>(
+    null,
+  );
+  const [automaticCharacter, setAutomaticCharacter] =
+    useState<MemoryCharacter | null>(null);
   const [crossAuthenticationRequired, setCrossAuthenticationRequired] =
     useState(false);
   const [balance, setBalance] = useState(0);
@@ -85,6 +133,7 @@ export function useTeleportWorkspaceViewModel({
   const [returnAreas, setReturnAreas] = useState<TeleportArea[]>([]);
   const [returnAreaId, setReturnAreaId] = useState<number | null>(null);
   const [returnGroupId, setReturnGroupId] = useState<number | null>(null);
+  const [returnLocationOverride, setReturnLocationOverride] = useState(false);
 
   const selectedSourceArea = useMemo(
     () =>
@@ -114,6 +163,14 @@ export function useTeleportWorkspaceViewModel({
       ) ?? null,
     [selectedTargetArea, selectedTargetGroupId],
   );
+  const resolvedTargetGroup = useMemo(() => {
+    if (selectedTargetGroup) return selectedTargetGroup;
+    return (
+      [...(selectedTargetArea?.groups ?? [])].sort(
+        (left, right) => left.groupId - right.groupId,
+      )[0] ?? null
+    );
+  }, [selectedTargetArea, selectedTargetGroup]);
   const selectedReturnArea = useMemo(
     () => returnAreas.find((area) => area.areaId === returnAreaId) ?? null,
     [returnAreaId, returnAreas],
@@ -213,17 +270,44 @@ export function useTeleportWorkspaceViewModel({
         setActiveOrderStatus(status);
         if (status.migrationStatus === 2) {
           setOrderConfirmationRequired(true);
+          setActionLoading(false);
           return;
         }
         if (status.migrationStatus === 5) {
           setActiveOrderId(null);
+          if (activeTravelMode === "automatic" && activeDestination) {
+            setAutomaticStage("switching_region");
+            try {
+              await applyTeleportGameRegion(activeDestination.area.areaName);
+              if (disposed) return;
+              setAutomaticStage("ready");
+              setCompletionMessage(
+                `超域传送已完成，实际目的地为 ${activeDestination.area.areaName} / ${activeDestination.group.groupName}。游戏连接已准备完成，现在可以登录游戏。`,
+              );
+            } catch (reason) {
+              if (disposed) return;
+              setAutomaticStage("failed");
+              setError(
+                `官方订单已经完成，但游戏服务器切换失败：${gameBridgeErrorMessage(reason)}`,
+              );
+            }
+          } else if (activeDestination) {
+            setCompletionMessage(
+              `超域传送已完成，实际目的地为 ${activeDestination.area.areaName} / ${activeDestination.group.groupName}。`,
+            );
+          }
           setActionLoading(false);
+          setActiveTravelMode(null);
+          setActiveDestination(null);
           await refresh();
           return;
         }
         if ([-1, -2, -3, -5].includes(status.migrationStatus)) {
           setActiveOrderId(null);
           setActionLoading(false);
+          if (activeTravelMode === "automatic") setAutomaticStage("failed");
+          setActiveTravelMode(null);
+          setActiveDestination(null);
           return;
         }
         timer = window.setTimeout(() => void poll(), 3000);
@@ -232,6 +316,9 @@ export function useTeleportWorkspaceViewModel({
           setError(errorMessage(reason));
           setActiveOrderId(null);
           setActionLoading(false);
+          if (activeTravelMode === "automatic") setAutomaticStage("failed");
+          setActiveTravelMode(null);
+          setActiveDestination(null);
         }
       }
     };
@@ -240,7 +327,13 @@ export function useTeleportWorkspaceViewModel({
       disposed = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [activeOrderId, orderConfirmationRequired, refresh]);
+  }, [
+    activeDestination,
+    activeOrderId,
+    activeTravelMode,
+    orderConfirmationRequired,
+    refresh,
+  ]);
 
   const startCrossAuthentication = useCallback(
     async (method: TeleportLoginMethod) => {
@@ -267,6 +360,23 @@ export function useTeleportWorkspaceViewModel({
     },
     [crossAccount],
   );
+
+  const requestMode = useCallback((nextMode: TeleportMode) => {
+    if (nextMode === "automatic") {
+      setAutomaticRiskOpen(true);
+      return;
+    }
+    setMode("manual");
+    setAutomaticRiskOpen(false);
+    setAutomaticStage("idle");
+    setAutomaticCharacter(null);
+    setLogoutConfirmationRequired(false);
+    setPendingAutomaticTarget(null);
+  }, []);
+
+  const cancelAutomaticRisk = useCallback(() => {
+    setAutomaticRiskOpen(false);
+  }, []);
 
   const selectSourceArea = useCallback((areaId: number | null) => {
     setSelectedSourceAreaId(areaId);
@@ -316,6 +426,106 @@ export function useTeleportWorkspaceViewModel({
     }
   }, [selectedSourceArea, selectedSourceGroup]);
 
+  const resolveAutomaticSource = useCallback(
+    async (character: MemoryCharacter) => {
+      const preferredAreas = character.currentRegion
+        ? sourceAreas.filter(
+            (area) => area.areaName === character.currentRegion,
+          )
+        : sourceAreas;
+      const candidateAreas = preferredAreas.length
+        ? preferredAreas
+        : sourceAreas;
+      for (const area of candidateAreas) {
+        for (const group of area.groups) {
+          const groupRoles = await fetchTeleportRoles(
+            area.areaId,
+            group.groupId,
+          );
+          const role = groupRoles.find(
+            (candidate) => candidate.roleId === character.contentId,
+          );
+          if (role) return { area, group, role };
+        }
+      }
+      throw new Error("官方角色列表中没有找到当前游戏角色");
+    },
+    [sourceAreas],
+  );
+
+  const initializeAutomaticSource = useCallback(async () => {
+    setActionLoading(true);
+    setError(null);
+    setAutomaticCharacter(null);
+    setSelectedSourceAreaId(null);
+    setSelectedSourceGroupId(null);
+    setSelectedRoleId(null);
+    setSelectedTargetAreaId(null);
+    setSelectedTargetGroupId(null);
+    setRoles([]);
+    setTargetAreas([]);
+    setQueueMinutes(null);
+    try {
+      setAutomaticStage("connecting");
+      const readiness = await fetchAutomaticTeleportReadiness();
+      if (!readiness.gameAuthReady) {
+        setCrossAuthenticationRequired(true);
+        throw new Error("自动模式需要重新完成一次推送或扫码认证");
+      }
+      const bridgeStatus = await prepareGameBridge();
+      setAutomaticStage("reading_character");
+      const response = await readGameBridge([
+        "game_state",
+        "active_character",
+        "selected_character",
+      ]);
+      if (!response.gameState) {
+        throw new Error("无法判断当前游戏画面，请等待游戏稳定后重试");
+      }
+      if (!response.gameState.regionSwitchSupported) {
+        throw new Error("当前游戏版本尚未完成自动切区验证，请使用手动模式");
+      }
+      const character =
+        response.activeCharacter ??
+        response.selectedCharacter ??
+        bridgeStatus.snapshot ??
+        null;
+      if (!character) {
+        throw new Error("无法读取当前角色，请进入游戏或角色选择画面后重试");
+      }
+      if (character.currentWorldId !== character.homeWorldId) {
+        throw new Error("当前角色不在原始服务器，无法发起超域传送");
+      }
+
+      const source = await resolveAutomaticSource(character);
+      const targets = await fetchTeleportTargets(
+        source.area.areaId,
+        source.group.groupId,
+      );
+      setAutomaticCharacter(character);
+      setSelectedSourceAreaId(source.area.areaId);
+      setSelectedSourceGroupId(source.group.groupId);
+      setRoles([source.role]);
+      setSelectedRoleId(source.role.roleId);
+      setTargetAreas(
+        targets.filter((area) => area.areaId !== source.area.areaId),
+      );
+      setCrossAuthenticationRequired(false);
+      setAutomaticStage("idle");
+    } catch (reason) {
+      setAutomaticStage("failed");
+      setError(gameBridgeErrorMessage(reason));
+    } finally {
+      setActionLoading(false);
+    }
+  }, [resolveAutomaticSource]);
+
+  const confirmAutomaticRisk = useCallback(() => {
+    setMode("automatic");
+    setAutomaticRiskOpen(false);
+    void initializeAutomaticSource();
+  }, [initializeAutomaticSource]);
+
   const selectTargetArea = useCallback((areaId: number | null) => {
     setSelectedTargetAreaId(areaId);
     setSelectedTargetGroupId(null);
@@ -338,12 +548,38 @@ export function useTeleportWorkspaceViewModel({
     [selectedTargetArea],
   );
 
+  const createOrderForTarget = useCallback(
+    async (targetGroup: TeleportGroup, travelMode: TeleportMode) => {
+      if (
+        !selectedSourceArea ||
+        !selectedSourceGroup ||
+        !selectedTargetArea ||
+        !selectedRole
+      ) {
+        throw new Error("传送选择不完整，请重新选择后再提交");
+      }
+      const orderId = await createTeleportOrder({
+        sourceArea: selectedSourceArea,
+        sourceGroup: selectedSourceGroup,
+        targetArea: selectedTargetArea,
+        targetGroup,
+        role: selectedRole,
+      });
+      setSelectedTargetGroupId(targetGroup.groupId);
+      setActiveDestination({ area: selectedTargetArea, group: targetGroup });
+      setActiveTravelMode(travelMode);
+      setActiveOrderId(orderId);
+      if (travelMode === "automatic") setAutomaticStage("waiting_order");
+    },
+    [selectedRole, selectedSourceArea, selectedSourceGroup, selectedTargetArea],
+  );
+
   const submitTravel = useCallback(async () => {
     if (
       !selectedSourceArea ||
       !selectedSourceGroup ||
       !selectedTargetArea ||
-      !selectedTargetGroup ||
+      !resolvedTargetGroup ||
       !selectedRole ||
       !termsAccepted
     ) {
@@ -351,28 +587,108 @@ export function useTeleportWorkspaceViewModel({
     }
     setActionLoading(true);
     setError(null);
+    setCompletionMessage(null);
     setActiveOrderStatus(null);
     try {
-      const orderId = await createTeleportOrder({
-        sourceArea: selectedSourceArea,
-        sourceGroup: selectedSourceGroup,
-        targetArea: selectedTargetArea,
-        targetGroup: selectedTargetGroup,
-        role: selectedRole,
-      });
-      setActiveOrderId(orderId);
+      if (mode === "manual") {
+        await createOrderForTarget(resolvedTargetGroup, "manual");
+        return;
+      }
+
+      setAutomaticStage("connecting");
+      const readiness = await fetchAutomaticTeleportReadiness();
+      if (!readiness.gameAuthReady) {
+        setCrossAuthenticationRequired(true);
+        throw new Error("自动模式需要重新完成一次推送或扫码认证");
+      }
+      await prepareGameBridge();
+      setAutomaticStage("reading_character");
+      const response = await readGameBridge([
+        "game_state",
+        "active_character",
+        "selected_character",
+      ]);
+      if (!response.gameState) {
+        throw new Error("无法判断当前游戏画面，请等待游戏稳定后重试");
+      }
+      if (!response.gameState.regionSwitchSupported) {
+        throw new Error("当前游戏版本尚未完成自动切区验证，请使用手动模式");
+      }
+      const character =
+        response.activeCharacter ?? response.selectedCharacter ?? null;
+      if (response.gameState.screen !== "title" && !character) {
+        throw new Error("无法读取当前角色，请进入游戏或角色选择画面后重试");
+      }
+      if (character && character.contentId !== selectedRole.roleId) {
+        throw new Error(
+          `当前游戏角色为 ${character.characterName}，与页面所选角色不一致`,
+        );
+      }
+      if (
+        character?.currentRegion &&
+        character.currentRegion !== selectedSourceArea.areaName
+      ) {
+        throw new Error(
+          `当前游戏大区为 ${character.currentRegion}，与页面所选大区不一致`,
+        );
+      }
+      if (response.gameState.screen === "title") {
+        setAutomaticStage("submitting");
+        await createOrderForTarget(resolvedTargetGroup, "automatic");
+        return;
+      }
+      if (
+        response.gameState.screen !== "in_world" &&
+        response.gameState.screen !== "character_select"
+      ) {
+        throw new Error("游戏正在加载或切换画面，请稍后再试");
+      }
+      setPendingAutomaticTarget(resolvedTargetGroup);
+      setLogoutConfirmationRequired(true);
+      setAutomaticStage("awaiting_logout_confirmation");
+      setActionLoading(false);
     } catch (reason) {
       setActionLoading(false);
+      if (mode === "automatic") setAutomaticStage("failed");
       setError(errorMessage(reason));
     }
   }, [
+    createOrderForTarget,
+    mode,
+    resolvedTargetGroup,
     selectedRole,
     selectedSourceArea,
     selectedSourceGroup,
     selectedTargetArea,
-    selectedTargetGroup,
     termsAccepted,
   ]);
+
+  const resolveLogoutConfirmation = useCallback(
+    async (confirm: boolean) => {
+      setLogoutConfirmationRequired(false);
+      if (!confirm || !pendingAutomaticTarget) {
+        setPendingAutomaticTarget(null);
+        setAutomaticStage("idle");
+        setActionLoading(false);
+        return;
+      }
+      setActionLoading(true);
+      setError(null);
+      try {
+        setAutomaticStage("logging_out");
+        await logoutGameToTitle();
+        setAutomaticStage("submitting");
+        await createOrderForTarget(pendingAutomaticTarget, "automatic");
+        setPendingAutomaticTarget(null);
+      } catch (reason) {
+        setActionLoading(false);
+        setPendingAutomaticTarget(null);
+        setAutomaticStage("failed");
+        setError(gameBridgeErrorMessage(reason));
+      }
+    },
+    [createOrderForTarget, pendingAutomaticTarget],
+  );
 
   const resolveOrderConfirmation = useCallback(
     async (confirm: boolean) => {
@@ -385,6 +701,9 @@ export function useTeleportWorkspaceViewModel({
         if (!confirm) {
           setActiveOrderId(null);
           setActionLoading(false);
+          if (activeTravelMode === "automatic") setAutomaticStage("failed");
+          setActiveTravelMode(null);
+          setActiveDestination(null);
           await refresh();
         }
       } catch (reason) {
@@ -392,7 +711,7 @@ export function useTeleportWorkspaceViewModel({
         setError(errorMessage(reason));
       }
     },
-    [activeOrderId, refresh],
+    [activeOrderId, activeTravelMode, refresh],
   );
 
   const loadOrders = useCallback(async (page: number) => {
@@ -430,6 +749,7 @@ export function useTeleportWorkspaceViewModel({
       setReturnOrder(order);
       setReturnAreaId(initialArea?.areaId ?? null);
       setReturnGroupId(initialGroup?.groupId ?? null);
+      setReturnLocationOverride(false);
     } catch (reason) {
       setError(errorMessage(reason));
     } finally {
@@ -451,6 +771,7 @@ export function useTeleportWorkspaceViewModel({
     setReturnAreas([]);
     setReturnAreaId(null);
     setReturnGroupId(null);
+    setReturnLocationOverride(false);
   }, []);
 
   const submitReturn = useCallback(async () => {
@@ -475,6 +796,12 @@ export function useTeleportWorkspaceViewModel({
     selectionLoading,
     actionLoading,
     error,
+    mode,
+    automaticRiskOpen,
+    automaticStage,
+    logoutConfirmationRequired,
+    completionMessage,
+    automaticCharacter,
     crossAuthenticationRequired,
     balance,
     migrationLimitDays,
@@ -491,6 +818,7 @@ export function useTeleportWorkspaceViewModel({
     selectedRole,
     selectedTargetArea,
     selectedTargetGroup,
+    resolvedTargetGroup,
     selectedSourceAreaId,
     selectedSourceGroupId,
     selectedRoleId,
@@ -510,9 +838,14 @@ export function useTeleportWorkspaceViewModel({
     returnAreaId,
     returnGroupId,
     selectedReturnGroup,
+    returnLocationOverride,
     refresh,
     setCrossAccount,
     startCrossAuthentication,
+    requestMode,
+    confirmAutomaticRisk,
+    cancelAutomaticRisk,
+    initializeAutomaticSource,
     selectSourceArea,
     selectSourceGroup,
     setSelectedRoleId,
@@ -521,13 +854,16 @@ export function useTeleportWorkspaceViewModel({
     selectTargetGroup,
     setTermsAccepted,
     submitTravel,
+    resolveLogoutConfirmation,
     resolveOrderConfirmation,
     loadOrders,
     prepareReturn,
     selectReturnArea,
     setReturnGroupId,
+    setReturnLocationOverride,
     closeReturn,
     submitReturn,
+    dismissCompletion: () => setCompletionMessage(null),
   };
 }
 
@@ -546,4 +882,8 @@ function errorMessage(reason: unknown) {
     : typeof reason === "string"
       ? reason
       : "超域传送请求失败，请稍后重试";
+}
+
+function gameBridgeErrorMessage(reason: unknown) {
+  return normalizeGameBridgeError(reason).message;
 }

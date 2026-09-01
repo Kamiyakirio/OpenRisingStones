@@ -192,6 +192,72 @@
   font-weight: 720;
 }
 
+.teleport-mode-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 18px;
+  padding: 17px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.teleport-mode-switch > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.teleport-mode-switch span,
+.teleport-mode-switch small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.teleport-mode-switch strong {
+  font-size: 15px;
+}
+
+.teleport-mode-switch > div:last-child {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 11px;
+  background: var(--paper);
+}
+
+.teleport-mode-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 730;
+}
+
+.teleport-mode-switch button.is-active {
+  border-color: var(--line);
+  color: var(--accent-strong);
+  background: var(--surface);
+  box-shadow: 0 3px 12px rgba(10, 26, 24, 0.08);
+}
+
+.teleport-mode-switch button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.teleport-mode-switch button svg {
+  width: 17px;
+  height: 17px;
+}
+
 .teleport-builder {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
@@ -219,6 +285,85 @@
   font-size: clamp(24px, 3vw, 34px);
   line-height: 1.12;
   letter-spacing: -0.04em;
+}
+
+.teleport-memory-source {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  margin-top: 26px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.teleport-memory-source.is-ready {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-soft);
+}
+
+.teleport-memory-source-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: var(--accent-strong);
+  background: var(--surface);
+}
+
+.teleport-memory-source-icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.teleport-memory-source > div:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.teleport-memory-source span,
+.teleport-memory-source small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.teleport-memory-source strong,
+.teleport-memory-source small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teleport-memory-source strong {
+  font-size: 13px;
+}
+
+.teleport-memory-source > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.teleport-memory-source > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.teleport-memory-source > button svg {
+  width: 15px;
+  height: 15px;
 }
 
 .teleport-field-grid {
@@ -816,6 +961,43 @@
   margin-top: 0;
 }
 
+.teleport-return-default {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 15px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--paper);
+}
+
+.teleport-return-default span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.teleport-return-default strong {
+  font-size: 13px;
+}
+
+.teleport-return-override {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.teleport-return-override input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent-strong);
+}
+
 .teleport-dialog > footer {
   justify-content: flex-end;
   gap: 9px;
@@ -1012,6 +1194,30 @@
   .teleport-role-picker > div,
   .teleport-skeleton {
     grid-template-columns: 1fr;
+  }
+
+  .teleport-mode-switch {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .teleport-mode-switch > div:last-child,
+  .teleport-mode-switch button {
+    flex: 1;
+  }
+
+  .teleport-mode-switch button {
+    justify-content: center;
+  }
+
+  .teleport-memory-source {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .teleport-memory-source > button {
+    grid-column: 1 / -1;
+    justify-content: center;
+    width: 100%;
   }
 
   .teleport-skeleton div:last-child {
