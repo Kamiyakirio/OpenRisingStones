@@ -2,9 +2,9 @@
 
 use crate::error::{last_windows_error, BridgeError, BridgeResult};
 use game_bridge_protocol::{
-    ActiveCharacterSnapshot, Command, CommandResult, GameSnapshot, GlamourDresserItemSnapshot,
-    GlamourDresserSnapshot, InventoryContainerSnapshot, InventoryItemSnapshot,
-    PlayerInventorySnapshot, Position3,
+    ActiveCharacterSnapshot, Command, CommandResult, GameScreen, GameSnapshot, GameStateSnapshot,
+    GlamourDresserItemSnapshot, GlamourDresserSnapshot, InventoryContainerSnapshot,
+    InventoryItemSnapshot, PlayerInventorySnapshot, Position3,
 };
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -25,7 +25,7 @@ use windows_sys::Win32::Foundation::{
 use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcess, PROCESS_DUP_HANDLE};
 
 const SHARED_MAGIC: u32 = 0x4752_424F;
-const SHARED_ABI_VERSION: u32 = 1;
+const SHARED_ABI_VERSION: u32 = 2;
 const PAYLOAD_STATE_READY: u32 = 1;
 const PAYLOAD_STATE_FAULTED: u32 = 2;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
@@ -42,6 +42,8 @@ const COMMAND_RETURN_TO_TITLE: u32 = 4;
 const COMMAND_SWITCH_REGION: u32 = 5;
 const COMMAND_TRIGGER_LOGIN: u32 = 6;
 const COMMAND_SHUTDOWN: u32 = 7;
+const COMMAND_CAPTURE_GAME_STATE: u32 = 8;
+const COMMAND_LOGOUT_TO_TITLE: u32 = 9;
 
 const RESPONSE_SUCCESS: u32 = 1;
 const RESPONSE_ERROR: u32 = 2;
@@ -79,6 +81,9 @@ struct SharedGameLayout {
     agent_game_session: u32,
     agent_selected_character_index: u32,
     agent_selected_content_id: u32,
+    agent_chara_select_addon_id: u32,
+    agent_is_logged_in: u32,
+    agent_is_logged_into_zone: u32,
     lobby_entries_vector: u32,
     lobby_ui_client: u32,
     lobby_context: u32,
@@ -155,6 +160,7 @@ struct SharedGameApi {
     utf8_set_string: u64,
     release_lobby_context: u64,
     return_to_title: u64,
+    handle_logout: u64,
     get_addon_by_name: u64,
     get_component_button_by_id: u64,
     layout: SharedGameLayout,
@@ -226,6 +232,17 @@ struct SharedActiveCharacter {
 
 #[repr(C)]
 #[derive(Clone, Copy)]
+struct SharedGameState {
+    screen: u32,
+    logged_in: u8,
+    logged_into_zone: u8,
+    connected_to_zone: u8,
+    region_switch_supported: u8,
+    territory_load_state: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
 struct SharedInventoryItem {
     inventory_type: u32,
     slot: i16,
@@ -286,6 +303,7 @@ struct SharedResponse {
     error_message: [u8; 256],
     snapshot: SharedGameSnapshot,
     active_character: SharedActiveCharacter,
+    game_state: SharedGameState,
     inventory: SharedInventorySnapshot,
 }
 
@@ -459,6 +477,8 @@ impl SharedSession {
                 Command::CaptureSnapshot => COMMAND_CAPTURE_SNAPSHOT,
                 Command::CaptureActiveCharacter => COMMAND_CAPTURE_ACTIVE_CHARACTER,
                 Command::CaptureInventory => COMMAND_CAPTURE_INVENTORY,
+                Command::CaptureGameState => COMMAND_CAPTURE_GAME_STATE,
+                Command::LogoutToTitle => COMMAND_LOGOUT_TO_TITLE,
                 Command::ReturnToTitle => COMMAND_RETURN_TO_TITLE,
                 Command::SwitchRegion { target: region } => {
                     switched_region = Some(region.region_name.clone());
@@ -540,6 +560,8 @@ fn monitor_shared_memory(
                     "capture_snapshot".to_owned(),
                     "capture_active_character".to_owned(),
                     "capture_inventory".to_owned(),
+                    "capture_game_state".to_owned(),
+                    "logout_to_title".to_owned(),
                     "return_to_title".to_owned(),
                     "switch_region".to_owned(),
                     "trigger_login".to_owned(),
@@ -630,13 +652,18 @@ fn decode_response(
         COMMAND_CAPTURE_INVENTORY => Ok(CommandResult::Inventory {
             inventory: decode_inventory(&response.inventory)?,
         }),
+        COMMAND_CAPTURE_GAME_STATE => Ok(CommandResult::GameState {
+            state: decode_game_state(&response.game_state)?,
+        }),
         COMMAND_SWITCH_REGION => Ok(CommandResult::RegionSwitched {
             region_name: switched_region.ok_or_else(|| {
                 BridgeError::InvalidData("missing switched region name".to_owned())
             })?,
         }),
         COMMAND_SHUTDOWN => Ok(CommandResult::ShutdownReady),
-        COMMAND_RETURN_TO_TITLE | COMMAND_TRIGGER_LOGIN => Ok(CommandResult::Ack),
+        COMMAND_RETURN_TO_TITLE | COMMAND_LOGOUT_TO_TITLE | COMMAND_TRIGGER_LOGIN => {
+            Ok(CommandResult::Ack)
+        }
         _ => Err(BridgeError::InvalidData(
             "shared response has invalid command kind".to_owned(),
         )),
@@ -680,6 +707,30 @@ fn decode_active_character(value: &SharedActiveCharacter) -> ActiveCharacterSnap
         territory_load_state: value.territory_load_state,
         connected_to_zone: value.connected_to_zone != 0,
     }
+}
+
+fn decode_game_state(value: &SharedGameState) -> BridgeResult<GameStateSnapshot> {
+    let screen = match value.screen {
+        0 => GameScreen::InWorld,
+        1 => GameScreen::LoggingOut,
+        2 => GameScreen::CharacterSelect,
+        3 => GameScreen::Title,
+        4 => GameScreen::Loading,
+        5 => GameScreen::Unknown,
+        _ => {
+            return Err(BridgeError::InvalidData(
+                "shared game screen value is invalid".to_owned(),
+            ))
+        }
+    };
+    Ok(GameStateSnapshot {
+        screen,
+        logged_in: value.logged_in != 0,
+        logged_into_zone: value.logged_into_zone != 0,
+        connected_to_zone: value.connected_to_zone != 0,
+        region_switch_supported: value.region_switch_supported != 0,
+        territory_load_state: value.territory_load_state,
+    })
 }
 
 fn decode_inventory(value: &SharedInventorySnapshot) -> BridgeResult<PlayerInventorySnapshot> {
@@ -797,7 +848,7 @@ struct PeImage {
 
 fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<SharedGameApi> {
     let manifest: RuntimeManifest = serde_json::from_slice(&fs::read(manifest_path)?)?;
-    if manifest.schema_version != 4 {
+    if manifest.schema_version != 5 {
         return Err(BridgeError::InvalidData(format!(
             "unsupported manifest schema: {}",
             manifest.schema_version
@@ -860,6 +911,7 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     api.utf8_set_string = resolve("utf8SetString")?;
     api.release_lobby_context = resolve("releaseLobbyContext")?;
     api.return_to_title = resolve("returnToTitle")?;
+    api.handle_logout = resolve("handleLogout")?;
     api.get_addon_by_name = resolve("getAddonByName")?;
     api.get_component_button_by_id = resolve("getComponentButtonById")?;
 
@@ -888,6 +940,9 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
         "agentSelectedCharacterIndex"
     );
     layout!(agent_selected_content_id, "agentSelectedContentId");
+    layout!(agent_chara_select_addon_id, "agentCharaSelectAddonId");
+    layout!(agent_is_logged_in, "agentIsLoggedIn");
+    layout!(agent_is_logged_into_zone, "agentIsLoggedIntoZone");
     layout!(lobby_entries_vector, "lobbyEntriesVector");
     layout!(lobby_ui_client, "lobbyUiClient");
     layout!(lobby_context, "lobbyContext");

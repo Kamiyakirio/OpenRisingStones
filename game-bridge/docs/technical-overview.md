@@ -132,6 +132,8 @@ Rust 创建匿名 Windows file mapping，并把 HANDLE 复制进目标进程。�
 - `capture_snapshot`
 - `capture_active_character`
 - `capture_inventory`
+- `capture_game_state`
+- `logout_to_title`
 - `return_to_title`
 - `switch_region`
 - `trigger_login`
@@ -260,7 +262,7 @@ source
 verification
 ```
 
-当前 Manifest schema 为版本 4；版本 4 明确规定 `textSha256` 是磁盘 EXE 原始 `.text` section 的哈希，并包含 LocalPlayer、GameMain、InventoryManager、ItemFinderModule 与相关字段布局。
+当前 Manifest schema 为版本 5；版本 5 明确规定 `textSha256` 是磁盘 EXE 原始 `.text` section 的哈希，并包含 LocalPlayer、GameMain、InventoryManager、ItemFinderModule、游戏画面状态与安全登出所需布局。
 
 门禁条件：
 
@@ -358,6 +360,7 @@ LobbyUIClient.State   = +0x158
 - `game_bridge_capture_snapshot`
 - `game_bridge_capture_active_character`
 - `game_bridge_capture_inventory`
+- `game_bridge_logout_to_title`
 - `game_bridge_return_to_title`
 - `game_bridge_switch_region`
 - `game_bridge_trigger_login`
@@ -365,7 +368,9 @@ LobbyUIClient.State   = +0x158
 
 WebView 只能提供进程 ID、可选的单一 Manifest 文件名和固定语义的读取资源，不能指定任意 DLL 路径。DLL、世界映射和 Manifest 路径由 Rust 后端从受控资源目录解析。未指定 Manifest 时，后端自动选择资源目录中版本号最新的文件。
 
-`game_bridge_prepare` 负责复用已就绪连接、恢复故障连接、选择受控资源并等待握手完成。`game_bridge_read` 是推荐给新前端功能的版本化批量读取入口，当前支持 `active_character` 和 `inventory`。返回值包含 `schemaVersion`、各资源的可选结果和逐资源失败信息；Tauri 命令错误统一使用 `{ code, message }` 结构。
+`game_bridge_prepare` 负责复用已就绪连接、恢复故障连接、选择受控资源并等待握手完成。`game_bridge_read` 是推荐给新前端功能的版本化批量读取入口，当前支持 `active_character`、`selected_character`、`game_state` 和 `inventory`。返回值包含 `schemaVersion`、各资源的可选结果和逐资源失败信息；Tauri 命令错误统一使用 `{ code, message }` 结构。
+
+`game_bridge_logout_to_title` 根据 `game_state` 选择游戏内正常登出或角色选择页返回标题，并由 Rust 等待标题菜单实际可用。调用成功仅表示游戏已经到达标题画面，不会自动触发登录。
 
 `game_bridge_capture_active_character` 是只读注入诊断入口。进入游戏世界后，它返回：
 

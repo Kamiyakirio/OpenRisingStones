@@ -23,7 +23,7 @@ The Rust host validates all of the following before loading the payload:
 4. Exactly one match for every required signature.
 5. All resolved addresses remain inside the main module.
 
-Manifest schema 4 defines `textSha256` as the SHA-256 of the executable's raw `.text` section and includes LocalPlayer, GameMain, InventoryManager, and ItemFinderModule definitions used by the read-only diagnostics. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
+Manifest schema 5 defines `textSha256` as the SHA-256 of the executable's raw `.text` section and includes the definitions used by typed reads, logout, and title-screen switching. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
 
 The template also sets `privateLayoutVerified` to `false`. The collector intentionally preserves that value. Snapshot collection remains available, but region switching is rejected until the private Lobby context fields have been verified against the exact target version.
 
@@ -61,7 +61,9 @@ await invoke("game_bridge_prepare", {
   request: { processId: null, manifestFile: null },
 });
 const response = await invoke("game_bridge_read", {
-  request: { resources: ["active_character", "inventory"] },
+  request: {
+    resources: ["game_state", "active_character", "selected_character", "inventory"],
+  },
 });
 ```
 

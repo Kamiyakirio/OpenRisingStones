@@ -3,6 +3,7 @@ import os
 import unittest
 from contextlib import redirect_stderr
 from io import StringIO
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from api_client import (
@@ -22,7 +23,9 @@ from api_client import (
     fetch_teleport,
     fetch_wiki_page,
     finalize_authenticated_login,
+    normalize_game_auth,
     normalize_user_agent,
+    preserve_game_auth,
     start_teleport_push,
 )
 
@@ -49,7 +52,20 @@ class FakeResponse:
 
 
 class FakeCookies:
-    jar = []
+    def __init__(self) -> None:
+        self.jar = []
+
+    def set(self, name, value, domain="", path="/", secure=False) -> None:
+        self.jar.append(
+            SimpleNamespace(
+                name=name,
+                value=value,
+                domain=domain,
+                path=path,
+                secure=secure,
+                is_expired=lambda: False,
+            )
+        )
 
 
 class FakeSession:
@@ -77,6 +93,7 @@ def client_with(
     client.session = session
     client.user_agent = BASE_HEADERS["User-Agent"]
     client.base_headers = BASE_HEADERS
+    client.game_auth = None
     return client, session
 
 
@@ -120,6 +137,32 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(restored.base_headers["User-Agent"], user_agent)
         with self.assertRaisesRegex(ApiClientError, "User-Agent is invalid"):
             normalize_user_agent("Mozilla/5.0\r\nCookie: secret")
+
+    def test_game_auth_context_is_validated_and_preserved(self) -> None:
+        context = normalize_game_auth({"tgt": "ticket-granting-ticket", "guid": "12345"})
+        self.assertEqual(context["guid"], "12345")
+
+        client, _ = client_with(FakeResponse())
+        client.game_auth = context
+        self.assertEqual(client.snapshot()["gameAuth"], context)
+
+        with self.assertRaisesRegex(ApiClientError, "context is invalid"):
+            normalize_game_auth({"tgt": "", "guid": "12345"})
+
+    def test_teleport_login_keeps_game_refresh_context_in_protected_snapshot(
+        self,
+    ) -> None:
+        client, _ = client_with(FakeResponse())
+        client.session.cookies.set(
+            "web_guidid", "67890", domain="login.u.sdo.com", path="/"
+        )
+
+        preserve_game_auth(client, {"data": {"tgt": "game-tgt"}})
+
+        self.assertEqual(
+            client.snapshot()["gameAuth"],
+            {"tgt": "game-tgt", "guid": "67890"},
+        )
 
     def test_request_applies_shared_headers_and_timeout(self) -> None:
         client, session = client_with(FakeResponse())

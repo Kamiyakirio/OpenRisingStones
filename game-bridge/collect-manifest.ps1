@@ -280,7 +280,7 @@ if (-not [string]::IsNullOrWhiteSpace($ExpectedVersion) -and $gameVersion -ne $E
 }
 
 $manifest = [IO.File]::ReadAllText($template.FullName) | ConvertFrom-Json
-if ($manifest.schemaVersion -ne 4) {
+if ($manifest.schemaVersion -ne 5) {
   throw "The manifest template schema is not supported."
 }
 if (-not [IO.Path]::GetFileName($files.Executable.FullName).Equals(

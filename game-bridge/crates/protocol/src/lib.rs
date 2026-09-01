@@ -74,6 +74,28 @@ pub struct ActiveCharacterSnapshot {
     pub connected_to_zone: bool,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GameScreen {
+    InWorld,
+    LoggingOut,
+    CharacterSelect,
+    Title,
+    Loading,
+    Unknown,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GameStateSnapshot {
+    pub screen: GameScreen,
+    pub logged_in: bool,
+    pub logged_into_zone: bool,
+    pub connected_to_zone: bool,
+    pub region_switch_supported: bool,
+    pub territory_load_state: u32,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InventoryItemSnapshot {
@@ -142,6 +164,8 @@ pub enum Command {
     CaptureSnapshot,
     CaptureActiveCharacter,
     CaptureInventory,
+    CaptureGameState,
+    LogoutToTitle,
     ReturnToTitle,
     SwitchRegion { target: RegionTarget },
     TriggerLogin,
@@ -160,6 +184,9 @@ pub enum CommandResult {
     },
     Inventory {
         inventory: PlayerInventorySnapshot,
+    },
+    GameState {
+        state: GameStateSnapshot,
     },
     RegionSwitched {
         #[serde(rename = "regionName")]

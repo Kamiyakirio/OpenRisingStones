@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "privateLayoutVerified": false,
   "gameVersion": "REPLACE_WITH_EXACT_GAME_VERSION",
   "module": {
@@ -67,6 +67,12 @@
       "offset": 1,
       "nextInstruction": 5
     },
+    "handleLogout": {
+      "pattern": "40 56 41 56 41 57 48 83 EC 40 80 B9",
+      "resolve": "direct",
+      "offset": 0,
+      "nextInstruction": 0
+    },
     "getAddonByName": {
       "pattern": "E8 ?? ?? ?? ?? 48 8B F8 41 B0 01",
       "resolve": "relative32",
@@ -92,6 +98,9 @@
     "agentGameSession": "0x0DC8",
     "agentSelectedCharacterIndex": "0x1241",
     "agentSelectedContentId": "0x12D0",
+    "agentCharaSelectAddonId": "0x1278",
+    "agentIsLoggedIn": "0x12D8",
+    "agentIsLoggedIntoZone": "0x12D9",
     "lobbyEntriesVector": "0x08D8",
     "lobbyUiClient": "0x0008",
     "lobbyContext": "0x0018",

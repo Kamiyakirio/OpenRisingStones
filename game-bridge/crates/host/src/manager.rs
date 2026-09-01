@@ -3,8 +3,8 @@
 use crate::error::{BridgeError, BridgeResult};
 use crate::world_map::WorldMap;
 use game_bridge_protocol::{
-    ActiveCharacterSnapshot, Command, CommandResult, GameSnapshot, PlayerInventorySnapshot,
-    RegionTarget,
+    ActiveCharacterSnapshot, Command, CommandResult, GameSnapshot, GameStateSnapshot,
+    PlayerInventorySnapshot, RegionTarget,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -275,6 +275,19 @@ impl BridgeManager {
                 "unexpected inventory response".to_owned(),
             )),
         }
+    }
+
+    pub fn capture_game_state(&self) -> BridgeResult<GameStateSnapshot> {
+        match self.send_command(Command::CaptureGameState)? {
+            CommandResult::GameState { state } => Ok(state),
+            _ => Err(BridgeError::InvalidData(
+                "unexpected game-state response".to_owned(),
+            )),
+        }
+    }
+
+    pub fn logout_to_title(&self) -> BridgeResult<()> {
+        expect_ack(self.send_command(Command::LogoutToTitle)?)
     }
 
     pub fn return_to_title(&self) -> BridgeResult<()> {

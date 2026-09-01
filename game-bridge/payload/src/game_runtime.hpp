@@ -47,6 +47,24 @@ struct ActiveCharacterSnapshot final {
   bool connected_to_zone{};
 };
 
+enum class GameScreen : std::uint32_t {
+  InWorld = 0,
+  LoggingOut = 1,
+  CharacterSelect = 2,
+  Title = 3,
+  Loading = 4,
+  Unknown = 5,
+};
+
+struct GameStateSnapshot final {
+  GameScreen screen{GameScreen::Unknown};
+  bool logged_in{};
+  bool logged_into_zone{};
+  bool connected_to_zone{};
+  bool region_switch_supported{};
+  std::uint32_t territory_load_state{};
+};
+
 struct InventoryItemSnapshot final {
   std::uint32_t inventory_type{};
   std::int16_t slot{};
@@ -112,6 +130,7 @@ struct CommandOutcome final {
   std::optional<GameSnapshot> snapshot;
   std::optional<ActiveCharacterSnapshot> active_character;
   std::optional<PlayerInventorySnapshot> inventory;
+  std::optional<GameStateSnapshot> game_state;
   std::string region_name;
 };
 
@@ -139,10 +158,13 @@ class GameRuntime final {
   [[nodiscard]] CommandOutcome capture_snapshot(void* framework);
   [[nodiscard]] CommandOutcome capture_active_character();
   [[nodiscard]] CommandOutcome capture_inventory(void* framework);
+  [[nodiscard]] CommandOutcome capture_game_state(void* framework);
+  [[nodiscard]] CommandOutcome logout_to_title(void* framework);
   [[nodiscard]] CommandOutcome return_to_title(void* framework);
   [[nodiscard]] CommandOutcome switch_region(void* framework, RegionTarget& target);
   [[nodiscard]] CommandOutcome trigger_login(void* framework);
   [[nodiscard]] void* get_agent_lobby(void* framework) const;
+  [[nodiscard]] void* get_title_menu(void* framework) const;
 
   static GameRuntime* active_;
   Layout layout_;

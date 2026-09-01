@@ -13,8 +13,8 @@ mod shared_memory;
 
 pub use error::{BridgeError, BridgeResult};
 pub use game_bridge_protocol::{
-    ActiveCharacterSnapshot, Command, CommandResult, GameSnapshot, GlamourDresserItemSnapshot,
-    GlamourDresserSnapshot, InventoryContainerSnapshot, InventoryItemSnapshot,
-    PlayerInventorySnapshot, Position3, RegionTarget, SecretValue,
+    ActiveCharacterSnapshot, Command, CommandResult, GameScreen, GameSnapshot, GameStateSnapshot,
+    GlamourDresserItemSnapshot, GlamourDresserSnapshot, InventoryContainerSnapshot,
+    InventoryItemSnapshot, PlayerInventorySnapshot, Position3, RegionTarget, SecretValue,
 };
 pub use manager::{BridgeManager, BridgePhase, BridgeStatus, ConnectOptions};

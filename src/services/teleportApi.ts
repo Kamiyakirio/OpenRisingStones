@@ -199,6 +199,11 @@ export async function pollTeleportQrLogin(loginId: number) {
   return invoke<TeleportLoginPoll>("poll_teleport_qr_login", { loginId });
 }
 
+export async function fetchAutomaticTeleportReadiness() {
+  requireDesktopRuntime();
+  return invoke<{ gameAuthReady: boolean }>("teleport_automatic_preflight");
+}
+
 async function invokeTeleport(request: Record<string, unknown>) {
   requireDesktopRuntime();
   try {

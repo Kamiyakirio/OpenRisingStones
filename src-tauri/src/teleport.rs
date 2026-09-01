@@ -19,6 +19,8 @@ use crate::{
   python_sidecar,
   sdo_login::{self, LoginState, SessionSnapshot},
 };
+#[cfg(windows)]
+use game_bridge_host::{RegionTarget, SecretValue};
 
 const MAX_TELEPORT_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 const TELEPORT_LOGIN_TIMEOUT: Duration = Duration::from_secs(120);
@@ -67,6 +69,18 @@ struct TeleportLoginSidecarResponse {
   qr_image_data_url: Option<String>,
 }
 
+#[cfg(windows)]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TeleportGameRegionSidecarResponse {
+  region_name: String,
+  lobby_host: String,
+  save_data_host: String,
+  gm_host: String,
+  game_session: String,
+  session: SessionSnapshot,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TeleportLoginStart {
@@ -79,6 +93,12 @@ pub struct TeleportLoginStart {
 #[derive(Debug, Serialize)]
 pub struct TeleportLoginPoll {
   status: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomaticTeleportReadiness {
+  game_auth_ready: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -102,6 +122,19 @@ pub struct TeleportState {
   pending: Mutex<Option<PendingTeleportLogin>>,
 }
 
+/// Report only readiness metadata; refresh credentials remain inside protected Rust state.
+#[tauri::command]
+pub fn teleport_automatic_preflight(
+  login_state: State<'_, LoginState>,
+) -> Result<AutomaticTeleportReadiness, String> {
+  let session = sdo_login::current_session(&login_state)?
+    .ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
+  let game_auth_ready = session
+    .game_auth
+    .is_some_and(|context| !context.tgt.trim().is_empty() && !context.guid.trim().is_empty());
+  Ok(AutomaticTeleportReadiness { game_auth_ready })
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct TeleportSidecarRequest {
@@ -120,6 +153,53 @@ struct TeleportLoginSidecarRequest {
   biz_context: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   account: Option<String>,
+}
+
+#[cfg(windows)]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TeleportGameRegionSidecarRequest {
+  operation: &'static str,
+  target_area_name: String,
+  session: SessionSnapshot,
+}
+
+/// Resolve secrets and official hosts in Rust so the webview never receives them.
+#[cfg(windows)]
+pub(crate) async fn prepare_game_region(
+  target_area_name: String,
+  login_state: &LoginState,
+) -> Result<RegionTarget, String> {
+  let target_area_name = target_area_name.trim().to_owned();
+  if target_area_name.is_empty()
+    || target_area_name.chars().count() > 32
+    || target_area_name.chars().any(char::is_control)
+  {
+    return Err("The target game area is invalid.".to_owned());
+  }
+  let session =
+    sdo_login::current_session(login_state)?.ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
+  let response = tauri::async_runtime::spawn_blocking(move || {
+    python_sidecar::request::<_, TeleportGameRegionSidecarResponse>(
+      &TeleportGameRegionSidecarRequest {
+        operation: "prepareTeleportGameRegion",
+        target_area_name,
+        session,
+      },
+      MAX_TELEPORT_RESPONSE_BYTES,
+      "Regional Teleport game session",
+    )
+  })
+  .await
+  .map_err(|_| "The game-session refresh task stopped unexpectedly.".to_owned())??;
+  sdo_login::replace_current_session(login_state, response.session)?;
+  Ok(RegionTarget {
+    region_name: response.region_name,
+    lobby_host: response.lobby_host,
+    save_data_host: response.save_data_host,
+    gm_host: response.gm_host,
+    game_session: SecretValue::new(response.game_session),
+  })
 }
 
 /// Execute one validated Regional Teleport request and retain updated cookies.

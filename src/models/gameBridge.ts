@@ -50,6 +50,23 @@ export type ActiveCharacterSnapshot = {
   connectedToZone: boolean;
 };
 
+export type GameScreen =
+  | "in_world"
+  | "logging_out"
+  | "character_select"
+  | "title"
+  | "loading"
+  | "unknown";
+
+export type GameStateSnapshot = {
+  screen: GameScreen;
+  loggedIn: boolean;
+  loggedIntoZone: boolean;
+  connectedToZone: boolean;
+  regionSwitchSupported: boolean;
+  territoryLoadState: number;
+};
+
 export type InventoryItemSnapshot = {
   inventoryType: number;
   slot: number;
@@ -90,7 +107,8 @@ export type PlayerInventorySnapshot = {
   };
 };
 
-export type GameReadResource = "active_character" | "inventory";
+export type GameReadResource =
+  "active_character" | "selected_character" | "game_state" | "inventory";
 
 export type GameBridgeApiError = {
   code: string;
@@ -105,6 +123,8 @@ export type GameReadFailure = {
 export type GameReadResponse = {
   schemaVersion: number;
   activeCharacter: ActiveCharacterSnapshot | null;
+  selectedCharacter: GameSnapshot | null;
+  gameState: GameStateSnapshot | null;
   inventory: PlayerInventorySnapshot | null;
   failures: GameReadFailure[];
 };

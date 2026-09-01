@@ -8,7 +8,7 @@
 namespace bridge {
 
 inline constexpr std::uint32_t kSharedMagic = 0x4742524F;
-inline constexpr std::uint32_t kSharedAbiVersion = 1;
+inline constexpr std::uint32_t kSharedAbiVersion = 2;
 inline constexpr std::size_t kMaximumSharedContainers = 18;
 inline constexpr std::size_t kMaximumSharedItems = 1024;
 inline constexpr std::size_t kMaximumSharedDresserItems = 800;
@@ -29,6 +29,8 @@ enum class SharedCommandKind : std::uint32_t {
   SwitchRegion = 5,
   TriggerLogin = 6,
   Shutdown = 7,
+  CaptureGameState = 8,
+  LogoutToTitle = 9,
 };
 
 enum class SharedResponseStatus : std::uint32_t {
@@ -49,6 +51,9 @@ struct SharedGameLayout final {
   std::uint32_t agent_game_session{};
   std::uint32_t agent_selected_character_index{};
   std::uint32_t agent_selected_content_id{};
+  std::uint32_t agent_chara_select_addon_id{};
+  std::uint32_t agent_is_logged_in{};
+  std::uint32_t agent_is_logged_into_zone{};
   std::uint32_t lobby_entries_vector{};
   std::uint32_t lobby_ui_client{};
   std::uint32_t lobby_context{};
@@ -124,6 +129,7 @@ struct SharedGameApi final {
   std::uint64_t utf8_set_string{};
   std::uint64_t release_lobby_context{};
   std::uint64_t return_to_title{};
+  std::uint64_t handle_logout{};
   std::uint64_t get_addon_by_name{};
   std::uint64_t get_component_button_by_id{};
   SharedGameLayout layout;
@@ -185,6 +191,15 @@ struct SharedActiveCharacter final {
   std::array<std::uint8_t, 3> trailing_reserved{};
 };
 
+struct SharedGameState final {
+  std::uint32_t screen{};
+  std::uint8_t logged_in{};
+  std::uint8_t logged_into_zone{};
+  std::uint8_t connected_to_zone{};
+  std::uint8_t region_switch_supported{};
+  std::uint32_t territory_load_state{};
+};
+
 struct SharedInventoryItem final {
   std::uint32_t inventory_type{};
   std::int16_t slot{};
@@ -239,6 +254,7 @@ struct SharedResponse final {
   std::array<char, 256> error_message{};
   SharedGameSnapshot snapshot;
   SharedActiveCharacter active_character;
+  SharedGameState game_state;
   SharedInventorySnapshot inventory;
 };
 
@@ -260,15 +276,16 @@ struct SharedBridge final {
 };
 
 static_assert(sizeof(SharedSwitchRegion) == 4948);
-static_assert(sizeof(SharedGameLayout) == 284);
-static_assert(sizeof(SharedGameApi) == 392);
+static_assert(sizeof(SharedGameLayout) == 296);
+static_assert(sizeof(SharedGameApi) == 408);
 static_assert(sizeof(SharedCommand) == 4968);
 static_assert(sizeof(SharedGameSnapshot) == 88);
 static_assert(sizeof(SharedActiveCharacter) == 128);
+static_assert(sizeof(SharedGameState) == 12);
 static_assert(sizeof(SharedInventoryItem) == 48);
 static_assert(sizeof(SharedInventoryContainer) == 52);
 static_assert(sizeof(SharedInventorySnapshot) == 56504);
-static_assert(sizeof(SharedResponse) == 57056);
-static_assert(sizeof(SharedBridge) == 62872);
+static_assert(sizeof(SharedResponse) == 57072);
+static_assert(sizeof(SharedBridge) == 62904);
 
 }  // namespace bridge

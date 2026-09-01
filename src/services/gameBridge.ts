@@ -4,6 +4,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   GameBridgeApiError,
   GameBridgeStatus,
+  GameStateSnapshot,
   GameReadResource,
   GameReadResponse,
 } from "../models/gameBridge";
@@ -51,6 +52,20 @@ export async function readGameBridge(resources: GameReadResource[]) {
 export function getGameBridgeStatus() {
   requireDesktopRuntime();
   return invoke<GameBridgeStatus>("game_bridge_status");
+}
+
+/** Requests a normal logout when needed and resolves only after the title screen is visible. */
+export function logoutGameToTitle() {
+  requireDesktopRuntime();
+  return invoke<GameStateSnapshot>("game_bridge_logout_to_title");
+}
+
+/** Applies a completed travel destination without exposing host or session secrets to the UI. */
+export function applyTeleportGameRegion(targetAreaName: string) {
+  requireDesktopRuntime();
+  return invoke<string>("game_bridge_apply_teleport_region", {
+    targetAreaName,
+  });
 }
 
 export async function disconnectGameBridge() {

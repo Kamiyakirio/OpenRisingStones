@@ -56,6 +56,7 @@ using GetInventoryContainer = void*(__fastcall*)(void* inventory_manager,
 using Utf8SetString = void(__fastcall*)(void* value, const char* text);
 using ReleaseLobbyContext = void(__fastcall*)(void* network_module);
 using ReturnToTitle = void(__fastcall*)(void* agent_lobby);
+using HandleLogout = void(__fastcall*)(void* agent_lobby, bool is_exiting, std::uint8_t countdown);
 using GetAddonByName = void*(__fastcall*)(void* unit_manager, const char* name, int index);
 using GetComponentButtonById = void*(__fastcall*)(void* addon, std::uint32_t node_id);
 using ReceiveEvent = void(__fastcall*)(void* addon, std::uint8_t event_type, int event_param,
@@ -125,11 +126,12 @@ std::string bounded_cstring(const char* value, std::size_t maximum) {
 }
 
 CommandOutcome failure(std::string code, std::string message) {
-  return {false, std::move(code), std::move(message), std::nullopt, std::nullopt, std::nullopt, {}};
+  return {false, std::move(code), std::move(message), std::nullopt, std::nullopt, std::nullopt,
+          std::nullopt, {}};
 }
 
 CommandOutcome acknowledgement() {
-  return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, {}};
+  return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, std::nullopt, {}};
 }
 
 template <std::size_t N>
@@ -265,6 +267,12 @@ void GameRuntime::process_shared_command(void* framework) {
       case SharedCommandKind::CaptureInventory:
         outcome = capture_inventory(framework);
         break;
+      case SharedCommandKind::CaptureGameState:
+        outcome = capture_game_state(framework);
+        break;
+      case SharedCommandKind::LogoutToTitle:
+        outcome = logout_to_title(framework);
+        break;
       case SharedCommandKind::ReturnToTitle:
         outcome = return_to_title(framework);
         break;
@@ -332,7 +340,7 @@ CommandOutcome GameRuntime::capture_snapshot(void* framework) {
   snapshot.home_world_id = read_value<std::uint16_t>(entry, layout_.entry_home_world_id);
   snapshot.login_flags = read_value<std::uint8_t>(entry, layout_.entry_login_flags);
   snapshot.sequence = next_snapshot_sequence_++;
-  return {true, {}, {}, snapshot, std::nullopt, std::nullopt, {}};
+  return {true, {}, {}, snapshot, std::nullopt, std::nullopt, std::nullopt, {}};
 }
 
 CommandOutcome GameRuntime::capture_active_character() {
@@ -385,7 +393,7 @@ CommandOutcome GameRuntime::capture_active_character() {
   snapshot.territory_id = territory_id;
   snapshot.territory_load_state = territory_load_state;
   snapshot.connected_to_zone = connected_to_zone;
-  return {true, {}, {}, std::nullopt, snapshot, std::nullopt, {}};
+  return {true, {}, {}, std::nullopt, snapshot, std::nullopt, std::nullopt, {}};
 }
 
 CommandOutcome GameRuntime::capture_inventory(void* framework) {
@@ -499,7 +507,61 @@ CommandOutcome GameRuntime::capture_inventory(void* framework) {
     }
   }
 
-  return {true, {}, {}, std::nullopt, std::nullopt, snapshot, {}};
+  return {true, {}, {}, std::nullopt, std::nullopt, snapshot, std::nullopt, {}};
+}
+
+CommandOutcome GameRuntime::capture_game_state(void* framework) {
+  GameStateSnapshot snapshot;
+  snapshot.region_switch_supported = private_layout_verified_;
+  const auto* game_main = addresses_.game_main_instance;
+  snapshot.connected_to_zone =
+      read_value<bool>(game_main, layout_.game_main_connected_to_zone);
+  snapshot.territory_load_state =
+      read_value<std::uint32_t>(game_main, layout_.game_main_territory_load_state);
+
+  auto* agent = static_cast<std::byte*>(get_agent_lobby(framework));
+  if (agent) {
+    snapshot.logged_in = read_value<bool>(agent, layout_.agent_is_logged_in);
+    snapshot.logged_into_zone = read_value<bool>(agent, layout_.agent_is_logged_into_zone);
+  }
+
+  auto* local_player = *addresses_.local_player_slot;
+  if (local_player && snapshot.connected_to_zone && snapshot.territory_load_state == 2) {
+    snapshot.screen = GameScreen::InWorld;
+  } else if (get_title_menu(framework)) {
+    snapshot.screen = GameScreen::Title;
+  } else if (agent &&
+             read_value<std::uint32_t>(agent, layout_.agent_chara_select_addon_id) != 0) {
+    snapshot.screen = GameScreen::CharacterSelect;
+  } else if (snapshot.logged_in || snapshot.logged_into_zone) {
+    snapshot.screen = GameScreen::LoggingOut;
+  } else if (snapshot.territory_load_state != 0 || snapshot.connected_to_zone) {
+    snapshot.screen = GameScreen::Loading;
+  }
+
+  return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, snapshot, {}};
+}
+
+CommandOutcome GameRuntime::logout_to_title(void* framework) {
+  auto state = capture_game_state(framework);
+  if (!state.success || !state.game_state) return state;
+  switch (state.game_state->screen) {
+    case GameScreen::Title:
+    case GameScreen::LoggingOut:
+    case GameScreen::Loading:
+      return acknowledgement();
+    case GameScreen::CharacterSelect:
+      return return_to_title(framework);
+    case GameScreen::InWorld: {
+      auto* agent = get_agent_lobby(framework);
+      if (!agent) return failure("lobby_unavailable", "The lobby agent is not available.");
+      reinterpret_cast<HandleLogout>(addresses_.handle_logout)(agent, false, 0);
+      return acknowledgement();
+    }
+    case GameScreen::Unknown:
+      return failure("game_state_unknown", "The current game screen could not be identified.");
+  }
+  return failure("game_state_unknown", "The current game screen could not be identified.");
 }
 
 void GameRuntime::write_response(std::uint64_t sequence, SharedCommandKind kind,
@@ -541,6 +603,15 @@ void GameRuntime::write_response(std::uint64_t sequence, SharedCommandKind kind,
       response.active_character.territory_id = source.territory_id;
       response.active_character.territory_load_state = source.territory_load_state;
       response.active_character.connected_to_zone = source.connected_to_zone ? 1 : 0;
+    }
+    if (outcome.game_state) {
+      const auto& source = *outcome.game_state;
+      response.game_state.screen = static_cast<std::uint32_t>(source.screen);
+      response.game_state.logged_in = source.logged_in ? 1 : 0;
+      response.game_state.logged_into_zone = source.logged_into_zone ? 1 : 0;
+      response.game_state.connected_to_zone = source.connected_to_zone ? 1 : 0;
+      response.game_state.region_switch_supported = source.region_switch_supported ? 1 : 0;
+      response.game_state.territory_load_state = source.territory_load_state;
     }
     if (outcome.inventory) {
       const auto& source = *outcome.inventory;
@@ -631,6 +702,12 @@ CommandOutcome GameRuntime::switch_region(void* framework, RegionTarget& target)
     return failure("private_layout_unverified",
                    "The private Lobby layout has not been verified for this game version.");
   }
+  const auto game_state = capture_game_state(framework);
+  if (!game_state.success || !game_state.game_state ||
+      game_state.game_state->screen != GameScreen::Title) {
+    return failure("title_screen_required",
+                   "The game must be at the title screen before switching regions.");
+  }
   if (!valid_hostname(target.lobby_host) || !valid_hostname(target.save_data_host) ||
       !valid_hostname(target.gm_host) || target.region_name.empty() ||
       target.game_session.empty() || target.game_session.size() > 4096) {
@@ -687,7 +764,8 @@ CommandOutcome GameRuntime::switch_region(void* framework, RegionTarget& target)
   reinterpret_cast<ReleaseLobbyContext>(addresses_.release_lobby_context)(network);
   *context = nullptr;
   *state = 0;
-  return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, target.region_name};
+  return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, std::nullopt,
+          target.region_name};
 }
 
 CommandOutcome GameRuntime::trigger_login(void* framework) {
@@ -720,6 +798,17 @@ void* GameRuntime::get_agent_lobby(void* framework) const {
   if (!agent_module) return nullptr;
   return reinterpret_cast<GetAgentByInternalId>(addresses_.get_agent_by_internal_id)(agent_module,
                                                                                      0);
+}
+
+void* GameRuntime::get_title_menu(void* framework) const {
+  auto* ui_module = reinterpret_cast<GetUiModule>(addresses_.get_ui_module)(framework);
+  if (!ui_module) return nullptr;
+  auto get_rapture_module = vtable_function<void*(__fastcall*)(void*)>(ui_module, 7);
+  auto* rapture_module = static_cast<std::byte*>(get_rapture_module(ui_module));
+  if (!rapture_module) return nullptr;
+  auto* unit_manager = rapture_module + layout_.rapture_atk_unit_manager;
+  return reinterpret_cast<GetAddonByName>(addresses_.get_addon_by_name)(unit_manager, "_TitleMenu",
+                                                                        1);
 }
 
 }  // namespace bridge

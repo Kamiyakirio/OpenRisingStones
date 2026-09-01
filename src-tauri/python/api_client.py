@@ -88,6 +88,7 @@ TELEPORT_ENDPOINTS = {
     "travelBack": "/api/orderserivce/travelBack",
     "validateTicket": "/api/gmallinter/validateTicket",
 }
+GAME_AREA_LIST_URL = "https://ff.dorado.sdo.com/ff/area/serverlist_new.js"
 WIKI_ORIGIN = "https://ff14.huijiwiki.com"
 WIKI_IMPERSONATE = "safari2601"
 WIKI_ITEM_NAMESPACE = "\u7269\u54c1:"
@@ -209,6 +210,25 @@ def normalize_user_agent(user_agent: str | None) -> str:
     return value
 
 
+def normalize_game_auth(value: Any) -> dict[str, str] | None:
+    """Keep the app-specific CAS refresh context inside the protected session."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ApiClientError("The game authentication context is invalid.")
+    tgt = str(value.get("tgt") or "").strip()
+    guid = str(value.get("guid") or "").strip()
+    if (
+        not tgt
+        or len(tgt) > 4096
+        or not guid
+        or len(guid) > 256
+        or any(ord(character) < 32 or ord(character) == 127 for character in tgt + guid)
+    ):
+        raise ApiClientError("The game authentication context is invalid.")
+    return {"tgt": tgt, "guid": guid}
+
+
 class ApiClient:
     """Own the fingerprinted session and enforce one network/error policy."""
 
@@ -227,6 +247,9 @@ class ApiClient:
         self.base_headers = {**BASE_HEADERS, "User-Agent": self.user_agent}
         self.session = requests.Session(impersonate="chrome", default_headers=False)
         self.session.headers.update(self.base_headers)
+        self.game_auth = normalize_game_auth(
+            snapshot.get("gameAuth") if snapshot else None
+        )
         self._restore_cookies(snapshot)
 
     def _restore_cookies(self, snapshot: dict[str, Any] | None) -> None:
@@ -265,7 +288,10 @@ class ApiClient:
                     "secure": cookie.secure,
                 }
             )
-        return {"cookies": cookies, "userAgent": self.user_agent}
+        snapshot = {"cookies": cookies, "userAgent": self.user_agent}
+        if self.game_auth:
+            snapshot["gameAuth"] = self.game_auth
+        return snapshot
 
     def request(
         self,
@@ -756,6 +782,13 @@ def now_ms() -> int:
 
 def bootstrap_teleport(client: ApiClient) -> str:
     """Create the app-specific CAS session used by Regional Teleport."""
+    if not any(cookie.name == "web_guidid" for cookie in client.session.cookies.jar):
+        client.session.cookies.set(
+            "web_guidid",
+            str(int(time.time() * 1000))[-11:],
+            domain="login.u.sdo.com",
+            path="/",
+        )
     client.request(
         "GET",
         TELEPORT_LOGIN_FRAME_URL,
@@ -912,6 +945,8 @@ def finish_teleport_ticket_login(
     if not ticket:
         raise ApiClientError("The Regional Teleport login response has no ticket.")
 
+    preserve_game_auth(client, payload)
+
     promotion_params = teleport_login_params()
     promotion_params.update(
         {
@@ -942,6 +977,133 @@ def finish_teleport_ticket_login(
     )
     require_success(validation, "The Regional Teleport ticket was rejected.")
     return {"status": "success", "session": client.snapshot()}
+
+
+def preserve_game_auth(client: ApiClient, payload: dict[str, Any]) -> None:
+    """Capture refresh material without exposing it to the webview response."""
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return
+    tgt = str(data.get("tgt") or data.get("TGT") or "").strip()
+    guid = str(data.get("guid") or data.get("GUID") or "").strip()
+    if not guid:
+        for cookie in client.session.cookies.jar:
+            if cookie.name.lower() == "web_guidid":
+                guid = str(cookie.value or "").strip()
+                break
+    if tgt and guid:
+        client.game_auth = normalize_game_auth({"tgt": tgt, "guid": guid})
+
+
+def prepare_teleport_game_region(
+    client: ApiClient, request: dict[str, Any]
+) -> dict[str, Any]:
+    """Refresh a game ticket and resolve the official hosts for one region."""
+    region_name = bounded_text(request.get("targetAreaName"), 32, "target area name")
+    auth = normalize_game_auth(client.game_auth)
+    if not auth:
+        raise ApiClientError(
+            "Automatic travel requires a fresh push or QR authentication."
+        )
+
+    tgt = auth["tgt"]
+    guid = auth["guid"]
+    client.session.cookies.set("CASTGC", tgt, domain=".sdo.com", path="/", secure=True)
+    client.session.cookies.set(
+        "CAS_LOGIN_STATE", "1", domain=".sdo.com", path="/", secure=True
+    )
+
+    promotion_params = teleport_login_params()
+    promotion_params.update(
+        {
+            "callback": "getPromotionInfo_JSONPMethod",
+            "tgt": tgt,
+            "extendInfo": "{}",
+            "_": now_ms(),
+        }
+    )
+    promotion = get_jsonp(
+        client,
+        "https://w.cas.sdo.com/authen/getPromotionInfo.jsonp",
+        promotion_params,
+    )
+    require_success(promotion, "Unable to refresh the game authentication session.")
+
+    session_params = teleport_login_params()
+    session_params.update(
+        {
+            "callback": "ssoLogin_JSONPMethod",
+            "tgt": tgt,
+            "guid": guid,
+            "extendInfo": "{}",
+            "_": now_ms(),
+        }
+    )
+    session_payload = get_jsonp(
+        client, "https://w.cas.sdo.com/authen/ssoLogin.jsonp", session_params
+    )
+    require_success(session_payload, "Unable to refresh the game authentication session.")
+    game_session = str(session_payload.get("data", {}).get("ticket") or "").strip()
+    if not game_session or len(game_session) > 4096:
+        raise ApiClientError("The refreshed game session is invalid.")
+
+    response = client.request(
+        "GET",
+        GAME_AREA_LIST_URL,
+        headers={
+            "Accept": "*/*",
+            "Referer": "https://ff.web.sdo.com/project/launcher0904/index.html",
+        },
+        max_bytes=256 * 1024,
+        error_message="Unable to load the official game area list.",
+    )
+    try:
+        area_script = response.content.decode("utf-8-sig").strip()
+        match = re.fullmatch(r"var\s+servers\s*=\s*(\[.*\])\s*;?", area_script, re.DOTALL)
+        areas = json.loads(match.group(1)) if match else None
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as error:
+        raise ApiClientError("The official game area list is invalid.") from error
+    if not isinstance(areas, list):
+        raise ApiClientError("The official game area list is invalid.")
+
+    selected = next(
+        (
+            area
+            for area in areas
+            if isinstance(area, dict)
+            and str(area.get("AreaName") or "").strip() == region_name
+        ),
+        None,
+    )
+    if not selected:
+        raise ApiClientError("The target area is absent from the official game area list.")
+
+    lobby_host = official_game_host(selected.get("AreaLobby"), "lobby")
+    save_data_host = official_game_host(
+        selected.get("AreaConfigUpload"), "save-data"
+    )
+    gm_host = official_game_host(selected.get("AreaGm"), "game-master")
+    return {
+        "regionName": region_name,
+        "lobbyHost": lobby_host,
+        "saveDataHost": save_data_host,
+        "gmHost": gm_host,
+        "gameSession": game_session,
+        "session": client.snapshot(),
+    }
+
+
+def official_game_host(value: Any, label: str) -> str:
+    host = str(value or "").strip().lower()
+    if (
+        len(host) > 253
+        or not re.fullmatch(
+            r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+sdo\.com",
+            host,
+        )
+    ):
+        raise ApiClientError(f"The official {label} host is invalid.")
+    return host
 
 
 def fetch_teleport(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
@@ -1450,6 +1612,8 @@ def main() -> None:
         result = poll_teleport_push(client, request)
     elif operation == "fetchTeleport":
         result = fetch_teleport(client, request)
+    elif operation == "prepareTeleportGameRegion":
+        result = prepare_teleport_game_region(client, request)
     else:
         raise ApiClientError("Unsupported API operation.")
     # ASCII escaping keeps the pipe valid JSON regardless of the Windows console code page.

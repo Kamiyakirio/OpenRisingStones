@@ -20,6 +20,7 @@ struct ResolvedAddresses final {
   std::byte* utf8_set_string{};
   std::byte* release_lobby_context{};
   std::byte* return_to_title{};
+  std::byte* handle_logout{};
   std::byte* get_addon_by_name{};
   std::byte* get_component_button_by_id{};
 };

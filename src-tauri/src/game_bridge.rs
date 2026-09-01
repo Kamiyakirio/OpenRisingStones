@@ -2,7 +2,7 @@
 
 use game_bridge_host::{
   ActiveCharacterSnapshot, BridgeError, BridgeManager, BridgePhase, BridgeStatus, ConnectOptions,
-  GameSnapshot, PlayerInventorySnapshot, RegionTarget, SecretValue,
+  GameScreen, GameSnapshot, GameStateSnapshot, PlayerInventorySnapshot, RegionTarget, SecretValue,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -13,9 +13,12 @@ use std::time::{Duration, Instant};
 use tauri::Manager;
 use tauri::{AppHandle, Emitter};
 
+use crate::{sdo_login::LoginState, teleport};
+
 const STATUS_EVENT: &str = "game-bridge://status";
 const READ_SCHEMA_VERSION: u32 = 1;
 const READY_TIMEOUT: Duration = Duration::from_secs(20);
+const LOGOUT_TIMEOUT: Duration = Duration::from_secs(60);
 
 type ApiResult<T> = Result<T, GameBridgeApiError>;
 
@@ -82,6 +85,8 @@ pub struct PrepareRequest {
 #[serde(rename_all = "snake_case")]
 pub enum GameReadResource {
   ActiveCharacter,
+  SelectedCharacter,
+  GameState,
   Inventory,
 }
 
@@ -97,6 +102,8 @@ pub struct GameReadRequest {
 pub struct GameReadResponse {
   schema_version: u32,
   active_character: Option<ActiveCharacterSnapshot>,
+  selected_character: Option<GameSnapshot>,
+  game_state: Option<GameStateSnapshot>,
   inventory: Option<PlayerInventorySnapshot>,
   failures: Vec<GameReadFailure>,
 }
@@ -317,6 +324,8 @@ fn read_resources(
   let mut response = GameReadResponse {
     schema_version: READ_SCHEMA_VERSION,
     active_character: None,
+    selected_character: None,
+    game_state: None,
     inventory: None,
     failures: Vec::new(),
   };
@@ -332,6 +341,20 @@ fn read_resources(
           error: error.into(),
         }),
       },
+      GameReadResource::SelectedCharacter => match manager.capture_snapshot() {
+        Ok(snapshot) => response.selected_character = Some(snapshot),
+        Err(error) => response.failures.push(GameReadFailure {
+          resource,
+          error: error.into(),
+        }),
+      },
+      GameReadResource::GameState => match manager.capture_game_state() {
+        Ok(state) => response.game_state = Some(state),
+        Err(error) => response.failures.push(GameReadFailure {
+          resource,
+          error: error.into(),
+        }),
+      },
       GameReadResource::Inventory => match manager.capture_inventory() {
         Ok(inventory) => response.inventory = Some(inventory),
         Err(error) => response.failures.push(GameReadFailure {
@@ -342,6 +365,48 @@ fn read_resources(
     }
   }
   Ok(response)
+}
+
+fn logout_to_title(manager: &BridgeManager) -> ApiResult<GameStateSnapshot> {
+  let initial = manager
+    .capture_game_state()
+    .map_err(GameBridgeApiError::from)?;
+  if matches!(initial.screen, GameScreen::Title) {
+    return Ok(initial);
+  }
+  if matches!(initial.screen, GameScreen::Unknown) {
+    return Err(GameBridgeApiError::new(
+      "game_state_unknown",
+      "The current game screen could not be identified.",
+    ));
+  }
+
+  manager
+    .logout_to_title()
+    .map_err(GameBridgeApiError::from)?;
+  let mut character_select_exit_requested = matches!(initial.screen, GameScreen::CharacterSelect);
+  let deadline = Instant::now() + LOGOUT_TIMEOUT;
+  loop {
+    let state = manager
+      .capture_game_state()
+      .map_err(GameBridgeApiError::from)?;
+    if matches!(state.screen, GameScreen::Title) {
+      return Ok(state);
+    }
+    if matches!(state.screen, GameScreen::CharacterSelect) && !character_select_exit_requested {
+      manager
+        .logout_to_title()
+        .map_err(GameBridgeApiError::from)?;
+      character_select_exit_requested = true;
+    }
+    if Instant::now() >= deadline {
+      return Err(GameBridgeApiError::new(
+        "logout_timeout",
+        "Timed out waiting for the game to return to the title screen.",
+      ));
+    }
+    std::thread::sleep(Duration::from_millis(250));
+  }
 }
 
 #[tauri::command]
@@ -419,6 +484,14 @@ pub async fn game_bridge_return_to_title(
 }
 
 #[tauri::command]
+pub async fn game_bridge_logout_to_title(
+  state: tauri::State<'_, GameBridgeState>,
+) -> ApiResult<GameStateSnapshot> {
+  let manager = Arc::clone(&state.manager);
+  run_bridge_task(move || logout_to_title(&manager)).await
+}
+
+#[tauri::command]
 pub async fn game_bridge_switch_region(
   state: tauri::State<'_, GameBridgeState>,
   request: SwitchRegionRequest,
@@ -436,6 +509,19 @@ pub async fn game_bridge_switch_region(
       .map_err(Into::into)
   })
   .await
+}
+
+#[tauri::command]
+pub async fn game_bridge_apply_teleport_region(
+  state: tauri::State<'_, GameBridgeState>,
+  login_state: tauri::State<'_, LoginState>,
+  target_area_name: String,
+) -> ApiResult<String> {
+  let target = teleport::prepare_game_region(target_area_name, &login_state)
+    .await
+    .map_err(|message| GameBridgeApiError::new("game_session_refresh_failed", message))?;
+  let manager = Arc::clone(&state.manager);
+  run_bridge_task(move || manager.switch_region(target).map_err(Into::into)).await
 }
 
 #[tauri::command]

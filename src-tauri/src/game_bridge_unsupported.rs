@@ -4,10 +4,12 @@
 #![allow(dead_code)]
 
 use game_bridge_host::{
-  ActiveCharacterSnapshot, BridgeStatus, GameSnapshot, PlayerInventorySnapshot,
+  ActiveCharacterSnapshot, BridgeStatus, GameSnapshot, GameStateSnapshot, PlayerInventorySnapshot,
 };
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
+
+use crate::sdo_login::LoginState;
 
 type ApiResult<T> = Result<T, GameBridgeApiError>;
 
@@ -40,6 +42,8 @@ pub struct PrepareRequest {
 #[serde(rename_all = "snake_case")]
 pub enum GameReadResource {
   ActiveCharacter,
+  SelectedCharacter,
+  GameState,
   Inventory,
 }
 
@@ -54,6 +58,8 @@ pub struct GameReadRequest {
 pub struct GameReadResponse {
   schema_version: u32,
   active_character: Option<ActiveCharacterSnapshot>,
+  selected_character: Option<GameSnapshot>,
+  game_state: Option<GameStateSnapshot>,
   inventory: Option<PlayerInventorySnapshot>,
   failures: Vec<GameReadFailure>,
 }
@@ -151,9 +157,25 @@ pub async fn game_bridge_return_to_title(
 }
 
 #[tauri::command]
+pub async fn game_bridge_logout_to_title(
+  _state: tauri::State<'_, GameBridgeState>,
+) -> ApiResult<GameStateSnapshot> {
+  unsupported()
+}
+
+#[tauri::command]
 pub async fn game_bridge_switch_region(
   _state: tauri::State<'_, GameBridgeState>,
   _request: SwitchRegionRequest,
+) -> ApiResult<String> {
+  unsupported()
+}
+
+#[tauri::command]
+pub async fn game_bridge_apply_teleport_region(
+  _state: tauri::State<'_, GameBridgeState>,
+  _login_state: tauri::State<'_, LoginState>,
+  _target_area_name: String,
 ) -> ApiResult<String> {
   unsupported()
 }

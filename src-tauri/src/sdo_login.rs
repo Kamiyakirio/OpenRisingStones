@@ -37,10 +37,19 @@ pub(crate) struct CookieRecord {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct GameAuthContext {
+  pub(crate) tgt: String,
+  pub(crate) guid: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct SessionSnapshot {
   pub(crate) cookies: Vec<CookieRecord>,
   #[serde(default)]
   user_agent: Option<String>,
+  #[serde(default)]
+  pub(crate) game_auth: Option<GameAuthContext>,
 }
 
 impl SessionSnapshot {
@@ -48,6 +57,7 @@ impl SessionSnapshot {
     Self {
       cookies: Vec::new(),
       user_agent: None,
+      game_auth: None,
     }
   }
 }
@@ -645,6 +655,7 @@ mod tests {
     SessionSnapshot {
       cookies: vec![],
       user_agent: None,
+      game_auth: None,
     }
   }
 
@@ -670,6 +681,7 @@ mod tests {
     let session = SessionSnapshot {
       cookies: vec![],
       user_agent: Some("test-user-agent".to_owned()),
+      game_auth: None,
     };
     let serialized = serde_json::to_value(session).unwrap();
 
