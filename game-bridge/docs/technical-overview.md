@@ -262,7 +262,7 @@ source
 verification
 ```
 
-当前 Manifest schema 为版本 5；版本 5 明确规定 `textSha256` 是磁盘 EXE 原始 `.text` section 的哈希，并包含 LocalPlayer、GameMain、InventoryManager、ItemFinderModule、游戏画面状态与安全登出所需布局。
+当前 Manifest schema 为版本 6；版本 6 明确规定 `textSha256` 是磁盘 EXE 原始 `.text` section 的哈希，并包含 LocalPlayer、GameMain、InventoryManager、ItemFinderModule、收藏柜缓存、游戏画面状态与安全登出所需布局。
 
 门禁条件：
 
@@ -386,8 +386,11 @@ WebView 只能提供进程 ID、可选的单一 Manifest 文件名和固定语�
 
 - `InventoryManager`：身上装备、四页背包、全部兵装库容器。
 - `ItemFinderModule`：供物品搜索使用的 800 槽投影台本地缓存。
+- `ItemFinderModule`：供物品搜索使用的收藏柜解锁位图缓存。
 
-投影台返回 `cached` 和 `mayBeStale`，未缓存时不把全零数组解释为空投影台。`InventoryItem` 为 symbolic link 时返回链接容器与格子，不伪造 Item ID。道具名称不在进程内解析，由 Rust/UI 根据 Item ID 查询独立数据目录。
+投影台与收藏柜均返回 `cached` 和 `mayBeStale`，未缓存时不把全零数组解释为空存储。收藏柜位图中的索引是 `Cabinet` 数据表 RowId，由 Rust/UI 映射为 Item RowId。`InventoryItem` 为 symbolic link 时返回链接容器与格子，不伪造 Item ID。道具名称不在进程内解析，由 Rust/UI 根据 Item ID 查询独立数据目录。
+
+幻化工作区只保留匹配所需的 Item ID、来源、角色标识和缓存状态。落盘前使用 AES-256-GCM 加密；HKDF-SHA256 以当前受保护登录会话中的 TGT 与 GUID 为输入，并为每次写入生成独立 salt 与 nonce。密文内部保存账号作用域用于解密后二次核对。登出只清理登录态与内存密钥材料并保留密文；“清除本地数据”操作才删除缓存文件。
 
 ## 14. Windows 构建
 

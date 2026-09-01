@@ -9,7 +9,7 @@ This directory contains the Windows-only bridge between the desktop application 
 - `payload` owns only resolved-address validation, pointer access, Framework-thread commands, native calls, and hook lifecycle.
 - `src-tauri/src/game_bridge.rs` owns the typed desktop API, resource selection, lifecycle preparation, and versioned read batching. It does not contain process or game-memory implementation logic.
 
-The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed command IDs defined by shared-memory ABI version 1.
+The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed command IDs defined by shared-memory ABI version 3.
 
 The Tauri API accepts only a process ID, an optional manifest filename, and fixed semantic read resources. DLL and data paths are resolved from the packaged `game-bridge` resource directory, so webview input cannot select an arbitrary DLL. When no manifest is supplied, the adapter selects the newest packaged manifest. Debug builds may override the resource directory with `ORS_GAME_BRIDGE_DIR`.
 
@@ -23,7 +23,7 @@ The Rust host validates all of the following before loading the payload:
 4. Exactly one match for every required signature.
 5. All resolved addresses remain inside the main module.
 
-Manifest schema 5 defines `textSha256` as the SHA-256 of the executable's raw `.text` section and includes the definitions used by typed reads, logout, and title-screen switching. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
+Manifest schema 6 defines `textSha256` as the SHA-256 of the executable's raw `.text` section and includes the definitions used by typed reads, logout, title-screen switching, and the cached Armoire unlock bitset. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
 
 The template also sets `privateLayoutVerified` to `false`. The collector intentionally preserves that value. Snapshot collection remains available, but region switching is rejected until the private Lobby context fields have been verified against the exact target version.
 
@@ -71,13 +71,15 @@ const response = await invoke("game_bridge_read", {
 
 ## Inventory diagnostic
 
-Use one read-only Tauri command for equipped items, four player inventory pages, the Armoury Chest, and the cached Glamour Dresser:
+Use one read-only Tauri command for equipped items, four player inventory pages, the Armoury Chest, the cached Glamour Dresser, and the cached Armoire:
 
 ```ts
 const inventory = await invoke("game_bridge_capture_inventory");
 ```
 
-Local containers are enumerated from `InventoryManager`; the Glamour Dresser uses the persistent `ItemFinderModule` cache used by item search. The response marks the dresser as `cached` and `mayBeStale`. It returns Item IDs and item state rather than localized names; the Rust/UI layer should map Item IDs through a separate item catalog.
+Local containers are enumerated from `InventoryManager`; the Glamour Dresser and Armoire use the persistent `ItemFinderModule` cache used by item search. Both cached stores expose `cached` and `mayBeStale`, and an unloaded all-zero cache is never interpreted as empty. Armoire bits identify `Cabinet` sheet rows, which the Rust/UI layer maps to Item IDs through a separate item catalog.
+
+The glamour workspace normalizes these reads into a character-scoped item index. The index is encrypted with AES-256-GCM before local persistence. HKDF-SHA256 derives the encryption key from the authenticated game-login TGT and GUID with a random per-file salt. Logout removes the in-memory key material but preserves ciphertext; clearing all local data removes the cache file.
 
 ## Shared-memory transport
 
