@@ -10,6 +10,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 #include <thread>
 
@@ -22,6 +23,9 @@ constexpr std::uint32_t kSnapshotIntervalTicks = 30;
 constexpr std::uint8_t kButtonClickEvent = 25;
 constexpr std::int32_t kMaximumInventorySlots = 200;
 constexpr std::size_t kMaximumGlamourDresserSlots = 800;
+constexpr std::size_t kMaximumArmoireCabinetItems = 4000;
+constexpr std::size_t kUnlockWordBits = std::numeric_limits<std::uint32_t>::digits;
+constexpr std::uint8_t kArmoireLoadedState = 2;
 
 struct InventoryDefinition final {
   std::uint32_t type;
@@ -504,6 +508,33 @@ CommandOutcome GameRuntime::capture_inventory(void* framework) {
               {static_cast<std::uint16_t>(index), item_id, unlock_bits});
         }
       }
+
+      const auto armoire_state =
+          read_value<std::uint8_t>(item_finder, layout_.item_finder_armoire_state);
+      snapshot.armoire.cached = armoire_state == kArmoireLoadedState;
+      snapshot.armoire.may_be_stale = snapshot.armoire.cached;
+      if (snapshot.armoire.cached) {
+        const auto capacity = layout_.item_finder_armoire_capacity;
+        if (capacity == 0 || capacity > kMaximumArmoireCabinetItems) {
+          return failure("armoire_cache_invalid", "The armoire cache has an invalid capacity.");
+        }
+        snapshot.armoire.cabinet_item_ids.reserve(capacity);
+        const auto word_count =
+            (static_cast<std::size_t>(capacity) + kUnlockWordBits - 1) / kUnlockWordBits;
+        for (std::size_t word_index = 0; word_index < word_count; ++word_index) {
+          const auto word = read_value<std::uint32_t>(
+              item_finder,
+              layout_.item_finder_armoire_unlock_bits + word_index * sizeof(std::uint32_t));
+          for (std::size_t bit_index = 0; bit_index < kUnlockWordBits; ++bit_index) {
+            const auto cabinet_id = word_index * kUnlockWordBits + bit_index;
+            if (cabinet_id == 0 || cabinet_id >= capacity) continue;
+            if ((word & (std::uint32_t{1} << bit_index)) != 0) {
+              snapshot.armoire.cabinet_item_ids.push_back(
+                  static_cast<std::uint16_t>(cabinet_id));
+            }
+          }
+        }
+      }
     }
   }
 
@@ -626,6 +657,20 @@ void GameRuntime::write_response(std::uint64_t sequence, SharedCommandKind kind,
         target.container_count = static_cast<std::uint32_t>(source.containers.size());
         target.dresser_cached = source.glamour_dresser.cached ? 1 : 0;
         target.dresser_may_be_stale = source.glamour_dresser.may_be_stale ? 1 : 0;
+        target.armoire_cached = source.armoire.cached ? 1 : 0;
+        target.armoire_may_be_stale = source.armoire.may_be_stale ? 1 : 0;
+        for (const auto cabinet_id : source.armoire.cabinet_item_ids) {
+          const auto word_index = static_cast<std::size_t>(cabinet_id) / kUnlockWordBits;
+          const auto bit_index = static_cast<std::size_t>(cabinet_id) % kUnlockWordBits;
+          if (word_index >= target.armoire_unlock_bits.size()) {
+            response.status = SharedResponseStatus::Error;
+            write_shared_string(response.error_code, "shared_response_too_large");
+            write_shared_string(response.error_message,
+                                "The armoire response exceeds shared-memory ABI limits.");
+            break;
+          }
+          target.armoire_unlock_bits[word_index] |= std::uint32_t{1} << bit_index;
+        }
         std::size_t item_cursor = 0;
         for (std::size_t container_index = 0; container_index < source.containers.size();
              ++container_index) {

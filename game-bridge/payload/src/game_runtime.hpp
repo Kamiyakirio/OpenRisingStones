@@ -102,9 +102,16 @@ struct GlamourDresserSnapshot final {
   std::vector<GlamourDresserItemSnapshot> items;
 };
 
+struct ArmoireSnapshot final {
+  bool cached{};
+  bool may_be_stale{};
+  std::vector<std::uint16_t> cabinet_item_ids;
+};
+
 struct PlayerInventorySnapshot final {
   std::vector<InventoryContainerSnapshot> containers;
   GlamourDresserSnapshot glamour_dresser;
+  ArmoireSnapshot armoire;
 };
 
 struct RegionTarget final {

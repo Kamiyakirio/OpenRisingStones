@@ -2,9 +2,9 @@
 
 use crate::error::{last_windows_error, BridgeError, BridgeResult};
 use game_bridge_protocol::{
-    ActiveCharacterSnapshot, Command, CommandResult, GameScreen, GameSnapshot, GameStateSnapshot,
-    GlamourDresserItemSnapshot, GlamourDresserSnapshot, InventoryContainerSnapshot,
-    InventoryItemSnapshot, PlayerInventorySnapshot, Position3,
+    ActiveCharacterSnapshot, ArmoireSnapshot, Command, CommandResult, GameScreen, GameSnapshot,
+    GameStateSnapshot, GlamourDresserItemSnapshot, GlamourDresserSnapshot,
+    InventoryContainerSnapshot, InventoryItemSnapshot, PlayerInventorySnapshot, Position3,
 };
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -25,13 +25,14 @@ use windows_sys::Win32::Foundation::{
 use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcess, PROCESS_DUP_HANDLE};
 
 const SHARED_MAGIC: u32 = 0x4752_424F;
-const SHARED_ABI_VERSION: u32 = 2;
+const SHARED_ABI_VERSION: u32 = 3;
 const PAYLOAD_STATE_READY: u32 = 1;
 const PAYLOAD_STATE_FAULTED: u32 = 2;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
 const MAXIMUM_CONTAINERS: usize = 18;
 const MAXIMUM_ITEMS: usize = 1024;
 const MAXIMUM_DRESSER_ITEMS: usize = 800;
+const ARMOIRE_UNLOCK_WORD_COUNT: usize = 125;
 const PAGE_READWRITE: u32 = 0x04;
 const FILE_MAP_ALL_ACCESS: u32 = 0x000F_001F;
 
@@ -144,6 +145,9 @@ struct SharedGameLayout {
     item_finder_glamour_item_ids: u32,
     item_finder_glamour_unlock_bits: u32,
     item_finder_glamour_capacity: u32,
+    item_finder_armoire_state: u32,
+    item_finder_armoire_unlock_bits: u32,
+    item_finder_armoire_capacity: u32,
 }
 
 #[repr(C)]
@@ -288,7 +292,9 @@ struct SharedInventorySnapshot {
     dresser_item_count: u32,
     dresser_cached: u8,
     dresser_may_be_stale: u8,
-    reserved: [u8; 2],
+    armoire_cached: u8,
+    armoire_may_be_stale: u8,
+    armoire_unlock_bits: [u32; ARMOIRE_UNLOCK_WORD_COUNT],
     containers: [SharedInventoryContainer; MAXIMUM_CONTAINERS],
     items: [SharedInventoryItem; MAXIMUM_ITEMS],
     dresser_items: [SharedDresserItem; MAXIMUM_DRESSER_ITEMS],
@@ -326,16 +332,16 @@ struct SharedBridge {
 }
 
 const _: [(); 4948] = [(); size_of::<SharedSwitchRegion>()];
-const _: [(); 284] = [(); size_of::<SharedGameLayout>()];
-const _: [(); 392] = [(); size_of::<SharedGameApi>()];
+const _: [(); 308] = [(); size_of::<SharedGameLayout>()];
+const _: [(); 424] = [(); size_of::<SharedGameApi>()];
 const _: [(); 4968] = [(); size_of::<SharedCommand>()];
 const _: [(); 88] = [(); size_of::<SharedGameSnapshot>()];
 const _: [(); 128] = [(); size_of::<SharedActiveCharacter>()];
 const _: [(); 48] = [(); size_of::<SharedInventoryItem>()];
 const _: [(); 52] = [(); size_of::<SharedInventoryContainer>()];
-const _: [(); 56504] = [(); size_of::<SharedInventorySnapshot>()];
-const _: [(); 57056] = [(); size_of::<SharedResponse>()];
-const _: [(); 62872] = [(); size_of::<SharedBridge>()];
+const _: [(); 57004] = [(); size_of::<SharedInventorySnapshot>()];
+const _: [(); 57568] = [(); size_of::<SharedResponse>()];
+const _: [(); 63416] = [(); size_of::<SharedBridge>()];
 
 pub(crate) enum SessionEvent {
     Ready {
@@ -796,9 +802,27 @@ fn decode_inventory(value: &SharedInventorySnapshot) -> BridgeResult<PlayerInven
             })
             .collect(),
     };
+    let armoire = ArmoireSnapshot {
+        cached: value.armoire_cached != 0,
+        may_be_stale: value.armoire_may_be_stale != 0,
+        cabinet_item_ids: value
+            .armoire_unlock_bits
+            .iter()
+            .enumerate()
+            .flat_map(|(word_index, word)| {
+                (0..u32::BITS).filter_map(move |bit_index| {
+                    let cabinet_id = word_index * u32::BITS as usize + bit_index as usize;
+                    (word & (1 << bit_index) != 0)
+                        .then(|| u16::try_from(cabinet_id).ok())
+                        .flatten()
+                })
+            })
+            .collect(),
+    };
     Ok(PlayerInventorySnapshot {
         containers,
         glamour_dresser,
+        armoire,
     })
 }
 
@@ -848,7 +872,7 @@ struct PeImage {
 
 fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<SharedGameApi> {
     let manifest: RuntimeManifest = serde_json::from_slice(&fs::read(manifest_path)?)?;
-    if manifest.schema_version != 5 {
+    if manifest.schema_version != 6 {
         return Err(BridgeError::InvalidData(format!(
             "unsupported manifest schema: {}",
             manifest.schema_version
@@ -1015,6 +1039,12 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
         "itemFinderGlamourUnlockBits"
     );
     layout!(item_finder_glamour_capacity, "itemFinderGlamourCapacity");
+    layout!(item_finder_armoire_state, "itemFinderArmoireState");
+    layout!(
+        item_finder_armoire_unlock_bits,
+        "itemFinderArmoireUnlockBits"
+    );
+    layout!(item_finder_armoire_capacity, "itemFinderArmoireCapacity");
     Ok(api)
 }
 

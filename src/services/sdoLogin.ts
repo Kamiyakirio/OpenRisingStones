@@ -42,10 +42,10 @@ export async function loginWithCookie(cookie: string, userAgent: string) {
   return invoke<LoginPoll>("sdo_login_with_cookie", { cookie, userAgent });
 }
 
-/** Removes the persisted SDO session while preserving browser preferences. */
+/** Removes SDO credentials while preserving browser preferences and encrypted item ciphertext. */
 export async function logoutSdo() {
   requireDesktopRuntime();
-  await invoke("clear_all_local_data");
+  await invoke("sdo_logout");
 }
 
 export async function cancelSdoLogin(loginId: number) {

@@ -31,6 +31,11 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 tokio = { version = "1", features = ["net", "time"] }
 url = "2"
 game-bridge-host = { path = "../game-bridge/crates/host" }
+aes-gcm = "0.10"
+hkdf = "0.12"
+rand = "0.8"
+sha2 = "0.10"
+zeroize = "1.8"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [

@@ -143,9 +143,19 @@ pub struct GlamourDresserSnapshot {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ArmoireSnapshot {
+    pub cached: bool,
+    pub may_be_stale: bool,
+    /// Cabinet sheet RowIds whose unlock bits are set for the active character.
+    pub cabinet_item_ids: Vec<u16>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlayerInventorySnapshot {
     pub containers: Vec<InventoryContainerSnapshot>,
     pub glamour_dresser: GlamourDresserSnapshot,
+    pub armoire: ArmoireSnapshot,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

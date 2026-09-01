@@ -16,6 +16,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::State;
+use zeroize::Zeroize;
 
 use crate::{python_sidecar, secure_storage};
 
@@ -75,10 +76,10 @@ struct SidecarResponse {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginProfile {
-  display_account: String,
-  character_name: String,
-  area_name: String,
-  group_name: String,
+  pub(crate) display_account: String,
+  pub(crate) character_name: String,
+  pub(crate) area_name: String,
+  pub(crate) group_name: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -131,6 +132,7 @@ pub struct LoginState {
   pending: Mutex<Option<PendingLogin>>,
   active: Mutex<Option<ActiveLogin>>,
   storage_path: Option<PathBuf>,
+  owned_items_path: Option<PathBuf>,
 }
 
 impl Default for LoginState {
@@ -141,16 +143,36 @@ impl Default for LoginState {
       pending: Mutex::new(None),
       active: Mutex::new(None),
       storage_path: None,
+      owned_items_path: None,
     }
   }
 }
 
 impl LoginState {
-  pub fn with_storage_path(storage_path: PathBuf) -> Self {
+  pub fn with_storage_paths(storage_path: PathBuf, owned_items_path: PathBuf) -> Self {
     Self {
       storage_path: Some(storage_path),
+      owned_items_path: Some(owned_items_path),
       ..Self::default()
     }
+  }
+
+  pub(crate) fn owned_items_path(&self) -> Option<&Path> {
+    self.owned_items_path.as_deref()
+  }
+}
+
+/// Secret material and account scope used only while encrypting owned-item data.
+pub(crate) struct LoginCacheContext {
+  pub(crate) key_material: Vec<u8>,
+  pub(crate) account_scope: String,
+  #[cfg_attr(not(windows), allow(dead_code))]
+  pub(crate) character_name: String,
+}
+
+impl Drop for LoginCacheContext {
+  fn drop(&mut self) {
+    self.key_material.zeroize();
   }
 }
 
@@ -286,6 +308,12 @@ pub fn sdo_cancel_login(login_id: u64, state: State<'_, LoginState>) -> Result<(
 }
 
 /// Remove persisted credentials and reset every in-memory login state value.
+#[tauri::command]
+pub fn sdo_logout(state: State<'_, LoginState>) -> Result<(), String> {
+  clear_authentication_inner(&state)
+}
+
+/// Remove credentials and every application-owned local cache.
 #[tauri::command]
 pub fn clear_all_local_data(state: State<'_, LoginState>) -> Result<(), String> {
   clear_all_local_data_inner(&state)
@@ -502,6 +530,48 @@ pub(crate) fn current_session(state: &LoginState) -> Result<Option<SessionSnapsh
   load_stored_session(state)
 }
 
+/// Derive deterministic cache input from the authenticated game-login context.
+pub(crate) fn current_cache_context(state: &LoginState) -> Result<LoginCacheContext, String> {
+  let active = state
+    .active
+    .lock()
+    .map_err(|_| "Unable to read the login state.".to_owned())?;
+  let login = active
+    .as_ref()
+    .ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
+  let game_auth = login
+    .session
+    .game_auth
+    .as_ref()
+    .ok_or_else(|| "GAME_AUTHENTICATION_REQUIRED".to_owned())?;
+  if game_auth.tgt.is_empty() || game_auth.guid.is_empty() {
+    return Err("GAME_AUTHENTICATION_REQUIRED".to_owned());
+  }
+
+  let mut key_material = Vec::with_capacity(game_auth.tgt.len() + game_auth.guid.len() + 8);
+  append_cache_key_part(&mut key_material, game_auth.tgt.as_bytes())?;
+  append_cache_key_part(&mut key_material, game_auth.guid.as_bytes())?;
+  Ok(LoginCacheContext {
+    key_material,
+    account_scope: [
+      login.profile.display_account.as_str(),
+      login.profile.character_name.as_str(),
+      login.profile.area_name.as_str(),
+      login.profile.group_name.as_str(),
+    ]
+    .join("\u{0}"),
+    character_name: login.profile.character_name.clone(),
+  })
+}
+
+fn append_cache_key_part(output: &mut Vec<u8>, value: &[u8]) -> Result<(), String> {
+  let length = u32::try_from(value.len())
+    .map_err(|_| "The login cache key material is too large.".to_owned())?;
+  output.extend_from_slice(&length.to_le_bytes());
+  output.extend_from_slice(value);
+  Ok(())
+}
+
 /// Persist a trusted sidecar session update without exposing credentials to the webview.
 pub(crate) fn replace_current_session(
   state: &LoginState,
@@ -594,7 +664,18 @@ fn clear_stored_session(state: &LoginState) -> Result<(), String> {
   Ok(())
 }
 
-fn clear_all_local_data_inner(state: &LoginState) -> Result<(), String> {
+fn clear_owned_items_cache(state: &LoginState) -> Result<(), String> {
+  if let Some(path) = state.owned_items_path.as_deref() {
+    match std::fs::remove_file(path) {
+      Ok(()) => {}
+      Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+      Err(_) => return Err("Unable to clear the owned-item cache.".to_owned()),
+    }
+  }
+  Ok(())
+}
+
+fn clear_authentication_inner(state: &LoginState) -> Result<(), String> {
   let mut lifecycle_version = state
     .lifecycle_version
     .lock()
@@ -611,6 +692,11 @@ fn clear_all_local_data_inner(state: &LoginState) -> Result<(), String> {
     .map_err(|_| "Unable to clear the active login session.".to_owned())? = None;
   state.next_id.store(1, Ordering::Relaxed);
   Ok(())
+}
+
+fn clear_all_local_data_inner(state: &LoginState) -> Result<(), String> {
+  clear_authentication_inner(state)?;
+  clear_owned_items_cache(state)
 }
 
 fn current_lifecycle_version(state: &LoginState) -> Result<u64, String> {
@@ -746,6 +832,21 @@ mod tests {
     assert_eq!(*state.lifecycle_version.lock().unwrap(), 8);
     assert!(state.pending.lock().unwrap().is_none());
     assert!(state.active.lock().unwrap().is_none());
+  }
+
+  #[test]
+  fn logout_preserves_ciphertext_until_all_local_data_is_cleared() {
+    let suffix = format!("{}-logout-cache", std::process::id());
+    let session_path = std::env::temp_dir().join(format!("{suffix}-session.dat"));
+    let owned_items_path = std::env::temp_dir().join(format!("{suffix}-owned-items.dat"));
+    std::fs::write(&owned_items_path, b"encrypted-owned-items").unwrap();
+    let state = LoginState::with_storage_paths(session_path, owned_items_path.clone());
+
+    clear_authentication_inner(&state).unwrap();
+    assert!(owned_items_path.exists());
+
+    clear_all_local_data_inner(&state).unwrap();
+    assert!(!owned_items_path.exists());
   }
 
   #[test]

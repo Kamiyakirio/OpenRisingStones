@@ -105,6 +105,11 @@ export type PlayerInventorySnapshot = {
     mayBeStale: boolean;
     items: GlamourDresserItemSnapshot[];
   };
+  armoire: {
+    cached: boolean;
+    mayBeStale: boolean;
+    cabinetItemIds: number[];
+  };
 };
 
 export type GameReadResource =

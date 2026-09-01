@@ -13,10 +13,14 @@ use std::time::{Duration, Instant};
 use tauri::Manager;
 use tauri::{AppHandle, Emitter};
 
-use crate::{sdo_login::LoginState, teleport};
+use crate::{
+  owned_items::{self, OwnedItemsSnapshot},
+  sdo_login::{self, LoginState},
+  teleport,
+};
 
 const STATUS_EVENT: &str = "game-bridge://status";
-const READ_SCHEMA_VERSION: u32 = 1;
+const READ_SCHEMA_VERSION: u32 = 2;
 const READY_TIMEOUT: Duration = Duration::from_secs(20);
 const LOGOUT_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -473,6 +477,48 @@ pub async fn game_bridge_capture_inventory(
 ) -> ApiResult<PlayerInventorySnapshot> {
   let manager = Arc::clone(&state.manager);
   run_bridge_task(move || manager.capture_inventory().map_err(Into::into)).await
+}
+
+/// Reads one character's owned items, encrypts the normalized index, then unloads a bridge opened
+/// only for this request.
+#[tauri::command]
+pub async fn game_bridge_sync_owned_items(
+  state: tauri::State<'_, GameBridgeState>,
+  login_state: tauri::State<'_, LoginState>,
+) -> ApiResult<OwnedItemsSnapshot> {
+  let cache_context = sdo_login::current_cache_context(&login_state)
+    .map_err(|message| GameBridgeApiError::new("cache_login_unavailable", message))?;
+  let expected_character_name = cache_context.character_name.trim().to_owned();
+  let manager = Arc::clone(&state.manager);
+  let options = connect_options(&state.asset_root, None, None)?;
+  let snapshot = run_bridge_task(move || {
+    let connected_here = !matches!(manager.status().phase, BridgePhase::Ready);
+    prepare_bridge(&manager, options)?;
+    let result = (|| {
+      let character = manager
+        .capture_active_character()
+        .map_err(GameBridgeApiError::from)?;
+      if character.character_name.trim() != expected_character_name {
+        return Err(GameBridgeApiError::new(
+          "login_character_mismatch",
+          "The active game character does not match the authenticated Rising Stones character.",
+        ));
+      }
+      let inventory = manager
+        .capture_inventory()
+        .map_err(GameBridgeApiError::from)?;
+      owned_items::build_owned_items_snapshot(character, inventory)
+        .map_err(|message| GameBridgeApiError::new("owned_items_invalid", message))
+    })();
+    if connected_here {
+      let _ = manager.disconnect();
+    }
+    result
+  })
+  .await?;
+  owned_items::save_owned_items_snapshot(&login_state, &cache_context, &snapshot)
+    .map_err(|message| GameBridgeApiError::new("owned_items_cache_failed", message))?;
+  Ok(snapshot)
 }
 
 #[tauri::command]

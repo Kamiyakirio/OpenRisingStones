@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "privateLayoutVerified": false,
   "gameVersion": "REPLACE_WITH_EXACT_GAME_VERSION",
   "module": {
@@ -160,6 +160,9 @@
     "itemFinderGlamourCached": "0x00AC",
     "itemFinderGlamourItemIds": "0x0418",
     "itemFinderGlamourUnlockBits": "0x1098",
-    "itemFinderGlamourCapacity": 800
+    "itemFinderGlamourCapacity": 800,
+    "itemFinderArmoireState": "0x00A9",
+    "itemFinderArmoireUnlockBits": "0x16D8",
+    "itemFinderArmoireCapacity": 4000
   }
 }

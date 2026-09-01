@@ -9,7 +9,7 @@ use game_bridge_host::{
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-use crate::sdo_login::LoginState;
+use crate::{owned_items::OwnedItemsSnapshot, sdo_login::LoginState};
 
 type ApiResult<T> = Result<T, GameBridgeApiError>;
 
@@ -146,6 +146,14 @@ pub async fn game_bridge_capture_active_character(
 pub async fn game_bridge_capture_inventory(
   _state: tauri::State<'_, GameBridgeState>,
 ) -> ApiResult<PlayerInventorySnapshot> {
+  unsupported()
+}
+
+#[tauri::command]
+pub async fn game_bridge_sync_owned_items(
+  _state: tauri::State<'_, GameBridgeState>,
+  _login_state: tauri::State<'_, LoginState>,
+) -> ApiResult<OwnedItemsSnapshot> {
   unsupported()
 }
 

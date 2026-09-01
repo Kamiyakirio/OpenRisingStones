@@ -8,6 +8,7 @@ mod game_bridge;
 mod glamour;
 mod glamour_verification;
 mod network;
+mod owned_items;
 mod python_sidecar;
 mod recruit;
 mod sdo_login;
@@ -56,9 +57,16 @@ pub fn run() {
 
       #[cfg(debug_assertions)]
       let session_path = std::env::current_dir()?.join("sdo-session.debug.json");
+      #[cfg(debug_assertions)]
+      let owned_items_path = std::env::current_dir()?.join("owned-items.debug.dat");
       #[cfg(not(debug_assertions))]
       let session_path = app.path().app_local_data_dir()?.join("sdo-session.v1.dat");
-      app.manage(sdo_login::LoginState::with_storage_path(session_path));
+      #[cfg(not(debug_assertions))]
+      let owned_items_path = app.path().app_local_data_dir()?.join("owned-items.v1.dat");
+      app.manage(sdo_login::LoginState::with_storage_paths(
+        session_path,
+        owned_items_path,
+      ));
       app.manage(avatar::AvatarState::default());
       app.manage(glamour_verification::GlamourVerificationState::default());
       app.manage(recruit::RecruitSessionState::default());
@@ -97,6 +105,7 @@ pub fn run() {
       game_bridge::game_bridge_capture_snapshot,
       game_bridge::game_bridge_capture_active_character,
       game_bridge::game_bridge_capture_inventory,
+      game_bridge::game_bridge_sync_owned_items,
       game_bridge::game_bridge_return_to_title,
       game_bridge::game_bridge_logout_to_title,
       game_bridge::game_bridge_switch_region,
@@ -104,6 +113,7 @@ pub fn run() {
       game_bridge::game_bridge_trigger_login,
       game_bridge::game_bridge_disconnect,
       network::send_network_request,
+      owned_items::load_owned_items_cache,
       recruit::fetch_recruit_config,
       recruit::fetch_recruit_detail,
       recruit::fetch_recruit_page,
@@ -115,6 +125,7 @@ pub fn run() {
       sdo_login::sdo_poll_qr_login,
       sdo_login::sdo_login_with_cookie,
       sdo_login::sdo_cancel_login,
+      sdo_login::sdo_logout,
       teleport::fetch_teleport,
       teleport::teleport_automatic_preflight,
       teleport::refresh_teleport_service_session,

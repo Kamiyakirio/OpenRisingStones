@@ -8,10 +8,11 @@
 namespace bridge {
 
 inline constexpr std::uint32_t kSharedMagic = 0x4742524F;
-inline constexpr std::uint32_t kSharedAbiVersion = 2;
+inline constexpr std::uint32_t kSharedAbiVersion = 3;
 inline constexpr std::size_t kMaximumSharedContainers = 18;
 inline constexpr std::size_t kMaximumSharedItems = 1024;
 inline constexpr std::size_t kMaximumSharedDresserItems = 800;
+inline constexpr std::size_t kArmoireUnlockWordCount = 125;
 
 enum class SharedPayloadState : std::uint32_t {
   Initializing = 0,
@@ -114,6 +115,9 @@ struct SharedGameLayout final {
   std::uint32_t item_finder_glamour_item_ids{};
   std::uint32_t item_finder_glamour_unlock_bits{};
   std::uint32_t item_finder_glamour_capacity{};
+  std::uint32_t item_finder_armoire_state{};
+  std::uint32_t item_finder_armoire_unlock_bits{};
+  std::uint32_t item_finder_armoire_capacity{};
 };
 
 struct SharedGameApi final {
@@ -240,7 +244,9 @@ struct SharedInventorySnapshot final {
   std::uint32_t dresser_item_count{};
   std::uint8_t dresser_cached{};
   std::uint8_t dresser_may_be_stale{};
-  std::array<std::uint8_t, 2> reserved{};
+  std::uint8_t armoire_cached{};
+  std::uint8_t armoire_may_be_stale{};
+  std::array<std::uint32_t, kArmoireUnlockWordCount> armoire_unlock_bits{};
   std::array<SharedInventoryContainer, kMaximumSharedContainers> containers{};
   std::array<SharedInventoryItem, kMaximumSharedItems> items{};
   std::array<SharedDresserItem, kMaximumSharedDresserItems> dresser_items{};
@@ -276,16 +282,16 @@ struct SharedBridge final {
 };
 
 static_assert(sizeof(SharedSwitchRegion) == 4948);
-static_assert(sizeof(SharedGameLayout) == 296);
-static_assert(sizeof(SharedGameApi) == 408);
+static_assert(sizeof(SharedGameLayout) == 308);
+static_assert(sizeof(SharedGameApi) == 424);
 static_assert(sizeof(SharedCommand) == 4968);
 static_assert(sizeof(SharedGameSnapshot) == 88);
 static_assert(sizeof(SharedActiveCharacter) == 128);
 static_assert(sizeof(SharedGameState) == 12);
 static_assert(sizeof(SharedInventoryItem) == 48);
 static_assert(sizeof(SharedInventoryContainer) == 52);
-static_assert(sizeof(SharedInventorySnapshot) == 56504);
-static_assert(sizeof(SharedResponse) == 57072);
-static_assert(sizeof(SharedBridge) == 62904);
+static_assert(sizeof(SharedInventorySnapshot) == 57004);
+static_assert(sizeof(SharedResponse) == 57568);
+static_assert(sizeof(SharedBridge) == 63416);
 
 }  // namespace bridge

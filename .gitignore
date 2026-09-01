@@ -34,6 +34,7 @@ game-bridge/target/
 
 prompt.md
 sdo-session.debug.json
+owned-items.debug.dat
 *.har
 src-tauri/.tauri-dev-started
 

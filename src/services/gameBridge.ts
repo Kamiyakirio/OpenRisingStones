@@ -40,7 +40,7 @@ export async function readGameBridge(resources: GameReadResource[]) {
   const response = await invoke<GameReadResponse>("game_bridge_read", {
     request: { resources },
   });
-  if (response.schemaVersion !== 1) {
+  if (response.schemaVersion !== 2) {
     throw {
       code: "read_schema_mismatch",
       message: `Unsupported game read schema: ${response.schemaVersion}`,
