@@ -8,6 +8,6 @@ commit 不能过大。你需要控制commit的规模，按照功能或文件进�
 
 除前端需要向用户展示的UI内容之外，所有代码内的字符串一律禁止出现中文字面量。返回信息，异常内容等全部使用规范易懂的英文表示。
 
-任何 html, css, js, jsx, ts, tsx 文件在提交前都需使用 Prettier 格式化。
+任何 html, css, js, jsx, ts, tsx 文件在提交前都需使用 Prettier 格式化。任何 cpp, hpp 等 c++ 文件在提交前都需要按照 .clang-format 的格式进行格式化。
 
 当进行网页设计时，使用面向 Web App 的前端 skills: `frontend-design` and `design-taste-frontend`

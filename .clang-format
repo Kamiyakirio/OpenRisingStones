@@ -1,0 +1,31 @@
+# C++ formatting follows the compact Google-derived style used by the payload sources.
+---
+BasedOnStyle: Google
+Language: Cpp
+Standard: Latest
+
+ColumnLimit: 100
+IndentWidth: 2
+ContinuationIndentWidth: 4
+TabWidth: 2
+UseTab: Never
+
+AccessModifierOffset: -1
+BreakBeforeBraces: Attach
+BreakConstructorInitializers: BeforeColon
+IndentCaseLabels: true
+NamespaceIndentation: None
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+
+IncludeBlocks: Preserve
+SortIncludes: CaseSensitive
+FixNamespaceComments: true
+...
