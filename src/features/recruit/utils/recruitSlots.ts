@@ -1,5 +1,5 @@
 /** Normalize light/full parties and alliance rosters without inventing extra vacancies. */
-import type { RecruitSlot, RecruitSlotKey } from "../models/recruit";
+import type { RecruitSlot, RecruitSlotKey } from "../types";
 
 const FULL_POSITIONS: RecruitSlotKey[] = [
   "MT",

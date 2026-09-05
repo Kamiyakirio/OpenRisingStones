@@ -3,9 +3,9 @@ import { useCallback, useState } from "react";
 import {
   grantAdvancedRecruitRiskConsent,
   hasAdvancedRecruitRiskConsent,
-} from "../services/recruitRiskConsent";
-import { useAdvancedRecruitViewModel } from "./useAdvancedRecruitViewModel";
-import { useRecruitViewModel } from "./useRecruitViewModel";
+} from "../utils/recruitRiskConsent";
+import { useAdvancedRecruitViewModel } from "./useAdvancedRecruit";
+import { useRecruitViewModel } from "./useRecruit";
 
 export type RecruitWorkspaceSection = "feed" | "advanced";
 

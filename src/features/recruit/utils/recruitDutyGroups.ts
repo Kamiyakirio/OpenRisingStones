@@ -1,5 +1,5 @@
 /** Groups numbered savage-raid floors while preserving their concrete API names. */
-import type { RecruitDuty } from "../models/recruit";
+import type { RecruitDuty } from "../types";
 
 export type RecruitDutyChoice = {
   label: string;

@@ -7,7 +7,7 @@ import {
   collectAdvancedRecruitDataset,
   rateLimitBackoffMs,
   recruitListIntervalMs,
-} from "../src/utils/advancedRecruitAggregation.ts";
+} from "../src/features/recruit/utils/advancedRecruitAggregation.ts";
 
 const summary = (id) => ({ id, dutyName: `Duty ${id}` });
 

@@ -1,12 +1,12 @@
 /** Public recruitment workspace with optional account controls and no login wall. */
 import { AppHeader } from "../components/AppHeader";
-import { AdvancedRecruitPage } from "../components/AdvancedRecruitPage";
-import { AdvancedRecruitRiskDialog } from "../components/AdvancedRecruitRiskDialog";
+import { AdvancedRecruitPage } from "../features/recruit/components/AdvancedRecruitBrowser";
+import { AdvancedRecruitRiskDialog } from "../features/recruit/components/AdvancedRecruitRiskDialog";
 import { LoginDialog } from "../features/auth/components/LoginDialog";
-import { RecruitPage } from "../components/RecruitPage";
+import { RecruitPage } from "../features/recruit/components/RecruitBrowser";
 import { SiteFooter } from "../components/SiteFooter";
 import type { LoginProfile } from "../features/auth/types";
-import { useRecruitWorkspaceViewModel } from "../viewmodels/useRecruitWorkspaceViewModel";
+import { useRecruitWorkspaceViewModel } from "../features/recruit/hooks/useRecruitWorkspace";
 
 type RecruitWorkspaceViewProps = {
   dark: boolean;

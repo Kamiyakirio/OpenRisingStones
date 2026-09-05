@@ -15,17 +15,17 @@ import {
   type AdvancedRecruitFilters,
   type AdvancedRecruitProgress,
   type AdvancedRecruitTextRule,
-} from "../models/advancedRecruit";
+} from "../advanced.types";
 import type {
   RecruitConfig,
   RecruitDetail,
   RecruitJob,
   RecruitSlotKey,
-} from "../models/recruit";
-import { loadAdvancedRecruitDataset } from "../services/advancedRecruitApi";
+} from "../types";
+import { loadAdvancedRecruitDataset } from "../api/advancedRecruitApi";
 import { filterAdvancedRecruitItems } from "../utils/advancedRecruitFilter";
 import { buildRecruitDutyChoices } from "../utils/recruitDutyGroups";
-import { useListDetailScrollViewModel } from "../shared/hooks/useListDetailScroll";
+import { useListDetailScrollViewModel } from "../../../shared/hooks/useListDetailScroll";
 
 export type AdvancedRecruitStatus = "idle" | "loading" | "ready" | "error";
 

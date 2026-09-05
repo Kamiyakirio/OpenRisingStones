@@ -1,5 +1,5 @@
 /** In-memory contracts for consent-gated advanced recruitment aggregation. */
-import type { RecruitDetail, RecruitSlotKey } from "./recruit";
+import type { RecruitDetail, RecruitSlotKey } from "./types";
 
 export type AdvancedRecruitField =
   | "dutyName"

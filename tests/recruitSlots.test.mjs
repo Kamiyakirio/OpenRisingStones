@@ -1,7 +1,7 @@
 ﻿/** Regression coverage for real party sizes and alliance-specific vacancies. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseRecruitSlots } from "../src/utils/recruitSlots.ts";
+import { parseRecruitSlots } from "../src/features/recruit/utils/recruitSlots.ts";
 
 test("light parties map T/H without inventing full-party slots", () => {
   const slots = parseRecruitSlots({

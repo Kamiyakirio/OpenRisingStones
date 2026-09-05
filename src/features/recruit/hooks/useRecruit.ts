@@ -6,18 +6,18 @@ import {
   type RecruitDetail,
   type RecruitFilters,
   type RecruitSummary,
-} from "../models/recruit";
+} from "../types";
 import {
   fetchRecruitConfig,
   fetchRecruitDetail,
   fetchRecruitPage,
-} from "../services/recruitApi";
+} from "../api/recruitApi";
 import {
   canLoadMoreRecruitItems,
   mergeRecruitFeed,
 } from "../utils/recruitFeed";
 import { expandRecruitDutyChoice } from "../utils/recruitDutyGroups";
-import { useListDetailScrollViewModel } from "../shared/hooks/useListDetailScroll";
+import { useListDetailScrollViewModel } from "../../../shared/hooks/useListDetailScroll";
 
 const PAGE_SIZE = 9;
 

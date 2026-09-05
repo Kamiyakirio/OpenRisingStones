@@ -3,10 +3,10 @@ import type {
   AdvancedRecruitField,
   AdvancedRecruitFilters,
   AdvancedRecruitTextRule,
-} from "../models/advancedRecruit";
+} from "../advanced.types";
 import { matchesRecruitPreferences } from "./recruitPreferences.ts";
 import { matchesRecruitKeywordQuery } from "./recruitPreferences.ts";
-import type { RecruitConfig, RecruitDetail } from "../models/recruit";
+import type { RecruitConfig, RecruitDetail } from "../types";
 
 export const ADVANCED_RECRUIT_FIELD_KEYS: AdvancedRecruitField[] = [
   "dutyName",

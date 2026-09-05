@@ -1,10 +1,6 @@
 /** Local recruitment preferences adapted from partyfinder-helper; see notices for MIT attribution. */
-import type { AdvancedRecruitFilters } from "../models/advancedRecruit";
-import type {
-  RecruitConfig,
-  RecruitDetail,
-  RecruitJob,
-} from "../models/recruit";
+import type { AdvancedRecruitFilters } from "../advanced.types";
+import type { RecruitConfig, RecruitDetail, RecruitJob } from "../types";
 import { matchesTimeFilter } from "./recruitTime.ts";
 
 /** Normalize common notation variants found in public recruitment text. */

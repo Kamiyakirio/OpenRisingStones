@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   buildRecruitDutyChoices,
   expandRecruitDutyChoice,
-} from "../src/utils/recruitDutyGroups.ts";
+} from "../src/features/recruit/utils/recruitDutyGroups.ts";
 
 const duties = [1, 2, 3, 4].map((floor) => ({
   id: floor,

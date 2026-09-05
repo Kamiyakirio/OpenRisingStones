@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   canLoadMoreRecruitItems,
   mergeRecruitFeed,
-} from "../src/utils/recruitFeed.ts";
+} from "../src/features/recruit/utils/recruitFeed.ts";
 
 const recruit = (id, title) => ({ id, dutyName: title });
 

@@ -11,14 +11,14 @@ import type {
   RecruitPage,
   RecruitPageOptions,
   RecruitSummary,
-} from "../models/recruit";
+} from "../types";
 import {
   RecruitRateLimitError,
   isRecruitRateLimitError,
   rateLimitMessage,
   readReasonMessage,
 } from "../utils/recruitRateLimit";
-import { isTauriRuntime } from "../shared/utils/runtime";
+import { isTauriRuntime } from "../../../shared/utils/runtime";
 
 export { RecruitRateLimitError, isRecruitRateLimitError };
 

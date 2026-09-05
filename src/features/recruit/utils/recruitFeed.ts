@@ -1,5 +1,5 @@
 /** Feed helpers keep page boundaries from duplicating recruitment cards. */
-import type { RecruitSummary } from "../models/recruit";
+import type { RecruitSummary } from "../types";
 
 export function mergeRecruitFeed(
   current: RecruitSummary[],

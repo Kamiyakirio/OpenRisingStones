@@ -2,12 +2,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createEmptyAdvancedRecruitFilters } from "../src/models/advancedRecruit.ts";
-import { filterAdvancedRecruitItems } from "../src/utils/advancedRecruitFilter.ts";
+import { createEmptyAdvancedRecruitFilters } from "../src/features/recruit/advanced.types.ts";
+import { filterAdvancedRecruitItems } from "../src/features/recruit/utils/advancedRecruitFilter.ts";
 import {
   matchesRecruitKeywordQuery,
   parseRecruitKeywords,
-} from "../src/utils/recruitPreferences.ts";
+} from "../src/features/recruit/utils/recruitPreferences.ts";
 
 const job = (id, name) => ({ id, name, icon: null, category: "Job" });
 const detail = (overrides = {}) => ({

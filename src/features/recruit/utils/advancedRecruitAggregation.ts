@@ -2,13 +2,13 @@
 import type {
   AdvancedRecruitDataset,
   AdvancedRecruitProgress,
-} from "../models/advancedRecruit";
+} from "../advanced.types";
 import type {
   RecruitDetail,
   RecruitPage,
   RecruitPageOptions,
   RecruitSummary,
-} from "../models/recruit";
+} from "../types";
 
 export const ADVANCED_RECRUIT_PAGE_SIZE = 50;
 export const ADVANCED_RECRUIT_DETAIL_CONCURRENCY = 8;

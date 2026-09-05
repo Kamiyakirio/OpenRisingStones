@@ -12,13 +12,13 @@ import {
 import {
   type AdvancedRecruitField,
   type AdvancedRecruitTextRule,
-} from "../models/advancedRecruit";
-import type { RecruitJob, RecruitSlotKey } from "../models/recruit";
+} from "../advanced.types";
+import type { RecruitJob, RecruitSlotKey } from "../types";
 import { ADVANCED_RECRUIT_FIELD_KEYS } from "../utils/advancedRecruitFilter";
-import type { AdvancedRecruitViewModel } from "../viewmodels/useAdvancedRecruitViewModel";
-import { RecruitCard, RecruitDetailView } from "./RecruitPage";
+import type { AdvancedRecruitViewModel } from "../hooks/useAdvancedRecruit";
+import { RecruitCard, RecruitDetailView } from "./RecruitBrowser";
 import { AdvancedRecruitPreferences } from "./AdvancedRecruitPreferences";
-import "./AdvancedRecruitPage.css";
+import "./AdvancedRecruitBrowser.css";
 
 const FIELD_LABELS: Record<AdvancedRecruitField, string> = {
   dutyName: "副本名称",

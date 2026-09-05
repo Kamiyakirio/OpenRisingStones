@@ -21,11 +21,11 @@ import type {
   RecruitJob,
   RecruitSlot,
   RecruitSummary,
-} from "../models/recruit";
-import type { RecruitViewModel } from "../viewmodels/useRecruitViewModel";
-import { useRisingStonesAvatarViewModel } from "../shared/hooks/useRisingStonesAvatar";
+} from "../types";
+import type { RecruitViewModel } from "../hooks/useRecruit";
+import { useRisingStonesAvatarViewModel } from "../../../shared/hooks/useRisingStonesAvatar";
 import { buildRecruitDutyChoices } from "../utils/recruitDutyGroups";
-import "./RecruitPage.css";
+import "./RecruitBrowser.css";
 
 type RecruitPageProps = {
   viewModel: RecruitViewModel;

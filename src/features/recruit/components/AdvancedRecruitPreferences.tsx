@@ -1,7 +1,7 @@
 /** Compact local preferences sharing the advanced recruitment workbench styles. */
 import { CaretDown } from "@phosphor-icons/react";
-import type { AdvancedRecruitFilters } from "../models/advancedRecruit";
-import type { AdvancedRecruitViewModel } from "../viewmodels/useAdvancedRecruitViewModel";
+import type { AdvancedRecruitFilters } from "../advanced.types";
+import type { AdvancedRecruitViewModel } from "../hooks/useAdvancedRecruit";
 
 const TEXT_FIELDS = [
   ["progressText", "进度关键词", "例如：P3 -开荒"],
