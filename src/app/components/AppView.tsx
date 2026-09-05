@@ -1,10 +1,10 @@
 /** Root View with declarative bindings and no infrastructure access. */
-import { HomePage } from "../../pages/HomePage";
 import { SettingsDialog } from "../../features/settings/components/SettingsDialog";
-import type { AppController } from "../hooks/useAppController";
 import { GlamourPage } from "../../pages/GlamourPage";
+import { HomePage } from "../../pages/HomePage";
 import { RecruitPage } from "../../pages/RecruitPage";
 import { TeleportPage } from "../../pages/TeleportPage";
+import type { AppController } from "../hooks/useAppController";
 
 type AppViewProps = {
   viewModel: AppController;

@@ -1,4 +1,4 @@
-/** Domain state shared by authentication ViewModels and Views. */
+/** Domain state shared by authentication hooks and components. */
 export type LoginProfile = {
   displayAccount: string;
   characterName: string;

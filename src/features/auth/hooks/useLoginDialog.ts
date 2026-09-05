@@ -1,10 +1,5 @@
 /** Owns login method selection, polling, validation, and success state. */
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LoginMethod, LoginProfile, LoginProgress } from "../types";
-import {
-  hasAcceptedCookieLoginRisk,
-  saveCookieLoginRiskAcceptance,
-} from "../utils/cookieRiskConsent";
 import {
   cancelSdoLogin,
   loginWithCookie,
@@ -13,6 +8,11 @@ import {
   startPushLogin,
   startQrLogin,
 } from "../api/sdoLogin";
+import type { LoginMethod, LoginProfile, LoginProgress } from "../types";
+import {
+  hasAcceptedCookieLoginRisk,
+  saveCookieLoginRiskAcceptance,
+} from "../utils/cookieRiskConsent";
 import { extractCurlCredentials } from "../utils/curlCredentials";
 
 export type CurlImportStatus =
@@ -28,15 +28,12 @@ type ActiveLogin = {
   method: Exclude<LoginMethod, "cookie">;
 };
 
-type LoginDialogViewModelOptions = {
+type LoginDialogOptions = {
   onClose: () => void;
   onSuccess: (profile: LoginProfile) => void;
 };
 
-export function useLoginDialog({
-  onClose,
-  onSuccess,
-}: LoginDialogViewModelOptions) {
+export function useLoginDialog({ onClose, onSuccess }: LoginDialogOptions) {
   const onSuccessRef = useRef(onSuccess);
   const [method, setMethod] = useState<LoginMethod>("push");
   const [account, setAccount] = useState("");

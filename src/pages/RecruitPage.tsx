@@ -8,7 +8,7 @@ import { SiteFooter } from "../app/components/SiteFooter";
 import type { LoginProfile } from "../features/auth/types";
 import { useRecruitWorkspace } from "../features/recruit/hooks/useRecruitWorkspace";
 
-type RecruitWorkspaceViewProps = {
+type RecruitPageProps = {
   dark: boolean;
   loginOpen: boolean;
   profile: LoginProfile | null;
@@ -32,7 +32,7 @@ export function RecruitPage({
   onOpenSettings,
   onLoginSuccess,
   onLogout,
-}: RecruitWorkspaceViewProps) {
+}: RecruitPageProps) {
   const viewModel = useRecruitWorkspace();
 
   return (

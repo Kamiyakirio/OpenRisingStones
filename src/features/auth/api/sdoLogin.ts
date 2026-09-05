@@ -3,8 +3,8 @@
  * Cookie 与 ticket 均由 Tauri 后端保管，前端只接收流程状态和已验证的账号摘要。
  */
 import { invoke } from "@tauri-apps/api/core";
-import type { LoginPoll, LoginStart, LoginStatus } from "../types";
 import { isTauriRuntime } from "../../../shared/utils/runtime";
+import type { LoginPoll, LoginStart, LoginStatus } from "../types";
 
 function requireDesktopRuntime() {
   if (!isTauriRuntime())

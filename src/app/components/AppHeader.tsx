@@ -1,5 +1,4 @@
 /** Primary navigation, theme control, and authenticated account menu. */
-import { useEffect, useRef, useState } from "react";
 import {
   Bell,
   GearSix,
@@ -12,6 +11,7 @@ import {
   UserCircleCheck,
   WarningCircle,
 } from "@phosphor-icons/react";
+import { useEffect, useRef, useState } from "react";
 import type { LoginProfile } from "../../features/auth/types";
 
 type AppHeaderProps = {

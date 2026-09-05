@@ -2,7 +2,6 @@
  * 盛趣登录弹窗：提供叨鱼一键确认、二维码扫描和受风险确认保护的 Cookie 登录。
  * 登录成功必须同时通过账号验证与石之家官方角色绑定检查。
  */
-import { useEffect, useRef } from "react";
 import {
   CheckCircle,
   ClipboardText,
@@ -16,8 +15,9 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
-import type { LoginMethod, LoginProfile, LoginProgress } from "../types";
+import { useEffect, useRef } from "react";
 import { type CurlImportStatus, useLoginDialog } from "../hooks/useLoginDialog";
+import type { LoginMethod, LoginProfile, LoginProgress } from "../types";
 
 type LoginDialogProps = {
   onClose: () => void;

@@ -1,4 +1,4 @@
-/** Glamour workspace View bound to its feature-level ViewModel. */
+/** Glamour workspace View bound to its feature-level state hook. */
 import { AppHeader } from "../app/components/AppHeader";
 import { DiscoveryFilters } from "../features/glamour/components/DiscoveryFilters";
 import { EquipmentSearchResults } from "../features/glamour/components/EquipmentSearchResults";
@@ -13,7 +13,7 @@ import { WikiVerificationStatus } from "../features/glamour/components/WikiVerif
 import type { LoginProfile } from "../features/auth/types";
 import { useGlamourWorkspace } from "../features/glamour/hooks/useGlamourWorkspace";
 
-type GlamourWorkspaceViewProps = {
+type GlamourPageProps = {
   dark: boolean;
   loginOpen: boolean;
   loginChecking: boolean;
@@ -41,7 +41,7 @@ export function GlamourPage({
   onOpenSettings,
   onLoginSuccess,
   onLogout,
-}: GlamourWorkspaceViewProps) {
+}: GlamourPageProps) {
   const viewModel = useGlamourWorkspace({
     authenticated: Boolean(profile),
     loginChecking,

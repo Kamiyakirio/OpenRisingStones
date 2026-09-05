@@ -1,4 +1,4 @@
-/** Product home with one available feature and two clearly disabled previews. */
+/** Product home with entrypoints for recruitment, glamour, and regional travel. */
 import {
   ArrowUpRight,
   CoatHanger,

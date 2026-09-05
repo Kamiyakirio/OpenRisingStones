@@ -1,4 +1,4 @@
-/** Regional Teleport diagnostic workspace bound to the game bridge ViewModel. */
+/** Regional Teleport diagnostic workspace bound to the game bridge state hook. */
 import { AppHeader } from "../app/components/AppHeader";
 import { LoginDialog } from "../features/auth/components/LoginDialog";
 import { SiteFooter } from "../app/components/SiteFooter";
@@ -6,7 +6,7 @@ import { TeleportWorkspace } from "../features/teleport/components/TeleportWorks
 import type { LoginProfile } from "../features/auth/types";
 import { useTeleportWorkspace } from "../features/teleport/hooks/useTeleportWorkspace";
 
-type TeleportWorkspaceViewProps = {
+type TeleportPageProps = {
   dark: boolean;
   loginOpen: boolean;
   loginChecking: boolean;
@@ -32,7 +32,7 @@ export function TeleportPage({
   onOpenSettings,
   onLoginSuccess,
   onLogout,
-}: TeleportWorkspaceViewProps) {
+}: TeleportPageProps) {
   const viewModel = useTeleportWorkspace({
     authenticated: Boolean(profile),
     loginChecking,
