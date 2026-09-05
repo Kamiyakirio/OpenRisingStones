@@ -2,10 +2,10 @@
 import { AppHeader } from "../components/AppHeader";
 import { AdvancedRecruitPage } from "../components/AdvancedRecruitPage";
 import { AdvancedRecruitRiskDialog } from "../components/AdvancedRecruitRiskDialog";
-import { LoginDialog } from "../components/LoginDialog";
+import { LoginDialog } from "../features/auth/components/LoginDialog";
 import { RecruitPage } from "../components/RecruitPage";
 import { SiteFooter } from "../components/SiteFooter";
-import type { LoginProfile } from "../models/auth";
+import type { LoginProfile } from "../features/auth/types";
 import { useRecruitWorkspaceViewModel } from "../viewmodels/useRecruitWorkspaceViewModel";
 
 type RecruitWorkspaceViewProps = {

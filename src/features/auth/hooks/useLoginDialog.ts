@@ -1,10 +1,10 @@
 /** Owns login method selection, polling, validation, and success state. */
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LoginMethod, LoginProfile, LoginProgress } from "../models/auth";
+import type { LoginMethod, LoginProfile, LoginProgress } from "../types";
 import {
   hasAcceptedCookieLoginRisk,
   saveCookieLoginRiskAcceptance,
-} from "../services/cookieRiskConsent";
+} from "../utils/cookieRiskConsent";
 import {
   cancelSdoLogin,
   loginWithCookie,
@@ -12,7 +12,7 @@ import {
   pollQrLogin,
   startPushLogin,
   startQrLogin,
-} from "../services/sdoLogin";
+} from "../api/sdoLogin";
 import { extractCurlCredentials } from "../utils/curlCredentials";
 
 export type CurlImportStatus =

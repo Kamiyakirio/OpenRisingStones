@@ -6,11 +6,11 @@ import { GlamourDetailView } from "../components/GlamourDetailView";
 import { GlamourGallery } from "../components/GlamourGallery";
 import { GlamourLoginWall } from "../components/GlamourLoginWall";
 import { GlamourOwnedItemsPanel } from "../components/GlamourOwnedItemsPanel";
-import { LoginDialog } from "../components/LoginDialog";
+import { LoginDialog } from "../features/auth/components/LoginDialog";
 import { RiskDialog } from "../shared/components/RiskDialog";
 import { SiteFooter } from "../components/SiteFooter";
 import { WikiVerificationStatus } from "../components/WikiVerificationStatus";
-import type { LoginProfile } from "../models/auth";
+import type { LoginProfile } from "../features/auth/types";
 import { useGlamourWorkspaceViewModel } from "../viewmodels/useGlamourWorkspaceViewModel";
 
 type GlamourWorkspaceViewProps = {

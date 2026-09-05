@@ -16,7 +16,7 @@ import {
   authenticationRequired,
   isSdoAuthenticationFailure,
   isSdoAuthenticationPayload,
-} from "./authEvents";
+} from "../features/auth/utils/authEvents";
 import {
   findGlamourTotal,
   inferGlamourHasMore,

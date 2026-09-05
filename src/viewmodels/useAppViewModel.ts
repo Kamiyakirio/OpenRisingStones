@@ -1,9 +1,9 @@
 /** Coordinates application navigation, theme, dialogs, and authentication state. */
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useState } from "react";
-import type { LoginProfile } from "../models/auth";
-import { SDO_AUTHENTICATION_REQUIRED_EVENT } from "../services/authEvents";
-import { getSdoLoginStatus, logoutSdo } from "../services/sdoLogin";
+import type { LoginProfile } from "../features/auth/types";
+import { SDO_AUTHENTICATION_REQUIRED_EVENT } from "../features/auth/utils/authEvents";
+import { getSdoLoginStatus, logoutSdo } from "../features/auth/api/sdoLogin";
 import { isTauriRuntime } from "../shared/utils/runtime";
 
 export type ActiveFeature = "home" | "glamour" | "recruit" | "teleport";

@@ -14,7 +14,7 @@ import type {
 import {
   authenticationRequired,
   isSdoAuthenticationFailure,
-} from "./authEvents";
+} from "../features/auth/utils/authEvents";
 import { isTauriRuntime } from "../shared/utils/runtime";
 
 type UnknownRecord = Record<string, unknown>;

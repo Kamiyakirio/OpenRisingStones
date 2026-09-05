@@ -12,7 +12,7 @@ import {
   UserCircleCheck,
   WarningCircle,
 } from "@phosphor-icons/react";
-import type { LoginProfile } from "../models/auth";
+import type { LoginProfile } from "../features/auth/types";
 
 type AppHeaderProps = {
   dark: boolean;

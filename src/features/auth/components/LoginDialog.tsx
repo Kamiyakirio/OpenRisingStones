@@ -16,11 +16,11 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
-import type { LoginMethod, LoginProfile, LoginProgress } from "../models/auth";
+import type { LoginMethod, LoginProfile, LoginProgress } from "../types";
 import {
   type CurlImportStatus,
   useLoginDialogViewModel,
-} from "../viewmodels/useLoginDialogViewModel";
+} from "../hooks/useLoginDialog";
 
 type LoginDialogProps = {
   onClose: () => void;

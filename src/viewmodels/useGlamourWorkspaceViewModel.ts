@@ -1,6 +1,6 @@
 /** Coordinates the glamour workspace's child ViewModels and navigation state. */
 import { useRef, useState } from "react";
-import type { LoginProfile } from "../models/auth";
+import type { LoginProfile } from "../features/auth/types";
 import type { EquipmentSearchItem } from "../models/equipment";
 import type { Glamour, GlamourEquipment } from "../models/glamour";
 import { useGlamourDiscoveryViewModel } from "./useGlamourDiscoveryViewModel";

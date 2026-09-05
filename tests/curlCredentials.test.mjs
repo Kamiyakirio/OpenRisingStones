@@ -1,7 +1,7 @@
 /** Regression coverage for Chrome cURL credential extraction. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { extractCurlCredentials } from "../src/utils/curlCredentials.ts";
+import { extractCurlCredentials } from "../src/features/auth/utils/curlCredentials.ts";
 
 test("extracts Cookie and User-Agent from Chrome cURL bash output", () => {
   const request = String.raw`curl 'https://example.test/api' \
