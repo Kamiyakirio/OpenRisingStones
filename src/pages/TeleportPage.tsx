@@ -2,9 +2,9 @@
 import { AppHeader } from "../app/components/AppHeader";
 import { LoginDialog } from "../features/auth/components/LoginDialog";
 import { SiteFooter } from "../app/components/SiteFooter";
-import { TeleportPage } from "../features/teleport/components/TeleportWorkspace";
+import { TeleportWorkspace } from "../features/teleport/components/TeleportWorkspace";
 import type { LoginProfile } from "../features/auth/types";
-import { useTeleportWorkspaceViewModel } from "../features/teleport/hooks/useTeleportWorkspace";
+import { useTeleportWorkspace } from "../features/teleport/hooks/useTeleportWorkspace";
 
 type TeleportWorkspaceViewProps = {
   dark: boolean;
@@ -20,7 +20,7 @@ type TeleportWorkspaceViewProps = {
   onLogout: () => Promise<void>;
 };
 
-export function TeleportWorkspaceView({
+export function TeleportPage({
   dark,
   loginOpen,
   loginChecking,
@@ -33,7 +33,7 @@ export function TeleportWorkspaceView({
   onLoginSuccess,
   onLogout,
 }: TeleportWorkspaceViewProps) {
-  const viewModel = useTeleportWorkspaceViewModel({
+  const viewModel = useTeleportWorkspace({
     authenticated: Boolean(profile),
     loginChecking,
   });
@@ -50,7 +50,7 @@ export function TeleportWorkspaceView({
         onOpenSettings={onOpenSettings}
         onLogout={onLogout}
       />
-      <TeleportPage viewModel={viewModel} onOpenLogin={onOpenLogin} />
+      <TeleportWorkspace viewModel={viewModel} onOpenLogin={onOpenLogin} />
       <SiteFooter feature="teleport" />
       {loginOpen && (
         <LoginDialog onClose={onCloseLogin} onSuccess={onLoginSuccess} />

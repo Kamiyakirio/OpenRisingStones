@@ -10,7 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Glamour, GlamourOrder } from "../types";
 import { hideBrokenImage } from "../utils/glamourPresentation";
-import type { OwnedItemsViewModel } from "../hooks/useOwnedItems";
+import type { OwnedItemsState } from "../hooks/useOwnedItems";
 
 type GlamourGalleryProps = {
   results: Glamour[];
@@ -27,7 +27,7 @@ type GlamourGalleryProps = {
   onClearSearch: () => void;
   onRetry: () => void;
   onLoadMore: () => Promise<void>;
-  ownedItems: OwnedItemsViewModel;
+  ownedItems: OwnedItemsState;
 };
 
 export function GlamourGallery({
@@ -181,7 +181,7 @@ function GlamourCard({
   saved: boolean;
   onToggleSave: (id: number) => void;
   onOpenDetail: (glamour: Glamour) => void;
-  ownedItems: OwnedItemsViewModel;
+  ownedItems: OwnedItemsState;
 }) {
   const ownershipMatches = item.equipmentIds
     .map(ownedItems.matchItem)

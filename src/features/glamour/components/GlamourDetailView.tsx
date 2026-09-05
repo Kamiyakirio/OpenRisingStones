@@ -16,18 +16,18 @@ import {
 import type { Glamour, GlamourDetail, GlamourEquipment } from "../types";
 import type { OwnedItemMatch, OwnedItemSource } from "../ownedItems.types";
 import { hideBrokenImage } from "../utils/glamourPresentation";
-import { useGlamourDetailViewModel } from "../hooks/useGlamourDetail";
-import { useRisingStonesAvatarViewModel } from "../../../shared/hooks/useRisingStonesAvatar";
-import type { WikiItemViewModel } from "../hooks/useWikiItem";
-import type { OwnedItemsViewModel } from "../hooks/useOwnedItems";
+import { useGlamourDetail } from "../hooks/useGlamourDetail";
+import { useRisingStonesAvatar } from "../../../shared/hooks/useRisingStonesAvatar";
+import type { WikiItemState } from "../hooks/useWikiItem";
+import type { OwnedItemsState } from "../hooks/useOwnedItems";
 import { EquipmentSourcePopover } from "./EquipmentSourcePopover";
 import "./GlamourDetailView.css";
 
 type GlamourDetailViewProps = {
   glamour: Glamour;
   saved: boolean;
-  wiki: WikiItemViewModel;
-  ownedItems: OwnedItemsViewModel;
+  wiki: WikiItemState;
+  ownedItems: OwnedItemsState;
   onBack: () => void;
   onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
   onToggleSave: (id: number) => void;
@@ -57,7 +57,7 @@ export function GlamourDetailView({
   onSearchEquipment,
   onToggleSave,
 }: GlamourDetailViewProps) {
-  const { detail, loading, error, retry } = useGlamourDetailViewModel(glamour);
+  const { detail, loading, error, retry } = useGlamourDetail(glamour);
 
   return (
     <main className="glamour-detail-page" id="top">
@@ -96,8 +96,8 @@ function DetailContent({
 }: {
   detail: GlamourDetail;
   saved: boolean;
-  wiki: WikiItemViewModel;
-  ownedItems: OwnedItemsViewModel;
+  wiki: WikiItemState;
+  ownedItems: OwnedItemsState;
   onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
   onToggleSave: (id: number) => void;
 }) {
@@ -106,7 +106,7 @@ function DetailContent({
     () => new Map(detail.equipments.map((item) => [item.slot, item])),
     [detail.equipments],
   );
-  const avatar = useRisingStonesAvatarViewModel(detail.avatar);
+  const avatar = useRisingStonesAvatar(detail.avatar);
 
   useEffect(() => {
     void ownedItems.ensureItemMetadata(
@@ -256,7 +256,7 @@ function EquipmentSlot({
 }: {
   label: string;
   equipment?: GlamourEquipment;
-  wiki: WikiItemViewModel;
+  wiki: WikiItemState;
   ownership: OwnedItemMatch;
   onSearchEquipment: (equipment: GlamourEquipment, category: string) => void;
 }) {

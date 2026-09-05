@@ -15,7 +15,7 @@ import {
 } from "../advanced.types";
 import type { RecruitJob, RecruitSlotKey } from "../types";
 import { ADVANCED_RECRUIT_FIELD_KEYS } from "../utils/advancedRecruitFilter";
-import type { AdvancedRecruitViewModel } from "../hooks/useAdvancedRecruit";
+import type { AdvancedRecruitState } from "../hooks/useAdvancedRecruit";
 import { RecruitCard, RecruitDetailView } from "./RecruitBrowser";
 import { AdvancedRecruitPreferences } from "./AdvancedRecruitPreferences";
 import "./AdvancedRecruitBrowser.css";
@@ -45,10 +45,12 @@ const PARTY_POSITIONS: RecruitSlotKey[] = [
 ];
 
 type AdvancedRecruitPageProps = {
-  viewModel: AdvancedRecruitViewModel;
+  viewModel: AdvancedRecruitState;
 };
 
-export function AdvancedRecruitPage({ viewModel }: AdvancedRecruitPageProps) {
+export function AdvancedRecruitBrowser({
+  viewModel,
+}: AdvancedRecruitPageProps) {
   const dataset = viewModel.dataset;
 
   if (viewModel.selectedDetail) {
@@ -266,7 +268,7 @@ export function AdvancedRecruitPage({ viewModel }: AdvancedRecruitPageProps) {
 function AdvancedRecruitLoading({
   viewModel,
 }: {
-  viewModel: AdvancedRecruitViewModel;
+  viewModel: AdvancedRecruitState;
 }) {
   const progress = viewModel.progress;
   const percentage = progress

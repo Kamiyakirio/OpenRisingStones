@@ -18,7 +18,7 @@ import {
 export type OwnedItemsStatus =
   "loading_cache" | "idle" | "syncing" | "ready" | "error";
 
-export function useOwnedItemsViewModel(enabled: boolean) {
+export function useOwnedItems(enabled: boolean) {
   const [status, setStatus] = useState<OwnedItemsStatus>(
     enabled ? "loading_cache" : "idle",
   );
@@ -186,7 +186,7 @@ export function useOwnedItemsViewModel(enabled: boolean) {
   };
 }
 
-export type OwnedItemsViewModel = ReturnType<typeof useOwnedItemsViewModel>;
+export type OwnedItemsState = ReturnType<typeof useOwnedItems>;
 
 function readOwnedItemsError(reason: unknown) {
   const bridgeError = normalizeGameBridgeError(reason);

@@ -2,7 +2,7 @@
 import { useCallback, useState } from "react";
 import { clearAllLocalData } from "../api/localData";
 
-export function useSettingsDialogViewModel(onClose: () => void) {
+export function useSettingsDialog(onClose: () => void) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

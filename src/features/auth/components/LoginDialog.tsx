@@ -17,10 +17,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import type { LoginMethod, LoginProfile, LoginProgress } from "../types";
-import {
-  type CurlImportStatus,
-  useLoginDialogViewModel,
-} from "../hooks/useLoginDialog";
+import { type CurlImportStatus, useLoginDialog } from "../hooks/useLoginDialog";
 
 type LoginDialogProps = {
   onClose: () => void;
@@ -61,7 +58,7 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
     beginPush,
     beginQr,
     beginCookie,
-  } = useLoginDialogViewModel({ onClose, onSuccess });
+  } = useLoginDialog({ onClose, onSuccess });
   const closeButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {

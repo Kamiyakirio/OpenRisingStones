@@ -3,9 +3,9 @@ import { useRef, useState } from "react";
 import type { LoginProfile } from "../../auth/types";
 import type { EquipmentSearchItem } from "../equipment.types";
 import type { Glamour, GlamourEquipment } from "../types";
-import { useGlamourDiscoveryViewModel } from "./useGlamourDiscovery";
-import { useOwnedItemsViewModel } from "./useOwnedItems";
-import { useWikiItemViewModel } from "./useWikiItem";
+import { useGlamourDiscovery } from "./useGlamourDiscovery";
+import { useOwnedItems } from "./useOwnedItems";
+import { useWikiItem } from "./useWikiItem";
 
 type GlamourWorkspaceViewModelOptions = {
   authenticated: boolean;
@@ -13,16 +13,14 @@ type GlamourWorkspaceViewModelOptions = {
   onLoginSuccess: (profile: LoginProfile) => void;
 };
 
-export function useGlamourWorkspaceViewModel({
+export function useGlamourWorkspace({
   authenticated,
   loginChecking,
   onLoginSuccess,
 }: GlamourWorkspaceViewModelOptions) {
-  const discovery = useGlamourDiscoveryViewModel(
-    authenticated && !loginChecking,
-  );
-  const ownedItems = useOwnedItemsViewModel(authenticated && !loginChecking);
-  const wiki = useWikiItemViewModel();
+  const discovery = useGlamourDiscovery(authenticated && !loginChecking);
+  const ownedItems = useOwnedItems(authenticated && !loginChecking);
+  const wiki = useWikiItem();
   const [selectedGlamour, setSelectedGlamour] = useState<Glamour | null>(null);
   const galleryScrollPosition = useRef(0);
 
@@ -80,6 +78,4 @@ export function useGlamourWorkspaceViewModel({
   };
 }
 
-export type GlamourWorkspaceViewModel = ReturnType<
-  typeof useGlamourWorkspaceViewModel
->;
+export type GlamourWorkspaceState = ReturnType<typeof useGlamourWorkspace>;

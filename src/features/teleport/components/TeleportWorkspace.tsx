@@ -19,16 +19,19 @@ import {
   X,
 } from "@phosphor-icons/react";
 import type { TeleportOrder } from "../types";
-import type { TeleportWorkspaceViewModel } from "../hooks/useTeleportWorkspace";
+import type { TeleportWorkspaceState } from "../hooks/useTeleportWorkspace";
 import { RiskDialog } from "../../../shared/components/RiskDialog";
 import "./TeleportWorkspace.css";
 
 type TeleportPageProps = {
-  viewModel: TeleportWorkspaceViewModel;
+  viewModel: TeleportWorkspaceState;
   onOpenLogin: () => void;
 };
 
-export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
+export function TeleportWorkspace({
+  viewModel,
+  onOpenLogin,
+}: TeleportPageProps) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const canSubmit = Boolean(
     viewModel.selectedSourceArea &&
@@ -439,11 +442,7 @@ export function TeleportPage({ viewModel, onOpenLogin }: TeleportPageProps) {
   );
 }
 
-function ServiceSummary({
-  viewModel,
-}: {
-  viewModel: TeleportWorkspaceViewModel;
-}) {
+function ServiceSummary({ viewModel }: { viewModel: TeleportWorkspaceState }) {
   return (
     <dl className="teleport-summary">
       <div>
@@ -470,11 +469,7 @@ function ServiceSummary({
   );
 }
 
-function AutomaticSource({
-  viewModel,
-}: {
-  viewModel: TeleportWorkspaceViewModel;
-}) {
+function AutomaticSource({ viewModel }: { viewModel: TeleportWorkspaceState }) {
   const ready = Boolean(
     viewModel.automaticCharacter &&
     viewModel.selectedSourceArea &&
@@ -513,11 +508,7 @@ function AutomaticSource({
   );
 }
 
-function JourneyRoute({
-  viewModel,
-}: {
-  viewModel: TeleportWorkspaceViewModel;
-}) {
+function JourneyRoute({ viewModel }: { viewModel: TeleportWorkspaceState }) {
   return (
     <aside className="journey-route" aria-label="传送路线预览">
       <div className="route-caption">
@@ -558,11 +549,7 @@ function JourneyRoute({
   );
 }
 
-function OrderHistory({
-  viewModel,
-}: {
-  viewModel: TeleportWorkspaceViewModel;
-}) {
+function OrderHistory({ viewModel }: { viewModel: TeleportWorkspaceState }) {
   return (
     <section
       className="teleport-orders"
@@ -690,11 +677,7 @@ function AccountGate({ onOpenLogin }: { onOpenLogin: () => void }) {
   );
 }
 
-function JourneyReview({
-  viewModel,
-}: {
-  viewModel: TeleportWorkspaceViewModel;
-}) {
+function JourneyReview({ viewModel }: { viewModel: TeleportWorkspaceState }) {
   return (
     <div className="journey-review">
       <div>
@@ -720,11 +703,7 @@ function JourneyReview({
   );
 }
 
-function OrderProgress({
-  viewModel,
-}: {
-  viewModel: TeleportWorkspaceViewModel;
-}) {
+function OrderProgress({ viewModel }: { viewModel: TeleportWorkspaceState }) {
   return (
     <div className="teleport-progress-overlay" role="status">
       <div className="teleport-progress-panel">
@@ -741,7 +720,7 @@ function OrderProgress({
 function AutomaticProgress({
   stage,
 }: {
-  stage: TeleportWorkspaceViewModel["automaticStage"];
+  stage: TeleportWorkspaceState["automaticStage"];
 }) {
   const copy = {
     idle: "正在准备自动流程",
@@ -754,7 +733,7 @@ function AutomaticProgress({
     switching_region: "正在准备目标大区连接",
     ready: "目标大区已经准备完成",
     failed: "自动流程已经停止",
-  } satisfies Record<TeleportWorkspaceViewModel["automaticStage"], string>;
+  } satisfies Record<TeleportWorkspaceState["automaticStage"], string>;
   return (
     <div className="teleport-progress-overlay" role="status">
       <div className="teleport-progress-panel">
@@ -767,11 +746,7 @@ function AutomaticProgress({
   );
 }
 
-function ReturnDialog({
-  viewModel,
-}: {
-  viewModel: TeleportWorkspaceViewModel;
-}) {
+function ReturnDialog({ viewModel }: { viewModel: TeleportWorkspaceState }) {
   const currentArea =
     viewModel.returnAreas.find(
       (area) => area.areaId === viewModel.returnAreaId,
@@ -877,7 +852,7 @@ function ActionDialog({
 function StatusMessages({
   status,
 }: {
-  status: TeleportWorkspaceViewModel["activeOrderStatus"];
+  status: TeleportWorkspaceState["activeOrderStatus"];
 }) {
   if (!status?.messages.length) return <p>角色预检通过，可以继续传送。</p>;
   return (
@@ -947,7 +922,7 @@ function roundQueueMinutes(minutes: number) {
 }
 
 function orderProgressText(
-  status: TeleportWorkspaceViewModel["activeOrderStatus"],
+  status: TeleportWorkspaceState["activeOrderStatus"],
 ) {
   if (!status || [0, 1].includes(status.migrationStatus)) return "正在检查角色";
   if ([3, 4].includes(status.migrationStatus)) return "正在执行传送";

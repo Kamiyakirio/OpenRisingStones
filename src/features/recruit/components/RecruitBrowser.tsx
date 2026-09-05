@@ -22,16 +22,16 @@ import type {
   RecruitSlot,
   RecruitSummary,
 } from "../types";
-import type { RecruitViewModel } from "../hooks/useRecruit";
-import { useRisingStonesAvatarViewModel } from "../../../shared/hooks/useRisingStonesAvatar";
+import type { RecruitState } from "../hooks/useRecruit";
+import { useRisingStonesAvatar } from "../../../shared/hooks/useRisingStonesAvatar";
 import { buildRecruitDutyChoices } from "../utils/recruitDutyGroups";
 import "./RecruitBrowser.css";
 
 type RecruitPageProps = {
-  viewModel: RecruitViewModel;
+  viewModel: RecruitState;
 };
 
-export function RecruitPage({ viewModel }: RecruitPageProps) {
+export function RecruitBrowser({ viewModel }: RecruitPageProps) {
   const jobsById = useMemo(
     () =>
       new Map(
@@ -131,7 +131,7 @@ export function RecruitPage({ viewModel }: RecruitPageProps) {
   );
 }
 
-function RecruitFilters({ viewModel }: { viewModel: RecruitViewModel }) {
+function RecruitFilters({ viewModel }: { viewModel: RecruitState }) {
   const dutyTypes = unique(
     (viewModel.config?.duties ?? []).map((duty) => duty.type),
   );
@@ -539,7 +539,7 @@ function Avatar({
   item: RecruitSummary;
   large?: boolean;
 }) {
-  const avatar = useRisingStonesAvatarViewModel(item.avatar);
+  const avatar = useRisingStonesAvatar(item.avatar);
   return (
     <span
       className={`recruit-avatar ${large ? "large" : ""}`}

@@ -9,14 +9,14 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
-import { useSettingsDialogViewModel } from "../hooks/useSettingsDialog";
+import { useSettingsDialog } from "../hooks/useSettingsDialog";
 
 type SettingsDialogProps = {
   onClose: () => void;
 };
 
 export function SettingsDialog({ onClose }: SettingsDialogProps) {
-  const viewModel = useSettingsDialogViewModel(onClose);
+  const viewModel = useSettingsDialog(onClose);
   const closeDialog = viewModel.close;
   const closeButton = useRef<HTMLButtonElement>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);

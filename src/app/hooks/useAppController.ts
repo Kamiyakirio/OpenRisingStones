@@ -8,7 +8,7 @@ import { isTauriRuntime } from "../../shared/utils/runtime";
 
 export type ActiveFeature = "home" | "glamour" | "recruit" | "teleport";
 
-export function useAppViewModel() {
+export function useAppController() {
   const [dark, setDark] = useState(false);
   const [activeFeature, setActiveFeature] =
     useState<ActiveFeature>(readInitialFeature);
@@ -126,7 +126,7 @@ export function useAppViewModel() {
   };
 }
 
-export type AppViewModel = ReturnType<typeof useAppViewModel>;
+export type AppController = ReturnType<typeof useAppController>;
 
 type BackendLogPayload = {
   message: string;

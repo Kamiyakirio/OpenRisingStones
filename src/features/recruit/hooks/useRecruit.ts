@@ -17,11 +17,11 @@ import {
   mergeRecruitFeed,
 } from "../utils/recruitFeed";
 import { expandRecruitDutyChoice } from "../utils/recruitDutyGroups";
-import { useListDetailScrollViewModel } from "../../../shared/hooks/useListDetailScroll";
+import { useListDetailScroll } from "../../../shared/hooks/useListDetailScroll";
 
 const PAGE_SIZE = 9;
 
-export function useRecruitViewModel() {
+export function useRecruit() {
   const [config, setConfig] = useState<RecruitConfig | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export function useRecruitViewModel() {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailRetryKey, setDetailRetryKey] = useState(0);
   const { captureListPosition, requestListPositionRestore } =
-    useListDetailScrollViewModel(selectedRecruit !== null);
+    useListDetailScroll(selectedRecruit !== null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -223,7 +223,7 @@ export function useRecruitViewModel() {
   };
 }
 
-export type RecruitViewModel = ReturnType<typeof useRecruitViewModel>;
+export type RecruitState = ReturnType<typeof useRecruit>;
 
 function readError(reason: unknown) {
   if (reason instanceof Error) return reason.message;

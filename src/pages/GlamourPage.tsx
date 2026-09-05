@@ -1,7 +1,7 @@
 /** Glamour workspace View bound to its feature-level ViewModel. */
 import { AppHeader } from "../app/components/AppHeader";
 import { DiscoveryFilters } from "../features/glamour/components/DiscoveryFilters";
-import { EquipmentSearchPage } from "../features/glamour/components/EquipmentSearchResults";
+import { EquipmentSearchResults } from "../features/glamour/components/EquipmentSearchResults";
 import { GlamourDetailView } from "../features/glamour/components/GlamourDetailView";
 import { GlamourGallery } from "../features/glamour/components/GlamourGallery";
 import { GlamourLoginWall } from "../features/glamour/components/GlamourLoginWall";
@@ -11,7 +11,7 @@ import { RiskDialog } from "../shared/components/RiskDialog";
 import { SiteFooter } from "../app/components/SiteFooter";
 import { WikiVerificationStatus } from "../features/glamour/components/WikiVerificationStatus";
 import type { LoginProfile } from "../features/auth/types";
-import { useGlamourWorkspaceViewModel } from "../features/glamour/hooks/useGlamourWorkspace";
+import { useGlamourWorkspace } from "../features/glamour/hooks/useGlamourWorkspace";
 
 type GlamourWorkspaceViewProps = {
   dark: boolean;
@@ -28,7 +28,7 @@ type GlamourWorkspaceViewProps = {
   onLogout: () => Promise<void>;
 };
 
-export function GlamourWorkspaceView({
+export function GlamourPage({
   dark,
   loginOpen,
   loginChecking,
@@ -42,7 +42,7 @@ export function GlamourWorkspaceView({
   onLoginSuccess,
   onLogout,
 }: GlamourWorkspaceViewProps) {
-  const viewModel = useGlamourWorkspaceViewModel({
+  const viewModel = useGlamourWorkspace({
     authenticated: Boolean(profile),
     loginChecking,
     onLoginSuccess,
@@ -79,7 +79,7 @@ export function GlamourWorkspaceView({
           onToggleSave={discovery.toggleSave}
         />
       ) : discovery.equipmentResultsOpen ? (
-        <EquipmentSearchPage
+        <EquipmentSearchResults
           query={discovery.query}
           filters={discovery.activeEquipmentFilters}
           items={discovery.equipmentCandidates}

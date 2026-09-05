@@ -1,7 +1,7 @@
 /** Coordinates viewport position while a list and its detail replace each other. */
 import { useCallback, useLayoutEffect, useRef } from "react";
 
-export function useListDetailScrollViewModel(detailOpen: boolean) {
+export function useListDetailScroll(detailOpen: boolean) {
   const listPositionRef = useRef({ left: 0, top: 0 });
   const restorePendingRef = useRef(false);
 

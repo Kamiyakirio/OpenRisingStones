@@ -35,7 +35,7 @@ type EquipmentSearchPageProps = {
   onPageSizeChange: (size: EquipmentPageSize) => void;
 };
 
-export function EquipmentSearchPage({
+export function EquipmentSearchResults({
   query,
   filters,
   items,

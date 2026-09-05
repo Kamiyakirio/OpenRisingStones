@@ -33,7 +33,7 @@ type LoginDialogViewModelOptions = {
   onSuccess: (profile: LoginProfile) => void;
 };
 
-export function useLoginDialogViewModel({
+export function useLoginDialog({
   onClose,
   onSuccess,
 }: LoginDialogViewModelOptions) {
@@ -237,7 +237,7 @@ export function useLoginDialogViewModel({
   };
 }
 
-export type LoginDialogViewModel = ReturnType<typeof useLoginDialogViewModel>;
+export type LoginDialogState = ReturnType<typeof useLoginDialog>;
 
 function readError(reason: unknown) {
   if (reason instanceof Error) return reason.message;

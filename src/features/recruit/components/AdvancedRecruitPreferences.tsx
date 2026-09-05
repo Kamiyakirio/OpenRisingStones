@@ -1,7 +1,7 @@
 /** Compact local preferences sharing the advanced recruitment workbench styles. */
 import { CaretDown } from "@phosphor-icons/react";
 import type { AdvancedRecruitFilters } from "../advanced.types";
-import type { AdvancedRecruitViewModel } from "../hooks/useAdvancedRecruit";
+import type { AdvancedRecruitState } from "../hooks/useAdvancedRecruit";
 
 const TEXT_FIELDS = [
   ["progressText", "进度关键词", "例如：P3 -开荒"],
@@ -18,7 +18,7 @@ const toggle = <T,>(values: T[], value: T) =>
 export function AdvancedRecruitPreferences({
   viewModel,
 }: {
-  viewModel: AdvancedRecruitViewModel;
+  viewModel: AdvancedRecruitState;
 }) {
   const { filters, patchFilters, config, dataset } = viewModel;
   const labels = [

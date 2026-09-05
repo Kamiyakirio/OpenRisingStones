@@ -21,7 +21,7 @@ export type WikiLoadStatus =
   | "ready"
   | "error";
 
-export function useWikiItemViewModel() {
+export function useWikiItem() {
   const preview = !isTauriRuntime();
   const [status, setStatus] = useState<WikiLoadStatus>("idle");
   const [itemName, setItemName] = useState("");
@@ -177,7 +177,7 @@ export function useWikiItemViewModel() {
   };
 }
 
-export type WikiItemViewModel = ReturnType<typeof useWikiItemViewModel>;
+export type WikiItemState = ReturnType<typeof useWikiItem>;
 
 function readError(reason: unknown) {
   if (reason instanceof Error) return reason.message;

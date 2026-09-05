@@ -52,7 +52,7 @@ type Options = {
 
 type MemoryCharacter = ActiveCharacterSnapshot | GameSnapshot;
 
-export function useTeleportWorkspaceViewModel({
+export function useTeleportWorkspace({
   authenticated,
   loginChecking,
 }: Options) {
@@ -772,9 +772,7 @@ export function useTeleportWorkspaceViewModel({
   };
 }
 
-export type TeleportWorkspaceViewModel = ReturnType<
-  typeof useTeleportWorkspaceViewModel
->;
+export type TeleportWorkspaceState = ReturnType<typeof useTeleportWorkspace>;
 
 function errorMessage(reason: unknown) {
   return reason instanceof Error

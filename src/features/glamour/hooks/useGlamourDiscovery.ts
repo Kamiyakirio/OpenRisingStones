@@ -41,7 +41,7 @@ type EquipmentCandidatePage = EquipmentSearchPage & {
 
 export type GlamourSearchMode = "title" | "equipment";
 
-export function useGlamourDiscoveryViewModel(enabled = true) {
+export function useGlamourDiscovery(enabled = true) {
   const [glamours, setGlamours] = useState<Glamour[]>([]);
   const [searchMode, setSearchModeState] = useState<GlamourSearchMode>("title");
   const [titleQuery, setTitleQuery] = useState("");

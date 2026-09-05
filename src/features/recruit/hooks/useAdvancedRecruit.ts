@@ -25,11 +25,11 @@ import type {
 import { loadAdvancedRecruitDataset } from "../api/advancedRecruitApi";
 import { filterAdvancedRecruitItems } from "../utils/advancedRecruitFilter";
 import { buildRecruitDutyChoices } from "../utils/recruitDutyGroups";
-import { useListDetailScrollViewModel } from "../../../shared/hooks/useListDetailScroll";
+import { useListDetailScroll } from "../../../shared/hooks/useListDetailScroll";
 
 export type AdvancedRecruitStatus = "idle" | "loading" | "ready" | "error";
 
-export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
+export function useAdvancedRecruit(config: RecruitConfig | null) {
   const [status, setStatus] = useState<AdvancedRecruitStatus>("idle");
   const [dataset, setDataset] = useState<AdvancedRecruitDataset | null>(null);
   const [progress, setProgress] = useState<AdvancedRecruitProgress | null>(
@@ -46,7 +46,7 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
   const statusRef = useRef<AdvancedRecruitStatus>("idle");
   const controllerRef = useRef<AbortController | null>(null);
   const { captureListPosition, requestListPositionRestore } =
-    useListDetailScrollViewModel(selectedDetail !== null);
+    useListDetailScroll(selectedDetail !== null);
 
   const jobsById = useMemo(
     () => new Map((config?.jobs ?? []).map((job) => [job.id, job] as const)),
@@ -288,9 +288,7 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
   };
 }
 
-export type AdvancedRecruitViewModel = ReturnType<
-  typeof useAdvancedRecruitViewModel
->;
+export type AdvancedRecruitState = ReturnType<typeof useAdvancedRecruit>;
 
 function toggleSelection<T>(values: T[], value: T) {
   return values.includes(value)

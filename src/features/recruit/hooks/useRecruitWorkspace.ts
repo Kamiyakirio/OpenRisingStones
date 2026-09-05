@@ -4,14 +4,14 @@ import {
   grantAdvancedRecruitRiskConsent,
   hasAdvancedRecruitRiskConsent,
 } from "../utils/recruitRiskConsent";
-import { useAdvancedRecruitViewModel } from "./useAdvancedRecruit";
-import { useRecruitViewModel } from "./useRecruit";
+import { useAdvancedRecruit } from "./useAdvancedRecruit";
+import { useRecruit } from "./useRecruit";
 
 export type RecruitWorkspaceSection = "feed" | "advanced";
 
-export function useRecruitWorkspaceViewModel() {
-  const feed = useRecruitViewModel();
-  const advanced = useAdvancedRecruitViewModel(feed.config);
+export function useRecruitWorkspace() {
+  const feed = useRecruit();
+  const advanced = useAdvancedRecruit(feed.config);
   const initializeAdvanced = advanced.initialize;
   const [section, setSection] = useState<RecruitWorkspaceSection>("feed");
   const [riskOpen, setRiskOpen] = useState(false);
@@ -54,6 +54,4 @@ export function useRecruitWorkspaceViewModel() {
   };
 }
 
-export type RecruitWorkspaceViewModel = ReturnType<
-  typeof useRecruitWorkspaceViewModel
->;
+export type RecruitWorkspaceState = ReturnType<typeof useRecruitWorkspace>;

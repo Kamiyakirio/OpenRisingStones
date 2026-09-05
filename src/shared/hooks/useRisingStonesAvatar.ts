@@ -12,7 +12,7 @@ type ResolvedAvatar = {
   failed: boolean;
 };
 
-export function useRisingStonesAvatarViewModel(url: string | null) {
+export function useRisingStonesAvatar(url: string | null) {
   const [resolved, setResolved] = useState<ResolvedAvatar>({
     url: null,
     source: null,

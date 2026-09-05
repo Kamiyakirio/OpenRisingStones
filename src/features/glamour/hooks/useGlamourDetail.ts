@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { Glamour, GlamourDetail } from "../types";
 import { fetchGlamourDetail } from "../api/glamourApi";
 
-export function useGlamourDetailViewModel(glamour: Glamour) {
+export function useGlamourDetail(glamour: Glamour) {
   const [detail, setDetail] = useState<GlamourDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

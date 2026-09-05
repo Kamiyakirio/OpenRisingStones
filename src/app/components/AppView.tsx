@@ -1,13 +1,13 @@
 /** Root View with declarative bindings and no infrastructure access. */
 import { HomePage } from "../../pages/HomePage";
 import { SettingsDialog } from "../../features/settings/components/SettingsDialog";
-import type { AppViewModel } from "../hooks/useAppController";
-import { GlamourWorkspaceView } from "../../pages/GlamourPage";
-import { RecruitWorkspaceView } from "../../pages/RecruitPage";
-import { TeleportWorkspaceView } from "../../pages/TeleportPage";
+import type { AppController } from "../hooks/useAppController";
+import { GlamourPage } from "../../pages/GlamourPage";
+import { RecruitPage } from "../../pages/RecruitPage";
+import { TeleportPage } from "../../pages/TeleportPage";
 
 type AppViewProps = {
-  viewModel: AppViewModel;
+  viewModel: AppController;
 };
 
 export function AppView({ viewModel }: AppViewProps) {
@@ -25,7 +25,7 @@ export function AppView({ viewModel }: AppViewProps) {
           onToggleTheme={viewModel.toggleTheme}
         />
       ) : viewModel.activeFeature === "glamour" ? (
-        <GlamourWorkspaceView
+        <GlamourPage
           dark={viewModel.dark}
           loginOpen={viewModel.loginOpen}
           loginChecking={viewModel.loginChecking}
@@ -40,7 +40,7 @@ export function AppView({ viewModel }: AppViewProps) {
           onLogout={viewModel.logout}
         />
       ) : viewModel.activeFeature === "recruit" ? (
-        <RecruitWorkspaceView
+        <RecruitPage
           dark={viewModel.dark}
           loginOpen={viewModel.loginOpen}
           profile={viewModel.loginProfile}
@@ -53,7 +53,7 @@ export function AppView({ viewModel }: AppViewProps) {
           onLogout={viewModel.logout}
         />
       ) : (
-        <TeleportWorkspaceView
+        <TeleportPage
           dark={viewModel.dark}
           loginOpen={viewModel.loginOpen}
           loginChecking={viewModel.loginChecking}
