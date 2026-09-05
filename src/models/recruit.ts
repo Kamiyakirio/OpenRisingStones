@@ -14,7 +14,8 @@ export type RecruitDuty = {
 };
 
 export type RecruitLabel = {
-  id: number;
+  /** Detail responses omit the configuration id and are identified by name. */
+  id: number | null;
   name: string;
 };
 
@@ -41,6 +42,7 @@ export type RecruitSlotKey =
   "MT" | "ST" | "H1" | "H2" | "D1" | "D2" | "D3" | "D4";
 
 export type RecruitSlot = {
+  alliance?: "A" | "B" | "C";
   key: RecruitSlotKey;
   jobId: number | null;
 };

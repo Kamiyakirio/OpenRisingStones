@@ -498,10 +498,12 @@ function PartyComposition({
         return (
           <span
             className={job ? "filled" : "vacant"}
-            key={slot.key}
+            key={`${slot.alliance ?? ""}-${slot.key}`}
             title={job ? `${slot.key} ${job.name}` : `${slot.key} 空缺`}
           >
-            <small>{slot.key}</small>
+            <small>
+              {slot.alliance ? `${slot.alliance}-${slot.key}` : slot.key}
+            </small>
             {job?.icon ? (
               <img src={job.icon} alt="" width="28" height="28" />
             ) : (

@@ -1,4 +1,5 @@
 /** Reads and normalizes the public Rising Stones recruitment endpoints. */
+import { parseRecruitSlots } from "../utils/recruitSlots";
 import { invoke } from "@tauri-apps/api/core";
 import type {
   RecruitConfig,
@@ -9,7 +10,6 @@ import type {
   RecruitLabel,
   RecruitPage,
   RecruitPageOptions,
-  RecruitSlotKey,
   RecruitSummary,
 } from "../models/recruit";
 import {
@@ -33,16 +33,6 @@ type UnknownRecord = Record<string, unknown>;
 
 const API_ORIGIN = "https://apiff14risingstones.web.sdo.com";
 const REQUEST_TIMEOUT_MS = 15_000;
-const SLOT_KEYS: RecruitSlotKey[] = [
-  "MT",
-  "ST",
-  "H1",
-  "H2",
-  "D1",
-  "D2",
-  "D3",
-  "D4",
-];
 
 export async function fetchRecruitConfig(
   signal?: AbortSignal,
@@ -345,7 +335,7 @@ function parseDuty(record: UnknownRecord): RecruitDuty | null {
 function parseLabel(record: UnknownRecord): RecruitLabel | null {
   const name = readString(record, ["name"]);
   if (!name) return null;
-  return { id: readNumber(record, ["id"]) ?? 0, name };
+  return { id: readNumber(record, ["id"]), name };
 }
 
 function parseArea(record: UnknownRecord): RecruitArea | null {
@@ -384,10 +374,7 @@ function parseSummary(record: UnknownRecord): RecruitSummary | null {
       .filter((label): label is RecruitLabel => label !== null),
     customLabel: readString(record, ["custom_label"]),
     needJobs: jobs,
-    slots: SLOT_KEYS.map((key) => {
-      const jobId = readNumber(record, [key]);
-      return { key, jobId: jobId !== null && jobId > 0 ? jobId : null };
-    }),
+    slots: parseRecruitSlots(record),
     responseCount: readNumber(record, ["response_num"]) ?? 0,
     publishedAt: readTimestamp(record, ["created_at"]),
     expiresAt: readTimestamp(record, ["end_time"]),
