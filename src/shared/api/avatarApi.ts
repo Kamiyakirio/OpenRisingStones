@@ -1,7 +1,7 @@
 /** Shared avatar transport with request deduplication and bounded concurrency. */
 import { invoke } from "@tauri-apps/api/core";
 import { isSupportedRisingStonesAvatar } from "../utils/risingStonesAvatar";
-import { isTauriRuntime } from "./runtime";
+import { isTauriRuntime } from "../utils/runtime";
 
 type AvatarResponse = { dataUrl: string };
 type AvatarTask = {

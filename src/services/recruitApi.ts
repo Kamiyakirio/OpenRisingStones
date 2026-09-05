@@ -18,7 +18,7 @@ import {
   rateLimitMessage,
   readReasonMessage,
 } from "../utils/recruitRateLimit";
-import { isTauriRuntime } from "./runtime";
+import { isTauriRuntime } from "../shared/utils/runtime";
 
 export { RecruitRateLimitError, isRecruitRateLimitError };
 

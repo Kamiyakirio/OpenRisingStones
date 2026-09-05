@@ -1,5 +1,5 @@
 /** Recruitment-specific content rendered through the shared risk dialog. */
-import { RiskDialog } from "./RiskDialog";
+import { RiskDialog } from "../shared/components/RiskDialog";
 
 type AdvancedRecruitRiskDialogProps = {
   storageError: boolean;

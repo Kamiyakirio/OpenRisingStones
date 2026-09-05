@@ -15,7 +15,7 @@ import {
   authenticationRequired,
   isSdoAuthenticationFailure,
 } from "./authEvents";
-import { isTauriRuntime } from "./runtime";
+import { isTauriRuntime } from "../shared/utils/runtime";
 
 type UnknownRecord = Record<string, unknown>;
 type ApiEnvelope = {

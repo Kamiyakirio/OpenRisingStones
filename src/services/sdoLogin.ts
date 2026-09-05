@@ -4,7 +4,7 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import type { LoginPoll, LoginStart, LoginStatus } from "../models/auth";
-import { isTauriRuntime } from "./runtime";
+import { isTauriRuntime } from "../shared/utils/runtime";
 
 function requireDesktopRuntime() {
   if (!isTauriRuntime())

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   fetchRisingStonesAvatar,
   isProxiedRisingStonesAvatar,
-} from "../services/avatarApi";
+} from "../api/avatarApi";
 import { selectAvatarSource } from "../utils/risingStonesAvatar";
 
 type ResolvedAvatar = {

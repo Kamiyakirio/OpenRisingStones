@@ -7,8 +7,8 @@ import type {
   GameStateSnapshot,
   GameReadResource,
   GameReadResponse,
-} from "../models/gameBridge";
-import { isTauriRuntime } from "./runtime";
+} from "./types";
+import { isTauriRuntime } from "../utils/runtime";
 
 const STATUS_EVENT = "game-bridge://status";
 let pendingPrepare: Promise<GameBridgeStatus> | null = null;

@@ -17,7 +17,7 @@ import {
   mergeRecruitFeed,
 } from "../utils/recruitFeed";
 import { expandRecruitDutyChoice } from "../utils/recruitDutyGroups";
-import { useListDetailScrollViewModel } from "./useListDetailScrollViewModel";
+import { useListDetailScrollViewModel } from "../shared/hooks/useListDetailScroll";
 
 const PAGE_SIZE = 9;
 

@@ -6,7 +6,7 @@ import type {
   OwnedItemSource,
   OwnedItemsSnapshot,
 } from "../models/ownedItems";
-import { normalizeGameBridgeError } from "../services/gameBridge";
+import { normalizeGameBridgeError } from "../shared/game-bridge/api";
 import {
   fetchCabinetItemIds,
   fetchItemSheetInfo,

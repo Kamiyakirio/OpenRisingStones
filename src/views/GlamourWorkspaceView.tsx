@@ -7,7 +7,7 @@ import { GlamourGallery } from "../components/GlamourGallery";
 import { GlamourLoginWall } from "../components/GlamourLoginWall";
 import { GlamourOwnedItemsPanel } from "../components/GlamourOwnedItemsPanel";
 import { LoginDialog } from "../components/LoginDialog";
-import { RiskDialog } from "../components/RiskDialog";
+import { RiskDialog } from "../shared/components/RiskDialog";
 import { SiteFooter } from "../components/SiteFooter";
 import { WikiVerificationStatus } from "../components/WikiVerificationStatus";
 import type { LoginProfile } from "../models/auth";

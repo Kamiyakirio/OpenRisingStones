@@ -25,7 +25,7 @@ import type {
 import { loadAdvancedRecruitDataset } from "../services/advancedRecruitApi";
 import { filterAdvancedRecruitItems } from "../utils/advancedRecruitFilter";
 import { buildRecruitDutyChoices } from "../utils/recruitDutyGroups";
-import { useListDetailScrollViewModel } from "./useListDetailScrollViewModel";
+import { useListDetailScrollViewModel } from "../shared/hooks/useListDetailScroll";
 
 export type AdvancedRecruitStatus = "idle" | "loading" | "ready" | "error";
 

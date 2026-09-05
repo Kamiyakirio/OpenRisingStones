@@ -21,7 +21,7 @@ import type {
 import type { OwnedItemMatch, OwnedItemSource } from "../models/ownedItems";
 import { hideBrokenImage } from "../utils/glamourPresentation";
 import { useGlamourDetailViewModel } from "../viewmodels/useGlamourDetailViewModel";
-import { useRisingStonesAvatarViewModel } from "../viewmodels/useRisingStonesAvatarViewModel";
+import { useRisingStonesAvatarViewModel } from "../shared/hooks/useRisingStonesAvatar";
 import type { WikiItemViewModel } from "../viewmodels/useWikiItemViewModel";
 import type { OwnedItemsViewModel } from "../viewmodels/useOwnedItemsViewModel";
 import { EquipmentSourcePopover } from "./EquipmentSourcePopover";

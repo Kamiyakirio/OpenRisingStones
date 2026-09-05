@@ -8,7 +8,7 @@ import {
   parseWikiItemPage,
   showWikiVerification,
 } from "../services/wikiApi";
-import { isTauriRuntime } from "../services/runtime";
+import { isTauriRuntime } from "../shared/utils/runtime";
 
 const wikiItemCache = new Map<string, WikiItemData>();
 

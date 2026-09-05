@@ -9,7 +9,7 @@ import {
   type EquipmentSearchPage,
   validateEquipmentSearchFilters,
 } from "../models/equipment";
-import { isTauriRuntime } from "./runtime";
+import { isTauriRuntime } from "../shared/utils/runtime";
 
 type NetworkResponse = { status: number; body: string };
 type UnknownRecord = Record<string, unknown>;

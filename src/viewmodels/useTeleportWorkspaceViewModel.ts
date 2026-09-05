@@ -26,11 +26,11 @@ import {
   normalizeGameBridgeError,
   prepareGameBridge,
   readGameBridge,
-} from "../services/gameBridge";
+} from "../shared/game-bridge/api";
 import type {
   ActiveCharacterSnapshot,
   GameSnapshot,
-} from "../models/gameBridge";
+} from "../shared/game-bridge/types";
 
 export type TeleportMode = "manual" | "automatic";
 export type AutomaticTeleportStage =

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { LoginProfile } from "../models/auth";
 import { SDO_AUTHENTICATION_REQUIRED_EVENT } from "../services/authEvents";
 import { getSdoLoginStatus, logoutSdo } from "../services/sdoLogin";
-import { isTauriRuntime } from "../services/runtime";
+import { isTauriRuntime } from "../shared/utils/runtime";
 
 export type ActiveFeature = "home" | "glamour" | "recruit" | "teleport";
 

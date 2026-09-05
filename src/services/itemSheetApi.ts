@@ -9,7 +9,7 @@ import {
   readMissingItemId,
   readMissingSheetRowId,
 } from "../utils/itemSheet";
-import { isTauriRuntime } from "./runtime";
+import { isTauriRuntime } from "../shared/utils/runtime";
 
 type NetworkResponse = { status: number; body: string };
 

@@ -23,7 +23,7 @@ import type {
   RecruitSummary,
 } from "../models/recruit";
 import type { RecruitViewModel } from "../viewmodels/useRecruitViewModel";
-import { useRisingStonesAvatarViewModel } from "../viewmodels/useRisingStonesAvatarViewModel";
+import { useRisingStonesAvatarViewModel } from "../shared/hooks/useRisingStonesAvatar";
 import { buildRecruitDutyChoices } from "../utils/recruitDutyGroups";
 import "./RecruitPage.css";
 

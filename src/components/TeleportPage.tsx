@@ -20,7 +20,7 @@ import {
 } from "@phosphor-icons/react";
 import type { TeleportOrder } from "../models/teleport";
 import type { TeleportWorkspaceViewModel } from "../viewmodels/useTeleportWorkspaceViewModel";
-import { RiskDialog } from "./RiskDialog";
+import { RiskDialog } from "../shared/components/RiskDialog";
 import "./TeleportPage.css";
 
 type TeleportPageProps = {

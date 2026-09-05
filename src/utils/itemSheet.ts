@@ -1,5 +1,5 @@
 /** Pure normalization helpers for XIVAPI Item sheet responses. */
-import type { PlayerInventorySnapshot } from "../models/gameBridge";
+import type { PlayerInventorySnapshot } from "../shared/game-bridge/types";
 import type { ItemSheetInfo } from "../models/item";
 
 type UnknownRecord = Record<string, unknown>;
