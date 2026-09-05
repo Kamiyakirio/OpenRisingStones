@@ -1,4 +1,4 @@
-/** Owned styles extracted from the application stylesheet. */
+/** glamour styles, including owned responsive and accessibility rules. */
 
 .glamour-login-wall {
   display: grid;
@@ -1144,5 +1144,206 @@ button.equipment-card:active {
 @media (max-width: 840px) {
   .job-filter-groups {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .hero-section {
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+    gap: 0;
+  }
+  .hero-copy {
+    width: 100%;
+    padding: 50px 5px 20px;
+  }
+  .eyebrow {
+    margin-bottom: 18px;
+  }
+  .hero-copy h1 {
+    font-size: clamp(46px, 14vw, 64px);
+  }
+  .hero-copy p {
+    margin: 22px 0 25px;
+  }
+  .hero-overview {
+    width: 100%;
+    padding: 30px 5px 34px;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+  .archive-total strong {
+    font-size: clamp(58px, 20vw, 86px);
+  }
+  .discovery-panel {
+    margin-top: 20px;
+    padding: 13px;
+  }
+  .search-box {
+    padding: 0 8px 0 14px;
+  }
+  .search-box kbd {
+    display: none;
+  }
+  .search-box input {
+    padding: 0 10px;
+  }
+  .search-box .search-submit {
+    padding: 0 14px;
+  }
+  .filter-row {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 9px;
+  }
+  .filter-label {
+    min-height: 36px;
+    padding-left: 4px;
+  }
+  .job-filter {
+    position: static;
+  }
+  .job-filter-panel {
+    top: calc(100% - 4px);
+    right: 13px;
+    left: 13px;
+    width: auto;
+  }
+  .job-filter-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .data-source {
+    width: 100%;
+    margin: 2px 0 0 4px;
+  }
+  .gallery-section {
+    padding-top: 42px;
+  }
+  .gallery-toolbar {
+    grid-template-columns: 1fr auto;
+    row-gap: 14px;
+  }
+  .result-count {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .publish-link {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .error-banner {
+    align-items: flex-start;
+  }
+  .glamour-grid {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .glamour-card,
+  .glamour-card:nth-child(n) {
+    grid-column: 1;
+  }
+  .image-frame,
+  .glamour-card:nth-child(n) .image-frame {
+    height: min(128vw, 620px);
+  }
+  .wiki-status-card {
+    right: 12px;
+    bottom: 12px;
+    grid-template-columns: auto minmax(0, 1fr);
+    width: calc(100vw - 24px);
+  }
+  .wiki-status-card > div,
+  .wiki-status-card > button {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+  .wiki-status-card > div button,
+  .wiki-status-card > button {
+    flex: 1;
+  }
+  .glamour-login-wall {
+    align-items: start;
+    padding-top: 28px;
+  }
+  .glamour-login-panel {
+    grid-template-columns: 1fr;
+  }
+  .glamour-login-seal {
+    min-height: 142px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .glamour-login-seal > span {
+    width: 70px;
+    height: 70px;
+  }
+  .glamour-login-seal svg {
+    width: 30px;
+    height: 30px;
+  }
+  .glamour-login-copy {
+    padding: 28px 22px 30px;
+  }
+  .glamour-login-copy h1 {
+    font-size: 34px;
+  }
+  .glamour-login-actions {
+    flex-direction: column;
+  }
+  .glamour-login-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .job-filter-groups {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .save-button {
+    backdrop-filter: none;
+    background: rgba(23, 34, 35, 0.86);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-copy {
+    animation: hero-enter 700ms both cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .hero-overview {
+    animation: hero-enter 850ms 80ms both cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .wiki-status-spinner {
+    animation: login-spin 900ms linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glamour-card,
+  .skeleton-card .image-frame,
+  .skeleton-card > span,
+  .skeleton-card > small,
+  .glamour-login-checking > span {
+    animation: none;
+  }
+  .wiki-status-spinner {
+    animation: none;
+  }
+  .feed-load-trigger svg {
+    animation: none;
+  }
+}
+
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
