@@ -1,14 +1,14 @@
 /** Coordinates consent, encrypted cache hydration, item metadata, and ownership matching. */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { normalizeGameBridgeError } from "../../../shared/game-bridge/api";
+import { fetchCabinetItemIds, fetchItemSheetInfo } from "../api/itemSheetApi";
+import { loadOwnedItemsCache, syncOwnedItemsFromGame } from "../api/ownedItems";
 import type { ItemSheetInfo } from "../item.types";
 import type {
   OwnedItemMatch,
   OwnedItemSource,
   OwnedItemsSnapshot,
 } from "../ownedItems.types";
-import { normalizeGameBridgeError } from "../../../shared/game-bridge/api";
-import { fetchCabinetItemIds, fetchItemSheetInfo } from "../api/itemSheetApi";
-import { loadOwnedItemsCache, syncOwnedItemsFromGame } from "../api/ownedItems";
 import {
   buildOwnedItemIndex,
   buildOwnedModelIndex,

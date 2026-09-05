@@ -1,15 +1,18 @@
 /** Searches the Chinese FFXIV item sheet and normalizes selectable equipment. */
+import {
+  countEquipmentSearchFilters,
+  validateEquipmentSearchFilters,
+} from "../utils/equipmentFilters.ts";
+
 import { invoke } from "@tauri-apps/api/core";
+import { isTauriRuntime } from "../../../shared/utils/runtime";
 import {
   EQUIPMENT_PAGE_SIZES,
-  countEquipmentSearchFilters,
   type EquipmentPageSize,
   type EquipmentSearchFilters,
   type EquipmentSearchItem,
   type EquipmentSearchPage,
-  validateEquipmentSearchFilters,
 } from "../equipment.types";
-import { isTauriRuntime } from "../../../shared/utils/runtime";
 
 type NetworkResponse = { status: number; body: string };
 type UnknownRecord = Record<string, unknown>;

@@ -3,6 +3,11 @@
  * 网络请求由 Tauri Rust 层发送，前端只接收经过大小限制的 JSON 文本。
  */
 import { invoke } from "@tauri-apps/api/core";
+import {
+  authenticationRequired,
+  isSdoAuthenticationFailure,
+  isSdoAuthenticationPayload,
+} from "../../auth/utils/authEvents";
 import { CLASS_JOB_LABEL_BY_GLAMOUR_ID } from "../data/classJobs";
 import { genderIdMap, raceIdMap } from "../data/idsToName";
 import type {
@@ -12,11 +17,6 @@ import type {
   GlamourFetchOptions,
   GlamourPage,
 } from "../types";
-import {
-  authenticationRequired,
-  isSdoAuthenticationFailure,
-  isSdoAuthenticationPayload,
-} from "../../auth/utils/authEvents";
 import {
   findGlamourTotal,
   inferGlamourHasMore,

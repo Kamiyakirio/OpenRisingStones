@@ -1,5 +1,4 @@
 /** Gallery result states and interactions, isolated from page orchestration. */
-import { useEffect, useRef, type CSSProperties } from "react";
 import {
   BookmarkSimple,
   CheckCircle,
@@ -8,9 +7,10 @@ import {
   MagnifyingGlass,
   Plus,
 } from "@phosphor-icons/react";
+import { useEffect, useRef, type CSSProperties } from "react";
+import type { OwnedItemsState } from "../hooks/useOwnedItems";
 import type { Glamour, GlamourOrder } from "../types";
 import { hideBrokenImage } from "../utils/glamourPresentation";
-import type { OwnedItemsState } from "../hooks/useOwnedItems";
 
 type GlamourGalleryProps = {
   results: Glamour[];

@@ -1,13 +1,16 @@
 /** Collapsible Item-sheet filters used before opening equipment results. */
+import {
+  countEquipmentSearchFilters,
+  validateEquipmentSearchFilters,
+} from "../utils/equipmentFilters.ts";
+
 import { CaretDown, SlidersHorizontal, X } from "@phosphor-icons/react";
 import { useId, useState, type ReactNode } from "react";
 import { CLASS_JOB_GROUPS } from "../data/classJobs";
 import {
-  countEquipmentSearchFilters,
   type EquipmentClassJob,
   type EquipmentSearchFilters as EquipmentSearchFilterValues,
   type EquipmentSlot,
-  validateEquipmentSearchFilters,
 } from "../equipment.types";
 
 type EquipmentSearchFiltersProps = {

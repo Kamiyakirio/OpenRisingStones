@@ -1,7 +1,7 @@
 /** Tauri transport for encrypted owned-item cache reads and explicit game scans. */
 import { invoke } from "@tauri-apps/api/core";
-import type { OwnedItemsSnapshot } from "../ownedItems.types";
 import { isTauriRuntime } from "../../../shared/utils/runtime";
+import type { OwnedItemsSnapshot } from "../ownedItems.types";
 
 export async function loadOwnedItemsCache() {
   if (!isTauriRuntime()) return null;

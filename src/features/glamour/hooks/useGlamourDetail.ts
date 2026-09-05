@@ -1,7 +1,7 @@
 /** Loads a selected glamour detail and exposes bindable UI state. */
 import { useEffect, useState } from "react";
-import type { Glamour, GlamourDetail } from "../types";
 import { fetchGlamourDetail } from "../api/glamourApi";
+import type { Glamour, GlamourDetail } from "../types";
 
 export function useGlamourDetail(glamour: Glamour) {
   const [detail, setDetail] = useState<GlamourDetail | null>(null);

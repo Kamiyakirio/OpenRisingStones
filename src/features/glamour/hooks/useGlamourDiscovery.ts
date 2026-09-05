@@ -1,20 +1,22 @@
 /** Owns glamour discovery state, commands, filtering, and pagination. */
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CLASS_JOB_OPTIONS } from "../data/classJobs";
 import {
   countEquipmentSearchFilters,
   createEmptyEquipmentSearchFilters,
+  validateEquipmentSearchFilters,
+} from "../utils/equipmentFilters.ts";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchEquipmentCandidates } from "../api/equipmentApi";
+import { fetchGlamours } from "../api/glamourApi";
+import { CLASS_JOB_OPTIONS } from "../data/classJobs";
+import {
   type EquipmentClassJob,
   type EquipmentPageSize,
   type EquipmentSearchFilters,
   type EquipmentSearchItem,
   type EquipmentSearchPage,
-  validateEquipmentSearchFilters,
 } from "../equipment.types";
 import type { Glamour, GlamourOrder } from "../types";
-import type { WikiModelItem } from "../wiki.types";
-import { fetchEquipmentCandidates } from "../api/equipmentApi";
-import { fetchGlamours } from "../api/glamourApi";
 import {
   filterGlamoursByJobs,
   GLAMOUR_FEED_BATCH_SIZE,
@@ -25,6 +27,7 @@ import {
   revealNextGlamourBatch,
   visibleGlamourFeed,
 } from "../utils/glamourJobFilter";
+import type { WikiModelItem } from "../wiki.types";
 
 const DISCOVERY_PAGE_SIZE = GLAMOUR_FEED_BATCH_SIZE;
 const SEARCH_PAGE_SIZE = 20;

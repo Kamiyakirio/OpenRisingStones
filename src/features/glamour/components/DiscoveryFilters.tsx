@@ -17,12 +17,12 @@ import type {
   EquipmentSearchFilters as EquipmentSearchFilterValues,
   EquipmentSearchItem,
 } from "../equipment.types";
-import type { WikiModelItem } from "../wiki.types";
 import type { GlamourSearchMode } from "../hooks/useGlamourDiscovery";
 import type { WikiLoadStatus } from "../hooks/useWikiItem";
-import { EquivalentEquipmentSelector } from "./EquivalentEquipmentSelector";
+import type { WikiModelItem } from "../wiki.types";
 import { EquipmentSearchFilters } from "./EquipmentSearchFilters";
 import { SelectedEquipmentSummary } from "./EquipmentSearchResults";
+import { EquivalentEquipmentSelector } from "./EquivalentEquipmentSelector";
 
 type DiscoveryFiltersProps = {
   searchMode: GlamourSearchMode;

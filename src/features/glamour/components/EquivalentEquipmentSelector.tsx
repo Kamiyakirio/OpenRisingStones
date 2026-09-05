@@ -5,13 +5,13 @@ import {
   Prohibit,
   WarningCircle,
 } from "@phosphor-icons/react";
-import type { WikiModelItem } from "../wiki.types";
+import { MAX_EQUIVALENT_EQUIPMENT_SELECTION } from "../hooks/useGlamourDiscovery";
+import type { WikiLoadStatus } from "../hooks/useWikiItem";
 import {
   clusterModelItems,
   type ModelNameClusterEntry,
 } from "../utils/modelNameClusters";
-import { MAX_EQUIVALENT_EQUIPMENT_SELECTION } from "../hooks/useGlamourDiscovery";
-import type { WikiLoadStatus } from "../hooks/useWikiItem";
+import type { WikiModelItem } from "../wiki.types";
 
 type EquivalentEquipmentSelectorProps = {
   items: WikiModelItem[];

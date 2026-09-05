@@ -1,6 +1,4 @@
 /** Compact hover surface for Wiki acquisition routes and shared-model equipment. */
-import { useLayoutEffect, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
 import {
   ArrowClockwise,
   ArrowSquareOut,
@@ -18,6 +16,13 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
+import { useLayoutEffect, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
+import type { WikiLoadStatus } from "../hooks/useWikiItem";
+import {
+  clusterModelItems,
+  type ModelNameCluster,
+} from "../utils/modelNameClusters";
 import type {
   WikiAcquisition,
   WikiAcquisitionType,
@@ -25,11 +30,6 @@ import type {
   WikiModelItem,
   WikiSourceItem,
 } from "../wiki.types";
-import {
-  clusterModelItems,
-  type ModelNameCluster,
-} from "../utils/modelNameClusters";
-import type { WikiLoadStatus } from "../hooks/useWikiItem";
 
 type EquipmentSourcePopoverProps = {
   anchor: HTMLElement | null;

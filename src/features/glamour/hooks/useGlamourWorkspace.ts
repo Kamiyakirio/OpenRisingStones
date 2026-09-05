@@ -1,4 +1,4 @@
-/** Coordinates the glamour workspace's child ViewModels and navigation state. */
+/** Coordinates the glamour workspace's child hooks and navigation state. */
 import { useRef, useState } from "react";
 import type { LoginProfile } from "../../auth/types";
 import type { EquipmentSearchItem } from "../equipment.types";
@@ -7,7 +7,7 @@ import { useGlamourDiscovery } from "./useGlamourDiscovery";
 import { useOwnedItems } from "./useOwnedItems";
 import { useWikiItem } from "./useWikiItem";
 
-type GlamourWorkspaceViewModelOptions = {
+type GlamourWorkspaceOptions = {
   authenticated: boolean;
   loginChecking: boolean;
   onLoginSuccess: (profile: LoginProfile) => void;
@@ -17,7 +17,7 @@ export function useGlamourWorkspace({
   authenticated,
   loginChecking,
   onLoginSuccess,
-}: GlamourWorkspaceViewModelOptions) {
+}: GlamourWorkspaceOptions) {
   const discovery = useGlamourDiscovery(authenticated && !loginChecking);
   const ownedItems = useOwnedItems(authenticated && !loginChecking);
   const wiki = useWikiItem();
