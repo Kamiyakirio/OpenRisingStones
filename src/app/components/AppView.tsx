@@ -1,10 +1,10 @@
 /** Root View with declarative bindings and no infrastructure access. */
-import { HomePage } from "../components/HomePage";
-import { SettingsDialog } from "../features/settings/components/SettingsDialog";
-import type { AppViewModel } from "../viewmodels/useAppViewModel";
-import { GlamourWorkspaceView } from "./GlamourWorkspaceView";
-import { RecruitWorkspaceView } from "./RecruitWorkspaceView";
-import { TeleportWorkspaceView } from "./TeleportWorkspaceView";
+import { HomePage } from "../../pages/HomePage";
+import { SettingsDialog } from "../../features/settings/components/SettingsDialog";
+import type { AppViewModel } from "../hooks/useAppController";
+import { GlamourWorkspaceView } from "../../pages/GlamourPage";
+import { RecruitWorkspaceView } from "../../pages/RecruitPage";
+import { TeleportWorkspaceView } from "../../pages/TeleportPage";
 
 type AppViewProps = {
   viewModel: AppViewModel;

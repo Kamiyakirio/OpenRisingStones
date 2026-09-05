@@ -1,5 +1,5 @@
 /** Glamour workspace View bound to its feature-level ViewModel. */
-import { AppHeader } from "../components/AppHeader";
+import { AppHeader } from "../app/components/AppHeader";
 import { DiscoveryFilters } from "../features/glamour/components/DiscoveryFilters";
 import { EquipmentSearchPage } from "../features/glamour/components/EquipmentSearchResults";
 import { GlamourDetailView } from "../features/glamour/components/GlamourDetailView";
@@ -8,7 +8,7 @@ import { GlamourLoginWall } from "../features/glamour/components/GlamourLoginWal
 import { GlamourOwnedItemsPanel } from "../features/glamour/components/GlamourOwnedItemsPanel";
 import { LoginDialog } from "../features/auth/components/LoginDialog";
 import { RiskDialog } from "../shared/components/RiskDialog";
-import { SiteFooter } from "../components/SiteFooter";
+import { SiteFooter } from "../app/components/SiteFooter";
 import { WikiVerificationStatus } from "../features/glamour/components/WikiVerificationStatus";
 import type { LoginProfile } from "../features/auth/types";
 import { useGlamourWorkspaceViewModel } from "../features/glamour/hooks/useGlamourWorkspace";

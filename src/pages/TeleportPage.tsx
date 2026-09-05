@@ -1,7 +1,7 @@
 /** Regional Teleport diagnostic workspace bound to the game bridge ViewModel. */
-import { AppHeader } from "../components/AppHeader";
+import { AppHeader } from "../app/components/AppHeader";
 import { LoginDialog } from "../features/auth/components/LoginDialog";
-import { SiteFooter } from "../components/SiteFooter";
+import { SiteFooter } from "../app/components/SiteFooter";
 import { TeleportPage } from "../features/teleport/components/TeleportWorkspace";
 import type { LoginProfile } from "../features/auth/types";
 import { useTeleportWorkspaceViewModel } from "../features/teleport/hooks/useTeleportWorkspace";
