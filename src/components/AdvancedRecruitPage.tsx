@@ -17,6 +17,7 @@ import type { RecruitJob, RecruitSlotKey } from "../models/recruit";
 import { ADVANCED_RECRUIT_FIELD_KEYS } from "../utils/advancedRecruitFilter";
 import type { AdvancedRecruitViewModel } from "../viewmodels/useAdvancedRecruitViewModel";
 import { RecruitCard, RecruitDetailView } from "./RecruitPage";
+import { AdvancedRecruitPreferences } from "./AdvancedRecruitPreferences";
 import "./AdvancedRecruitPage.css";
 
 const FIELD_LABELS: Record<AdvancedRecruitField, string> = {
@@ -152,6 +153,8 @@ export function AdvancedRecruitPage({ viewModel }: AdvancedRecruitPageProps) {
           </div>
         </details>
 
+        <AdvancedRecruitPreferences viewModel={viewModel} />
+
         <div className="advanced-text-rules">
           <header>
             <div>
@@ -192,7 +195,7 @@ export function AdvancedRecruitPage({ viewModel }: AdvancedRecruitPageProps) {
           {viewModel.filters.textRules.length === 0 && (
             <div className="advanced-rule-empty">
               <strong>暂未添加字段规则</strong>
-              <span>当前仅按副本、位置和职业条件筛选。</span>
+              <span>当前按上方的副本、位置、职业与偏好条件筛选。</span>
             </div>
           )}
           {viewModel.filters.textRules.map((rule) => (

@@ -53,8 +53,8 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
     [config],
   );
   const filtering = useMemo(
-    () => filterAdvancedRecruitItems(dataset?.items ?? [], filters),
-    [dataset, filters],
+    () => filterAdvancedRecruitItems(dataset?.items ?? [], filters, config),
+    [dataset, filters, config],
   );
   const dutyOptions = useMemo(() => {
     const items = dataset?.items ?? [];
@@ -219,6 +219,9 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
     },
     [],
   );
+  const patchFilters = useCallback((patch: Partial<AdvancedRecruitFilters>) => {
+    setFilters((current) => ({ ...current, ...patch }));
+  }, []);
   const clearFilters = useCallback(() => {
     setFilters(createEmptyAdvancedRecruitFilters());
     setDutyQuery("");
@@ -244,6 +247,8 @@ export function useAdvancedRecruitViewModel(config: RecruitConfig | null) {
   );
 
   return {
+    patchFilters,
+    config,
     status,
     dataset,
     progress,

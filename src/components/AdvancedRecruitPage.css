@@ -938,3 +938,78 @@
     width: 100%;
   }
 }
+
+/* Preference controls inherit the workbench palette and collapse on narrow screens. */
+.advanced-preference-fields {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+.advanced-preference-fields p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.advanced-preference-fields h3 {
+  margin: 0;
+  font-size: 13px;
+}
+.advanced-preference-fields fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.advanced-preference-fields legend {
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+.advanced-preference-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+.advanced-preference-options label,
+.advanced-preference-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.advanced-preferences input[type="checkbox"] {
+  accent-color: var(--accent-strong);
+}
+.advanced-preference-options img {
+  object-fit: contain;
+}
+.advanced-playable-jobs {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+.advanced-time-bounds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.advanced-preferences select {
+  width: 100%;
+  min-height: 39px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 11px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.advanced-preferences :focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+@media (max-width: 460px) {
+  .advanced-time-bounds {
+    grid-template-columns: 1fr;
+  }
+}

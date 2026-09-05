@@ -21,6 +21,22 @@ export type AdvancedRecruitTextRule = {
 };
 
 export type AdvancedRecruitFilters = {
+  progressText: string;
+  strategyText: string;
+  excludeText: string;
+  timeText: string;
+  timeStart: string;
+  timeEnd: string;
+  dailyMaxHours: string;
+  timeDays: string[];
+  showUnparsedTime: boolean;
+  alliance: "" | "A" | "B" | "C";
+  teamComposition: string;
+  areaName: string;
+  labelNames: string[];
+  labelMode: "any" | "all";
+  playableJobIds: number[];
+  noDuplicateJobs: boolean;
   dutyNames: string[];
   openPositions: RecruitSlotKey[];
   existingJobIds: number[];
@@ -49,6 +65,22 @@ export type AdvancedRecruitDataset = {
 
 export function createEmptyAdvancedRecruitFilters(): AdvancedRecruitFilters {
   return {
+    progressText: "",
+    strategyText: "",
+    excludeText: "",
+    timeText: "",
+    timeStart: "",
+    timeEnd: "",
+    dailyMaxHours: "",
+    timeDays: [],
+    showUnparsedTime: true,
+    alliance: "",
+    teamComposition: "",
+    areaName: "",
+    labelNames: [],
+    labelMode: "all",
+    playableJobIds: [],
+    noDuplicateJobs: true,
     dutyNames: [],
     openPositions: [],
     existingJobIds: [],

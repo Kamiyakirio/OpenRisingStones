@@ -4,7 +4,9 @@ import type {
   AdvancedRecruitFilters,
   AdvancedRecruitTextRule,
 } from "../models/advancedRecruit";
-import type { RecruitDetail } from "../models/recruit";
+import { matchesRecruitPreferences } from "./recruitPreferences.ts";
+import { matchesRecruitKeywordQuery } from "./recruitPreferences.ts";
+import type { RecruitConfig, RecruitDetail } from "../models/recruit";
 
 export const ADVANCED_RECRUIT_FIELD_KEYS: AdvancedRecruitField[] = [
   "dutyName",
@@ -27,6 +29,7 @@ export type AdvancedRecruitRuleError = {
 export function filterAdvancedRecruitItems(
   items: RecruitDetail[],
   filters: AdvancedRecruitFilters,
+  config: RecruitConfig | null = null,
 ) {
   const compiledRules = filters.textRules
     .filter((rule) => rule.pattern.trim())
@@ -38,6 +41,7 @@ export function filterAdvancedRecruitItems(
 
   return {
     items: items.filter((item) => {
+      if (!matchesRecruitPreferences(item, filters, config)) return false;
       if (
         filters.dutyNames.length &&
         !filters.dutyNames.includes(item.dutyName)
@@ -45,6 +49,9 @@ export function filterAdvancedRecruitItems(
         return false;
       }
       const openPositions = item.slots
+        .filter(
+          (slot) => !filters.alliance || slot.alliance === filters.alliance,
+        )
         .filter((slot) => slot.jobId === null)
         .map((slot) => slot.key);
       if (
@@ -117,8 +124,9 @@ function compileTextRule(rule: AdvancedRecruitTextRule): {
     return {
       error: null,
       matches: (item) =>
-        fields.some((field) =>
-          fieldValue(item, field).toLocaleLowerCase().includes(keyword),
+        matchesRecruitKeywordQuery(
+          fields.map((field) => fieldValue(item, field)).join(" "),
+          keyword,
         ),
     };
   }
