@@ -4,8 +4,8 @@ import type {
   AdvancedRecruitProgress,
 } from "../advanced.types";
 import type {
-  RecruitDetail,
   RecruitPage,
+  RecruitDetail,
   RecruitPageOptions,
   RecruitSummary,
 } from "../types";

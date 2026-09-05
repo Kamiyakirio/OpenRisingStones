@@ -1,14 +1,14 @@
 /** Reads and normalizes the public Rising Stones recruitment endpoints. */
-import { parseRecruitSlots } from "../utils/recruitSlots";
 import { invoke } from "@tauri-apps/api/core";
+import { isTauriRuntime } from "../../../shared/utils/runtime";
 import type {
-  RecruitConfig,
   RecruitArea,
+  RecruitPage,
+  RecruitConfig,
   RecruitDetail,
   RecruitDuty,
   RecruitJob,
   RecruitLabel,
-  RecruitPage,
   RecruitPageOptions,
   RecruitSummary,
 } from "../types";
@@ -18,7 +18,7 @@ import {
   rateLimitMessage,
   readReasonMessage,
 } from "../utils/recruitRateLimit";
-import { isTauriRuntime } from "../../../shared/utils/runtime";
+import { parseRecruitSlots } from "../utils/recruitSlots";
 
 export { RecruitRateLimitError, isRecruitRateLimitError };
 

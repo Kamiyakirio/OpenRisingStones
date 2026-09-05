@@ -1,4 +1,6 @@
 /** Owns advanced aggregation, filter presentation state, commands, and derived results. */
+import { createEmptyAdvancedRecruitFilters } from "../utils/advancedRecruitDefaults.ts";
+
 import {
   useCallback,
   useEffect,
@@ -8,24 +10,23 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import { useListDetailScroll } from "../../../shared/hooks/useListDetailScroll";
 import {
-  createEmptyAdvancedRecruitFilters,
   type AdvancedRecruitDataset,
   type AdvancedRecruitField,
   type AdvancedRecruitFilters,
   type AdvancedRecruitProgress,
   type AdvancedRecruitTextRule,
 } from "../advanced.types";
+import { loadAdvancedRecruitDataset } from "../api/advancedRecruitApi";
 import type {
   RecruitConfig,
   RecruitDetail,
   RecruitJob,
   RecruitSlotKey,
 } from "../types";
-import { loadAdvancedRecruitDataset } from "../api/advancedRecruitApi";
 import { filterAdvancedRecruitItems } from "../utils/advancedRecruitFilter";
 import { buildRecruitDutyChoices } from "../utils/recruitDutyGroups";
-import { useListDetailScroll } from "../../../shared/hooks/useListDetailScroll";
 
 export type AdvancedRecruitStatus = "idle" | "loading" | "ready" | "error";
 

@@ -92,11 +92,3 @@ export type RecruitPageOptions = {
   dutyNames?: string[];
   signal?: AbortSignal;
 };
-
-export function createEmptyRecruitFilters(): RecruitFilters {
-  return {
-    dutyName: "",
-    dutyType: "",
-    areaId: "",
-  };
-}

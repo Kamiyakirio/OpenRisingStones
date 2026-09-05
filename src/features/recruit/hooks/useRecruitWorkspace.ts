@@ -1,4 +1,4 @@
-/** Coordinates recruitment tabs, risk consent, feed, and advanced ViewModels. */
+/** Coordinates recruitment tabs, risk consent, feed, and advanced hooks. */
 import { useCallback, useState } from "react";
 import {
   grantAdvancedRecruitRiskConsent,

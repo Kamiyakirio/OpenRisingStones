@@ -1,23 +1,24 @@
 /** Owns public recruitment configuration, continuous feed, filters, and detail state. */
+import { createEmptyRecruitFilters } from "../utils/recruitFilters.ts";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  createEmptyRecruitFilters,
-  type RecruitConfig,
-  type RecruitDetail,
-  type RecruitFilters,
-  type RecruitSummary,
-} from "../types";
+import { useListDetailScroll } from "../../../shared/hooks/useListDetailScroll";
 import {
   fetchRecruitConfig,
   fetchRecruitDetail,
   fetchRecruitPage,
 } from "../api/recruitApi";
 import {
+  type RecruitConfig,
+  type RecruitDetail,
+  type RecruitFilters,
+  type RecruitSummary,
+} from "../types";
+import { expandRecruitDutyChoice } from "../utils/recruitDutyGroups";
+import {
   canLoadMoreRecruitItems,
   mergeRecruitFeed,
 } from "../utils/recruitFeed";
-import { expandRecruitDutyChoice } from "../utils/recruitDutyGroups";
-import { useListDetailScroll } from "../../../shared/hooks/useListDetailScroll";
 
 const PAGE_SIZE = 9;
 

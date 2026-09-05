@@ -62,33 +62,3 @@ export type AdvancedRecruitDataset = {
   items: RecruitDetail[];
   failedDetailCount: number;
 };
-
-export function createEmptyAdvancedRecruitFilters(): AdvancedRecruitFilters {
-  return {
-    progressText: "",
-    strategyText: "",
-    excludeText: "",
-    timeText: "",
-    timeStart: "",
-    timeEnd: "",
-    dailyMaxHours: "",
-    timeDays: [],
-    showUnparsedTime: true,
-    alliance: "",
-    teamComposition: "",
-    areaName: "",
-    labelNames: [],
-    labelMode: "all",
-    playableJobIds: [],
-    noDuplicateJobs: true,
-    dutyNames: [],
-    openPositions: [],
-    existingJobIds: [],
-    missingJobIds: [],
-    openPositionMode: "any",
-    existingJobMode: "any",
-    missingJobMode: "any",
-    textRuleMode: "all",
-    textRules: [],
-  };
-}
