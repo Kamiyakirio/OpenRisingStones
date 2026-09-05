@@ -1,4 +1,4 @@
-/** Owned styles extracted from the application stylesheet. */
+/** equipment styles, including owned responsive and accessibility rules. */
 
 .equipment-search-hint {
   margin: 12px 6px 0;
@@ -604,4 +604,363 @@
   display: grid;
   min-width: 0;
   gap: 2px;
+}
+.equivalent-role-cluster > summary strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.equivalent-role-cluster > summary small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.equivalent-role-cluster > summary > span:last-child {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 8px;
+}
+.equivalent-role-cluster > summary svg {
+  width: 12px;
+  height: 12px;
+  color: var(--accent);
+}
+.equivalent-role-cluster > div {
+  display: grid;
+  gap: 2px;
+  padding: 0 4px 4px 12px;
+}
+.equivalent-equipment-option {
+  display: grid;
+  grid-template-columns: auto 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.equivalent-equipment-option:has(input:checked) {
+  background: color-mix(in srgb, var(--accent-soft) 58%, var(--surface));
+}
+.equivalent-equipment-option:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.equivalent-equipment-option input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent-strong);
+}
+.equivalent-equipment-option input:disabled {
+  cursor: not-allowed;
+}
+.equivalent-equipment-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--surface-2);
+}
+.equivalent-equipment-icon > svg {
+  width: 15px;
+  height: 15px;
+}
+.equivalent-equipment-icon img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.equivalent-equipment-option > span:nth-child(3) {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.equivalent-equipment-option strong,
+.equivalent-equipment-option small,
+.equivalent-equipment-option > span:nth-child(3) > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.equivalent-equipment-option strong {
+  font-size: 10px;
+}
+.equivalent-equipment-option small,
+.equivalent-equipment-option > span:nth-child(3) > span {
+  color: var(--muted);
+  font-size: 8px;
+}
+.equivalent-equipment-option > svg {
+  width: 14px;
+  height: 14px;
+  color: var(--danger);
+}
+.equivalent-equipment-option.unobtainable {
+  cursor: not-allowed;
+  background: color-mix(in srgb, var(--danger-soft) 38%, var(--surface));
+}
+.equivalent-equipment-option.unobtainable img {
+  filter: grayscale(0.75);
+  opacity: 0.68;
+}
+.equivalent-equipment-state,
+.equivalent-equipment-message,
+.equivalent-equipment-empty {
+  min-height: 40px;
+  margin: 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 9px;
+}
+.equivalent-equipment-state,
+.equivalent-equipment-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+.equivalent-equipment-state > span {
+  width: 78px;
+  height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(
+    100deg,
+    var(--surface-2) 20%,
+    var(--surface) 45%,
+    var(--surface-2) 70%
+  );
+  background-size: 240% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+.equivalent-equipment-state p {
+  margin: 0;
+}
+.equivalent-equipment-message svg {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+}
+.equivalent-equipment-empty {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+.equipment-page-state {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 360px;
+  padding: 48px 20px;
+  border-radius: 14px;
+  color: var(--muted);
+  background: var(--surface);
+  text-align: center;
+}
+.equipment-page-state > svg {
+  width: 32px;
+  height: 32px;
+  color: var(--accent);
+}
+.equipment-page-state h2 {
+  margin: 16px 0 7px;
+  color: var(--ink);
+  font-size: 20px;
+}
+.equipment-page-state p {
+  margin: 0;
+  font-size: 13px;
+}
+.equipment-page-state button {
+  margin-top: 22px;
+}
+.equipment-page-error {
+  background: color-mix(in srgb, var(--accent-soft) 52%, var(--surface));
+}
+.equipment-card-skeletons {
+  padding-top: 2px;
+}
+.equipment-card-skeleton {
+  grid-template-columns: 52px 1fr;
+}
+.equipment-card-skeleton > span,
+.equipment-card-skeleton > small {
+  display: block;
+  background: linear-gradient(
+    100deg,
+    var(--surface-2) 20%,
+    color-mix(in srgb, var(--surface-2) 55%, var(--surface)) 45%,
+    var(--surface-2) 70%
+  );
+  background-size: 240% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+.equipment-card-skeleton > span {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+}
+.equipment-card-skeleton > small {
+  width: 78%;
+  height: 12px;
+  border-radius: 4px;
+}
+.equipment-pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-top: 34px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.equipment-pagination button:first-child {
+  justify-self: start;
+}
+.equipment-pagination button:last-child {
+  justify-self: end;
+}
+.equipment-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+.equipment-pagination > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 980px) {
+  .equipment-page-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .equipment-filter-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .equipment-results-page {
+    min-height: calc(100dvh - 66px);
+    padding-top: 28px;
+  }
+  .equipment-results-shell {
+    min-height: 0;
+  }
+  .equipment-page-header {
+    grid-template-columns: 1fr auto;
+    gap: 18px 12px;
+    padding-bottom: 22px;
+  }
+  .equipment-page-header > div {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .equipment-page-header h1 {
+    margin-top: 0;
+    font-size: 36px;
+  }
+  .equipment-page-content {
+    min-height: 360px;
+    padding-top: 22px;
+  }
+  .equipment-filter-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .equipment-level-range {
+    grid-column: span 2;
+  }
+  .equipment-active-filters {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .equipment-page-summary > div {
+    gap: 9px;
+  }
+  .equipment-page-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .equipment-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 8px;
+    min-height: 70px;
+    padding: 8px;
+  }
+  .equipment-artwork {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+  }
+  .equipment-card strong {
+    font-size: 11px;
+  }
+  .equipment-pagination {
+    margin-top: 28px;
+    padding-top: 20px;
+  }
+  .equipment-pagination button {
+    min-height: 38px;
+    padding: 0 12px;
+  }
+  .equivalent-equipment-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .equivalent-equipment-header > div {
+    width: 100%;
+  }
+  .equivalent-equipment-header button {
+    flex: 1;
+  }
+  .equivalent-equipment-list > summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    padding-block: 9px;
+  }
+  .equivalent-equipment-option {
+    grid-template-columns: auto 34px minmax(0, 1fr);
+  }
+  .equivalent-equipment-icon {
+    width: 34px;
+    height: 34px;
+  }
+  .equivalent-equipment-option > svg {
+    grid-column: 3;
+  }
+}
+
+@media (max-width: 480px) {
+  .equipment-filter-fields {
+    grid-template-columns: 1fr;
+  }
+  .equipment-level-range {
+    grid-column: auto;
+  }
+  .equipment-filter-clear {
+    width: 34px;
+    padding: 0;
+    font-size: 0;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .equivalent-equipment-state > span {
+    animation: none;
+  }
 }
