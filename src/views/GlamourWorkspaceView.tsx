@@ -1,17 +1,17 @@
 /** Glamour workspace View bound to its feature-level ViewModel. */
 import { AppHeader } from "../components/AppHeader";
-import { DiscoveryFilters } from "../components/DiscoveryFilters";
-import { EquipmentSearchPage } from "../components/EquipmentSearchPage";
-import { GlamourDetailView } from "../components/GlamourDetailView";
-import { GlamourGallery } from "../components/GlamourGallery";
-import { GlamourLoginWall } from "../components/GlamourLoginWall";
-import { GlamourOwnedItemsPanel } from "../components/GlamourOwnedItemsPanel";
+import { DiscoveryFilters } from "../features/glamour/components/DiscoveryFilters";
+import { EquipmentSearchPage } from "../features/glamour/components/EquipmentSearchResults";
+import { GlamourDetailView } from "../features/glamour/components/GlamourDetailView";
+import { GlamourGallery } from "../features/glamour/components/GlamourGallery";
+import { GlamourLoginWall } from "../features/glamour/components/GlamourLoginWall";
+import { GlamourOwnedItemsPanel } from "../features/glamour/components/GlamourOwnedItemsPanel";
 import { LoginDialog } from "../features/auth/components/LoginDialog";
 import { RiskDialog } from "../shared/components/RiskDialog";
 import { SiteFooter } from "../components/SiteFooter";
-import { WikiVerificationStatus } from "../components/WikiVerificationStatus";
+import { WikiVerificationStatus } from "../features/glamour/components/WikiVerificationStatus";
 import type { LoginProfile } from "../features/auth/types";
-import { useGlamourWorkspaceViewModel } from "../viewmodels/useGlamourWorkspaceViewModel";
+import { useGlamourWorkspaceViewModel } from "../features/glamour/hooks/useGlamourWorkspace";
 
 type GlamourWorkspaceViewProps = {
   dark: boolean;

@@ -6,7 +6,7 @@ import {
   buildOwnedItemIndex,
   buildOwnedModelIndex,
   matchOwnedItem,
-} from "../src/utils/ownedItems.ts";
+} from "../src/features/glamour/utils/ownedItems.ts";
 
 const snapshot = {
   items: [

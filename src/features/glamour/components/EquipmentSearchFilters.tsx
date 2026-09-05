@@ -8,7 +8,7 @@ import {
   type EquipmentSearchFilters as EquipmentSearchFilterValues,
   type EquipmentSlot,
   validateEquipmentSearchFilters,
-} from "../models/equipment";
+} from "../equipment.types";
 
 type EquipmentSearchFiltersProps = {
   filters: EquipmentSearchFilterValues;

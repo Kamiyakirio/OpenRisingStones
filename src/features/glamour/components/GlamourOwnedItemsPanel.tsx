@@ -6,7 +6,7 @@ import {
   CircleNotch,
   WarningCircle,
 } from "@phosphor-icons/react";
-import type { OwnedItemsViewModel } from "../viewmodels/useOwnedItemsViewModel";
+import type { OwnedItemsViewModel } from "../hooks/useOwnedItems";
 import "./GlamourOwnedItemsPanel.css";
 
 type GlamourOwnedItemsPanelProps = {

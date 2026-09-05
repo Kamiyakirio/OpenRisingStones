@@ -9,7 +9,7 @@ import type {
   WikiPageTransport,
   WikiSourceDetail,
   WikiSourceItem,
-} from "../models/wiki";
+} from "../wiki.types";
 
 export async function fetchWikiItemPage(itemName: string) {
   return invoke<WikiPageTransport>("fetch_wiki_item_page", {

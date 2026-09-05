@@ -3,7 +3,7 @@ import type {
   EquipmentClassJob,
   EquipmentSearchFilters,
   EquipmentSlot,
-} from "../models/equipment";
+} from "../equipment.types";
 
 const SLOT_LABELS: Record<EquipmentSlot, string> = {
   MainHand: "主手",

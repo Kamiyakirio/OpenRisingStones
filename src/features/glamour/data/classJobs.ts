@@ -1,5 +1,5 @@
 /** Shared FFXIV class/job options used by equipment and glamour filters. */
-import type { EquipmentClassJob } from "../models/equipment";
+import type { EquipmentClassJob } from "../equipment.types";
 
 export type ClassJobOption = {
   value: EquipmentClassJob;

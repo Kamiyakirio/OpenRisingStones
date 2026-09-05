@@ -24,12 +24,12 @@ import type {
   WikiItemData,
   WikiModelItem,
   WikiSourceItem,
-} from "../models/wiki";
+} from "../wiki.types";
 import {
   clusterModelItems,
   type ModelNameCluster,
 } from "../utils/modelNameClusters";
-import type { WikiLoadStatus } from "../viewmodels/useWikiItemViewModel";
+import type { WikiLoadStatus } from "../hooks/useWikiItem";
 
 type EquipmentSourcePopoverProps = {
   anchor: HTMLElement | null;

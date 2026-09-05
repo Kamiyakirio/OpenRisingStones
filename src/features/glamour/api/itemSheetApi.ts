@@ -1,6 +1,6 @@
 /** Batched, cached access to the Chinese XIVAPI Item sheet. */
 import { invoke } from "@tauri-apps/api/core";
-import type { ItemSheetInfo } from "../models/item";
+import type { ItemSheetInfo } from "../item.types";
 import {
   buildCabinetSheetUrl,
   buildItemSheetUrl,
@@ -9,7 +9,7 @@ import {
   readMissingItemId,
   readMissingSheetRowId,
 } from "../utils/itemSheet";
-import { isTauriRuntime } from "../shared/utils/runtime";
+import { isTauriRuntime } from "../../../shared/utils/runtime";
 
 type NetworkResponse = { status: number; body: string };
 

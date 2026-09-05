@@ -1,10 +1,10 @@
 /** Pure owned-item indexing and shared-model matching helpers. */
-import type { ItemSheetInfo } from "../models/item";
+import type { ItemSheetInfo } from "../item.types";
 import type {
   OwnedItemMatch,
   OwnedItemSource,
   OwnedItemsSnapshot,
-} from "../models/ownedItems";
+} from "../ownedItems.types";
 
 export type OwnedItemIndex = Map<number, OwnedItemSource[]>;
 

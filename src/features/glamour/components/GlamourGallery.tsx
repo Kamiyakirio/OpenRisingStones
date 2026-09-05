@@ -8,9 +8,9 @@ import {
   MagnifyingGlass,
   Plus,
 } from "@phosphor-icons/react";
-import type { Glamour, GlamourOrder } from "../models/glamour";
+import type { Glamour, GlamourOrder } from "../types";
 import { hideBrokenImage } from "../utils/glamourPresentation";
-import type { OwnedItemsViewModel } from "../viewmodels/useOwnedItemsViewModel";
+import type { OwnedItemsViewModel } from "../hooks/useOwnedItems";
 
 type GlamourGalleryProps = {
   results: Glamour[];

@@ -1,14 +1,14 @@
 /** Coordinates Safari wiki requests, background verification, and HTML parsing. */
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
-import type { WikiItemData, WikiStatusEvent } from "../models/wiki";
+import type { WikiItemData, WikiStatusEvent } from "../wiki.types";
 import {
   cancelWikiVerification,
   fetchWikiItemPage,
   parseWikiItemPage,
   showWikiVerification,
-} from "../services/wikiApi";
-import { isTauriRuntime } from "../shared/utils/runtime";
+} from "../api/wikiApi";
+import { isTauriRuntime } from "../../../shared/utils/runtime";
 
 const wikiItemCache = new Map<string, WikiItemData>();
 

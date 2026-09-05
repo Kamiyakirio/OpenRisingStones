@@ -11,7 +11,7 @@ import {
   parseItemSheetResponse,
   readMissingItemId,
   readMissingSheetRowId,
-} from "../src/utils/itemSheet.ts";
+} from "../src/features/glamour/utils/itemSheet.ts";
 
 test("builds bounded Chinese Item sheet batch requests", () => {
   const url = buildItemSheetUrl(

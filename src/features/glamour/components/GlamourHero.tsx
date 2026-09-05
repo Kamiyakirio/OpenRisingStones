@@ -1,7 +1,7 @@
 /** Featured glamour hero with archive context for the active filters. */
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import { genderIdMap, raceIdMap } from "../models/idsToName";
-import type { Glamour } from "../models/glamour";
+import { genderIdMap, raceIdMap } from "../data/idsToName";
+import type { Glamour } from "../types";
 import { formatGlamourCount } from "../utils/glamourPresentation";
 
 type GlamourHeroProps = {

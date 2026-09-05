@@ -1,11 +1,11 @@
 /** Coordinates the glamour workspace's child ViewModels and navigation state. */
 import { useRef, useState } from "react";
-import type { LoginProfile } from "../features/auth/types";
-import type { EquipmentSearchItem } from "../models/equipment";
-import type { Glamour, GlamourEquipment } from "../models/glamour";
-import { useGlamourDiscoveryViewModel } from "./useGlamourDiscoveryViewModel";
-import { useOwnedItemsViewModel } from "./useOwnedItemsViewModel";
-import { useWikiItemViewModel } from "./useWikiItemViewModel";
+import type { LoginProfile } from "../../auth/types";
+import type { EquipmentSearchItem } from "../equipment.types";
+import type { Glamour, GlamourEquipment } from "../types";
+import { useGlamourDiscoveryViewModel } from "./useGlamourDiscovery";
+import { useOwnedItemsViewModel } from "./useOwnedItems";
+import { useWikiItemViewModel } from "./useWikiItem";
 
 type GlamourWorkspaceViewModelOptions = {
   authenticated: boolean;

@@ -10,11 +10,11 @@ import {
   type EquipmentSearchItem,
   type EquipmentSearchPage,
   validateEquipmentSearchFilters,
-} from "../models/equipment";
-import type { Glamour, GlamourOrder } from "../models/glamour";
-import type { WikiModelItem } from "../models/wiki";
-import { fetchEquipmentCandidates } from "../services/equipmentApi";
-import { fetchGlamours } from "../services/glamourApi";
+} from "../equipment.types";
+import type { Glamour, GlamourOrder } from "../types";
+import type { WikiModelItem } from "../wiki.types";
+import { fetchEquipmentCandidates } from "../api/equipmentApi";
+import { fetchGlamours } from "../api/glamourApi";
 import {
   filterGlamoursByJobs,
   GLAMOUR_FEED_BATCH_SIZE,

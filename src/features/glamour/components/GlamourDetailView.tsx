@@ -13,17 +13,13 @@ import {
   Star,
   XCircle,
 } from "@phosphor-icons/react";
-import type {
-  Glamour,
-  GlamourDetail,
-  GlamourEquipment,
-} from "../models/glamour";
-import type { OwnedItemMatch, OwnedItemSource } from "../models/ownedItems";
+import type { Glamour, GlamourDetail, GlamourEquipment } from "../types";
+import type { OwnedItemMatch, OwnedItemSource } from "../ownedItems.types";
 import { hideBrokenImage } from "../utils/glamourPresentation";
-import { useGlamourDetailViewModel } from "../viewmodels/useGlamourDetailViewModel";
-import { useRisingStonesAvatarViewModel } from "../shared/hooks/useRisingStonesAvatar";
-import type { WikiItemViewModel } from "../viewmodels/useWikiItemViewModel";
-import type { OwnedItemsViewModel } from "../viewmodels/useOwnedItemsViewModel";
+import { useGlamourDetailViewModel } from "../hooks/useGlamourDetail";
+import { useRisingStonesAvatarViewModel } from "../../../shared/hooks/useRisingStonesAvatar";
+import type { WikiItemViewModel } from "../hooks/useWikiItem";
+import type { OwnedItemsViewModel } from "../hooks/useOwnedItems";
 import { EquipmentSourcePopover } from "./EquipmentSourcePopover";
 import "./GlamourDetailView.css";
 

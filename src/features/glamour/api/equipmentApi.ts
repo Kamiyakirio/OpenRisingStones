@@ -8,8 +8,8 @@ import {
   type EquipmentSearchItem,
   type EquipmentSearchPage,
   validateEquipmentSearchFilters,
-} from "../models/equipment";
-import { isTauriRuntime } from "../shared/utils/runtime";
+} from "../equipment.types";
+import { isTauriRuntime } from "../../../shared/utils/runtime";
 
 type NetworkResponse = { status: number; body: string };
 type UnknownRecord = Record<string, unknown>;

@@ -11,18 +11,18 @@ import {
   CLASS_JOB_OPTIONS,
   getClassJobIconUrl,
 } from "../data/classJobs";
-import { genderIdMap, raceIdMap } from "../models/idsToName";
+import { genderIdMap, raceIdMap } from "../data/idsToName";
 import type {
   EquipmentClassJob,
   EquipmentSearchFilters as EquipmentSearchFilterValues,
   EquipmentSearchItem,
-} from "../models/equipment";
-import type { WikiModelItem } from "../models/wiki";
-import type { GlamourSearchMode } from "../viewmodels/useGlamourDiscoveryViewModel";
-import type { WikiLoadStatus } from "../viewmodels/useWikiItemViewModel";
+} from "../equipment.types";
+import type { WikiModelItem } from "../wiki.types";
+import type { GlamourSearchMode } from "../hooks/useGlamourDiscovery";
+import type { WikiLoadStatus } from "../hooks/useWikiItem";
 import { EquivalentEquipmentSelector } from "./EquivalentEquipmentSelector";
 import { EquipmentSearchFilters } from "./EquipmentSearchFilters";
-import { SelectedEquipmentSummary } from "./EquipmentSearchPage";
+import { SelectedEquipmentSummary } from "./EquipmentSearchResults";
 
 type DiscoveryFiltersProps = {
   searchMode: GlamourSearchMode;

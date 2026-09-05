@@ -4,19 +4,19 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { CLASS_JOB_LABEL_BY_GLAMOUR_ID } from "../data/classJobs";
-import { genderIdMap, raceIdMap } from "../models/idsToName";
+import { genderIdMap, raceIdMap } from "../data/idsToName";
 import type {
   Glamour,
   GlamourDetail,
   GlamourEquipment,
   GlamourFetchOptions,
   GlamourPage,
-} from "../models/glamour";
+} from "../types";
 import {
   authenticationRequired,
   isSdoAuthenticationFailure,
   isSdoAuthenticationPayload,
-} from "../features/auth/utils/authEvents";
+} from "../../auth/utils/authEvents";
 import {
   findGlamourTotal,
   inferGlamourHasMore,

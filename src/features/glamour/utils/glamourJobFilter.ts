@@ -1,5 +1,5 @@
 /** Pure helpers and pacing constants for the client-filtered glamour feed. */
-import type { Glamour } from "../models/glamour";
+import type { Glamour } from "../types";
 
 export const GLAMOUR_FEED_BATCH_SIZE = 12;
 export const JOB_FILTER_PREFETCH_COUNT = 24;
