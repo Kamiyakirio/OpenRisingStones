@@ -1,6 +1,6 @@
 /** Root View with declarative bindings and no infrastructure access. */
 import { HomePage } from "../components/HomePage";
-import { SettingsDialog } from "../components/SettingsDialog";
+import { SettingsDialog } from "../features/settings/components/SettingsDialog";
 import type { AppViewModel } from "../viewmodels/useAppViewModel";
 import { GlamourWorkspaceView } from "./GlamourWorkspaceView";
 import { RecruitWorkspaceView } from "./RecruitWorkspaceView";

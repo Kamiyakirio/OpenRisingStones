@@ -1,6 +1,6 @@
 /** Owns settings confirmation and local-data clearing state. */
 import { useCallback, useState } from "react";
-import { clearAllLocalData } from "../services/localData";
+import { clearAllLocalData } from "../api/localData";
 
 export function useSettingsDialogViewModel(onClose: () => void) {
   const [confirming, setConfirming] = useState(false);
