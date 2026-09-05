@@ -2,9 +2,9 @@
 import { AppHeader } from "../components/AppHeader";
 import { LoginDialog } from "../features/auth/components/LoginDialog";
 import { SiteFooter } from "../components/SiteFooter";
-import { TeleportPage } from "../components/TeleportPage";
+import { TeleportPage } from "../features/teleport/components/TeleportWorkspace";
 import type { LoginProfile } from "../features/auth/types";
-import { useTeleportWorkspaceViewModel } from "../viewmodels/useTeleportWorkspaceViewModel";
+import { useTeleportWorkspaceViewModel } from "../features/teleport/hooks/useTeleportWorkspace";
 
 type TeleportWorkspaceViewProps = {
   dark: boolean;

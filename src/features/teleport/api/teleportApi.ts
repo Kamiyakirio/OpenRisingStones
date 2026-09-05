@@ -10,12 +10,12 @@ import type {
   TeleportOrderStatus,
   TeleportOverview,
   TeleportRole,
-} from "../models/teleport";
+} from "../types";
 import {
   authenticationRequired,
   isSdoAuthenticationFailure,
-} from "../features/auth/utils/authEvents";
-import { isTauriRuntime } from "../shared/utils/runtime";
+} from "../../auth/utils/authEvents";
+import { isTauriRuntime } from "../../../shared/utils/runtime";
 
 type UnknownRecord = Record<string, unknown>;
 type ApiEnvelope = {

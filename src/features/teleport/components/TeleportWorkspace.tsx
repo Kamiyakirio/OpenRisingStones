@@ -18,10 +18,10 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
-import type { TeleportOrder } from "../models/teleport";
-import type { TeleportWorkspaceViewModel } from "../viewmodels/useTeleportWorkspaceViewModel";
-import { RiskDialog } from "../shared/components/RiskDialog";
-import "./TeleportPage.css";
+import type { TeleportOrder } from "../types";
+import type { TeleportWorkspaceViewModel } from "../hooks/useTeleportWorkspace";
+import { RiskDialog } from "../../../shared/components/RiskDialog";
+import "./TeleportWorkspace.css";
 
 type TeleportPageProps = {
   viewModel: TeleportWorkspaceViewModel;

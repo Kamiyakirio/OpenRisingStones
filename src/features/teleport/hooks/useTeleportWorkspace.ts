@@ -6,7 +6,7 @@ import type {
   TeleportOrder,
   TeleportOrderStatus,
   TeleportRole,
-} from "../models/teleport";
+} from "../types";
 import {
   confirmTeleportOrder,
   createTeleportOrder,
@@ -19,18 +19,18 @@ import {
   fetchTeleportRoles,
   fetchTeleportTargets,
   submitTeleportReturn,
-} from "../services/teleportApi";
+} from "../api/teleportApi";
 import {
   applyTeleportGameRegion,
   logoutGameToTitle,
   normalizeGameBridgeError,
   prepareGameBridge,
   readGameBridge,
-} from "../shared/game-bridge/api";
+} from "../../../shared/game-bridge/api";
 import type {
   ActiveCharacterSnapshot,
   GameSnapshot,
-} from "../shared/game-bridge/types";
+} from "../../../shared/game-bridge/types";
 
 export type TeleportMode = "manual" | "automatic";
 export type AutomaticTeleportStage =
