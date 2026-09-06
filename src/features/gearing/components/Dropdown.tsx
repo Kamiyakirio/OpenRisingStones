@@ -1,0 +1,148 @@
+/** Gearing UI adapted from ffxiv-gearing (MIT), scoped to the gearing workspace. */
+import * as React from "react";
+import * as ReactDOM from "react-dom";
+import * as mobxReact from "mobx-react-lite";
+import * as PopperJS from "@popperjs/core";
+
+export interface DropdownLabelProps {
+  ref: (ref: HTMLElement | null) => void;
+  expanded: boolean;
+  toggle: () => void;
+}
+
+export interface DropdownPopperProps {
+  toggle: () => void;
+  labelElement: HTMLElement | null;
+}
+
+export interface DropdownProps {
+  label: React.FunctionComponent<DropdownLabelProps>;
+  popper: React.FunctionComponent<DropdownPopperProps>;
+  placement: PopperJS.Placement;
+  modifiers?: PopperJS.StrictModifiers[];
+  strategy?: PopperJS.PositioningStrategy;
+  outsideClickIgnoreSelector?: string;
+}
+
+export const Dropdown = mobxReact.observer<DropdownProps>((props) => {
+  const [expanded, setExpanded] = React.useState(false);
+  const [labelElement, setLabelElement] = React.useState<HTMLElement | null>(
+    null,
+  );
+  const toggle = React.useCallback((e?: UIEvent) => {
+    setExpanded((expanded) => !expanded);
+    if (e) {
+      e.stopPropagation();
+    }
+  }, []);
+  return (
+    <>
+      {props.label({
+        ref: setLabelElement,
+        expanded,
+        toggle,
+      })}
+      {expanded && (
+        <DropdownPopper
+          {...props}
+          setExpanded={setExpanded}
+          labelElement={labelElement}
+          toggle={toggle}
+        />
+      )}
+    </>
+  );
+});
+
+const DropdownPopper = mobxReact.observer<
+  DropdownProps & {
+    setExpanded: (expanded: boolean) => void;
+    labelElement: HTMLElement | null;
+    toggle: () => void;
+  }
+>((props) => {
+  const {
+    popper,
+    placement,
+    modifiers = [],
+    strategy = "absolute",
+    setExpanded,
+    labelElement,
+    toggle,
+  } = props;
+  const [popperOptions] = React.useState({ placement, modifiers, strategy });
+  const [popperElement, setPopperElement] = React.useState<HTMLElement | null>(
+    null,
+  );
+  const popperContainer = document.getElementById("gearing-popper");
+  React.useLayoutEffect(() => {
+    if (labelElement === null || popperElement === null) return;
+    if (popperOptions.strategy !== "fixed") {
+      popperOptions.modifiers.push({
+        name: "flip",
+        options: { padding: { bottom: 50 } },
+      });
+    }
+    const popperInstance = PopperJS.createPopper(
+      labelElement,
+      popperElement,
+      popperOptions,
+    );
+    if (popperOptions.strategy === "fixed") {
+      popperElement.style.zIndex = "7"; // for search: z-index: 7;
+    }
+    return () => popperInstance.destroy();
+  }, [labelElement, popperElement, popperOptions]);
+  React.useEffect(() => {
+    const onGlobalClick = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (target && labelElement && popperElement) {
+        if (
+          !labelElement.contains(target) &&
+          !popperElement.contains(target) &&
+          (props.outsideClickIgnoreSelector === undefined ||
+            target.closest(props.outsideClickIgnoreSelector) === null)
+        ) {
+          setExpanded(false);
+
+          (
+            e as MouseEvent & { _isClosingDropdown?: boolean }
+          )._isClosingDropdown = true;
+        }
+      }
+    };
+    const onGlobalKeyup = (e: KeyboardEvent) => {
+      const target = e.target as Element;
+      // label (比如是一个 button) 有可能成为按键事件的 target
+      if (
+        target &&
+        (target.tagName === "BODY" || target === labelElement) &&
+        e.key === "Escape"
+      ) {
+        setExpanded(false);
+      }
+    };
+    window.addEventListener("click", onGlobalClick, true);
+    window.addEventListener("keyup", onGlobalKeyup, true);
+    return () => {
+      window.removeEventListener("click", onGlobalClick, true);
+      window.removeEventListener("keyup", onGlobalKeyup, true);
+    };
+  }, [
+    labelElement,
+    popperElement,
+    props.outsideClickIgnoreSelector,
+    setExpanded,
+  ]);
+  return (
+    popperContainer &&
+    ReactDOM.createPortal(
+      <div
+        ref={setPopperElement}
+        onClick={(e) => e.stopPropagation()}
+        children={React.createElement(popper, { toggle, labelElement })}
+      />,
+      popperContainer,
+    )
+  );
+});
