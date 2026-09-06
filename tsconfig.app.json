@@ -23,6 +23,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
-  "exclude": ["src/features/gearing", "src/pages/GearingPage.tsx"]
+  "include": ["src"]
 }

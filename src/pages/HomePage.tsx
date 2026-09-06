@@ -1,4 +1,4 @@
-/** Product home with entrypoints for recruitment, glamour, and regional travel. */
+/** Product home with four available feature workspaces. */
 import {
   ArrowUpRight,
   CoatHanger,
@@ -8,6 +8,7 @@ import {
   Moon,
   Sparkle,
   Sun,
+  Sword,
   UsersThree,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
@@ -18,6 +19,7 @@ type HomePageProps = {
   onOpenRecruit: () => void;
   onOpenGlamour: () => void;
   onOpenTeleport: () => void;
+  onOpenGearing: () => void;
   onOpenSettings: () => void;
   onToggleTheme: () => void;
 };
@@ -27,6 +29,7 @@ export function HomePage({
   onOpenRecruit,
   onOpenGlamour,
   onOpenTeleport,
+  onOpenGearing,
   onOpenSettings,
   onToggleTheme,
 }: HomePageProps) {
@@ -90,6 +93,14 @@ export function HomePage({
           description="规划跨区路线，快速抵达目的地。"
           onClick={onOpenTeleport}
         />
+        <FeatureTile
+          icon={<Sword />}
+          concept="gearing"
+          name="配装"
+          englishName="Gear Sets"
+          description="规划装备与魔晶石搭配，为下一场战斗做好准备。"
+          onClick={onOpenGearing}
+        />
       </section>
 
       <footer className="home-footer">
@@ -102,7 +113,7 @@ export function HomePage({
 
 type FeatureTileProps = {
   icon: ReactNode;
-  concept: "recruit" | "glamour" | "teleport";
+  concept: "recruit" | "glamour" | "teleport" | "gearing";
   name: string;
   englishName: string;
   description: string;

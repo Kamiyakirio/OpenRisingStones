@@ -3,7 +3,8 @@ import { useCallback, useState } from "react";
 import { useAuthSession } from "../../features/auth/hooks/useAuthSession";
 import { useNetworkLog } from "./useNetworkLog";
 
-export type ActiveFeature = "home" | "glamour" | "recruit" | "teleport";
+export type ActiveFeature =
+  "home" | "glamour" | "recruit" | "teleport" | "gearing";
 
 export function useAppController() {
   const auth = useAuthSession();
@@ -28,6 +29,10 @@ export function useAppController() {
     () => navigateToFeature(setActiveFeature, "home"),
     [],
   );
+  const openGearing = useCallback(
+    () => navigateToFeature(setActiveFeature, "gearing"),
+    [],
+  );
   const toggleTheme = useCallback(() => setDark((current) => !current), []);
 
   const openSettings = useCallback(() => setSettingsOpen(true), []);
@@ -40,6 +45,7 @@ export function useAppController() {
     openGlamour,
     openRecruit,
     openTeleport,
+    openGearing,
     goHome,
     toggleTheme,
     openSettings,
@@ -55,7 +61,8 @@ function readInitialFeature(): ActiveFeature {
   if (feature.startsWith("teleport-")) return "teleport";
   return feature === "glamour" ||
     feature === "recruit" ||
-    feature === "teleport"
+    feature === "teleport" ||
+    feature === "gearing"
     ? feature
     : "home";
 }

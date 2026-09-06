@@ -1,0 +1,292 @@
+/** Gearing UI adapted from ffxiv-gearing (MIT), scoped to the gearing workspace. */
+import * as React from "react";
+import * as mobx from "mobx";
+import * as mobxReact from "mobx-react-lite";
+import { Button } from "./Controls.tsx";
+import { TextField } from "./Controls.tsx";
+import { Badge } from "./Controls.tsx";
+import promotionImage from "../assets/BV1pt4y1W7pX.png";
+import promotionImage2x from "../assets/BV1pt4y1W7pX@2x.png";
+import { useStore } from "./contexts.tsx";
+import { RippleLazy } from "./RippleLazy.tsx";
+import { Icon } from "./Icon.tsx";
+import { Dropdown } from "./Dropdown.tsx";
+import { BadgeButton } from "./BadgeButton.tsx";
+import { JobSelector } from "./JobSelector.tsx";
+import { FilterPanel } from "./FilterPanel.tsx";
+import { LevelSyncPanel } from "./LevelSyncPanel.tsx";
+import {
+  MateriaOverallPanel,
+  SubStatCalculationPanel,
+} from "./MateriaOverallPanel.tsx";
+import { SharePanel } from "./SharePanel.tsx";
+import { SettingPanel } from "./SettingPanel.tsx";
+
+import manifest from "../data/generated/manifest.json";
+const __PATCH__ = manifest.gameVersion;
+
+export const Condition = mobxReact.observer(() => {
+  const store = useStore();
+  const welcoming = store.job === undefined;
+  const editing = !store.isViewing && store.job !== undefined;
+  const viewing = store.isViewing && store.job !== undefined;
+  const subStatCalculationAvailable =
+    editing &&
+    ((store.schema.mainStat !== undefined &&
+      (store.schema.stats.includes("SPS") ||
+        store.schema.stats.includes("SKS"))) ||
+      store.schema.stats.some((stat) => stat === "CMS" || stat === "GTH"));
+  return (
+    <div
+      className="condition card"
+      style={store.job === undefined ? { width: "900px" } : {}}
+    >
+      {welcoming && (
+        <span className="condition_job -empty">选择一个职业开始配装</span>
+      )}
+      {editing && (
+        <Dropdown
+          label={({ ref, toggle }) => (
+            <RippleLazy>
+              <span ref={ref} className="condition_job" onClick={toggle}>
+                <Icon
+                  className="condition_job-icon"
+                  name={"jobs/" + store.job}
+                />
+                <span className="condition_job-name">{store.schema.name}</span>
+              </span>
+            </RippleLazy>
+          )}
+          popper={() => (
+            <div className="job-select-panel card">
+              <JobSelector />
+              <div className="job-select-panel_tip">
+                切换职业会开始新的配装。
+              </div>
+            </div>
+          )}
+          placement="bottom-start"
+          modifiers={[{ name: "offset", options: { offset: [-4, 0] } }]}
+        />
+      )}
+      {viewing && (
+        <span className="condition_job">
+          <Icon className="condition_job-icon" name={"jobs/" + store.job} />
+          <span className="condition_job-name">{store.schema.name}</span>
+        </span>
+      )}
+      {editing && <span className="condition_divider" />}
+      {editing && (
+        <span className="condition_level">
+          <span className="condition_level-value">
+            <ConditionLevelInput
+              value={store.minLevel}
+              onChange={(value) => store.setMinLevel(value)}
+            />
+            <span className="condition_level-separator">-</span>
+            <ConditionLevelInput
+              value={store.maxLevel}
+              onChange={(value) => store.setMaxLevel(value)}
+            />
+          </span>
+          品级
+        </span>
+      )}
+      {editing && (
+        <Dropdown
+          label={({ ref, toggle }) => (
+            <BadgeButton
+              ref={ref}
+              className="condition_button condition_filter"
+              promotion="filter"
+              onClick={toggle}
+              children="筛选"
+            />
+          )}
+          popper={FilterPanel}
+          placement="bottom-start"
+        />
+      )}
+      {(editing || viewing) && <span className="condition_divider" />}
+      {viewing &&
+        store.schema.levelSyncable &&
+        store.syncLevelText !== undefined && (
+          <>
+            <span className="condition_text">
+              <Icon className="condition_level-sync-icon" name="sync" />
+              {store.syncLevelText}
+            </span>
+            <span className="condition_divider" />
+          </>
+        )}
+      {editing && store.schema.levelSyncable && (
+        <Dropdown
+          label={({ ref, toggle }) => (
+            <Button ref={ref} className="condition_button" onClick={toggle}>
+              {store.syncLevelText !== undefined && (
+                <Icon className="condition_level-sync-icon" name="sync" />
+              )}
+              {store.syncLevelText ?? "品级同步"}
+            </Button>
+          )}
+          popper={LevelSyncPanel}
+          placement="bottom-start"
+        />
+      )}
+      {(editing || viewing) && (
+        <Dropdown
+          label={({ ref, toggle }) => (
+            <Button
+              ref={ref}
+              className="condition_button badge-button"
+              onClick={toggle}
+            >
+              魔晶石
+              <Badge
+                className="badge-button_badge"
+                exited={
+                  store.isViewing ||
+                  !store.promotion.get("materiaDetDhtOptimization")
+                }
+              />
+            </Button>
+          )}
+          popper={MateriaOverallPanel}
+          placement="bottom-start"
+        />
+      )}
+      {subStatCalculationAvailable && (
+        <Dropdown
+          label={({ ref, toggle }) => (
+            <Button ref={ref} className="condition_button" onClick={toggle}>
+              副属性计算
+            </Button>
+          )}
+          popper={SubStatCalculationPanel}
+          placement="bottom-start"
+          outsideClickIgnoreSelector=".gears_optimization-checkbox-wrapper"
+        />
+      )}
+      <span className="condition_right">
+        {editing && (
+          <Dropdown
+            label={({ ref, toggle }) => (
+              <Button ref={ref} className="condition_button" onClick={toggle}>
+                分享
+              </Button>
+            )}
+            popper={SharePanel}
+            placement="bottom-end"
+          />
+        )}
+        {viewing && (
+          <Button
+            className="condition_button"
+            onClick={() => {
+              store.startEditing();
+            }}
+            children="编辑"
+          />
+        )}
+        {(editing || viewing) && (
+          <Dropdown
+            label={({ ref, toggle }) => (
+              <Button
+                ref={ref}
+                className="condition_button condition_setting"
+                onClick={toggle}
+              >
+                设置
+              </Button>
+            )}
+            popper={SettingPanel}
+            placement="bottom-end"
+          />
+        )}
+        <span className="condition_divider" />
+        <span className="condition_text">数据版本 {__PATCH__}</span>
+      </span>
+      {welcoming && <JobSelector />}
+      {welcoming && (
+        <a
+          href="https://www.bilibili.com/video/BV1pt4y1W7pX"
+          title="【视频】如何自助配装？高难本配装原理详解"
+          target="_blank"
+        >
+          <img
+            className="condition_welcome-promotion"
+            src={promotionImage}
+            srcSet={promotionImage2x + " 2x"}
+            alt=""
+          />
+        </a>
+      )}
+    </div>
+  );
+});
+
+const ConditionLevelInput = (() => {
+  let anyInstanceFocused = false;
+  let delayedChange: (() => void) | null = null;
+  return mobxReact.observer<{
+    value: number;
+    onChange: (value: number) => void;
+  }>(({ value, onChange }) => {
+    const [inputValue, setInputValue] = React.useState(value.toString());
+    const [prevValue, setPrevValue] = React.useState(value);
+    if (value !== prevValue) {
+      setInputValue(value.toString());
+      setPrevValue(value);
+    }
+    const inputRef = React.useRef<HTMLInputElement>(null);
+    React.useEffect(() => {
+      const handleWheel = (e: WheelEvent) => {
+        e.preventDefault();
+        if (e.deltaY !== 0) {
+          (e.target as HTMLInputElement).focus();
+          const delta = e.deltaY < 0 ? 5 : -5;
+          setInputValue((v) => (parseInt(v, 10) + delta).toString());
+        }
+      };
+      const input = inputRef.current!;
+      input.addEventListener("wheel", handleWheel, { passive: false });
+      return () => input.removeEventListener("wheel", handleWheel);
+    }, []);
+    const handleChange = () => onChange(parseInt(inputValue, 10) || 0);
+    return (
+      <TextField
+        inputRef={inputRef}
+        className="condition_level-input mdc-text-field--compact"
+        type="number"
+        step="5"
+        value={inputValue}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          setInputValue(e.target.value);
+        }}
+        onFocus={(e) => {
+          e.target.select();
+          anyInstanceFocused = true;
+        }}
+        onBlur={() => {
+          setTimeout(() => {
+            if (!anyInstanceFocused) {
+              mobx.runInAction(() => {
+                delayedChange?.();
+                delayedChange = null;
+                handleChange();
+              });
+            } else {
+              delayedChange = handleChange;
+            }
+          }, 0);
+          anyInstanceFocused = false;
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+      />
+    );
+  });
+})();

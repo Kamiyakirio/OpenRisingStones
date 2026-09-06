@@ -5,6 +5,13 @@ import { HomePage } from "../../pages/HomePage";
 import { RecruitPage } from "../../pages/RecruitPage";
 import { TeleportPage } from "../../pages/TeleportPage";
 import type { AppController } from "../hooks/useAppController";
+import { lazy, Suspense } from "react";
+import { GearingErrorBoundary } from "../../features/gearing/components/GearingErrorBoundary";
+const GearingPage = lazy(() =>
+  import("../../pages/GearingPage").then((module) => ({
+    default: module.GearingPage,
+  })),
+);
 
 type AppViewProps = {
   viewModel: AppController;
@@ -21,9 +28,21 @@ export function AppView({ viewModel }: AppViewProps) {
           onOpenGlamour={viewModel.openGlamour}
           onOpenRecruit={viewModel.openRecruit}
           onOpenTeleport={viewModel.openTeleport}
+          onOpenGearing={viewModel.openGearing}
           onOpenSettings={viewModel.openSettings}
           onToggleTheme={viewModel.toggleTheme}
         />
+      ) : viewModel.activeFeature === "gearing" ? (
+        <GearingErrorBoundary onGoHome={viewModel.goHome}>
+          <Suspense fallback={<p role="status">正在加载配装…</p>}>
+            <GearingPage
+              dark={viewModel.dark}
+              onGoHome={viewModel.goHome}
+              onToggleTheme={viewModel.toggleTheme}
+              onOpenSettings={viewModel.openSettings}
+            />
+          </Suspense>
+        </GearingErrorBoundary>
       ) : viewModel.activeFeature === "glamour" ? (
         <GlamourPage
           dark={viewModel.dark}
