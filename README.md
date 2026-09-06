@@ -1,6 +1,6 @@
 # OpenRisingStones
 
-OpenRisingStones 是一个使用 React、TypeScript、Vite 与 Tauri 构建的 FF14 幻化浏览桌面应用。
+OpenRisingStones 是一个使用 React、TypeScript、Vite 与 Tauri 构建的 FF14 桌面工具集，包含招募、幻化、超域传送和配装。
 
 幻化工作区可以在用户明确确认注入风险后读取当前游戏角色的背包、兵装库、投影台和收藏柜，并在投稿列表及详情中标记已持有或同模装备。物品索引使用当前游戏登录会话派生的密钥加密后保存在本机，仅在登录有效时解密；清除本地数据时删除。
 
@@ -8,10 +8,28 @@ OpenRisingStones 是一个使用 React、TypeScript、Vite 与 Tauri 构建的 F
 
 ```bash
 npm install
+node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing
 npm run tauri dev
 ```
 
 开发构建会调用系统中的 Python 3，并使用 `src-tauri/python/requirements.txt` 中的依赖。
+
+## 配装与数据更新
+
+配装代码与本地生成的数据随本仓库构建，不需要检出 ffxiv-gearing 子模块。装备、镶嵌和属性展示使用 React；优化搜索通过 Tauri IPC 在 Rust 后台线程运行，浏览器预览不提供优化计算。
+
+从本地 ffxiv-gearing 目录更新数据和公式参数：
+
+```bash
+node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing --check
+node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing
+```
+
+首次检出后，先运行上述导入命令，再启动、构建或测试应用。脚本读取来源已有的生成产物，校验通过后整体更新 `src/features/gearing/data/generated/`，不覆盖业务代码。生成目录已加入 `.gitignore`，不保留压缩快照。更新后重新构建桌面应用，使前端与 Rust 使用同一数据版本。
+
+分享功能复制原协议的 base62 分享码，可在任意兼容的配装器网址后添加 `?分享码`，也可直接粘贴回本应用导入。
+
+迁移约束见 [迁移规范](docs/ffxiv-gearing-migration.md)，源码映射与验证记录见 [接入说明](docs/ffxiv-gearing-integration.md)。
 
 ## 构建发布包
 

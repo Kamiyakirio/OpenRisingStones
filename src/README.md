@@ -5,7 +5,7 @@ domain logic together instead of adding global component or service folders.
 
 - `app/` composes navigation, theme, authentication, diagnostics, and settings.
   Its components are the application shell, including the header and footer.
-- `pages/` assembles the home, glamour, recruitment, and teleport entrypoints.
+- `pages/` assembles the home, glamour, recruitment, teleport, and gearing entrypoints.
   Page components connect feature hooks to feature UI and application chrome.
 - `features/auth/` owns login methods, session state, expiry events, and consent.
 - `features/glamour/` owns discovery, details, equipment search, Wiki integration,
@@ -13,6 +13,12 @@ domain logic together instead of adding global component or service folders.
 - `features/recruit/` owns both public recruitment and advanced filtering, with
   shared configuration, party presentation, filtering, and request pacing.
 - `features/teleport/` owns departure/return selection, orders, and automatic travel.
+- `features/gearing/` owns equipment selection, materia, stats, sharing, and native
+  optimization. Its legacy MobX models stay internal to `models/`; core and
+  optimization contracts live in the feature's type files, and pure rules live in
+  `utils/`. Imported assets and generated data belong to this feature as well.
+  SVG icons share one sprite. `data/generated/` is ignored and must be produced
+  by the local-source import script before development, builds, or tests.
 - `features/settings/` owns local-data clearing and its confirmation UI.
 - `shared/` contains reusable UI, hooks, avatar loading, runtime detection, and the
   typed game bridge used by both glamour and teleport.
