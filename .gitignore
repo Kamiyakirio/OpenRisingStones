@@ -16,6 +16,8 @@ src-tauri/binaries/
 game-bridge/artifacts/
 game-bridge/build/
 game-bridge/target/
+src-tauri/crates/*/target/
+src/features/gearing/data/generated/
 
 # Editor directories and files
 .vscode/*
