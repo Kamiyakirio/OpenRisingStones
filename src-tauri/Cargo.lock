@@ -1147,6 +1147,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "gearing-engine"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2318,6 +2326,7 @@ version = "0.1.0"
 dependencies = [
  "aes-gcm",
  "game-bridge-host",
+ "gearing-engine",
  "hkdf",
  "log",
  "rand 0.8.8",

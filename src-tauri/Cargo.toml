@@ -28,7 +28,8 @@ log = "0.4"
 tauri = { version = "2.11.3", features = [] }
 tauri-plugin-log = "2"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
-tokio = { version = "1", features = ["net", "time"] }
+tokio = { version = "1", features = ["net", "time", "sync"] }
+gearing-engine = { path = "crates/gearing-engine" }
 url = "2"
 game-bridge-host = { path = "../game-bridge/crates/host" }
 aes-gcm = "0.10"
@@ -36,6 +37,9 @@ hkdf = "0.12"
 rand = "0.8"
 sha2 = "0.10"
 zeroize = "1.8"
+
+[dev-dependencies]
+tauri = { version = "2.11.3", features = ["test"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [
