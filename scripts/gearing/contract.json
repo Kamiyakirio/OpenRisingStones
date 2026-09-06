@@ -1,0 +1,37 @@
+{
+  "sourceCommit": "fd7d46b",
+  "formulas": {
+    "floor": "f6ba3a887108dee8e6aa2ea44f0972122c739f307b665e8633892322bcb44219",
+    "calcGcd": "57cd4ebc1abb9c9ffa5ba234856ce8f5a4c2641a4a6f8c29327d463a91e9fc73",
+    "calcRequiredSpeed": "f96d6aedcc74c6832c11770061f1e02a0b46d5068e83572e2477f8a293d7b6b3",
+    "calcEffects": "f73558c691c07f9cc79e1a9c007aa56e2ca6879eac2fab214f5f8a4a88a34a3d",
+    "getCaps": "dcf240b0243b61c585be44f10059f39a8277d28ad6b20a3c3a53e1edaf95e459",
+    "materiaDetDhtOptimized": "1d749749337bdc7c4ab8214e5aa611353fae7267e85a8acfb1b5dd5e652c1f36"
+  },
+  "itemFields": [
+    "best",
+    "customizable",
+    "equipLevel",
+    "equipLevelVariable",
+    "hq",
+    "id",
+    "jobCategory",
+    "level",
+    "materiaAdvanced",
+    "materiaSlot",
+    "name",
+    "obsolete",
+    "occultStats",
+    "rarity",
+    "rawSlot",
+    "role",
+    "slot",
+    "source",
+    "statMain",
+    "statRates",
+    "stats"
+  ],
+  "parameters": {
+    "detDhtAcceptableRatioIndex": 52
+  }
+}
