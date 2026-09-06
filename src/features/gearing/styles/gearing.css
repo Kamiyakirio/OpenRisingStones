@@ -1,0 +1,982 @@
+/** Native CSS for the gearing workspace; all business styles stay within its boundary. */
+.gearing-workspace {
+  color: var(--ink);
+  background: var(--paper);
+  min-height: 100dvh;
+}
+.gearing-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.gearing-header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+.gearing-header > div {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.gearing-header button,
+.gearing-import button,
+.gearing-error button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+.gearing-header svg {
+  width: 18px;
+  height: 18px;
+}
+.gearing-import {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 24px;
+}
+.gearing-import input {
+  flex: 1;
+  min-width: 240px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--surface);
+}
+.gearing-import p {
+  flex-basis: 100%;
+  margin: 0;
+}
+.gearing-error,
+.gearing-loading {
+  margin: 24px;
+}
+.gearing-surface {
+  --gear-accent: var(--home-accent-strong);
+  --gear-selected: color-mix(in srgb, var(--home-accent) 14%, var(--surface));
+  position: relative;
+  overflow-x: auto;
+  padding: 20px 24px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.gearing-surface .gearing-app {
+  min-width: 1020px;
+  max-width: 1500px;
+  margin: auto;
+}
+.gearing-surface .card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.gearing-surface .gear-button,
+.gearing-surface .mdc-icon-button,
+.gearing-surface .gear-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--gear-accent);
+  background: var(--surface);
+  font-size: 12px;
+  cursor: pointer;
+}
+.gearing-surface button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.gearing-surface button:hover:not(:disabled),
+.gearing-surface [role="button"]:hover {
+  background: var(--gear-selected);
+}
+.gearing-surface :focus-visible,
+.gearing-header :focus-visible,
+.gearing-import :focus-visible {
+  outline: 2px solid var(--home-accent);
+  outline-offset: 2px;
+}
+.gearing-surface .gear-input {
+  width: 80px;
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--ink);
+  background: var(--paper);
+}
+.gearing-surface .gear-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 6px 16px 6px 0;
+  cursor: pointer;
+}
+.gearing-surface input[type="radio"],
+.gearing-surface input[type="checkbox"] {
+  accent-color: var(--home-accent-strong);
+}
+.gearing-surface .gear-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.gearing-surface .gear-tabs [aria-selected="true"] {
+  background: var(--gear-selected);
+  font-weight: 700;
+  border-color: var(--gear-accent);
+}
+.gearing-surface .gear-badge {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--home-accent);
+  margin-left: 4px;
+}
+.gearing-surface .gear-progress {
+  width: 100%;
+  height: 3px;
+  accent-color: var(--home-accent);
+}
+.gearing-surface .gear-icon {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  object-fit: contain;
+}
+.gearing-surface.gearing-dark .gear-icon {
+  filter: invert(0.85);
+}
+.gearing-surface .condition {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 16px;
+}
+.gearing-surface .condition:has(.job-selector) {
+  width: min(100%, 1000px) !important;
+  margin: 36px auto;
+}
+.gearing-surface .condition_job {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.gearing-surface .condition_job.-empty {
+  cursor: default;
+}
+.gearing-surface .condition_right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+.gearing-surface .condition_text {
+  color: var(--muted);
+  font-size: 12px;
+}
+.gearing-surface .condition_level {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.gearing-surface .condition_level-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gearing-surface .condition_divider {
+  height: 24px;
+  width: 1px;
+  background: var(--line);
+}
+.gearing-surface .condition_welcome-promotion {
+  display: block;
+  width: 400px;
+  max-width: 100%;
+  border-radius: 6px;
+}
+.gearing-surface .job-selector {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+  width: 100%;
+  padding: 24px 12px;
+}
+.gearing-surface .job-selector_background-icon {
+  display: none;
+}
+.gearing-surface .job-selector_group {
+  margin-bottom: 20px;
+}
+.gearing-surface .job-selector_group-name {
+  margin-bottom: 10px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.gearing-surface .job-selector_item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 7px 10px;
+  text-decoration: none;
+  color: var(--ink);
+  border-radius: 5px;
+}
+.gearing-surface .job-selector_item:hover {
+  background: var(--gear-selected);
+}
+.gearing-surface .job-select-panel {
+  min-width: 620px;
+}
+.gearing-surface .job-select-panel_tip {
+  padding: 0 18px 16px;
+  color: var(--muted);
+}
+.gearing-surface .table {
+  border-spacing: 0;
+  border-collapse: separate;
+  font-variant-numeric: tabular-nums;
+}
+.gearing-surface .table th {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 12px;
+  text-align: right;
+}
+.gearing-surface .table td,
+.gearing-surface .table th {
+  padding: 9px 10px;
+  white-space: nowrap;
+}
+.gearing-surface .table td {
+  border-top: 1px solid var(--line);
+}
+.gearing-surface .gears_slot {
+  width: 100%;
+  margin: 12px 0;
+  table-layout: fixed;
+}
+.gearing-surface .gears_left {
+  width: 30%;
+  text-align: left !important;
+}
+.gearing-surface .gears_materias {
+  width: 270px;
+  text-align: center !important;
+}
+.gearing-surface .gears_stat {
+  text-align: right;
+}
+.gearing-surface .gears_item {
+  cursor: pointer;
+}
+.gearing-surface .gears_item:hover {
+  background: color-mix(in srgb, var(--home-accent) 6%, var(--surface));
+}
+.gearing-surface .gears_item.-selected,
+.gearing-surface .-selected {
+  background: var(--gear-selected);
+}
+.gearing-surface .gears_name {
+  font-weight: 550;
+}
+.gearing-surface .gears_stat-value.-full {
+  font-weight: 750;
+}
+.gearing-surface .gears_inline-slot,
+.gearing-surface .gears_level,
+.gearing-surface .gears_stat-caps,
+.gearing-surface .gears_stat-requirement {
+  color: var(--muted);
+  font-size: 11px;
+  margin-right: 6px;
+}
+.gearing-surface .gears_custom-stat-input {
+  width: 60px;
+  padding: 3px 5px;
+  text-align: right;
+}
+.gearing-surface .gears_materia {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  margin: 2px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.gearing-surface .gears_materia.-advanced {
+  border-style: dashed;
+}
+.gearing-surface .gears_materia.-active {
+  border-color: var(--gear-accent);
+  background: var(--gear-selected);
+}
+.gearing-surface .gears_empty {
+  color: var(--muted);
+}
+.gearing-surface .gears_name.-red {
+  color: #a43d43;
+}
+.gearing-surface .gears_name.-green {
+  color: #287049;
+}
+.gearing-surface .gears_name.-blue {
+  color: #396aaa;
+}
+.gearing-surface .gears_name.-purple {
+  color: #8660a6;
+}
+.gearing-surface.gearing-dark .gears_name.-red {
+  color: #e89598;
+}
+.gearing-surface.gearing-dark .gears_name.-green {
+  color: #87c7a5;
+}
+.gearing-surface.gearing-dark .gears_name.-blue {
+  color: #a0bfe5;
+}
+.gearing-surface.gearing-dark .gears_name.-purple {
+  color: #c1a8df;
+}
+.gearing-surface #gearing-popper > div {
+  z-index: 8;
+  max-width: min(900px, 95vw);
+}
+.gearing-surface #gearing-popper .card {
+  box-shadow: 0 12px 36px #0003;
+  max-height: 72vh;
+  overflow: auto;
+}
+.gearing-surface .materias td {
+  cursor: pointer;
+  text-align: center;
+  min-width: 40px;
+}
+.gearing-surface .materias_grade:hover {
+  background: var(--gear-selected);
+}
+.gearing-surface .materias_row.-invalid,
+.gearing-surface .-invalid {
+  color: var(--muted);
+}
+.gearing-surface .materias_meldable.-overflowed {
+  color: #bd454c;
+}
+.gearing-surface .-positive {
+  color: var(--gear-accent);
+}
+.gearing-surface .-negative,
+.gearing-surface .-error {
+  color: #bd454c;
+}
+.gearing-surface .gearing-about {
+  padding: 28px 10px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+}
+.gearing-surface .gearing-about pre {
+  white-space: pre-wrap;
+  text-align: left;
+  max-width: 800px;
+  margin: 16px auto;
+}
+.gearing-surface .gearing-about summary {
+  cursor: pointer;
+}
+.gearing-surface .setting,
+.gearing-surface .filter,
+.gearing-surface .share,
+.gearing-surface .clan,
+.gearing-surface .materia-clear,
+.gearing-surface .gear-menu {
+  padding: 16px;
+}
+.gearing-surface .setting_section {
+  margin-top: 16px;
+  font-weight: 650;
+}
+.gearing-surface .setting_sub {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.gearing-surface .setting_controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gearing-surface .share {
+  max-width: 580px;
+}
+.gearing-surface .share textarea {
+  width: 100%;
+  min-height: 76px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.gearing-surface .gear-menu_item,
+.gearing-surface .summary-menu_item {
+  display: block;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 7px 10px;
+}
+.gearing-surface .gear-menu_item:hover {
+  background: var(--gear-selected);
+}
+.gearing-surface .gear-menu_divider {
+  height: 1px;
+  margin: 5px 0;
+  background: var(--line);
+}
+.gearing-surface .mdc-list {
+  list-style: none;
+  padding: 10px;
+  margin: 0;
+}
+.gearing-surface .gear-collapse {
+  list-style: none;
+}
+.gearing-surface .gear-collapse summary {
+  cursor: pointer;
+  padding: 8px;
+}
+.gearing-surface .level-sync_group {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+.gearing-surface .level-sync_levels {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  padding: 10px;
+  gap: 5px;
+}
+.gearing-surface .level-sync_level {
+  text-align: center;
+  padding: 5px 9px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.gearing-surface .level-sync_level.-popular {
+  font-weight: 750;
+}
+.gearing-surface .level-sync_job-level-sync {
+  grid-column: 1 / -1;
+  padding: 8px;
+}
+.gearing-surface .materia-gcd-optimization,
+.gearing-surface .production-materia-optimization {
+  padding: 18px;
+  max-width: 850px;
+}
+.gearing-surface .materia-gcd-optimization_intro,
+.gearing-surface .production-materia-optimization_intro {
+  margin-bottom: 12px;
+  color: var(--muted);
+}
+.gearing-surface .materia-gcd-optimization_result,
+.gearing-surface .production-materia-optimization_result {
+  margin-top: 16px;
+}
+.gearing-surface .materia-gcd-optimization_message,
+.gearing-surface .production-materia-optimization_message {
+  padding: 12px 0;
+}
+.gearing-surface .production-materia-optimization_targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: end;
+}
+.gearing-surface .production-materia-optimization_target {
+  display: grid;
+  gap: 6px;
+}
+.gearing-surface .production-materia-optimization_validation {
+  flex-basis: 100%;
+}
+.gearing-surface .materia-gcd-optimization_gear-selection {
+  max-height: 320px;
+  overflow: auto;
+}
+.gearing-surface [role="tooltip"] {
+  cursor: help;
+}
+@media (max-width: 600px) {
+  .gearing-header {
+    padding: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .gearing-header > div {
+    gap: 4px;
+  }
+  .gearing-surface {
+    padding: 12px;
+  }
+  .gearing-import {
+    padding: 12px;
+  }
+}
+
+/* Keep the controls and summary visible while only the equipment lists scroll. */
+.gearing-workspace {
+  height: 100dvh;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+}
+.gearing-header {
+  flex: 0 0 auto;
+}
+.gearing-surface {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 24px 12px;
+  overflow-y: hidden;
+}
+.gearing-surface .gearing-app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+.gearing-surface .condition {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  gap: 10px;
+}
+.gearing-surface .gearing-table-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+}
+.gearing-surface .gearing-app-welcome {
+  overflow-y: auto;
+}
+.gearing-surface .gearing-app-welcome .condition {
+  width: 900px !important;
+  max-width: 100%;
+  margin: 20px auto;
+  padding: 22px 28px;
+}
+.gearing-surface .gearing-app-welcome .gearing-table-scroll {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+.gearing-surface .gears_slot {
+  margin: 0 0 12px;
+}
+.gearing-surface .gears_slot td {
+  height: 42px;
+  padding-block: 5px;
+}
+.gearing-surface .gears_slot th {
+  background: var(--surface-2);
+}
+.gearing-surface .gears_slot th:first-child {
+  border-top-left-radius: 9px;
+}
+.gearing-surface .gears_slot th:last-child {
+  border-top-right-radius: 9px;
+}
+.gearing-surface .gears_left {
+  position: relative;
+  padding-left: 14px;
+  padding-right: 40px;
+}
+.gearing-surface .gears_name {
+  display: inline-block;
+  vertical-align: middle;
+  max-width: calc(100% - 42px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 550;
+}
+.gearing-surface .gears_left .mdc-icon-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.gearing-surface .gears_left .mdc-icon-button:hover {
+  background: var(--gear-selected);
+}
+.gearing-surface .gears_level {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+  margin-right: 0;
+  font-size: 10px;
+}
+.gearing-surface .gears_materia {
+  min-width: 38px;
+  height: 25px;
+  background: var(--surface);
+}
+.gearing-surface .gears_materia:empty::before {
+  content: "+";
+  color: var(--muted);
+  opacity: 0.65;
+}
+.gearing-surface .gears_materia:hover {
+  border-color: var(--gear-accent);
+}
+.gearing-surface .gears_color-red .gears_name {
+  color: #9e4047;
+}
+.gearing-surface .gears_color-green .gears_name {
+  color: #2d7150;
+}
+.gearing-surface .gears_color-blue .gears_name {
+  color: #345f99;
+}
+.gearing-surface .gears_color-purple .gears_name {
+  color: #765298;
+}
+.gearing-surface.gearing-dark .gears_color-red .gears_name {
+  color: #eaa1a6;
+}
+.gearing-surface.gearing-dark .gears_color-green .gears_name {
+  color: #8dcaab;
+}
+.gearing-surface.gearing-dark .gears_color-blue .gears_name {
+  color: #9dbce3;
+}
+.gearing-surface.gearing-dark .gears_color-purple .gears_name {
+  color: #c9b0e4;
+}
+.gearing-surface .gearing-about {
+  padding: 16px 10px 24px;
+}
+.gearing-surface .materia-gcd-optimization {
+  width: 620px;
+  max-width: calc(100vw - 64px);
+}
+.gearing-surface .materia-gcd-optimization_controls {
+  display: grid;
+  gap: 16px;
+}
+.gearing-surface .materia-gcd-optimization_modes {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.gearing-surface .materia-gcd-optimization_target,
+.gearing-surface .materia-gcd-optimization_speed-range-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.gearing-surface .materia-gcd-optimization_label {
+  min-width: 76px;
+  font-weight: 600;
+}
+.gearing-surface .materia-gcd-optimization_calculate {
+  margin-left: auto;
+  min-width: 72px;
+}
+.gearing-surface .materia-gcd-optimization_empty {
+  color: var(--muted);
+  line-height: 1.75;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.gearing-surface .materia-gcd-optimization_gear-selector {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding-top: 14px;
+}
+.gearing-surface .materia-gcd-optimization_gear-selector-actions {
+  display: flex;
+  gap: 6px;
+}
+.gearing-surface .materia-gcd-optimization_source-selector {
+  margin-top: 14px;
+}
+.gearing-surface .materia-gcd-optimization_sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+}
+.gearing-surface .materia-gcd-optimization_source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.gearing-surface .materia-gcd-optimization_progression {
+  margin-top: 14px;
+}
+.gearing-surface .materia-gcd-optimization_progression-weeks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.gearing-surface .materia-gcd-optimization_progression-tip,
+.gearing-surface .materia-gcd-optimization_speed-range-tip {
+  color: var(--muted);
+  margin-top: 10px;
+  line-height: 1.7;
+}
+.gearing-surface .materia-gcd-optimization_summary,
+.gearing-surface .production-materia-optimization_summary {
+  width: 100%;
+}
+.gearing-surface .materia-gcd-optimization_use {
+  margin-top: 14px;
+}
+.gearing-surface .materia-consumption_tip td {
+  white-space: normal;
+  max-width: 580px;
+  padding: 12px;
+  color: var(--muted);
+}
+.gearing-surface .materia-det-dht-optimization {
+  padding: 16px;
+}
+.gearing-surface .materia-det-dht-optimization_introduce,
+.gearing-surface .materia-det-dht-optimization_tip {
+  margin: 8px 0;
+  line-height: 1.75;
+}
+.gearing-surface .clan {
+  min-width: 370px;
+}
+.gearing-surface .clan_race {
+  width: 80px;
+  color: var(--muted);
+}
+.gearing-surface .clan_item {
+  display: inline-block;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.gearing-surface .clan_item:hover {
+  background: var(--gear-selected);
+  border-radius: 5px;
+}
+.gearing-surface .materia-clear {
+  max-width: 650px;
+}
+.gearing-surface .materia-clear .gear-choice {
+  display: flex;
+}
+
+/* The shared read-only table has a distinct first-column header. */
+.gearing-surface .gears_left-compact {
+  width: 36%;
+  text-align: left;
+  padding-left: 14px;
+}
+.gearing-surface .gearing-app-view .gears_materias {
+  width: 230px;
+}
+.gearing-surface .gearing-app-view .gears_name {
+  max-width: calc(100% - 90px);
+}
+.gearing-surface .gearing-app-view .gears_materia {
+  cursor: default;
+}
+.gearing-surface .gearing-app-view .gears_materia:empty::before {
+  content: "";
+}
+.gearing-surface .gears_inline-slot {
+  display: inline-block;
+  width: 26px;
+}
+.gearing-surface .level-sync_group-icon {
+  display: none;
+}
+
+/* Fixed slot tracks keep two-, three- and five-socket equipment aligned. */
+.gearing-surface .gears_materia-slots {
+  display: grid;
+  grid-template-columns: repeat(5, 38px);
+  gap: 4px;
+  width: 206px;
+  margin: 0 auto;
+  align-items: center;
+}
+.gearing-surface .gears_materia-slots .gears_materia {
+  width: 38px;
+  min-width: 0;
+  margin: 0;
+}
+.gearing-surface .gears_hq {
+  width: 11px;
+  height: 11px;
+  margin-left: 4px;
+  opacity: 0.5;
+  vertical-align: baseline;
+}
+
+/* A small action row sits above the metric strip; no artificial blank rows. */
+.gearing-surface .summary {
+  position: relative;
+  z-index: 5;
+  flex-shrink: 0;
+  margin-top: 10px;
+  padding: 8px 14px 10px;
+}
+.gearing-surface .summary_controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.gearing-surface .summary_controls .gear-button,
+.gearing-surface .summary_controls .mdc-icon-button {
+  min-height: 24px;
+  height: 24px;
+  padding: 3px 7px;
+  font-size: 11px;
+  line-height: 16px;
+  border-color: transparent;
+  background: transparent;
+}
+.gearing-surface .summary_controls .summary_clan {
+  padding-left: 0;
+  color: var(--muted);
+}
+.gearing-surface .summary_controls .summary_more {
+  width: 24px;
+  padding: 3px;
+  color: var(--muted);
+}
+.gearing-surface .summary_controls .summary_more .gear-icon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.65;
+}
+.gearing-surface .summary_controls .summary_tiers-toggle {
+  margin-left: auto;
+}
+.gearing-surface .summary_metrics {
+  display: grid;
+  grid-template-columns: minmax(64px, 0.7fr) minmax(138px, 1.4fr) repeat(
+      var(--summary-stat-count),
+      minmax(70px, 1fr)
+    );
+  gap: 20px;
+  padding: 10px 0 0;
+}
+.gearing-surface .summary_metrics-production {
+  grid-template-columns: minmax(64px, 0.7fr) repeat(
+      var(--summary-stat-count),
+      minmax(70px, 1fr)
+    );
+}
+.gearing-surface .summary_metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+.gearing-surface .summary_label {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.gearing-surface .summary_value {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 25px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+}
+.gearing-surface .summary_supplement {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+.gearing-surface .summary_help {
+  display: inline-flex;
+  margin-left: 5px;
+  vertical-align: middle;
+  cursor: help;
+}
+.gearing-surface .summary_help .gear-icon {
+  width: 11px;
+  height: 11px;
+  opacity: 0.55;
+}
+.gearing-surface .summary_tier {
+  display: flex;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.gearing-surface .summary_tier span:last-child {
+  color: var(--gear-accent);
+}
+.gearing-surface button.job-selector_item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.gearing-surface button.job-selector_item:hover {
+  background: var(--gear-selected);
+}
