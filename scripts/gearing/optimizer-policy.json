@@ -1,0 +1,115 @@
+{
+  "customWeaponRules": [
+    {
+      "id": "manderville",
+      "source": "曼德维尔武器",
+      "itemLevels": {
+        "645": {
+          "major": 293,
+          "minor": 72
+        },
+        "665": {
+          "major": 306,
+          "minor": 72
+        }
+      },
+      "statCandidates": [
+        "CRT",
+        "DET",
+        "speed",
+        "secondary"
+      ],
+      "slotWeights": {
+        "1": [
+          5,
+          7
+        ],
+        "2": [
+          2,
+          7
+        ],
+        "13": [
+          1,
+          1
+        ]
+      },
+      "linkSlotAllocations": true
+    }
+  ],
+  "acquisition": {
+    "acquisitionRules": [
+      {
+        "kind": "tomestone",
+        "sourcePrefix": "点数/",
+        "ringExclusive": true
+      },
+      {
+        "kind": "augmentedTomestone",
+        "sourcePrefix": "点数强化/",
+        "ringExclusive": true
+      },
+      {
+        "kind": "raid",
+        "sourcePrefix": "大型任务/",
+        "ringExclusive": true
+      },
+      {
+        "kind": "raid",
+        "sourcePrefix": "零式/",
+        "ringExclusive": true
+      },
+      {
+        "kind": "dungeon",
+        "sourcePrefix": "迷宫挑战/",
+        "ringExclusive": true
+      }
+    ],
+    "tomestoneCostsBySlot": {
+      "3": 495,
+      "4": 825,
+      "5": 495,
+      "7": 825,
+      "8": 495,
+      "9": 375,
+      "10": 375,
+      "11": 375,
+      "12": 375
+    },
+    "raidCostsBySlot": {
+      "3": 2,
+      "4": 4,
+      "5": 2,
+      "7": 4,
+      "8": 2,
+      "9": 1,
+      "10": 1,
+      "11": 1,
+      "12": 1
+    },
+    "progressionBudget": {
+      "tomestonesPerWeek": 450,
+      "raidTokensPerWeek": 4,
+      "pointWeaponCost": 500
+    }
+  },
+  "search": {
+    "gcdOptimizationMinTargetGcd": 1.8,
+    "gcdOptimizationMaxTargetGcd": 2.5,
+    "gcdOptimizationMaxSpeed": 100000,
+    "gcdOptimizationFrontierLimit": 200000,
+    "gcdOptimizationExactStateLimit": 1000000,
+    "gcdOptimizationDamageTolerance": 1e-10,
+    "gcdOptimizationBoundTolerance": 1e-10,
+    "productionMateriaSearchStateLimit": 350000
+  },
+  "requiredSpeedSearch": [
+    0,
+    0,
+    1000,
+    100000,
+    2,
+    100000,
+    2,
+    1
+  ]
+}

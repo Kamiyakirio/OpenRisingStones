@@ -33,5 +33,14 @@
   ],
   "parameters": {
     "detDhtAcceptableRatioIndex": 52
+  },
+  "upstream": {
+    "sourceCommit": "78f6cbb568bdd3341ec793bbc17f4582e32d2ba8",
+    "formulas": {
+      "floor": "6f02690974c05cd06d617b5045a807cfa4fdafe7d6ecfd81fc084af82ac26db5",
+      "equippedEffects": "7f7d65222091b314bb3b322ff4d1e9d372ffaf574d532ff009bbf6742a9e123e",
+      "getCaps": "a63e5758c7f190be07c3fc3de8f6e93a0f44f58ba39e5071eea7184b1ce1b7e5",
+      "materiaDetDhtOptimized": "811b616b619bb5884e4ec812bc6b9c7aec8135d72e8408854de7dc1a1c4f5ded"
+    }
   }
 }

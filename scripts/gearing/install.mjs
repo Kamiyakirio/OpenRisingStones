@@ -34,7 +34,8 @@ export function installBundle(
   );
   const manifest = {
     formatVersion: 1,
-    importerVersion: 1,
+    importerVersion: 2,
+    sourceProfile: bundle.sourceProfile ?? "optimizer-fork",
     gameVersion: bundle.gameVersion,
     sourceCommit,
     sourceDirty,
@@ -80,6 +81,7 @@ export function installBundle(
   );
   const report = {
     mode: check ? "check" : "import",
+    sourceProfile: manifest.sourceProfile,
     items: count,
     gameVersion: bundle.gameVersion,
     dataVersion: manifest.dataVersion,

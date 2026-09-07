@@ -1,8 +1,9 @@
 /** Known upstream source locations forming the data and parameter import contract. */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import ts from "typescript";
 import { reader, hash } from "./reader.mjs";
+import { asvelRules } from "./asvel.mjs";
 
 export const gameConstants = [
   "statNames",
@@ -72,62 +73,100 @@ export function extract(source) {
   ).fill(false);
   for (const grade of game.evaluate(restricted.expression))
     rules.materiaGradeIsRestricted[grade] = true;
-  rules.customWeaponRules = read("src/customWeaponRules.ts").constant(
-    "customWeaponRules",
-  );
-  const acquisition = read("src/stores/gcdOptimizationAcquisition.ts");
-  rules.acquisition = Object.fromEntries(
-    [
-      "acquisitionRules",
-      "tomestoneCostsBySlot",
-      "raidCostsBySlot",
-      "progressionBudget",
-    ].map((name) => [name, acquisition.constant(name)]),
-  );
   const gearPresentation = read("src/stores/Gear.ts");
   rules.colors = {
     source: gearPresentation.constant("sourceColors"),
     rarity: gearPresentation.constant("rarityColors"),
   };
-  const formulas = read("src/stores/gcdOptimizationFormula.ts");
-  rules.formulas = Object.fromEntries(
-    ["floor", "calcGcd", "calcRequiredSpeed", "calcEffects"].map((name) => [
-      name,
-      formulas.formula(name),
-    ]),
-  );
-  rules.formulas.getCaps = game.formula("getCaps");
-  rules.formulas.materiaDetDhtOptimized = read("src/stores/Store.ts").formula(
-    "materiaDetDhtOptimized",
-  );
-  // The ordinal is pinned by the getter's structural fingerprint and contract.json.
-  rules.detDhtAcceptableRatio =
-    rules.formulas.materiaDetDhtOptimized.numbers[52];
-  const search = read("src/stores/gcdOptimizationSearch.ts");
-  rules.search = Object.fromEntries(
-    [
-      "gcdOptimizationMinTargetGcd",
-      "gcdOptimizationMaxTargetGcd",
-      "gcdOptimizationMaxSpeed",
-      "gcdOptimizationFrontierLimit",
-      "gcdOptimizationExactStateLimit",
-      "gcdOptimizationDamageTolerance",
-      "gcdOptimizationBoundTolerance",
-    ].map((name) => [name, search.constant(name)]),
-  );
-  const production = read("src/stores/productionMateriaOptimizationCore.ts");
-  rules.search.productionMateriaSearchStateLimit = production.constant(
-    "productionMateriaSearchStateLimit",
-  );
+  const sourceProfile = existsSync(
+    join(source, "src/stores/gcdOptimizationFormula.ts"),
+  )
+    ? "optimizer-fork"
+    : "asvel";
+  if (sourceProfile === "asvel") {
+    const store = read("src/stores/Store.ts");
+    const policyText = readFileSync(
+      new URL("./optimizer-policy.json", import.meta.url),
+      "utf8",
+    );
+    inputs["@local/optimizer-policy.json"] = hash(policyText);
+    inputs["@local/asvel.mjs"] = hash(
+      readFileSync(new URL("./asvel.mjs", import.meta.url)),
+    );
+    const contract = JSON.parse(
+      readFileSync(new URL("./contract.json", import.meta.url), "utf8"),
+    );
+    Object.assign(
+      rules,
+      asvelRules(
+        {
+          floor: read("src/stores/index.ts").formula("floor"),
+          equippedEffects: store.formula("equippedEffects"),
+          getCaps: game.formula("getCaps"),
+          materiaDetDhtOptimized: store.formula("materiaDetDhtOptimized"),
+        },
+        JSON.parse(policyText),
+        contract,
+      ),
+    );
+  } else {
+    rules.customWeaponRules = read("src/customWeaponRules.ts").constant(
+      "customWeaponRules",
+    );
+    const acquisition = read("src/stores/gcdOptimizationAcquisition.ts");
+    rules.acquisition = Object.fromEntries(
+      [
+        "acquisitionRules",
+        "tomestoneCostsBySlot",
+        "raidCostsBySlot",
+        "progressionBudget",
+      ].map((name) => [name, acquisition.constant(name)]),
+    );
+    const formulas = read("src/stores/gcdOptimizationFormula.ts");
+    rules.formulas = Object.fromEntries(
+      ["floor", "calcGcd", "calcRequiredSpeed", "calcEffects"].map((name) => [
+        name,
+        formulas.formula(name),
+      ]),
+    );
+    rules.formulas.getCaps = game.formula("getCaps");
+    rules.formulas.materiaDetDhtOptimized = read("src/stores/Store.ts").formula(
+      "materiaDetDhtOptimized",
+    );
+    // The ordinal is pinned by the getter's structural fingerprint and contract.json.
+    rules.detDhtAcceptableRatio =
+      rules.formulas.materiaDetDhtOptimized.numbers[52];
+    const search = read("src/stores/gcdOptimizationSearch.ts");
+    rules.search = Object.fromEntries(
+      [
+        "gcdOptimizationMinTargetGcd",
+        "gcdOptimizationMaxTargetGcd",
+        "gcdOptimizationMaxSpeed",
+        "gcdOptimizationFrontierLimit",
+        "gcdOptimizationExactStateLimit",
+        "gcdOptimizationDamageTolerance",
+        "gcdOptimizationBoundTolerance",
+      ].map((name) => [name, search.constant(name)]),
+    );
+    const production = read("src/stores/productionMateriaOptimizationCore.ts");
+    rules.search.productionMateriaSearchStateLimit = production.constant(
+      "productionMateriaSearchStateLimit",
+    );
+  }
   const changelog = readFileSync(join(source, "CHANGELOG.md"), "utf8");
   inputs["CHANGELOG.md"] = hash(changelog);
   const gameVersion =
     /\u66f4\u65b0\u6e38\u620f\u6570\u636e\u81f3(\d+\.\d+)/.exec(changelog)?.[1];
   if (!gameVersion) throw new Error("Cannot read game data version.");
-  return { data, rules, inputs, gameVersion };
+  return { data, rules, inputs, gameVersion, sourceProfile };
 }
 
 export function validate({ data, rules }, contract) {
+  if (rules.sourceFormulas) {
+    for (const [name, expected] of Object.entries(contract.upstream.formulas))
+      if (rules.sourceFormulas[name]?.structure !== expected)
+        throw new Error(`Upstream calculation structure changed: ${name}`);
+  }
   for (const [name, expected] of Object.entries(contract.formulas)) {
     if (rules.formulas[name]?.structure !== expected)
       throw new Error(

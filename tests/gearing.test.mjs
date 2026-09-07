@@ -16,6 +16,7 @@ import { reader } from "../scripts/gearing/reader.mjs";
 import { validate } from "../scripts/gearing/extract.mjs";
 import { installBundle } from "../scripts/gearing/install.mjs";
 import { checkGearingData } from "../scripts/gearing/check.mjs";
+import { asvelRules } from "../scripts/gearing/asvel.mjs";
 
 const G = await import("../src/features/gearing/utils/game.ts");
 const formula =
@@ -36,6 +37,9 @@ const read = (name) =>
 const manifest = read("manifest");
 const rules = read("rules"),
   recent = read("gears-recent");
+const contract = JSON.parse(
+  readFileSync("scripts/gearing/contract.json", "utf8"),
+);
 const cargoManifest = "src-tauri/crates/gearing-engine/Cargo.toml";
 execFileSync(
   "cargo",
@@ -137,6 +141,54 @@ test("bundled data has valid references and formula contracts", () => {
   assert.ok(validate({ data, rules }, contract) > 26000);
   const broken = { ...data, foods: [...data.foods, data.foods[0]] };
   assert.throws(() => validate({ data: broken, rules }, contract), /duplicate/);
+});
+
+test("official upstream coefficient changes reach native parameter positions", () => {
+  // Numeric-only fixture from Asvel 78f6cbb; no upstream search implementation is retained.
+  const source = {
+    floor: { numbers: [1e-7], structure: contract.upstream.formulas.floor },
+    equippedEffects: {
+      numbers: [
+        200, 0, 200, 50, 1000, 200, 1400, 1000, 140, 1000, 1000, 550, 1000, 112,
+        1000, 1000, 200, 1000, 1000, 0, 0, 0, 0, 1.05, 100, 100, 0.01, 1, 1,
+        0.25, 1, 1000, 130, 2500, 1000, 80, 100, 1000, 100, 130, 1000, 1000,
+        150, 200,
+      ],
+      structure: contract.upstream.formulas.equippedEffects,
+    },
+    getCaps: {
+      numbers: [100000],
+      structure: contract.upstream.formulas.getCaps,
+    },
+    materiaDetDhtOptimized: {
+      numbers: Array.from({ length: 53 }, (_, i) => (i === 52 ? 0.9997 : 0)),
+      structure: contract.upstream.formulas.materiaDetDhtOptimized,
+    },
+  };
+  const policy = JSON.parse(
+    readFileSync("scripts/gearing/optimizer-policy.json", "utf8"),
+  );
+  const baseline = asvelRules(source, policy, contract);
+  assert.equal(baseline.formulas.calcEffects.numbers.length, 38);
+  assert.deepEqual(
+    baseline.formulas.calcGcd.numbers,
+    [1000, 130, 2500, 1000, 80, 100, 1000, 100],
+  );
+  source.floor.numbers[0] = 2e-7;
+  source.equippedEffects.numbers[2] = 210;
+  source.equippedEffects.numbers[32] = 145;
+  source.materiaDetDhtOptimized.numbers[52] = 0.9999;
+  const changed = asvelRules(source, policy, contract);
+  assert.equal(changed.formulas.floor.numbers[0], 2e-7);
+  assert.equal(changed.formulas.calcEffects.numbers[2], 210);
+  assert.equal(changed.formulas.calcGcd.numbers[1], 145);
+  assert.equal(changed.formulas.calcEffects.numbers[33], 130);
+  assert.equal(changed.detDhtAcceptableRatio, 0.9999);
+  source.equippedEffects.structure = "changed-expression";
+  assert.throws(
+    () => asvelRules(source, policy, contract),
+    /structure changed: equippedEffects/,
+  );
 });
 
 test("GCD nested truncation retains the level 100 threshold", () => {
@@ -298,6 +350,7 @@ test("data installation is repeatable, check-only, atomic on failure, and revers
       rules,
       inputs: manifest.inputs,
       gameVersion: manifest.gameVersion,
+      sourceProfile: manifest.sourceProfile,
     };
     const contract = JSON.parse(
       readFileSync("scripts/gearing/contract.json", "utf8"),
@@ -447,11 +500,12 @@ test("native DET/DHT results preserve fixed melds and obey the near-optimal thre
   }
 });
 
-test("SCH 780-795 all 51 candidates at 2.40s matches the supplied pre-migration result", () => {
+function schInput(allowedIds) {
   const schema = G.jobSchemas.SCH;
   const gears = recent
     .filter(
       (g) =>
+        (!allowedIds || allowedIds.includes(g.id)) &&
         G.jobCategories[g.jobCategory]?.SCH &&
         g.level >= 780 &&
         g.level <= 795 &&
@@ -469,9 +523,8 @@ test("SCH 780-795 all 51 candidates at 2.40s matches the supplied pre-migration 
       })),
     )
     .sort((a, b) => a.data.level - b.data.level || a.id - b.id);
-  assert.equal(gears.length, 51);
   const baseStats = base("SCH");
-  const input = {
+  return {
     mode: "all",
     targetGcd: 2.4,
     job: "SCH",
@@ -487,6 +540,21 @@ test("SCH 780-795 all 51 candidates at 2.40s matches the supplied pre-migration 
     ),
     fixedConsumables: [],
   };
+}
+
+test("SCH original 51 candidates at 2.40s match the supplied pre-migration result", () => {
+  // Pin the original gear identities so new upstream items do not alter this historical fixture.
+  const ids = [
+    49512, 49551, 49552, 49553, 49554, 49555, 49564, 49569, 49574, 49579, 50878,
+    50879, 50880, 50881, 50882, 51118, 51157, 51158, 51159, 51160, 51161, 51170,
+    51175, 51180, 51185, 50901, 49589, 49628, 49629, 49630, 49631, 49632, 49641,
+    49646, 49651, 49656, 49705, 49706, 49707, 49708, 49709, 49718, 49723, 49728,
+    49733, 49666, 52307,
+  ];
+  const input = schInput(ids);
+  const baseStats = input.baseStats;
+  const schema = G.jobSchemas.SCH;
+  assert.equal(input.gears.length, 51);
   const result = solve("combat", combatRequest(input));
   assert.equal(result.status, "ok", JSON.stringify(result));
   assert.equal(result.effects.gcd, 2.4);
@@ -501,6 +569,31 @@ test("SCH 780-795 all 51 candidates at 2.40s matches the supplied pre-migration 
     "SCH",
     100,
     schema,
+  );
+  assert.ok(Math.abs(frontend.damage - result.effects.damage) < 1e-10);
+});
+
+test("SCH automatic optimization includes newly imported gear candidates", () => {
+  const input = schInput();
+  assert.ok(input.gears.length >= 51);
+  const request = combatRequest(input);
+  const result = solve("combat", request);
+  assert.equal(result.status, "ok", JSON.stringify(result));
+  assert.equal(
+    result.customSkipped,
+    request.gears.some(
+      (gear) => gear.data.customizable && !gear.customRule && !gear.customStats,
+    ),
+  );
+  assert.equal(result.plan.length, 11);
+  assert.ok(result.effects.gcd <= 2.4);
+  assert.ok(result.effects.damage >= 128.48721);
+  const frontend = formula.calcEffects(
+    result.stats,
+    input.baseStats,
+    "SCH",
+    100,
+    G.jobSchemas.SCH,
   );
   assert.ok(Math.abs(frontend.damage - result.effects.damage) < 1e-10);
 });
