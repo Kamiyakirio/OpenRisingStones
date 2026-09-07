@@ -40,6 +40,7 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
 
   return (
     <main className="recruit-page" id="recruit-list">
+      <h1>招募</h1>
       <RecruitFilters viewModel={viewModel} />
       <section
         className="recruit-results"

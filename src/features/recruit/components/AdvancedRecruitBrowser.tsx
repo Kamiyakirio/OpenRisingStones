@@ -76,11 +76,11 @@ export function AdvancedRecruitBrowser({
       <header className="advanced-recruit-heading">
         <div>
           <h1>高级筛选</h1>
-          <p>组合副本、空缺位置与字段规则，从完整公开招募中定位队伍。</p>
+          <p>按副本、空缺位置和关键词筛选招募。</p>
         </div>
         <div className="advanced-recruit-dataset-summary">
           <strong>{dataset.items.length}</strong>
-          <span>条详情已聚合</span>
+          <span>条招募</span>
           {dataset.failedDetailCount > 0 && (
             <small>{dataset.failedDetailCount} 条详情读取失败</small>
           )}
@@ -196,7 +196,7 @@ export function AdvancedRecruitBrowser({
           </header>
           {viewModel.filters.textRules.length === 0 && (
             <div className="advanced-rule-empty">
-              <strong>暂未添加字段规则</strong>
+              <strong>尚未添加关键词规则</strong>
               <span>当前按上方的副本、位置、职业与偏好条件筛选。</span>
             </div>
           )}
@@ -290,27 +290,25 @@ function AdvancedRecruitLoading({
           <SpinnerGap className="spin" />
         )}
         <h1>
-          {viewModel.status === "error"
-            ? "高级招募初始化失败"
-            : "正在聚合全部招募"}
+          {viewModel.status === "error" ? "招募数据加载失败" : "正在加载招募"}
         </h1>
         {viewModel.status === "error" ? (
           <>
             <p>{viewModel.error}</p>
             <button type="button" onClick={viewModel.retryInitialization}>
               <ArrowClockwise weight="bold" />
-              重新初始化
+              重新加载
             </button>
           </>
         ) : (
           <>
             <p>
               {progress?.stage === "rate_limit"
-                ? `已暂停全部请求，仅保留一个探测 worker。第 ${progress.backoffAttempt} 次退避，${Math.ceil((progress.retryDelayMs ?? 0) / 1000)} 秒后探测`
+                ? `请求过于频繁，${Math.ceil((progress.retryDelayMs ?? 0) / 1000)} 秒后自动重试`
                 : progress?.stage === "detail"
-                  ? `正在并行读取详情 ${progress.completed} / ${progress.total}`
+                  ? `正在加载招募详情 ${progress.completed} / ${progress.total}`
                   : progress
-                    ? `正在按频控读取列表 ${progress.completed} / ${progress.total}`
+                    ? `正在加载招募列表 ${progress.completed} / ${progress.total}`
                     : "正在读取第一批公开招募"}
             </p>
             <progress value={percentage} max="100">
@@ -575,7 +573,7 @@ function TextRuleEditor({
         </button>
       </div>
       <fieldset>
-        <legend>应用到字段（未选择时检索全部字段）</legend>
+        <legend>搜索范围（未选择时搜索全部内容）</legend>
         {ADVANCED_RECRUIT_FIELD_KEYS.map((field) => (
           <label key={field}>
             <input

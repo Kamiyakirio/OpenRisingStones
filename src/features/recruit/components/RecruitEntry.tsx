@@ -83,7 +83,6 @@ export function RecruitCard({
       </dl>
       <PartyComposition slots={item.slots} jobsById={jobsById} />
       <div className="recruit-card-needs">
-        <span>正在寻找</span>
         <JobList jobs={item.needJobs} />
       </div>
       {(item.labels.length > 0 || item.customLabel) && (
@@ -289,7 +288,7 @@ function JobList({ jobs }: { jobs: RecruitJob[] }) {
   if (!jobs.length) return <span className="recruit-needs-any">职业不限</span>;
   return (
     <div className="recruit-job-list">
-      <h2>当前招募职业：</h2>
+      <span>招募职业</span>
       {jobs.map((job) => (
         <span key={`${job.id}-${job.name}`} title={job.category}>
           {job.icon && <img src={job.icon} alt="" width="20" height="20" />}

@@ -1,9 +1,9 @@
 /** Advanced recruitment surfaces for consent, aggregation progress, and dense filters. */
 .advanced-recruit-page {
-  width: min(1440px, 100%);
   min-height: calc(100dvh - 74px);
   margin: 0 auto;
-  padding: clamp(30px, 4vw, 58px) clamp(18px, 5vw, 72px) 64px;
+  width: min(1440px, 100%);
+  padding: 24px 32px;
 }
 
 .advanced-recruit-heading {
@@ -15,10 +15,10 @@
 }
 
 .advanced-recruit-heading > div:first-child > span {
-  color: var(--accent-strong);
-  font-size: 11px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 780;
-  letter-spacing: 0.12em;
+  letter-spacing: normal;
 }
 
 .advanced-recruit-heading h1,
@@ -28,15 +28,15 @@
 
 .advanced-recruit-heading h1 {
   margin-top: 7px;
-  font-size: clamp(34px, 4vw, 52px);
-  line-height: 1.08;
-  letter-spacing: -0.045em;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  letter-spacing: normal;
 }
 
 .advanced-recruit-heading p {
   margin-top: 13px;
-  color: var(--muted);
-  font-size: 13px;
+  color: var(--ors-color-muted);
+  font-size: 0.875rem;
 }
 
 .advanced-recruit-dataset-summary {
@@ -46,10 +46,15 @@
   gap: 4px 9px;
   min-width: 174px;
   padding: 16px 18px;
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
-  border-radius: 16px;
-  color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  border: 1px solid
+    color-mix(in srgb, var(--ors-color-accent) 40%, var(--ors-color-line));
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 7%,
+    var(--ors-color-surface)
+  );
 }
 
 .advanced-recruit-dataset-summary strong {
@@ -57,22 +62,22 @@
 }
 
 .advanced-recruit-dataset-summary span {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .advanced-recruit-dataset-summary small {
   grid-column: 1 / -1;
-  color: var(--danger);
-  font-size: 9px;
+  color: var(--ors-color-danger);
+  font-size: 0.75rem;
 }
 
 .advanced-filter-workbench {
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface);
-  box-shadow: 0 14px 40px color-mix(in srgb, var(--accent) 7%, transparent);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
+  box-shadow: none;
 }
 
 .advanced-filter-heading {
@@ -81,7 +86,7 @@
   align-items: center;
   gap: 20px;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ors-color-line);
 }
 
 .advanced-filter-heading h2,
@@ -95,8 +100,8 @@
 
 .advanced-filter-heading p {
   margin-top: 4px;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .advanced-filter-reset {
@@ -105,18 +110,22 @@
   align-items: center;
   min-height: 34px;
   padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--muted);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
   background: transparent;
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 730;
 }
 
 .advanced-filter-reset:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-  color: var(--ink);
-  background: var(--surface-2);
+  border-color: color-mix(
+    in srgb,
+    var(--ors-color-accent) 45%,
+    var(--ors-color-line)
+  );
+  color: var(--ors-color-text);
+  background: var(--ors-color-hover);
 }
 
 .advanced-filter-primary {
@@ -125,14 +134,18 @@
   gap: 12px;
   align-items: start;
   padding: 16px 20px 18px;
-  background: color-mix(in srgb, var(--accent) 2.5%, var(--paper));
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 2.5%,
+    var(--ors-color-canvas)
+  );
 }
 
 .advanced-picker {
   min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
 }
 
 .advanced-picker summary {
@@ -157,24 +170,24 @@
 }
 
 .advanced-picker summary strong {
-  font-size: 13px;
+  font-size: 0.875rem;
 }
 
 .advanced-picker summary small {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .advanced-picker summary > svg {
   flex: 0 0 auto;
   width: 15px;
   height: 15px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   transition: transform 160ms ease;
 }
 
 .advanced-picker[open] summary > svg {
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
   transform: rotate(180deg);
 }
 
@@ -184,9 +197,9 @@
   gap: 11px;
   min-width: 0;
   padding: 13px 15px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
 }
 
 .advanced-position-filter > header {
@@ -202,13 +215,13 @@
 }
 
 .advanced-position-filter strong {
-  font-size: 13px;
+  font-size: 0.875rem;
 }
 
 .advanced-position-filter small,
 .advanced-position-filter > p {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .advanced-position-filter > p {
@@ -223,8 +236,8 @@
 
 .advanced-position-mode button,
 .advanced-position-options button {
-  border: 1px solid var(--line);
-  color: var(--muted);
+  border: 1px solid var(--ors-color-control-line);
+  color: var(--ors-color-muted);
   background: transparent;
   font-weight: 740;
 }
@@ -232,8 +245,8 @@
 .advanced-position-mode button {
   min-height: 27px;
   padding: 0 8px;
-  border-radius: 8px;
-  font-size: 9px;
+  border-radius: var(--ors-radius-control);
+  font-size: 0.75rem;
 }
 
 .advanced-position-options {
@@ -243,22 +256,30 @@
 
 .advanced-position-options button {
   min-height: 38px;
-  border-radius: 10px;
-  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 11px;
+  border-radius: var(--ors-radius-control);
+  font-family: var(--ors-font-ui);
+  font-size: 0.75rem;
 }
 
 .advanced-position-mode button.active,
 .advanced-position-options button.active {
-  border-color: var(--accent-strong);
-  color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent) 11%, var(--surface));
+  border-color: var(--ors-color-accent);
+  color: var(--ors-color-accent);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 11%,
+    var(--ors-color-surface)
+  );
 }
 
 .advanced-position-options button:hover,
 .advanced-position-mode button:hover {
-  border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
-  color: var(--ink);
+  border-color: color-mix(
+    in srgb,
+    var(--ors-color-accent) 58%,
+    var(--ors-color-line)
+  );
+  color: var(--ors-color-text);
 }
 
 @media (min-width: 921px) {
@@ -301,8 +322,8 @@
 }
 
 .advanced-profession-filters {
-  border-top: 1px solid var(--line);
-  background: var(--surface);
+  border-top: 1px solid var(--ors-color-line);
+  background: var(--ors-color-surface);
 }
 
 .advanced-profession-filters > summary {
@@ -330,19 +351,19 @@
 }
 
 .advanced-profession-filters > summary small {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .advanced-profession-filters > summary > svg {
   width: 15px;
   height: 15px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   transition: transform 160ms ease;
 }
 
 .advanced-profession-filters[open] > summary > svg {
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
   transform: rotate(180deg);
 }
 
@@ -359,8 +380,8 @@
 
 .advanced-picker-content > p {
   margin: 0 0 11px;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
@@ -374,23 +395,31 @@
 .advanced-duty-types button {
   min-height: 30px;
   padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--muted);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
   background: transparent;
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 730;
 }
 
 .advanced-duty-types button:hover {
-  border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
-  color: var(--ink);
+  border-color: color-mix(
+    in srgb,
+    var(--ors-color-accent) 58%,
+    var(--ors-color-line)
+  );
+  color: var(--ors-color-text);
 }
 
 .advanced-duty-types button.active {
-  border-color: var(--accent-strong);
-  color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border-color: var(--ors-color-accent);
+  color: var(--ors-color-accent);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 10%,
+    var(--ors-color-surface)
+  );
 }
 
 .advanced-picker-search {
@@ -400,8 +429,8 @@
 
 .advanced-picker-search > span,
 .advanced-rule-inputs label > span:first-child {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
@@ -412,24 +441,24 @@
   min-width: 0;
   min-height: 39px;
   padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
   outline: 0;
-  color: var(--ink);
-  background: var(--paper);
-  font-size: 11px;
+  color: var(--ors-color-text);
+  background: var(--ors-color-canvas);
+  font-size: 0.75rem;
 }
 
 .advanced-picker-search input:focus,
 .advanced-rule-inputs input:focus,
 .advanced-rule-inputs select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: var(--ors-color-accent);
+  box-shadow: none;
 }
 
 .advanced-picker-search input::placeholder,
 .advanced-rule-inputs input::placeholder {
-  color: var(--muted);
+  color: var(--ors-color-muted);
   opacity: 0.76;
 }
 
@@ -448,14 +477,14 @@
   gap: 8px;
   min-height: 35px;
   padding: 5px 8px;
-  border-radius: 9px;
-  color: var(--ink);
-  font-size: 10px;
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
 .advanced-picker-options label:hover {
-  background: var(--surface-2);
+  background: var(--ors-color-hover);
 }
 
 .advanced-picker-options.duties label {
@@ -466,10 +495,14 @@
 .advanced-duty-type {
   min-width: 46px;
   padding: 3px 6px;
-  border-radius: 7px;
-  color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
-  font-size: 8px;
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 9%,
+    var(--ors-color-surface)
+  );
+  font-size: 0.75rem;
   font-weight: 760;
   text-align: center;
 }
@@ -479,7 +512,7 @@
   flex: 0 0 auto;
   width: 15px;
   height: 15px;
-  accent-color: var(--accent-strong);
+  accent-color: var(--ors-color-accent);
 }
 
 .advanced-picker-options img {
@@ -497,34 +530,42 @@
 
 .advanced-job-mode > span {
   margin-right: auto;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .advanced-job-mode button,
 .advanced-rule-mode button {
   min-height: 29px;
   padding: 0 9px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--muted);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
   background: transparent;
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 730;
 }
 
 .advanced-job-mode button.active,
 .advanced-rule-mode button.active {
-  border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
-  color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  border-color: color-mix(
+    in srgb,
+    var(--ors-color-accent) 58%,
+    var(--ors-color-line)
+  );
+  color: var(--ors-color-accent);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 9%,
+    var(--ors-color-surface)
+  );
 }
 
 .advanced-text-rules {
   display: grid;
   gap: 10px;
   padding: 18px 20px 20px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
 }
 
 .advanced-text-rules > header {
@@ -545,8 +586,8 @@
 
 .advanced-text-rules header p {
   margin-top: 4px;
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .advanced-rule-mode {
@@ -562,9 +603,9 @@
 
 .advanced-rule-card {
   padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--paper);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-canvas);
 }
 
 .advanced-rule-inputs {
@@ -596,7 +637,7 @@
   right: 11px;
   width: 14px;
   height: 14px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   pointer-events: none;
   transform: translateY(-50%);
 }
@@ -606,10 +647,10 @@
   place-items: center;
   width: 39px;
   height: 39px;
-  border: 1px solid var(--danger-line);
-  border-radius: 10px;
-  color: var(--danger);
-  background: var(--danger-soft);
+  border: 1px solid var(--ors-color-danger);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-danger);
+  background: var(--ors-color-surface);
 }
 
 .advanced-rule-inputs > button svg {
@@ -629,8 +670,8 @@
 .advanced-rule-card legend {
   width: 100%;
   margin-bottom: 8px;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
@@ -638,14 +679,14 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
 .advanced-rule-error {
   margin: 10px 0 0 !important;
-  color: var(--danger);
-  font-size: 10px;
+  color: var(--ors-color-danger);
+  font-size: 0.75rem;
 }
 
 .advanced-add-rule {
@@ -655,11 +696,11 @@
   gap: 7px;
   min-height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--accent-strong);
-  border-radius: 9px;
-  color: var(--surface);
-  background: var(--accent-strong);
-  font-size: 9px;
+  border: 1px solid var(--ors-color-accent);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-on-accent);
+  background: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 740;
 }
 
@@ -674,16 +715,16 @@
   gap: 9px;
   min-height: 44px;
   padding: 10px 12px;
-  border: 1px dashed var(--line);
-  border-radius: 10px;
-  color: var(--muted);
-  background: color-mix(in srgb, var(--paper) 70%, transparent);
-  font-size: 9px;
+  border: 1px dashed var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
+  background: color-mix(in srgb, var(--ors-color-canvas) 70%, transparent);
+  font-size: 0.75rem;
 }
 
 .advanced-rule-empty strong {
-  color: var(--ink);
-  font-size: 10px;
+  color: var(--ors-color-text);
+  font-size: 0.75rem;
 }
 
 .advanced-loading-panel button {
@@ -693,11 +734,11 @@
   gap: 7px;
   min-height: 38px;
   padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  color: var(--ink);
-  background: var(--surface);
-  font-size: 10px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  font-size: 0.75rem;
   font-weight: 730;
 }
 
@@ -719,19 +760,19 @@
 }
 
 .advanced-recruit-results h2 {
-  font-size: clamp(22px, 2.4vw, 30px);
+  font-size: 1.125rem;
 }
 
 .advanced-recruit-results header p {
   margin-top: 5px;
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .advanced-recruit-results header > svg {
   width: 27px;
   height: 27px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .advanced-results-state {
@@ -740,15 +781,15 @@
   min-height: 260px;
   place-content: center;
   padding: 30px;
-  border: 1px dashed var(--line);
-  border-radius: 16px;
+  border: 1px dashed var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
   text-align: center;
 }
 
 .advanced-results-state > svg {
   width: 38px;
   height: 38px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .advanced-results-state strong {
@@ -758,13 +799,13 @@
 
 .advanced-results-state span {
   margin-top: 6px;
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .advanced-results-state.error > svg,
 .advanced-results-state.error strong {
-  color: var(--danger);
+  color: var(--ors-color-danger);
 }
 
 .advanced-loading-panel {
@@ -774,28 +815,28 @@
   min-height: 390px;
   margin: clamp(30px, 8vh, 90px) auto 0;
   place-content: center;
-  padding: 42px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: var(--surface);
-  box-shadow: 0 22px 68px color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
   text-align: center;
+  padding: 32px;
+  box-shadow: none;
 }
 
 .advanced-loading-panel > svg {
   width: 46px;
   height: 46px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .advanced-loading-panel h1 {
   margin: 18px 0 0;
-  font-size: clamp(25px, 3vw, 34px);
+  font-size: 1.5rem;
 }
 
 .advanced-loading-panel p {
   margin: 10px 0 0;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 12px;
 }
 
@@ -805,46 +846,37 @@
   margin-top: 24px;
   overflow: hidden;
   border: 0;
-  border-radius: 999px;
-  color: var(--accent-strong);
-  background: var(--surface-2);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-hover);
 }
 
 .advanced-loading-panel progress::-webkit-progress-bar {
-  border-radius: inherit;
-  background: var(--surface-2);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-hover);
 }
 
 .advanced-loading-panel progress::-webkit-progress-value {
-  border-radius: inherit;
-  background: var(--accent-strong);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-accent);
+  color: var(--ors-color-on-accent);
 }
 
 .advanced-loading-panel progress::-moz-progress-bar {
-  border-radius: inherit;
-  background: var(--accent-strong);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-accent);
+  color: var(--ors-color-on-accent);
 }
 
 .advanced-loading-panel > span {
   margin-top: 8px;
-  color: var(--muted);
-  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-family: var(--ors-font-ui);
+  font-size: 0.75rem;
 }
 
 .advanced-loading-panel button {
   margin-top: 22px;
-}
-
-.advanced-add-rule:active,
-.advanced-filter-reset:active,
-.advanced-job-mode button:active,
-.advanced-duty-types button:active,
-.advanced-position-mode button:active,
-.advanced-position-options button:active,
-.advanced-rule-mode button:active,
-.advanced-rule-inputs > button:active {
-  transform: translateY(1px) scale(0.985);
 }
 
 @media (max-width: 920px) {
@@ -948,13 +980,13 @@
 }
 .advanced-preference-fields p {
   margin: 0;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.6;
 }
 .advanced-preference-fields h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.875rem;
 }
 .advanced-preference-fields fieldset {
   min-width: 0;
@@ -964,7 +996,7 @@
 }
 .advanced-preference-fields legend {
   margin-bottom: 8px;
-  font-size: 11px;
+  font-size: 0.75rem;
 }
 .advanced-preference-options {
   display: flex;
@@ -976,18 +1008,18 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 .advanced-preferences input[type="checkbox"] {
-  accent-color: var(--accent-strong);
+  accent-color: var(--ors-color-accent);
 }
 .advanced-preference-options img {
   object-fit: contain;
 }
 .advanced-playable-jobs {
   grid-column: 1 / -1;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
   padding-top: 16px;
 }
 .advanced-time-bounds {
@@ -998,14 +1030,14 @@
 .advanced-preferences select {
   width: 100%;
   min-height: 39px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
   padding: 0 11px;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--ors-color-canvas);
+  color: var(--ors-color-text);
 }
 .advanced-preferences :focus-visible {
-  outline: 2px solid var(--accent-strong);
+  outline: 2px solid var(--ors-color-accent);
   outline-offset: 2px;
 }
 @media (max-width: 460px) {

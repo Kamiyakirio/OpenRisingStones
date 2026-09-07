@@ -3,7 +3,7 @@
 .recruit-detail-page {
   width: min(1440px, 100%);
   margin: 0 auto;
-  padding: clamp(30px, 4vw, 58px) clamp(18px, 5vw, 72px) 64px;
+  padding: 24px 32px;
 }
 
 .recruit-intro {
@@ -16,27 +16,26 @@
 
 .recruit-kicker {
   margin: 0 0 13px;
-  color: var(--accent-strong);
-  font-size: 11px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 780;
-  letter-spacing: 0.14em;
+  letter-spacing: normal;
 }
 
 .recruit-intro h1 {
   max-width: 13ch;
   margin: 0;
-  font-family:
-    "Segoe UI Variable Display", "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: clamp(38px, 4.4vw, 58px);
+  font-family: var(--ors-font-heading);
+  font-size: 1.5rem;
   font-weight: 690;
-  line-height: 1.08;
-  letter-spacing: -0.05em;
+  line-height: 1.5;
+  letter-spacing: normal;
 }
 
 .recruit-intro > div:first-child > p:last-child {
   max-width: 48ch;
   margin: 18px 0 0;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 14px;
   line-height: 1.7;
 }
@@ -48,10 +47,15 @@
   column-gap: 10px;
   min-width: 158px;
   padding: 18px 20px;
-  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
-  border-radius: 16px;
-  color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  border: 1px solid
+    color-mix(in srgb, var(--ors-color-accent) 38%, var(--ors-color-line));
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 7%,
+    var(--ors-color-surface)
+  );
 }
 
 .recruit-intro-mark svg {
@@ -68,18 +72,18 @@
 
 .recruit-intro-mark span {
   margin-top: 4px;
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
 .recruit-filter-panel {
   position: relative;
-  padding: clamp(18px, 2.2vw, 26px);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface);
-  box-shadow: 0 16px 46px color-mix(in srgb, var(--home-accent) 8%, transparent);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  box-shadow: none;
+  padding: 20px;
+  background: var(--ors-color-surface);
 }
 
 .recruit-filter-panel > header,
@@ -101,7 +105,7 @@
 .recruit-filter-panel > header svg {
   width: 24px;
   height: 24px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .recruit-filter-panel h2,
@@ -115,8 +119,8 @@
 
 .recruit-filter-panel header p {
   margin-top: 3px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .recruit-filter-clear,
@@ -139,11 +143,11 @@
 .recruit-filter-clear {
   min-height: 35px;
   padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  color: var(--muted);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
   background: transparent;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
@@ -170,8 +174,8 @@
 }
 
 .recruit-filter-form label > span:first-child {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
@@ -187,7 +191,7 @@
   right: 13px;
   width: 15px;
   height: 15px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   pointer-events: none;
   transform: translateY(-50%);
   transition:
@@ -201,11 +205,11 @@
   min-width: 0;
   min-height: 43px;
   padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
   outline: 0;
-  color: var(--ink);
-  background: var(--paper);
+  color: var(--ors-color-text);
+  background: var(--ors-color-canvas);
   font-size: 12px;
   transition:
     border-color 160ms ease,
@@ -219,12 +223,16 @@
 }
 
 .recruit-select-control:hover select {
-  border-color: color-mix(in srgb, var(--accent) 62%, var(--line));
+  border-color: color-mix(
+    in srgb,
+    var(--ors-color-accent) 62%,
+    var(--ors-color-line)
+  );
 }
 
 .recruit-select-control:hover svg,
 .recruit-select-control:focus-within svg {
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .recruit-select-control:focus-within svg {
@@ -233,56 +241,49 @@
 
 .recruit-filter-form input:focus,
 .recruit-filter-form select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: var(--ors-color-accent);
+  box-shadow: none;
 }
 
 .recruit-filter-form input::placeholder {
-  color: var(--muted);
+  color: var(--ors-color-muted);
   opacity: 0.78;
 }
 
 .recruit-filter-submit {
   min-height: 43px;
   padding: 0 18px;
-  border: 1px solid var(--accent-strong);
-  border-radius: 12px;
-  color: var(--surface);
-  background: var(--accent-strong);
+  border: 1px solid var(--ors-color-accent);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-on-accent);
+  background: var(--ors-color-accent);
   font-size: 12px;
   font-weight: 780;
 }
 
 .theme-dark .recruit-filter-submit {
-  color: var(--paper);
-  background: color-mix(in srgb, var(--accent) 72%, #17302f);
-}
-
-.recruit-filter-submit:active,
-.recruit-filter-clear:active,
-.recruit-state button:active,
-.recruit-feed-status button:active,
-.recruit-detail-back:active {
-  transform: translateY(1px) scale(0.985);
+  color: var(--ors-color-canvas);
+  background: var(--ors-color-accent-hover);
 }
 
 .recruit-config-note {
   margin: 14px 0 0;
   padding: 0;
   border: 0;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   background: transparent;
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 
 button.recruit-config-note.error {
-  color: var(--danger);
+  color: var(--ors-color-danger);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .recruit-results {
   padding-top: 42px;
+  margin-top: 24px;
 }
 
 .recruit-results-header {
@@ -299,63 +300,70 @@ button.recruit-config-note.error {
 }
 
 .recruit-results-header h2 {
-  font-size: clamp(22px, 2.4vw, 30px);
-  letter-spacing: -0.025em;
+  font-size: 1.125rem;
+  letter-spacing: normal;
 }
 
 .recruit-results-header p {
   margin-top: 5px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .recruit-page-indicator {
-  color: var(--muted);
-  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-family: var(--ors-font-ui);
+  font-size: 0.75rem;
 }
 
 .recruit-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 12px;
 }
 
 .recruit-card {
-  display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
   cursor: pointer;
   transition:
     transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
     border-color 180ms ease,
     box-shadow 220ms ease;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(240px, 1.1fr) minmax(
+      240px,
+      1fr
+    );
+  gap: 12px 24px;
+  padding: 20px;
 }
 
 .recruit-card:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ors-color-accent);
   outline-offset: 3px;
 }
 
-.recruit-card:active {
-  transform: translateY(1px) scale(0.992);
-}
-
 .recruit-card:hover {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
-  box-shadow: 0 18px 42px color-mix(in srgb, var(--accent) 11%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--ors-color-accent) 55%,
+    var(--ors-color-line)
+  );
+  box-shadow: none;
+  background: var(--ors-color-hover);
 }
 
 .recruit-card-owner {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
+  grid-column: 1;
+  grid-row: 2 / 4;
+  grid-template-columns: 32px minmax(0, 1fr);
 }
 
 .recruit-avatar {
@@ -363,15 +371,15 @@ button.recruit-config-note.error {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  color: var(--accent-strong);
-  background: var(--accent-soft);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
   font-size: 15px;
   font-weight: 800;
+  width: 32px;
+  height: 32px;
 }
 
 .recruit-avatar > span {
@@ -384,7 +392,7 @@ button.recruit-config-note.error {
 .recruit-avatar.large {
   width: 72px;
   height: 72px;
-  border-radius: 18px;
+  border-radius: var(--ors-radius-control);
   font-size: 24px;
 }
 
@@ -411,24 +419,29 @@ button.recruit-config-note.error {
 
 .recruit-card-owner div span,
 .recruit-card-updated {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .recruit-card-updated {
   align-self: start;
   white-space: nowrap;
+  grid-column: 2;
+  margin-left: 0;
 }
 
 .recruit-card-title {
   min-height: 82px;
   padding: 21px 0 17px;
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
 }
 
 .recruit-card-title > span,
 .recruit-detail-title > span {
-  color: var(--accent-strong);
-  font-size: 11px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 780;
 }
 
@@ -436,13 +449,15 @@ button.recruit-config-note.error {
   margin: 6px 0 0;
   font-size: 18px;
   line-height: 1.38;
-  letter-spacing: -0.02em;
+  letter-spacing: normal;
 }
 
 .recruit-card-facts {
   display: grid;
   gap: 9px;
-  margin: 0 0 17px;
+  grid-column: 2;
+  grid-row: 1 / 4;
+  margin: 0;
 }
 
 .recruit-card-facts > div {
@@ -455,7 +470,7 @@ button.recruit-config-note.error {
 .recruit-card-facts dt,
 .recruit-card-facts dd {
   margin: 0;
-  font-size: 11px;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
@@ -463,14 +478,14 @@ button.recruit-config-note.error {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 
 .recruit-card-facts dt svg {
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .recruit-card-facts dd {
@@ -495,15 +510,15 @@ button.recruit-config-note.error {
   min-width: 0;
   min-height: 38px;
   padding: 4px 6px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--paper);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-canvas);
 }
 
 .party-composition small {
-  color: var(--muted);
-  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-family: var(--ors-font-ui);
+  font-size: 0.75rem;
   font-weight: 760;
 }
 
@@ -518,25 +533,32 @@ button.recruit-config-note.error {
   place-items: center;
   width: 28px;
   height: 28px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 16px;
   font-weight: 520;
 }
 
 .party-composition .vacant {
   border-style: dashed;
-  background: color-mix(in srgb, var(--surface-2) 60%, var(--surface));
+  background: color-mix(
+    in srgb,
+    var(--ors-color-hover) 60%,
+    var(--ors-color-surface)
+  );
 }
 
 .recruit-card-needs {
   display: grid;
   gap: 8px;
   margin-top: 16px;
+  grid-column: 3;
+  grid-row: 2;
+  margin: 0;
 }
 
 .recruit-card-needs > span:first-child {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
@@ -561,17 +583,22 @@ button.recruit-config-note.error {
   gap: 5px;
   min-height: 28px;
   padding: 0 8px;
-  border-radius: 9px;
-  font-size: 10px;
+  border-radius: var(--ors-radius-control);
+  font-size: 0.75rem;
   font-style: normal;
   font-weight: 700;
 }
 
 .recruit-job-list > span,
 .recruit-needs-any {
-  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
-  color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  border: 1px solid
+    color-mix(in srgb, var(--ors-color-accent) 38%, var(--ors-color-line));
+  color: var(--ors-color-accent);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 7%,
+    var(--ors-color-surface)
+  );
 }
 
 .recruit-job-list img {
@@ -582,11 +609,13 @@ button.recruit-config-note.error {
 
 .recruit-card-labels {
   margin-top: 13px;
+  grid-column: 1 / 3;
+  margin: 0;
 }
 
 .recruit-card-labels > span {
-  color: var(--muted);
-  background: var(--surface-2);
+  color: var(--ors-color-muted);
+  background: var(--ors-color-hover);
 }
 
 .recruit-card-footer {
@@ -596,14 +625,19 @@ button.recruit-config-note.error {
   gap: 16px;
   margin-top: auto;
   padding-top: 18px;
+  grid-column: 3;
+  grid-row: 3 / 5;
+  margin: 0;
+  padding: 8px 0 0;
+  align-self: end;
 }
 
 .recruit-card-footer > span {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .recruit-card-footer > span svg {
@@ -617,9 +651,9 @@ button.recruit-config-note.error {
   gap: 6px;
   padding: 0;
   border: 0;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
   background: transparent;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 780;
 }
 
@@ -641,8 +675,8 @@ button.recruit-config-note.error {
   min-height: 72px;
   margin-top: 24px;
   padding: 14px 16px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   text-align: center;
 }
 
@@ -653,15 +687,15 @@ button.recruit-config-note.error {
 }
 
 .recruit-feed-status.complete {
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .recruit-feed-status.error {
   justify-content: flex-start;
-  border: 1px solid var(--danger-line);
-  border-radius: 14px;
-  color: var(--danger);
-  background: var(--danger-soft);
+  border: 1px solid var(--ors-color-danger);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-danger);
+  background: var(--ors-color-surface);
   text-align: left;
 }
 
@@ -672,24 +706,24 @@ button.recruit-config-note.error {
 }
 
 .recruit-feed-status.error span {
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 
 .recruit-feed-status button,
 .recruit-state button {
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  color: var(--ink);
-  background: var(--surface);
-  font-size: 11px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  font-size: 0.75rem;
   font-weight: 740;
 }
 
 .recruit-feed-status button:hover,
 .recruit-state button:hover {
-  border-color: var(--accent);
+  border-color: var(--ors-color-accent);
 }
 
 .recruit-feed-skeleton {
@@ -699,18 +733,18 @@ button.recruit-config-note.error {
 .recruit-state {
   display: grid;
   justify-items: center;
-  min-height: 320px;
   place-content: center;
-  padding: 40px 20px;
-  border: 1px dashed var(--line);
-  border-radius: 16px;
+  border: 1px dashed var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
   text-align: center;
+  padding: 32px 24px;
+  min-height: 180px;
 }
 
 .recruit-state > svg {
   width: 42px;
   height: 42px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .recruit-state h3 {
@@ -721,7 +755,7 @@ button.recruit-config-note.error {
 .recruit-state p {
   max-width: 48ch;
   margin: 8px 0 18px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -731,16 +765,12 @@ button.recruit-config-note.error {
   gap: 20px;
 }
 
-.recruit-card-skeleton:hover {
-  transform: none;
-}
-
 .recruit-card-skeleton > span,
 .recruit-detail-skeleton > span {
   display: block;
   height: 42px;
-  border-radius: 11px;
-  background: var(--surface-2);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-hover);
 }
 
 .recruit-card-skeleton > span:nth-child(2) {
@@ -761,9 +791,10 @@ button.recruit-config-note.error {
   .recruit-detail-skeleton > span {
     background: linear-gradient(
       100deg,
-      var(--surface-2) 30%,
-      color-mix(in srgb, var(--surface) 72%, var(--surface-2)) 50%,
-      var(--surface-2) 70%
+      var(--ors-color-hover) 30%,
+      color-mix(in srgb, var(--ors-color-surface) 72%, var(--ors-color-hover))
+        50%,
+      var(--ors-color-hover) 70%
     );
     background-size: 220% 100%;
     animation: recruit-shimmer 1.4s infinite linear;
@@ -779,32 +810,32 @@ button.recruit-config-note.error {
   min-height: 40px;
   margin-bottom: 18px;
   padding: 0 13px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  color: var(--muted);
-  background: var(--surface);
-  font-size: 11px;
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
+  background: var(--ors-color-surface);
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
 .recruit-detail-back:hover {
-  border-color: var(--accent);
-  color: var(--ink);
+  border-color: var(--ors-color-accent);
+  color: var(--ors-color-text);
 }
 
 .recruit-detail-shell {
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: var(--surface);
-  box-shadow: 0 24px 70px
-    color-mix(in srgb, var(--home-accent) 11%, transparent);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
+  box-shadow: none;
 }
 
 .recruit-detail-hero {
   display: grid;
   grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ors-color-line);
+  padding: 24px;
 }
 
 .recruit-detail-owner,
@@ -816,7 +847,11 @@ button.recruit-config-note.error {
   display: flex;
   align-items: center;
   gap: 16px;
-  background: color-mix(in srgb, var(--accent) 7%, var(--paper));
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 7%,
+    var(--ors-color-canvas)
+  );
 }
 
 .recruit-detail-owner > div {
@@ -825,8 +860,8 @@ button.recruit-config-note.error {
 
 .recruit-detail-owner span,
 .recruit-detail-owner p {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .recruit-detail-owner strong {
@@ -848,7 +883,7 @@ button.recruit-config-note.error {
 .recruit-detail-owner p svg {
   width: 13px;
   height: 13px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .recruit-detail-title {
@@ -858,15 +893,15 @@ button.recruit-config-note.error {
 .recruit-detail-title h1 {
   max-width: 22ch;
   margin: 7px 0 0;
-  font-size: clamp(25px, 3.2vw, 39px);
-  line-height: 1.2;
-  letter-spacing: -0.035em;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  letter-spacing: normal;
 }
 
 .recruit-detail-title > p {
   margin: 11px 0 0;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .recruit-detail-title .recruit-card-labels {
@@ -881,9 +916,9 @@ button.recruit-config-note.error {
 
 .recruit-detail-composition {
   padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--paper);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-canvas);
 }
 
 .recruit-detail-composition > header {
@@ -906,8 +941,8 @@ button.recruit-config-note.error {
 
 .recruit-detail-composition p {
   margin-top: 4px;
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .party-composition.expanded {
@@ -931,8 +966,8 @@ button.recruit-config-note.error {
 .party-composition.expanded em {
   width: 100%;
   overflow: hidden;
-  color: var(--ink);
-  font-size: 9px;
+  color: var(--ors-color-text);
+  font-size: 0.75rem;
   font-style: normal;
   font-weight: 700;
   text-align: center;
@@ -952,8 +987,8 @@ button.recruit-config-note.error {
   gap: 11px;
   min-width: 0;
   padding: 16px;
-  border-radius: 14px;
-  background: var(--surface-2);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-hover);
 }
 
 .recruit-detail-facts > div > span {
@@ -962,9 +997,9 @@ button.recruit-config-note.error {
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: 10px;
-  color: var(--accent-strong);
-  background: var(--surface);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-surface);
 }
 
 .recruit-detail-facts svg {
@@ -978,8 +1013,8 @@ button.recruit-config-note.error {
 }
 
 .recruit-detail-facts dt {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .recruit-detail-facts dd {
@@ -998,8 +1033,8 @@ button.recruit-config-note.error {
 .recruit-detail-copy > div {
   min-height: 170px;
   padding: clamp(20px, 3vw, 30px);
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
 }
 
 .recruit-detail-copy > .strategy {
@@ -1009,12 +1044,12 @@ button.recruit-config-note.error {
 
 .recruit-detail-copy h2 {
   margin: 0;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .recruit-detail-copy p {
   margin: 15px 0 0;
-  font-size: 13px;
+  font-size: 0.875rem;
   line-height: 1.85;
   white-space: pre-wrap;
 }
@@ -1025,8 +1060,12 @@ button.recruit-config-note.error {
   gap: 20px;
   align-items: center;
   padding: 18px 20px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--accent) 7%, var(--paper));
+  border-radius: var(--ors-radius-control);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 7%,
+    var(--ors-color-canvas)
+  );
 }
 
 .recruit-detail-meta > div {
@@ -1037,13 +1076,13 @@ button.recruit-config-note.error {
 
 .recruit-detail-meta span,
 .recruit-detail-meta p {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .recruit-detail-meta strong {
   overflow: hidden;
-  font-size: 11px;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1144,7 +1183,7 @@ button.recruit-config-note.error {
   }
 
   .recruit-detail-owner {
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--ors-color-line);
   }
 
   .recruit-detail-composition > header {
@@ -1158,7 +1197,7 @@ button.recruit-config-note.error {
 
 @media (max-width: 460px) {
   .recruit-intro h1 {
-    font-size: 37px;
+    font-size: 1.5rem;
   }
 
   .recruit-card,
@@ -1200,4 +1239,113 @@ button.recruit-config-note.error {
   .recruit-detail-meta {
     grid-template-columns: 1fr;
   }
+}
+
+.recruit-card > .party-composition {
+  grid-column: 3;
+  grid-row: 1;
+  margin: 0;
+}
+
+/* Recruitment rows collapse without discarding party or schedule information. */
+@media (max-width: 1199px) {
+  .recruit-page,
+  .recruit-detail-page {
+    padding-inline: 24px;
+  }
+  .recruit-grid {
+    grid-template-columns: 1fr;
+  }
+  .recruit-card {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .recruit-card-title {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .recruit-card-owner {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .recruit-card-facts {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  .recruit-card > .party-composition {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .recruit-card-needs {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .recruit-card-footer {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+}
+@media (max-width: 767px) {
+  .recruit-page,
+  .recruit-detail-page {
+    padding-inline: 16px;
+  }
+  .recruit-card {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+  }
+  .recruit-card-title {
+    order: -1;
+  }
+  .recruit-card-owner {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+  }
+  .recruit-card-updated {
+    grid-column: 3;
+  }
+  .recruit-card-footer {
+    width: 100%;
+  }
+  .recruit-filter-form {
+    grid-template-columns: 1fr;
+  }
+}
+/* Keep comparable rows compact while retaining all recruitment information. */
+.recruit-card-title {
+  min-height: 0;
+  padding: 0;
+}
+.recruit-card-facts {
+  align-content: start;
+}
+.recruit-card .party-composition {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
+}
+.recruit-card .party-composition > span {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 2px;
+  gap: 2px;
+  min-height: 48px;
+}
+.recruit-card .party-composition :is(img, strong) {
+  width: 20px;
+  height: 20px;
+}
+.recruit-card-needs {
+  align-content: start;
+}
+.recruit-results-header {
+  margin-bottom: 20px;
+}
+.recruit-results-header h2 {
+  font-size: 1.125rem;
+}
+.recruit-results {
+  padding-top: 0;
+}
+.recruit-job-list > span:first-child {
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
