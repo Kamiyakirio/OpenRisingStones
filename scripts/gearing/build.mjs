@@ -1,7 +1,7 @@
 /** Build the complete package from raw tables and this repository's owned rule configuration. */
 import { readFileSync } from "node:fs";
 import * as game from "./config/game.mjs";
-import { formulaRules } from "./rules.mjs";
+import { formulaRules, expandCustomWeaponRules } from "./rules.mjs";
 import { convert } from "./convert.mjs";
 import { hash } from "./hash.mjs";
 
@@ -20,7 +20,7 @@ export function buildBundle({ raw, sources, gameVersion }) {
   const rules = {
     ...gameRules,
     colors: read("config/colors.json"),
-    customWeaponRules: policy.customWeaponRules,
+    customWeaponRules: expandCustomWeaponRules(policy, game.statNames),
     acquisition: policy.acquisition,
     search: policy.search,
     formulas: formulaRules(parameters, policy),
@@ -57,8 +57,11 @@ export function buildBundle({ raw, sources, gameVersion }) {
             data.jobCategories[item.jobCategory]?.[job] &&
             item.level >= schema.defaultItemLevel[0],
         ) &&
-        !policy.customWeaponRules.some(
-          (rule) => rule.source === item.source && rule.itemLevels[item.level],
+        !rules.customWeaponRules.some(
+          (rule) =>
+            rule.source === item.source &&
+            rule.itemLevels[item.level] &&
+            rule.slotWeights[item.slot],
         ),
     )
     .map(({ id, name, level, source }) => ({ id, name, level, source }));

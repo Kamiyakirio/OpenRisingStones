@@ -22,6 +22,8 @@ const formula =
 const share = await import("../src/features/gearing/utils/share.ts");
 const { combatRequest } =
   await import("../src/features/gearing/api/optimization.ts");
+const { getCustomWeaponRule } =
+  await import("../src/features/gearing/utils/customWeaponRules.ts");
 const read = (name) =>
   JSON.parse(
     readFileSync(
@@ -353,7 +355,36 @@ test("native preparation budget charges a forced point weapon only once", () => 
   assert.equal(solve("combat", request).status, "ok");
 });
 
-test("native custom paladin weapons keep linked stat allocations together", () => {
+test("generated shared custom weapon defaults resolve job stats and slot weights", () => {
+  const rule = rules.customWeaponRules.find((rule) => rule.id === "huanjing");
+  assert.ok(rule);
+  const weapon = {
+    customizable: true,
+    source: rule.source,
+    level: 795,
+    slot: 13,
+  };
+  assert.deepEqual(getCustomWeaponRule(weapon, G.jobSchemas.SCH), {
+    major: 447,
+    minor: 108,
+    statCandidates: ["CRT", "DET", "SPS", "PIE"],
+    linkedSlotGroup: "huanjing",
+  });
+  const sword = getCustomWeaponRule({ ...weapon, slot: 1 }, G.jobSchemas.PLD);
+  const shield = getCustomWeaponRule({ ...weapon, slot: 2 }, G.jobSchemas.PLD);
+  assert.equal(sword.major, 319);
+  assert.equal(sword.minor, 77);
+  assert.equal(shield.major, 128);
+  assert.equal(shield.minor, 31);
+  assert.equal(sword.major + shield.major, 447);
+  assert.equal(sword.minor + shield.minor, 108);
+  assert.equal(
+    getCustomWeaponRule({ ...weapon, slot: 3 }, G.jobSchemas.PLD),
+    undefined,
+  );
+});
+
+test("native custom paladin weapons keep generated linked stat allocations together", () => {
   const request = combatRequest(inputFor("WAR"));
   request.job = "PLD";
   request.mode = "all";
@@ -365,24 +396,28 @@ test("native custom paladin weapons keep linked stat allocations together", () =
     ],
   };
   const template = request.gears[0];
-  request.gears = [1, 2].map((slot) => ({
-    ...template,
-    id: slot,
-    slot,
-    data: {
+  const source = rules.customWeaponRules.find(
+    (rule) => rule.id === "huanjing",
+  ).source;
+  request.gears = [1, 2].map((slot) => {
+    const data = {
       ...template.data,
+      slot,
+      level: 795,
+      source,
       customizable: true,
       materiaSlot: 0,
       stats: { STR: 100, VIT: 100, PDMG: 10 },
-    },
-    materias: [],
-    customRule: {
-      major: 100,
-      minor: 25,
-      statCandidates: ["CRT", "DET", "SKS", "DHT"],
-      linkedSlotGroup: "linked-test",
-    },
-  }));
+    };
+    return {
+      ...template,
+      id: slot,
+      slot,
+      data,
+      materias: [],
+      customRule: getCustomWeaponRule(data, G.jobSchemas.PLD),
+    };
+  });
   request.filteredIds = [1, 2];
   request.equippedGearIdsBySlot = [];
   const result = solve("combat", request);
@@ -391,6 +426,13 @@ test("native custom paladin weapons keep linked stat allocations together", () =
     Object.keys(result.plan[0].customStats).sort(),
     Object.keys(result.plan[1].customStats).sort(),
   );
+  const totals = Object.keys(result.plan[0].customStats)
+    .map(
+      (stat) =>
+        result.plan[0].customStats[stat] + result.plan[1].customStats[stat],
+    )
+    .sort((a, b) => a - b);
+  assert.deepEqual(totals, [108, 447, 447]);
 });
 
 test("native DET/DHT results preserve fixed melds and obey the near-optimal threshold", () => {

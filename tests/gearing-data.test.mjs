@@ -11,7 +11,10 @@ import {
 } from "../scripts/gearing/csv.mjs";
 import { downloadInputs, downloadText } from "../scripts/gearing/download.mjs";
 import { buildBundle } from "../scripts/gearing/build.mjs";
-import { formulaRules } from "../scripts/gearing/rules.mjs";
+import {
+  formulaRules,
+  expandCustomWeaponRules,
+} from "../scripts/gearing/rules.mjs";
 import { validate } from "../scripts/gearing/validate.mjs";
 import { convert } from "../scripts/gearing/convert.mjs";
 import * as game from "../scripts/gearing/config/game.mjs";
@@ -298,6 +301,61 @@ test("owned named coefficients update the shared frontend/native parameter slots
   assert.equal(formulas.calcGcd.numbers[1], 145);
   assert.equal(formulas.floor.numbers[0], 2e-7);
   assert.equal(formulas.calcEffects.numbers.length, 38);
+});
+
+test("custom weapons inherit shared defaults without changing source allocations", () => {
+  const policy = json("scripts/gearing/optimizer-policy.json");
+  const before = structuredClone(policy);
+  const rules = expandCustomWeaponRules(policy, game.statNames);
+  for (const rule of rules) {
+    assert.deepEqual(
+      rule.statCandidates,
+      policy.customWeaponDefaults.statCandidates,
+    );
+    assert.deepEqual(rule.slotWeights, policy.customWeaponDefaults.slotWeights);
+    assert.equal(rule.linkSlotAllocations, true);
+  }
+  assert.deepEqual(rules.find((rule) => rule.id === "manderville").itemLevels, {
+    645: { major: 293, minor: 72 },
+    665: { major: 306, minor: 72 },
+  });
+  assert.deepEqual(rules.find((rule) => rule.id === "huanjing").itemLevels, {
+    795: { major: 447, minor: 108 },
+  });
+  rules[0].slotWeights[1][0] = 0;
+  assert.equal(rules[1].slotWeights[1][0], 5);
+  assert.deepEqual(policy, before);
+});
+
+test("custom weapon overrides replace candidates, merge slot weights and preserve false", () => {
+  const policy = json("scripts/gearing/optimizer-policy.json");
+  policy.customWeaponRules = [
+    {
+      ...policy.customWeaponRules[0],
+      statCandidates: ["CRT", "DET", "DHT"],
+      slotWeights: { 13: [1, 2] },
+      linkSlotAllocations: false,
+    },
+  ];
+  const [rule] = expandCustomWeaponRules(policy, game.statNames);
+  assert.deepEqual(rule.statCandidates, ["CRT", "DET", "DHT"]);
+  assert.deepEqual(rule.slotWeights, { 1: [5, 7], 2: [2, 7], 13: [1, 2] });
+  assert.equal(rule.linkSlotAllocations, false);
+});
+
+test("invalid inherited custom weapon rules fail before generation", () => {
+  const policy = json("scripts/gearing/optimizer-policy.json");
+  policy.customWeaponDefaults.slotWeights[13] = [1, 0];
+  assert.throws(
+    () => expandCustomWeaponRules(policy, game.statNames),
+    /slot ratio/,
+  );
+  policy.customWeaponDefaults.slotWeights[13] = [1, 1];
+  policy.customWeaponRules.push({ ...policy.customWeaponRules[0] });
+  assert.throws(
+    () => expandCustomWeaponRules(policy, game.statNames),
+    /unique IDs/,
+  );
 });
 
 test("downloads reject HTTP failures, empty files and oversized responses", async () => {

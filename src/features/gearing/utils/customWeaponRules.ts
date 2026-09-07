@@ -15,7 +15,7 @@ export interface CustomWeaponRule {
   itemLevels: Record<number, CustomWeaponAllocation>;
   statCandidates: CustomWeaponStatCandidate[];
   slotWeights: Partial<Record<number, readonly [number, number]>>;
-  linkSlotAllocations?: boolean;
+  linkSlotAllocations: boolean;
 }
 
 export interface ResolvedCustomWeaponRule extends CustomWeaponAllocation {
@@ -24,7 +24,8 @@ export interface ResolvedCustomWeaponRule extends CustomWeaponAllocation {
 }
 
 /**
- * Add future automatic custom-weapon rules here; the optimizer needs no corresponding code changes.
+ * Rules are expanded by the data generator from optimizer-policy.json and its shared defaults.
+ * Add weapon sources or item levels there, then regenerate the package; this module reads complete rules.
  * `speed` and `secondary` resolve from the job, and each slot weight is `[numerator, denominator]`.
  * Set `linkSlotAllocations` when multiple pieces (such as a paladin sword and shield) must choose the same stats.
  */

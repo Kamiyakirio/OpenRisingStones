@@ -1,4 +1,13 @@
 {
+  "customWeaponDefaults": {
+    "statCandidates": ["CRT", "DET", "speed", "secondary"],
+    "slotWeights": {
+      "1": [5, 7],
+      "2": [2, 7],
+      "13": [1, 1]
+    },
+    "linkSlotAllocations": true
+  },
   "customWeaponRules": [
     {
       "id": "manderville",
@@ -12,28 +21,17 @@
           "major": 306,
           "minor": 72
         }
-      },
-      "statCandidates": [
-        "CRT",
-        "DET",
-        "speed",
-        "secondary"
-      ],
-      "slotWeights": {
-        "1": [
-          5,
-          7
-        ],
-        "2": [
-          2,
-          7
-        ],
-        "13": [
-          1,
-          1
-        ]
-      },
-      "linkSlotAllocations": true
+      }
+    },
+    {
+      "id": "huanjing",
+      "source": "幻境武器",
+      "itemLevels": {
+        "795": {
+          "major": 447,
+          "minor": 108
+        }
+      }
     }
   ],
   "acquisition": {
@@ -102,14 +100,5 @@
     "gcdOptimizationBoundTolerance": 1e-10,
     "productionMateriaSearchStateLimit": 350000
   },
-  "requiredSpeedSearch": [
-    0,
-    0,
-    1000,
-    100000,
-    2,
-    100000,
-    2,
-    1
-  ]
+  "requiredSpeedSearch": [0, 0, 1000, 100000, 2, 100000, 2, 1]
 }
