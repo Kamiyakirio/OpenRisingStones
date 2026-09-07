@@ -1,7 +1,10 @@
 import { defineConfig } from "vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
-import { checkGearingData } from "./scripts/gearing/check.mjs";
+import {
+  checkGearingData,
+  generatedDirectory,
+} from "./scripts/gearing/check.mjs";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -13,14 +16,14 @@ export default defineConfig({
         checkGearingData();
       },
       configureServer(server) {
+        const dataPath = generatedDirectory
+          .replaceAll("\\", "/")
+          .replace(/\/$/, "");
         let reload: ReturnType<typeof setTimeout> | undefined;
         const onDataChange = (_event: string, file: string) => {
-          if (
-            !file
-              .replaceAll("\\", "/")
-              .includes("/src/features/gearing/data/generated/")
-          )
-            return;
+          const path = file.replaceAll("\\", "/");
+          // A directory swap may emit only addDir for the root, without events for its files.
+          if (path !== dataPath && !path.startsWith(`${dataPath}/`)) return;
           // Atomic imports replace the directory: include add/unlink events and clear all cached modules.
           clearTimeout(reload);
           reload = setTimeout(() => void server.restart(), 150);
