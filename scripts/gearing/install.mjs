@@ -9,13 +9,10 @@ import {
   rmSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
-import { validate } from "./extract.mjs";
-import { hash } from "./reader.mjs";
+import { validate } from "./validate.mjs";
+import { hash } from "./hash.mjs";
 
-export function installBundle(
-  bundle,
-  { target, contract, sourceCommit = null, sourceDirty = null, check = false },
-) {
+export function installBundle(bundle, { target, contract, check = false }) {
   const count = validate(bundle, contract);
   const previous = existsSync(join(target, "manifest.json"))
     ? JSON.parse(readFileSync(join(target, "manifest.json"), "utf8"))
@@ -34,12 +31,12 @@ export function installBundle(
   );
   const manifest = {
     formatVersion: 1,
-    importerVersion: 2,
-    sourceProfile: bundle.sourceProfile ?? "optimizer-fork",
+    generatorVersion: 1,
+    sourceProfile: "raw-csv",
     gameVersion: bundle.gameVersion,
-    sourceCommit,
-    sourceDirty,
+    sources: bundle.sources,
     inputs: bundle.inputs,
+    review: bundle.review,
     dataVersion: hash(JSON.stringify(files)),
     parameterVersion: hash(contents["rules.json"]),
     files,
@@ -75,7 +72,9 @@ export function installBundle(
   const oldRules = previous
     ? JSON.parse(readFileSync(join(target, "rules.json"), "utf8"))
     : {};
-  const parameterChanges = Object.keys(bundle.rules).filter(
+  const parameterChanges = [
+    ...new Set([...Object.keys(oldRules), ...Object.keys(bundle.rules)]),
+  ].filter(
     (key) =>
       JSON.stringify(oldRules[key]) !== JSON.stringify(bundle.rules[key]),
   );
@@ -87,6 +86,7 @@ export function installBundle(
     dataVersion: manifest.dataVersion,
     itemChanges,
     parameterChanges,
+    review: bundle.review,
     ...changes,
   };
   if (check) return report;

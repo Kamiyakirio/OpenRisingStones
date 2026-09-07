@@ -1,4 +1,4 @@
-//! Fail with an actionable import command when a fresh checkout has no local data.
+//! Fail with the standalone generation command when a fresh checkout has no local data.
 use std::path::PathBuf;
 
 fn main() {
@@ -9,7 +9,7 @@ fn main() {
     println!("cargo:rerun-if-changed={}", file.display());
     assert!(
       file.is_file(),
-      "Gearing data is missing. From the repository root, run: node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing"
+      "Gearing data is missing. From the repository root, run: npm run gearing:data:update"
     );
   }
 }

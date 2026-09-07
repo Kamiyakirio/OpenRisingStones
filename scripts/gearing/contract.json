@@ -1,12 +1,11 @@
 {
-  "sourceCommit": "fd7d46b",
-  "formulas": {
-    "floor": "f6ba3a887108dee8e6aa2ea44f0972122c739f307b665e8633892322bcb44219",
-    "calcGcd": "57cd4ebc1abb9c9ffa5ba234856ce8f5a4c2641a4a6f8c29327d463a91e9fc73",
-    "calcRequiredSpeed": "f96d6aedcc74c6832c11770061f1e02a0b46d5068e83572e2477f8a293d7b6b3",
-    "calcEffects": "f73558c691c07f9cc79e1a9c007aa56e2ca6879eac2fab214f5f8a4a88a34a3d",
-    "getCaps": "dcf240b0243b61c585be44f10059f39a8277d28ad6b20a3c3a53e1edaf95e459",
-    "materiaDetDhtOptimized": "1d749749337bdc7c4ab8214e5aa611353fae7267e85a8acfb1b5dd5e652c1f36"
+  "formatVersion": 1,
+  "formulaLengths": {
+    "floor": 1,
+    "calcGcd": 8,
+    "calcRequiredSpeed": 8,
+    "calcEffects": 38,
+    "getCaps": 1
   },
   "itemFields": [
     "best",
@@ -30,17 +29,5 @@
     "statMain",
     "statRates",
     "stats"
-  ],
-  "parameters": {
-    "detDhtAcceptableRatioIndex": 52
-  },
-  "upstream": {
-    "sourceCommit": "78f6cbb568bdd3341ec793bbc17f4582e32d2ba8",
-    "formulas": {
-      "floor": "6f02690974c05cd06d617b5045a807cfa4fdafe7d6ecfd81fc084af82ac26db5",
-      "equippedEffects": "7f7d65222091b314bb3b322ff4d1e9d372ffaf574d532ff009bbf6742a9e123e",
-      "getCaps": "a63e5758c7f190be07c3fc3de8f6e93a0f44f58ba39e5071eea7184b1ce1b7e5",
-      "materiaDetDhtOptimized": "811b616b619bb5884e4ec812bc6b9c7aec8135d72e8408854de7dc1a1c4f5ded"
-    }
-  }
+  ]
 }

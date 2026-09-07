@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "gearing:data:update": "node scripts/update-gearing-data.mjs",
     "predev": "node scripts/check-gearing-data.mjs",
     "dev": "vite",
     "prebuild": "node scripts/check-gearing-data.mjs",

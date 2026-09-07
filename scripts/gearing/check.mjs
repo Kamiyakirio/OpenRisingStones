@@ -7,8 +7,7 @@ import { fileURLToPath } from "node:url";
 export const generatedDirectory = fileURLToPath(
   new URL("../../src/features/gearing/data/generated/", import.meta.url),
 );
-const importCommand =
-  "node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing";
+const importCommand = "npm run gearing:data:update";
 
 export function checkGearingData(directory = generatedDirectory) {
   try {

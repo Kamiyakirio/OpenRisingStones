@@ -12,11 +12,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import "./helpers/gearing-loader.mjs";
-import { reader } from "../scripts/gearing/reader.mjs";
-import { validate } from "../scripts/gearing/extract.mjs";
+import { validate } from "../scripts/gearing/validate.mjs";
 import { installBundle } from "../scripts/gearing/install.mjs";
 import { checkGearingData } from "../scripts/gearing/check.mjs";
-import { asvelRules } from "../scripts/gearing/asvel.mjs";
 
 const G = await import("../src/features/gearing/utils/game.ts");
 const formula =
@@ -37,9 +35,6 @@ const read = (name) =>
 const manifest = read("manifest");
 const rules = read("rules"),
   recent = read("gears-recent");
-const contract = JSON.parse(
-  readFileSync("scripts/gearing/contract.json", "utf8"),
-);
 const cargoManifest = "src-tauri/crates/gearing-engine/Cargo.toml";
 execFileSync(
   "cargo",
@@ -107,28 +102,6 @@ function inputFor(job = "SCH") {
   };
 }
 
-test("declarative extraction rejects executable source and preserves sparse indices", () => {
-  assert.deepEqual(reader("export default [1,,3]", "items.js").exportedData(), [
-    1,
-    null,
-    3,
-  ]);
-  assert.throws(
-    () => reader("export default process.exit()", "items.js").exportedData(),
-    /unsupported/,
-  );
-  assert.throws(
-    () => reader("sideEffect(); export default []", "items.js").exportedData(),
-    /declarative/,
-  );
-  const a = reader("function f(x){return x*200;}", "f.ts").formula("f");
-  const b = reader("function f(x){return x*220;}", "f.ts").formula("f");
-  const c = reader("function f(x){return x+200;}", "f.ts").formula("f");
-  assert.equal(a.structure, b.structure);
-  assert.notDeepEqual(a.numbers, b.numbers);
-  assert.notEqual(a.structure, c.structure);
-});
-
 test("bundled data has valid references and formula contracts", () => {
   const data = Object.fromEntries(
     Object.keys(manifest.files)
@@ -141,54 +114,6 @@ test("bundled data has valid references and formula contracts", () => {
   assert.ok(validate({ data, rules }, contract) > 26000);
   const broken = { ...data, foods: [...data.foods, data.foods[0]] };
   assert.throws(() => validate({ data: broken, rules }, contract), /duplicate/);
-});
-
-test("official upstream coefficient changes reach native parameter positions", () => {
-  // Numeric-only fixture from Asvel 78f6cbb; no upstream search implementation is retained.
-  const source = {
-    floor: { numbers: [1e-7], structure: contract.upstream.formulas.floor },
-    equippedEffects: {
-      numbers: [
-        200, 0, 200, 50, 1000, 200, 1400, 1000, 140, 1000, 1000, 550, 1000, 112,
-        1000, 1000, 200, 1000, 1000, 0, 0, 0, 0, 1.05, 100, 100, 0.01, 1, 1,
-        0.25, 1, 1000, 130, 2500, 1000, 80, 100, 1000, 100, 130, 1000, 1000,
-        150, 200,
-      ],
-      structure: contract.upstream.formulas.equippedEffects,
-    },
-    getCaps: {
-      numbers: [100000],
-      structure: contract.upstream.formulas.getCaps,
-    },
-    materiaDetDhtOptimized: {
-      numbers: Array.from({ length: 53 }, (_, i) => (i === 52 ? 0.9997 : 0)),
-      structure: contract.upstream.formulas.materiaDetDhtOptimized,
-    },
-  };
-  const policy = JSON.parse(
-    readFileSync("scripts/gearing/optimizer-policy.json", "utf8"),
-  );
-  const baseline = asvelRules(source, policy, contract);
-  assert.equal(baseline.formulas.calcEffects.numbers.length, 38);
-  assert.deepEqual(
-    baseline.formulas.calcGcd.numbers,
-    [1000, 130, 2500, 1000, 80, 100, 1000, 100],
-  );
-  source.floor.numbers[0] = 2e-7;
-  source.equippedEffects.numbers[2] = 210;
-  source.equippedEffects.numbers[32] = 145;
-  source.materiaDetDhtOptimized.numbers[52] = 0.9999;
-  const changed = asvelRules(source, policy, contract);
-  assert.equal(changed.formulas.floor.numbers[0], 2e-7);
-  assert.equal(changed.formulas.calcEffects.numbers[2], 210);
-  assert.equal(changed.formulas.calcGcd.numbers[1], 145);
-  assert.equal(changed.formulas.calcEffects.numbers[33], 130);
-  assert.equal(changed.detDhtAcceptableRatio, 0.9999);
-  source.equippedEffects.structure = "changed-expression";
-  assert.throws(
-    () => asvelRules(source, policy, contract),
-    /structure changed: equippedEffects/,
-  );
 });
 
 test("GCD nested truncation retains the level 100 threshold", () => {
@@ -351,6 +276,8 @@ test("data installation is repeatable, check-only, atomic on failure, and revers
       inputs: manifest.inputs,
       gameVersion: manifest.gameVersion,
       sourceProfile: manifest.sourceProfile,
+      sources: manifest.sources,
+      review: manifest.review,
     };
     const contract = JSON.parse(
       readFileSync("scripts/gearing/contract.json", "utf8"),
@@ -358,14 +285,12 @@ test("data installation is repeatable, check-only, atomic on failure, and revers
     const options = {
       target,
       contract,
-      sourceCommit: manifest.sourceCommit,
-      sourceDirty: manifest.sourceDirty,
     };
     installBundle(bundle, { ...options, check: true });
     assert.equal(existsSync(target), false);
     assert.throws(
       () => checkGearingData(target),
-      /import-gearing-data.mjs --source/,
+      /npm run gearing:data:update/,
     );
     installBundle(bundle, options);
     const original = readFileSync(join(target, "manifest.json"), "utf8");
