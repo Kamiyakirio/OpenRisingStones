@@ -1,0 +1,18 @@
+{
+  "roundingEpsilon": 1e-7,
+  "capDivisor": 100000,
+  "detDhtAcceptableRatio": 0.9997,
+  "gcd": {"base": 1000, "speedScale": 130, "timeUnits": 2500, "baseDivisor": 1000, "modifierLevel": 80, "defaultModifier": 100, "modifierDivisor": 1000, "resultDivisor": 100},
+  "effects": {
+    "blueMimicry": 200,
+    "critical": {"chanceScale": 200, "chanceBase": 50, "damageScale": 200, "damageBase": 1400, "divisor": 1000},
+    "determination": {"scale": 140, "base": 1000, "divisor": 1000},
+    "directHit": {"chanceScale": 550, "divisor": 1000, "damageBonus": 0.25},
+    "tenacity": {"damageScale": 112, "damageBase": 1000, "divisor": 1000, "mitigationScale": 200},
+    "weaponDivisor": 1000,
+    "main": {"partyBonus": 1.05, "damageBase": 100, "divisor": 100},
+    "potencyScale": 0.01,
+    "speed": {"scale": 130, "base": 1000, "divisor": 1000},
+    "mp": {"scale": 150, "base": 200}
+  }
+}

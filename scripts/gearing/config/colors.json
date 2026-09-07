@@ -1,0 +1,14 @@
+{
+  "source": {
+    "点数": "red",
+    "天书": "purple",
+    "绝境": "purple"
+  },
+  "rarity": {
+    "1": "white",
+    "2": "green",
+    "3": "blue",
+    "4": "purple",
+    "7": "red"
+  }
+}
