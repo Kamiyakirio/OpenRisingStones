@@ -1,0 +1,34 @@
+{
+  "kind": "direction-comparison",
+  "approved": true,
+  "source": "AI-generated concept board; not an implementation screenshot.",
+  "image": "ui-language-options.png",
+  "prompt": "Create a high-fidelity UI DESIGN DIRECTION COMPARISON BOARD for OpenRisingStones, an unofficial FF14 desktop utility app. This is an actual software UI design exploration, NOT fantasy concept art. A tall board with THREE equally large LANDSCAPE desktop app windows stacked vertically, each at the same legible scale, with a small direction label ABOVE (outside) each window. No browser chrome, no devices, no perspective. Render with immaculate typography, precise grid alignment and finished professional product UI quality. Product content must be in Simplified Chinese except brand. Real features ONLY: 首页, 招募, 幻化, 超域传送, 配装; settings, theme control, account 未登录. Each window shows a home launcher with the same four real functions and their short descriptions: 招募 / 寻找同行者; 幻化 / 发现下一套造型; 超域传送 / 规划跨区行程; 配装 / 装备与魔晶石搭配. Footer: 非官方社区工具. No fake metrics, analytics, recent activity, characters, endorsements, promotional claims, or invented tasks. Home is an operational gateway, no huge marketing headline, no generic three-card marketing grid. Main heading 冒险者工具集, modest at 26px, content should read comfortably at a 1280 by 720 desktop viewport. Show a compact bottom strip OUTSIDE each window of its key UI primitives: color swatches, button, input, selected tab, status tag, so cross-app design language is visible.\nA label: A · 机工工作台. Light cool porcelain #F3F5F8, white work surfaces #FFFFFF, ink #202B3A, committed deep ultramarine #3456B5 selection and controls, desaturated steel outlines #CBD3DF. Inspired by carefully calibrated instrument panels used by craftspeople, translated into understated contemporary desktop software. Persistent 176px left navigation with text and small consistent outline icons; central functional directory is 2 by 2 LOW horizontal modules, each a small discipline icon at left, title description beside it, quiet enter arrow at right; geometric rectangular shape grammar, 6px corners, precise 1px dividers, sparse tiny brass detail #987139 only in product mark. Friendly, clear, immaculate sans Chinese type. Restrained depth, generous yet useful workspace, one primary selected nav treatment. No glow, no gradients, no ornamental rings.\nB label: B · 冒险日志. Full dark midnight indigo #171E30 with blue-slate raised panels #232E45, warm ivory readable text #EEF0F7, moon-gold accents #D7BD80 and subtle borders #3A4762. A modern digital adventurer journal, no parchment texture, no leather, no fantasy ornament clutter. Top horizontal tab navigation under a compact brand header. Content uses a clear index-like vertical list of four wide rows with small item/route/party symbols, distinctive tiny gold margin markers, short description alongside title, aligned right-side entry actions. A single refined serif Chinese heading paired with neutral sans UI labels and numbers, 4px corner form, precise ruled rows, deliberately calm depth; gold used only for selected/active behavior. No neon, no glow, no large artwork. A night companion that extends credibly into tables and detail panels.\nC label: C · 战术面板. Neutral graphite #252729, near-black nav #1D1F21, charcoal #303336 surfaces, off-white #F0F1F0, muted text #B4B9BA, dusty orange #DB9666 active accent. Inspired by FF14 party-composition and gear comparison rhythm translated into a compact practical battle-planning desk. Left compact but TEXT-LABELED rail. Main home has four tightly organized utility rows with intentional empty breathing area, icon and Chinese title on left, short descriptions in a middle aligned column and a small outlined launch control at right, table-like alignment without fake data. Fine 1px rules, 3px radius, compact sans typography, tabular numerals in sample input only, muted orange status and selection marks. More information density than A and B but remain welcoming and highly readable, do not use terminal UI, sci-fi HUD, green neon, chart dashboards, or giant display text.\nThe three designs must be visibly distinct in palette, navigation topology and density, equally polished, full fidelity and real product usability. Board background light neutral gray outside the windows; make each panel's internal theme consistent. The artifact is a decision board; none is a shipped app screenshot.",
+  "scope": "Replacement design language and proposed design tokens; preserve product truth and existing application implementation during documentation.",
+  "options": [
+    {
+      "id": "A",
+      "name": "Machinist Workbench",
+      "description": "Cool light surfaces, ultramarine controls, persistent sidebar, moderately spacious feature modules."
+    },
+    {
+      "id": "B",
+      "name": "Adventurer Journal",
+      "description": "Midnight indigo surfaces, moon-gold controls, horizontal navigation, index-like feature rows."
+    },
+    {
+      "id": "C",
+      "name": "Tactical Panel",
+      "description": "Graphite surfaces, muted orange controls, persistent sidebar, dense aligned utility rows."
+    }
+  ],
+  "limitations": [
+    "Concept seed engine unavailable; these are manually developed options, not a seeded assignment.",
+    "Only option B is selected. Generated slogans and emblems are excluded; exact target tokens and behavior are specified in DESIGN.md, not inferred as existing implementation.",
+    "Dark and light counterparts are required for the selected system."
+  ],
+  "approvedOptionId": "B",
+  "approvalScope": "Principal visual direction and home structure of option B only; not literal pixel reproduction or approval of A and C. The later plain-copy requirement overrides board text and decorative thematic framing.",
+  "userDecision": "User selected B as the main visual direction and requested the finalized DESIGN.md.",
+  "designSpec": "../../../DESIGN.md"
+}

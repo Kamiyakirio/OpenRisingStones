@@ -56,8 +56,14 @@ potentially stale, unavailable, and empty inventory data.
 
 The confirmed product name is **OpenRisingStones**. The current homepage's singular
 `OpenRisingStone` spelling is an implementation inconsistency, not a second brand.
-Preserve the product's unofficial status. No additional binding visual or voice
-requirements were established during initialization.
+Preserve the product's unofficial status.
+
+Use direct, task-specific interface copy in the player's vocabulary. The user
+explicitly rejected generic AI-sounding copy and design. Avoid adventure slogans,
+invented thematic names, decorative English translations, and unsupported claims
+about speed or capability. Headings identify the current feature; actions describe
+their result; status messages explain the actual state and the available next step.
+See `docs/design/interface-copy.md` for the redesign's copy specification and examples.
 
 ## Evidence on Hand
 

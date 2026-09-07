@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-07T08:31:34.732Z",
+  "title": "Design System: OpenRisingStones",
+  "extensions": {
+    "colorMeta": {
+      "dark-accent": {
+        "role": "primary",
+        "displayName": "Muted gold"
+      },
+      "light-accent": {
+        "role": "primary",
+        "displayName": "Deep gold"
+      },
+      "dark-canvas": {
+        "role": "neutral",
+        "displayName": "Deep indigo"
+      },
+      "dark-surface": {
+        "role": "neutral",
+        "displayName": "Blue slate"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Workspace heading",
+        "purpose": "Short serif heading only; never controls or data."
+      },
+      "data": {
+        "displayName": "Tabular data",
+        "purpose": "Aligned numbers using tabular-nums lining-nums."
+      }
+    },
+    "shadows": [
+      {
+        "name": "popover-dark",
+        "value": "0 8px 24px rgba(0, 0, 0, 0.28)",
+        "purpose": "Dark-theme menus and popovers."
+      },
+      {
+        "name": "dialog-dark",
+        "value": "0 16px 48px rgba(0, 0, 0, 0.4)",
+        "purpose": "Dark-theme modal surfaces."
+      },
+      {
+        "name": "popover-light",
+        "value": "0 8px 24px rgba(23, 30, 48, 0.12)",
+        "purpose": "Light-theme menus and popovers."
+      },
+      {
+        "name": "dialog-light",
+        "value": "0 16px 48px rgba(23, 30, 48, 0.2)",
+        "purpose": "Light-theme modal surfaces."
+      }
+    ],
+    "motion": [
+      {
+        "name": "duration-feedback",
+        "value": "120ms",
+        "purpose": "Hover and pressed color changes."
+      },
+      {
+        "name": "duration-panel",
+        "value": "180ms",
+        "purpose": "Opening and closing small panels."
+      },
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Responsive state transitions without overshoot."
+      },
+      {
+        "name": "duration-reduced",
+        "value": "0ms",
+        "purpose": "Immediate state changes when reduced motion is requested."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "medium",
+        "value": "768px"
+      },
+      {
+        "name": "wide",
+        "value": "1200px"
+      }
+    ]
+  },
+  "components": [],
+  "narrative": {
+    "northStar": "Deep indigo, restrained gold, readable working surfaces",
+    "overview": "Finalized target specification based on the user's selection of option B. Not yet implemented. The latest plain-copy direction overrides the generated board's slogans and decorative framing. Components are documented as target rules in DESIGN.md; no implementation-derived snippets exist yet.",
+    "keyCharacteristics": [
+      "Horizontal application navigation",
+      "Compact rectangular controls",
+      "Tonal surface separation",
+      "Direct FF14 task vocabulary"
+    ],
+    "rules": [
+      {
+        "name": "The boundary rule",
+        "body": "Use control-line for functional input boundaries; line is for nonessential dividers.",
+        "section": "colors"
+      },
+      {
+        "name": "The state rule",
+        "body": "Pair semantic colors with specific text and a structural cue where appropriate.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Keep both themes on the same semantic aliases.",
+      "Preserve game data and task-specific information density."
+    ],
+    "donts": [
+      "Do not bring slogans or themed module names into UI copy.",
+      "Do not treat generated emblems as approved brand assets."
+    ]
+  }
+}
