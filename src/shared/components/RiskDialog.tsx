@@ -1,7 +1,8 @@
 /** Reusable acknowledgement dialog for features with material operational risk. */
 import { WarningCircle, X } from "@phosphor-icons/react";
-import { useEffect, useId, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import "./RiskDialog.css";
+import { useDialogFocus } from "../hooks/useDialogFocus";
 
 type RiskDialogProps = {
   title: string;
@@ -24,17 +25,13 @@ export function RiskDialog({
 }: RiskDialogProps) {
   const titleId = useId();
 
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onCancel]);
+  const dialog = useDialogFocus(onCancel);
 
   return (
     <div className="risk-dialog-backdrop" role="presentation">
       <section
+        ref={dialog}
+        tabIndex={-1}
         className="risk-dialog"
         role="dialog"
         aria-modal="true"

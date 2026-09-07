@@ -1,29 +1,30 @@
 .risk-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 120;
   display: grid;
   place-items: center;
-  padding: 22px;
-  background: rgba(18, 28, 28, 0.64);
-  backdrop-filter: blur(9px);
+  background: rgba(10, 15, 26, 0.64);
+  z-index: 40;
+  padding: 16px;
 }
 
 .risk-dialog {
   position: relative;
   width: min(600px, 100%);
   padding: clamp(26px, 4vw, 38px);
-  border: 1px solid var(--danger-line);
-  border-radius: 18px;
-  color: var(--ink);
-  background: var(--surface);
-  box-shadow: 0 30px 90px rgba(14, 27, 28, 0.3);
+  border: 1px solid var(--ors-color-danger);
+  border-radius: var(--ors-radius-overlay);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  box-shadow: var(--ors-shadow-dialog);
 }
 
 .risk-dialog > svg {
   width: 48px;
   height: 48px;
-  color: var(--danger);
+  color: var(--ors-color-danger);
 }
 
 .risk-dialog h2 {
@@ -36,9 +37,9 @@
   gap: 11px;
   margin: 22px 0 0;
   padding: 18px 18px 18px 36px;
-  border-radius: 14px;
-  color: var(--ink);
-  background: var(--danger-soft);
+  border-radius: var(--ors-radius-overlay);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
 }
 
 .risk-dialog li,
@@ -53,7 +54,7 @@
 
 .risk-dialog-description {
   margin-top: 16px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 
 .risk-dialog-description p {
@@ -70,13 +71,13 @@
   height: 36px;
   border: 0;
   border-radius: 50%;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   background: transparent;
 }
 
 .risk-dialog-close:hover {
-  color: var(--ink);
-  background: var(--surface-2);
+  color: var(--ors-color-text);
+  background: var(--ors-color-hover);
 }
 
 .risk-dialog-close svg {
@@ -86,8 +87,8 @@
 
 .risk-dialog-storage-error {
   margin: 13px 0 0;
-  color: var(--danger);
-  font-size: 10px;
+  color: var(--ors-color-danger);
+  font-size: 0.75rem;
 }
 
 .risk-dialog-actions {
@@ -100,23 +101,19 @@
 .risk-dialog-actions button {
   min-height: 42px;
   padding: 0 16px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  color: var(--ink);
-  background: var(--surface);
-  font-size: 11px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  font-size: 0.75rem;
   font-weight: 750;
 }
 
 .risk-dialog-actions button.primary {
-  border-color: var(--danger-strong);
-  color: #fff8f6;
-  background: var(--danger-strong);
-}
-
-.risk-dialog-actions button:active,
-.risk-dialog-close:active {
-  transform: translateY(1px) scale(0.985);
+  border-color: var(--ors-color-danger);
+  color: var(--ors-color-danger);
+  background: var(--ors-color-surface);
+  border-color: var(--ors-color-danger);
 }
 
 @media (max-width: 620px) {

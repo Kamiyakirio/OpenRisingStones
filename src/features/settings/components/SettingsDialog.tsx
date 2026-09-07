@@ -9,6 +9,7 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
+import { useDialogFocus } from "../../../shared/hooks/useDialogFocus";
 import { useSettingsDialog } from "../hooks/useSettingsDialog";
 
 type SettingsDialogProps = {
@@ -21,26 +22,11 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const closeButton = useRef<HTMLButtonElement>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeButton.current?.focus();
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  const dialog = useDialogFocus(closeDialog);
 
   useEffect(() => {
     if (viewModel.confirming) cancelButton.current?.focus();
   }, [viewModel.confirming]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeDialog();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [closeDialog]);
 
   return (
     <div
@@ -50,6 +36,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       }}
     >
       <section
+        ref={dialog}
+        tabIndex={-1}
         className="settings-dialog"
         role="dialog"
         aria-modal="true"
@@ -57,7 +45,6 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       >
         <header className="settings-dialog-header">
           <div>
-            <span>OpenRisingStone</span>
             <h2 id="settings-title">设置</h2>
           </div>
           <button
@@ -105,7 +92,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 <DataScopeItem
                   icon={<Database />}
                   title="应用数据"
-                  description="本地设置、确认记录与临时页面状态"
+                  description="本地设置、配装草稿、物品缓存与确认记录"
                 />
               </div>
 
@@ -151,7 +138,9 @@ function ConfirmationPanel({
     >
       <WarningCircle weight="fill" />
       <h3 id="clear-data-title">确定清除所有本地数据？</h3>
-      <p>已保存的登录 Cookie、本地设置和确认记录都会被删除。此操作无法撤销。</p>
+      <p>
+        已保存的登录凭据、本地设置、配装草稿、物品缓存和确认记录都会被删除。此操作无法撤销。
+      </p>
       <div className="settings-confirmation-actions">
         <button
           ref={cancelButton}
@@ -176,7 +165,7 @@ function ConfirmationPanel({
           ) : (
             <>
               <Trash />
-              确认清除
+              清除本地数据
             </>
           )}
         </button>

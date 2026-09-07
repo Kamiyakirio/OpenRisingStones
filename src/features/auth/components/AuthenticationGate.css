@@ -1,0 +1,106 @@
+/** The same fullscreen geometry and controls apply regardless of the feature. */
+.authentication-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: auto;
+  padding: 0 32px;
+  color: var(--ors-color-text);
+  background: var(--ors-color-canvas);
+}
+.authentication-gate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;
+}
+.authentication-gate-header strong {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.authentication-gate-content {
+  align-self: center;
+  justify-self: center;
+  width: min(560px, 100%);
+  padding: 48px 0;
+  text-align: center;
+}
+.authentication-gate-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--ors-color-accent);
+}
+.authentication-gate-content h1 {
+  margin: 20px 0 12px;
+  font-family: var(--ors-font-heading);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.authentication-gate-content p {
+  margin: 0;
+  color: var(--ors-color-muted);
+  line-height: 1.6;
+}
+.authentication-gate-content .authentication-gate-status {
+  margin-top: 16px;
+}
+.authentication-gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 32px;
+}
+.authentication-gate-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+}
+.authentication-gate-actions .authentication-gate-login {
+  border-color: var(--ors-color-accent);
+  color: var(--ors-color-on-accent);
+  background: var(--ors-color-accent);
+}
+.authentication-gate-actions button:hover:not(:disabled) {
+  background: var(--ors-color-hover);
+}
+.authentication-gate-actions .authentication-gate-login:hover:not(:disabled) {
+  background: var(--ors-color-accent-hover);
+}
+.authentication-gate-actions svg {
+  width: 20px;
+  height: 20px;
+}
+.authentication-gate-footer {
+  padding: 24px 0;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+}
+@media (max-width: 767px) {
+  .authentication-gate {
+    padding-inline: 16px;
+  }
+  .authentication-gate-content {
+    padding-block: 32px;
+  }
+}
+@media (max-width: 359px) {
+  .authentication-gate-actions {
+    flex-direction: column;
+  }
+  .authentication-gate-actions button {
+    width: 100%;
+  }
+}

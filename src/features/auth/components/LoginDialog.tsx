@@ -1,7 +1,4 @@
-/**
- * 盛趣登录弹窗：提供叨鱼一键确认、二维码扫描和受风险确认保护的 Cookie 登录。
- * 登录成功必须同时通过账号验证与石之家官方角色绑定检查。
- */
+/** Account login methods with explicit consent and bound-character verification. */
 import {
   CheckCircle,
   ClipboardText,
@@ -15,7 +12,8 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useDialogFocus } from "../../../shared/hooks/useDialogFocus";
 import { type CurlImportStatus, useLoginDialog } from "../hooks/useLoginDialog";
 import type { LoginMethod, LoginProfile, LoginProgress } from "../types";
 
@@ -61,24 +59,9 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
   } = useLoginDialog({ onClose, onSuccess });
   const closeButton = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeButton.current?.focus();
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") void closeDialog();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [closeDialog]);
+  const dialog = useDialogFocus(() => {
+    void closeDialog();
+  });
 
   return (
     <div
@@ -88,6 +71,8 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
       }}
     >
       <section
+        ref={dialog}
+        tabIndex={-1}
         className="login-dialog"
         role="dialog"
         aria-modal="true"
@@ -95,7 +80,6 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
       >
         <header className="login-dialog-header">
           <div>
-            <span>石之家账号</span>
             <h2 id="login-title">登录盛趣通行证</h2>
           </div>
           <button
@@ -109,7 +93,35 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
           </button>
         </header>
 
-        <div className="login-methods" role="tablist" aria-label="登录方式">
+        <div
+          className="login-methods"
+          role="tablist"
+          aria-label="登录方式"
+          onKeyDown={(event) => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+              return;
+            const tabs = Array.from(
+              event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                '[role="tab"]',
+              ),
+            );
+            const current = tabs.indexOf(
+              document.activeElement as HTMLButtonElement,
+            );
+            const next =
+              event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? tabs.length - 1
+                  : (current +
+                      (event.key === "ArrowRight" ? 1 : -1) +
+                      tabs.length) %
+                    tabs.length;
+            event.preventDefault();
+            tabs[next]?.focus();
+            tabs[next]?.click();
+          }}
+        >
           <MethodTab
             method="push"
             current={method}
@@ -142,7 +154,7 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
                 <DeviceMobile weight="duotone" />
                 <div>
                   <h3>在叨鱼中确认登录</h3>
-                  <p>输入绑定的手机号或盛趣账号，我们会发送一次登录确认。</p>
+                  <p>输入绑定的手机号或盛趣账号，在叨鱼中确认。</p>
                 </div>
               </div>
               <label className="login-field">
@@ -464,6 +476,7 @@ function MethodTab({
     <button
       type="button"
       role="tab"
+      tabIndex={method === current ? 0 : -1}
       aria-selected={current === method}
       className={current === method ? "active" : ""}
       onClick={() => void onSelect(method)}

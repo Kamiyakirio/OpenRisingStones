@@ -3,47 +3,46 @@
 .settings-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 110;
   display: grid;
   place-items: center;
-  padding: 22px;
-  background: rgba(18, 28, 28, 0.56);
-  backdrop-filter: blur(8px);
+  background: rgba(10, 15, 26, 0.64);
+  padding: 16px;
+  z-index: 30;
 }
 .settings-dialog {
-  width: min(560px, 100%);
-  max-height: min(720px, calc(100dvh - 44px));
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-overlay);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  width: min(600px, 100%);
+  max-height: calc(100dvh - 32px);
   overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  color: var(--ink);
-  background: var(--surface);
-  box-shadow: 0 28px 90px rgba(14, 27, 28, 0.28);
+  box-shadow: var(--ors-shadow-dialog);
 }
 .settings-dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 26px 28px 20px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ors-color-line);
+  padding: 24px;
 }
 .settings-dialog-header span {
-  color: var(--accent-strong);
-  font-size: 11px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 750;
-  letter-spacing: 0.12em;
+  letter-spacing: normal;
 }
 .settings-dialog-header h2 {
   margin: 5px 0 0;
-  font-family: "Songti SC", "Noto Serif CJK SC", serif;
-  font-size: 28px;
+  font-family: var(--ors-font-ui);
+  font-size: 1.125rem;
 }
 .settings-dialog-header .dialog-close:disabled {
   cursor: wait;
   opacity: 0.45;
 }
 .settings-content {
-  padding: 26px 28px 30px;
+  padding: 24px;
 }
 .settings-section {
   display: grid;
@@ -60,10 +59,10 @@
   place-items: center;
   width: 46px;
   height: 46px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  color: var(--accent-strong);
-  background: var(--paper);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-canvas);
 }
 .settings-section-icon svg {
   width: 23px;
@@ -79,14 +78,14 @@
 .settings-data-item p,
 .settings-danger-action p {
   margin: 5px 0 0;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 12px;
   line-height: 1.55;
 }
 .settings-data-scope {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--paper);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-canvas);
 }
 .settings-data-item {
   display: flex;
@@ -95,7 +94,7 @@
   padding: 15px 16px;
 }
 .settings-data-item + .settings-data-item {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
 }
 .settings-data-item > span {
   flex: 0 0 auto;
@@ -103,9 +102,9 @@
   place-items: center;
   width: 30px;
   height: 30px;
-  border-radius: 10px;
-  color: var(--accent-strong);
-  background: var(--accent-soft);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
 }
 .settings-data-item svg {
   width: 17px;
@@ -113,7 +112,7 @@
 }
 .settings-data-item strong,
 .settings-danger-action strong {
-  font-size: 13px;
+  font-size: 0.875rem;
 }
 .settings-data-item p {
   margin-top: 3px;
@@ -124,10 +123,10 @@
   align-items: center;
   gap: 24px;
   padding-top: 22px;
-  border-top: 1px solid var(--danger-line);
+  border-top: 1px solid var(--ors-color-danger);
 }
 .settings-danger-action strong {
-  color: var(--danger);
+  color: var(--ors-color-danger);
 }
 .settings-danger-button,
 .settings-cancel-button {
@@ -138,7 +137,7 @@
   gap: 7px;
   min-height: 42px;
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--ors-radius-control);
   font-size: 12px;
   font-weight: 750;
   white-space: nowrap;
@@ -148,16 +147,13 @@
     border-color 160ms ease;
 }
 .settings-danger-button {
-  border: 1px solid var(--danger-strong);
-  color: #fff8f6;
-  background: var(--danger-strong);
+  border: 1px solid var(--ors-color-danger);
+  color: var(--ors-color-danger);
+  background: var(--ors-color-surface);
+  border-color: var(--ors-color-danger);
 }
 .settings-danger-button:not(:disabled):hover {
-  background: color-mix(in srgb, var(--danger-strong) 88%, #1e2a2d);
-}
-.settings-danger-button:not(:disabled):active,
-.settings-cancel-button:not(:disabled):active {
-  transform: translateY(1px) scale(0.985);
+  background: var(--ors-color-hover);
 }
 .settings-danger-button:disabled,
 .settings-cancel-button:disabled {
@@ -178,7 +174,7 @@
 .settings-confirmation > svg {
   width: 46px;
   height: 46px;
-  color: var(--danger);
+  color: var(--ors-color-danger);
 }
 .settings-confirmation h3 {
   margin-top: 16px;
@@ -194,23 +190,23 @@
   margin-top: 26px;
 }
 .settings-cancel-button {
-  border: 1px solid var(--line);
-  color: var(--ink);
+  border: 1px solid var(--ors-color-control-line);
+  color: var(--ors-color-text);
   background: transparent;
 }
 .settings-cancel-button:not(:disabled):hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
 }
 .settings-error {
   width: 100%;
   box-sizing: border-box;
   margin-top: 20px;
   padding: 11px 13px;
-  border-left: 3px solid var(--danger);
-  border-radius: 0 9px 9px 0;
-  color: var(--danger);
-  background: var(--danger-soft);
+  border-left: 1px solid var(--ors-color-danger);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-danger);
+  background: var(--ors-color-surface);
   font-size: 12px;
   line-height: 1.55;
   text-align: left;
@@ -224,13 +220,13 @@
   .settings-dialog {
     width: 100%;
     max-height: calc(100dvh - 18px);
-    border-radius: 14px 14px 0 0;
+    border-radius: var(--ors-radius-overlay);
   }
   .settings-dialog-header {
     padding: 22px 20px 17px;
   }
   .settings-dialog-header h2 {
-    font-size: 25px;
+    font-size: 1.125rem;
   }
   .settings-content {
     padding: 22px 20px 26px;
@@ -246,15 +242,9 @@
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .settings-backdrop {
-    backdrop-filter: none;
-  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .settings-dialog {
-    animation: settings-dialog-enter 220ms both cubic-bezier(0.16, 1, 0.3, 1);
-  }
 }
 
 @keyframes settings-dialog-enter {
