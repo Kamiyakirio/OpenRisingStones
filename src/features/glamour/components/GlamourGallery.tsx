@@ -5,9 +5,8 @@ import {
   CircleNotch,
   Heart,
   MagnifyingGlass,
-  Plus,
 } from "@phosphor-icons/react";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef } from "react";
 import type { OwnedItemsState } from "../hooks/useOwnedItems";
 import type { Glamour, GlamourOrder } from "../types";
 import { hideBrokenImage } from "../utils/glamourPresentation";
@@ -81,10 +80,9 @@ export function GlamourGallery({
   return (
     <section className="gallery-section" id="recommendations">
       <div className="gallery-toolbar">
-        <div className="tab-list" role="tablist" aria-label="推荐排序">
+        <div className="tab-list" role="group" aria-label="投稿排序">
           <button
-            role="tab"
-            aria-selected={order === "latest"}
+            aria-pressed={order === "latest"}
             className={order === "latest" ? "active" : ""}
             type="button"
             onClick={() => onOrderChange("latest")}
@@ -92,8 +90,7 @@ export function GlamourGallery({
             最新
           </button>
           <button
-            role="tab"
-            aria-selected={order === "hot"}
+            aria-pressed={order === "hot"}
             className={order === "hot" ? "active" : ""}
             type="button"
             onClick={() => onOrderChange("hot")}
@@ -108,10 +105,6 @@ export function GlamourGallery({
               ? `已显示 ${results.length} 套造型`
               : `共 ${total} 套造型`}
         </div>
-        <button className="publish-link" type="button">
-          <Plus />
-          发布幻化
-        </button>
       </div>
 
       {error && (
@@ -191,10 +184,7 @@ function GlamourCard({
   ).length;
 
   return (
-    <article
-      className="glamour-card"
-      style={{ "--delay": `${index * 45}ms` } as CSSProperties}
-    >
+    <article className="glamour-card">
       <div className="image-frame">
         <img
           src={item.image}
@@ -239,7 +229,7 @@ function GlamourCard({
           </div>
         )}
         <div className="card-footer">
-          <span>by {item.author}</span>
+          <span>{item.author}</span>
           <span>
             <Heart weight="fill" /> {item.likes.toLocaleString("zh-CN")}
           </span>
