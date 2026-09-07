@@ -6,9 +6,14 @@
   gap: 16px;
   margin-top: 28px;
   padding: 17px 18px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 88%, var(--accent-soft));
+  border: 1px solid
+    color-mix(in srgb, var(--ors-color-accent) 30%, var(--ors-color-line));
+  border-radius: var(--ors-radius-control);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-surface) 88%,
+    var(--ors-color-selected)
+  );
 }
 
 .owned-items-mark {
@@ -16,9 +21,9 @@
   place-items: center;
   width: 46px;
   height: 46px;
-  border-radius: 12px;
-  color: var(--accent-strong);
-  background: var(--accent-soft);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
 }
 
 .owned-items-mark svg {
@@ -42,19 +47,19 @@
 }
 
 .owned-items-heading > span {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .owned-items-copy > p {
   margin: 5px 0 0;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.55;
 }
 
 .owned-items-copy > p strong {
-  color: var(--ink);
+  color: var(--ors-color-text);
 }
 
 .owned-items-coverage {
@@ -68,8 +73,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .owned-items-coverage svg {
@@ -78,18 +83,18 @@
 }
 
 .owned-items-coverage .is-complete svg {
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .owned-items-coverage .is-incomplete svg {
-  color: var(--danger);
+  color: var(--ors-color-danger);
 }
 
 .owned-items-partial-warning {
   display: block;
   margin-top: 7px;
-  color: var(--danger);
-  font-size: 9px;
+  color: var(--ors-color-danger);
+  font-size: 0.75rem;
 }
 
 .owned-items-action {
@@ -100,21 +105,17 @@
   min-width: 108px;
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  color: var(--accent-strong);
+  border: 1px solid var(--ors-color-accent);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
   background: transparent;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 730;
   white-space: nowrap;
 }
 
 .owned-items-action:hover:not(:disabled) {
-  background: var(--accent-soft);
-}
-
-.owned-items-action:active:not(:disabled) {
-  transform: scale(0.98);
+  background: var(--ors-color-selected);
 }
 
 .owned-items-action:disabled {
@@ -133,8 +134,8 @@
   align-items: center;
   gap: 7px;
   margin-top: 10px;
-  color: var(--danger);
-  font-size: 10px;
+  color: var(--ors-color-danger);
+  font-size: 0.75rem;
 }
 
 .owned-items-error > svg {
@@ -147,7 +148,7 @@
   border: 0;
   color: inherit;
   background: transparent;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 

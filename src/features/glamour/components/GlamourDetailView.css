@@ -10,8 +10,8 @@
   justify-content: space-between;
   align-items: center;
   min-height: 68px;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
+  border-bottom: 1px solid var(--ors-color-line);
+  color: var(--ors-color-muted);
   font-size: 12px;
 }
 
@@ -21,16 +21,16 @@
   gap: 9px;
   padding: 9px 0;
   border: 0;
-  color: var(--ink);
+  color: var(--ors-color-text);
   background: transparent;
-  font-size: 13px;
+  font-size: 0.875rem;
   font-weight: 720;
 }
 
 .detail-back svg {
   width: 17px;
   height: 17px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
   transition: transform 180ms ease;
 }
 
@@ -57,9 +57,9 @@
   position: relative;
   min-height: min(720px, calc(100dvh - 190px));
   overflow: hidden;
-  border-radius: 14px;
-  background: var(--surface-2);
-  box-shadow: 0 24px 62px color-mix(in srgb, var(--ink) 13%, transparent);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-hover);
+  box-shadow: none;
 }
 
 .detail-main-image > img {
@@ -79,11 +79,10 @@
   min-height: 34px;
   padding: 0 11px;
   border: 1px solid rgba(255, 255, 255, 0.26);
-  border-radius: 10px;
+  border-radius: var(--ors-radius-control);
   color: #f4f6f3;
   background: rgba(20, 29, 30, 0.68);
-  backdrop-filter: blur(12px);
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -105,8 +104,8 @@
   padding: 0;
   overflow: hidden;
   border: 1px solid transparent;
-  border-radius: 14px;
-  background: var(--surface-2);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-hover);
   opacity: 0.58;
   transition:
     opacity 180ms ease,
@@ -116,12 +115,8 @@
 
 .detail-thumbnails button:hover,
 .detail-thumbnails button.active {
-  border-color: var(--accent);
+  border-color: var(--ors-color-accent);
   opacity: 1;
-}
-
-.detail-thumbnails button:active {
-  transform: scale(0.98);
 }
 
 .detail-thumbnails img {
@@ -140,7 +135,7 @@
   align-items: center;
   gap: 20px;
   padding-bottom: 22px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ors-color-line);
 }
 
 .detail-author {
@@ -155,8 +150,9 @@
   flex: 0 0 auto;
   width: 50px;
   height: 50px;
-  border: 1px solid color-mix(in srgb, var(--accent) 58%, var(--line));
-  border-radius: 14px;
+  border: 1px solid
+    color-mix(in srgb, var(--ors-color-accent) 58%, var(--ors-color-line));
+  border-radius: var(--ors-radius-control);
 }
 
 .detail-author > img {
@@ -166,9 +162,9 @@
 .detail-author > span {
   display: grid;
   place-items: center;
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  font-family: "Songti SC", "Noto Serif CJK SC", serif;
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
+  font-family: var(--ors-font-ui);
   font-size: 21px;
   font-weight: 700;
 }
@@ -190,14 +186,14 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .detail-author small svg {
   width: 14px;
   height: 14px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .detail-save {
@@ -206,9 +202,9 @@
   gap: 7px;
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--ink);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
   background: transparent;
   font-size: 12px;
   font-weight: 720;
@@ -216,13 +212,9 @@
 
 .detail-save:hover,
 .detail-save.saved {
-  border-color: var(--accent);
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-}
-
-.detail-save:active {
-  transform: translateY(1px) scale(0.98);
+  border-color: var(--ors-color-accent);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
 }
 
 .detail-save svg {
@@ -236,11 +228,11 @@
 
 .detail-title-block h1 {
   margin: 0;
-  font-family: "Songti SC", "Noto Serif CJK SC", serif;
-  font-size: clamp(34px, 4vw, 54px);
+  font-family: var(--ors-font-heading);
+  font-size: 1.5rem;
   font-weight: 650;
-  line-height: 1.15;
-  letter-spacing: -0.045em;
+  line-height: 1.5;
+  letter-spacing: normal;
 }
 
 .detail-stats {
@@ -248,7 +240,7 @@
   flex-wrap: wrap;
   gap: 18px;
   margin-top: 20px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 12px;
 }
 
@@ -261,13 +253,13 @@
 .detail-stats svg {
   width: 16px;
   height: 16px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .detail-title-block > p {
   max-width: 58ch;
   margin: 24px 0 0;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 14px;
   line-height: 1.75;
 }
@@ -281,16 +273,16 @@
 
 .detail-tags span {
   padding: 7px 10px;
-  border-radius: 9px;
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  font-size: 11px;
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
 .equipment-section {
   padding-top: 29px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
 }
 
 .equipment-heading {
@@ -303,13 +295,13 @@
 
 .equipment-heading h2 {
   margin: 0;
-  font-size: 19px;
-  letter-spacing: -0.02em;
+  font-size: 1.125rem;
+  letter-spacing: normal;
 }
 
 .equipment-heading span {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .equipment-grid {
@@ -321,7 +313,7 @@
 .equipment-slot-wrapper {
   position: relative;
   min-width: 0;
-  border-radius: 12px;
+  border-radius: var(--ors-radius-control);
   outline: none;
 }
 
@@ -332,10 +324,10 @@
   gap: 11px;
   min-height: 74px;
   padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  color: var(--ink);
-  background: color-mix(in srgb, var(--surface) 74%, transparent);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: color-mix(in srgb, var(--ors-color-surface) 74%, transparent);
   text-decoration: none;
 }
 
@@ -359,12 +351,7 @@
 }
 
 .equipment-search-link:hover {
-  border-color: var(--accent);
-  transform: translateY(-2px);
-}
-
-.equipment-search-link:active {
-  transform: scale(0.98);
+  border-color: var(--ors-color-accent);
 }
 
 .equipment-icon {
@@ -374,11 +361,11 @@
   width: 50px;
   height: 50px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
-  border-radius: 10px;
-  color: var(--muted);
-  background: var(--surface-2);
-  font-family: "Songti SC", serif;
+  border: 1px solid color-mix(in srgb, var(--ors-color-line) 80%, transparent);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
+  background: var(--ors-color-hover);
+  font-family: var(--ors-font-ui);
   font-size: 15px;
 }
 
@@ -396,8 +383,8 @@
 }
 
 .equipment-copy > small {
-  color: var(--accent-strong);
-  font-size: 10px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
@@ -424,8 +411,8 @@
   gap: 4px;
   min-width: 0;
   overflow: hidden;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -434,14 +421,14 @@
   flex: 0 0 auto;
   width: 10px;
   height: 10px;
-  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
-  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--ors-color-text) 18%, transparent);
+  border-radius: var(--ors-radius-control);
 }
 
 .equipment-muted {
   margin-top: 5px;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .equipment-ownership {
@@ -450,7 +437,7 @@
   gap: 4px;
   min-width: 0;
   margin-top: 6px;
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
@@ -462,8 +449,8 @@
 
 .equipment-ownership small {
   overflow: hidden;
-  color: var(--muted);
-  font-size: 8px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 550;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -471,28 +458,33 @@
 
 .equipment-ownership.is-owned,
 .equipment-ownership.is-same-model {
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .equipment-ownership.is-checking,
 .equipment-ownership.is-missing {
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 
 .equipment-source-popover {
   position: fixed;
   z-index: 120;
-  color: var(--ink);
+  color: var(--ors-color-text);
 }
 
 .equipment-source-popover-inner {
   box-sizing: border-box;
   max-height: inherit;
   overflow: auto;
-  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface) 96%, var(--paper));
-  box-shadow: 0 26px 70px color-mix(in srgb, var(--ink) 22%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--ors-color-accent) 34%, var(--ors-color-line));
+  border-radius: var(--ors-radius-overlay);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-surface) 96%,
+    var(--ors-color-canvas)
+  );
+  box-shadow: var(--ors-shadow-popover);
   overscroll-behavior: contain;
   scrollbar-width: thin;
 }
@@ -507,9 +499,8 @@
   gap: 18px;
   min-height: 56px;
   padding: 9px 12px;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--ors-color-line);
+  background: color-mix(in srgb, var(--ors-color-surface) 94%, transparent);
 }
 
 .equipment-source-header > span {
@@ -519,14 +510,14 @@
 }
 
 .equipment-source-header small {
-  color: var(--accent-strong);
-  font-size: 9px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 760;
 }
 
 .equipment-source-header strong {
   overflow: hidden;
-  font-size: 13px;
+  font-size: 0.875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -538,24 +529,19 @@
   gap: 5px;
   min-height: 32px;
   padding: 0 9px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--muted);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
   background: transparent;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-decoration: none;
 }
 
 .equipment-source-header > a:hover {
-  border-color: var(--accent);
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-}
-
-.equipment-source-header > a:active,
-.equipment-source-state button:active {
-  transform: scale(0.97);
+  border-color: var(--ors-color-accent);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
 }
 
 .equipment-source-header > a svg {
@@ -574,10 +560,14 @@
   gap: 9px;
   margin-top: 10px;
   padding: 9px 10px;
-  border: 1px solid var(--danger-line);
-  border-radius: 9px;
-  color: var(--danger);
-  background: color-mix(in srgb, var(--danger-soft) 72%, var(--surface));
+  border: 1px solid var(--ors-color-danger);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-danger);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-surface) 72%,
+    var(--ors-color-surface)
+  );
 }
 
 .equipment-unobtainable-notice > svg {
@@ -591,12 +581,12 @@
 }
 
 .equipment-unobtainable-notice strong {
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 
 .equipment-unobtainable-notice small {
-  color: var(--muted);
-  font-size: 8px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .equipment-source-section {
@@ -604,7 +594,7 @@
 }
 
 .equipment-source-section + .equipment-source-section {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
 }
 
 .equipment-source-section-heading {
@@ -617,12 +607,12 @@
 .equipment-source-section-heading h3 {
   margin: 0;
   font-size: 12px;
-  letter-spacing: -0.01em;
+  letter-spacing: normal;
 }
 
 .equipment-source-section-heading > span {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .acquisition-groups,
@@ -634,8 +624,8 @@
 .acquisition-group,
 .model-source-group {
   overflow: hidden;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+  border-radius: var(--ors-radius-control);
+  background: color-mix(in srgb, var(--ors-color-hover) 72%, transparent);
 }
 
 .acquisition-group > summary,
@@ -665,13 +655,13 @@
 }
 
 .acquisition-group > summary strong {
-  font-size: 11px;
+  font-size: 0.75rem;
 }
 
 .acquisition-group > summary small {
   overflow: hidden;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -682,10 +672,15 @@
   place-items: center;
   width: 30px;
   height: 30px;
-  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
-  border-radius: 9px;
-  color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent-soft) 68%, var(--surface));
+  border: 1px solid
+    color-mix(in srgb, var(--ors-color-accent) 28%, var(--ors-color-line));
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-selected) 68%,
+    var(--ors-color-surface)
+  );
 }
 
 .acquisition-icon svg {
@@ -694,7 +689,7 @@
 }
 
 .acquisition-toggle {
-  color: var(--muted);
+  color: var(--ors-color-muted);
   transition: transform 160ms ease;
 }
 
@@ -717,8 +712,9 @@
   display: grid;
   gap: 5px;
   padding: 9px 10px;
-  border-left: 2px solid color-mix(in srgb, var(--accent) 58%, var(--line));
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  border-left: 1px solid
+    color-mix(in srgb, var(--ors-color-accent) 58%, var(--ors-color-line));
+  background: color-mix(in srgb, var(--ors-color-surface) 72%, transparent);
 }
 
 .acquisition-details article > div {
@@ -730,15 +726,15 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--ink);
-  font-size: 10px;
+  color: var(--ors-color-text);
+  font-size: 0.75rem;
   font-weight: 720;
   line-height: 1.45;
   text-decoration: none;
 }
 
 .acquisition-details article a:hover {
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .acquisition-details article a svg {
@@ -749,8 +745,8 @@
 
 .acquisition-details article p {
   margin: 3px 0 0;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
@@ -758,8 +754,8 @@
   display: inline-flex;
   align-items: flex-start;
   gap: 5px;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.45;
 }
 
@@ -768,11 +764,11 @@
   width: 11px;
   height: 11px;
   margin-top: 1px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .acquisition-details .source-requirement {
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .craft-material-grid {
@@ -790,15 +786,19 @@
   min-width: 0;
   min-height: 46px;
   padding: 6px;
-  border-radius: 8px;
-  color: var(--ink);
-  background: var(--surface-2);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-hover);
   text-decoration: none;
 }
 
 .acquisition-details article a.craft-material:hover {
-  color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent-soft) 52%, var(--surface-2));
+  color: var(--ors-color-accent);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-selected) 52%,
+    var(--ors-color-hover)
+  );
 }
 
 .craft-material-icon {
@@ -808,9 +808,9 @@
   width: 32px;
   height: 32px;
   overflow: hidden;
-  border-radius: 7px;
-  color: var(--muted);
-  background: var(--surface);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
+  background: var(--ors-color-surface);
 }
 
 .craft-material-icon > svg {
@@ -837,21 +837,21 @@
   min-width: 0;
   gap: 4px;
   overflow: hidden;
-  font-size: 9px;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .craft-material-copy strong > small {
   flex: 0 0 auto;
-  color: var(--accent-strong);
-  font-size: 8px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
 }
 
 .craft-material-copy > span {
   overflow: hidden;
-  color: var(--muted);
-  font-size: 7px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -862,22 +862,22 @@
   gap: 7px;
   min-height: 34px;
   padding: 0 8px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 
 .model-source-group > summary svg {
   width: 14px;
   height: 14px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .model-source-group > summary strong {
-  color: var(--ink);
-  font-size: 10px;
+  color: var(--ors-color-text);
+  font-size: 0.75rem;
 }
 
 .model-source-group > summary span {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 
 .model-source-list {
@@ -888,9 +888,14 @@
 
 .model-role-cluster {
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent-soft) 28%, var(--surface));
+  border: 1px solid
+    color-mix(in srgb, var(--ors-color-accent) 24%, var(--ors-color-line));
+  border-radius: var(--ors-radius-control);
+  background: color-mix(
+    in srgb,
+    var(--ors-color-selected) 28%,
+    var(--ors-color-surface)
+  );
 }
 
 .model-role-cluster > summary {
@@ -916,7 +921,7 @@
 
 .model-role-cluster > summary strong {
   overflow: hidden;
-  font-size: 10px;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -924,8 +929,8 @@
 .model-role-cluster > summary small,
 .model-role-cluster > summary span > span {
   overflow: hidden;
-  color: var(--muted);
-  font-size: 8px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -934,7 +939,7 @@
 .model-role-cluster > summary > svg {
   width: 13px;
   height: 13px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
   transition: transform 160ms ease;
 }
 
@@ -949,7 +954,7 @@
 }
 
 .model-role-cluster-items article {
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  background: color-mix(in srgb, var(--ors-color-surface) 82%, transparent);
 }
 
 .model-source-list article {
@@ -959,12 +964,16 @@
   gap: 9px;
   min-height: 50px;
   padding: 6px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--surface) 76%, transparent);
+  border-radius: var(--ors-radius-control);
+  background: color-mix(in srgb, var(--ors-color-surface) 76%, transparent);
 }
 
 .model-source-list .model-source-unobtainable {
-  background: color-mix(in srgb, var(--danger-soft) 42%, var(--surface));
+  background: color-mix(
+    in srgb,
+    var(--ors-color-surface) 42%,
+    var(--ors-color-surface)
+  );
 }
 
 .model-source-unobtainable .model-source-icon img {
@@ -979,9 +988,9 @@
   width: 38px;
   height: 38px;
   overflow: hidden;
-  border-radius: 8px;
-  color: var(--muted);
-  background: var(--surface-2);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
+  background: var(--ors-color-hover);
 }
 
 .model-source-icon > svg {
@@ -1005,7 +1014,7 @@
 
 .model-source-list article > span:nth-child(2) strong {
   overflow: hidden;
-  font-size: 10px;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1013,8 +1022,8 @@
 .model-source-list article > span:nth-child(2) small,
 .model-source-list article > span:nth-child(2) span {
   overflow: hidden;
-  color: var(--muted);
-  font-size: 8px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1025,8 +1034,8 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  color: var(--muted);
-  font-size: 8px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
@@ -1034,11 +1043,11 @@
 .model-unobtainable-state svg {
   width: 11px;
   height: 11px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .model-unobtainable-state {
-  color: var(--danger);
+  color: var(--ors-color-danger);
 }
 
 .model-unobtainable-state svg {
@@ -1047,22 +1056,22 @@
 
 .equipment-source-empty,
 .equipment-source-credit {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.55;
 }
 
 .equipment-source-empty {
   margin: 0;
   padding: 11px;
-  border-radius: 9px;
-  background: var(--surface-2);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-hover);
 }
 
 .equipment-source-credit {
   margin: 0;
   padding-top: 10px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
 }
 
 .equipment-source-state {
@@ -1077,7 +1086,7 @@
 .equipment-source-state > svg {
   width: 24px;
   height: 24px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .equipment-source-state > span {
@@ -1090,8 +1099,8 @@
 }
 
 .equipment-source-state small {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.45;
 }
 
@@ -1101,11 +1110,11 @@
   gap: 5px;
   min-height: 34px;
   padding: 0 10px;
-  border: 1px solid var(--accent);
-  border-radius: 9px;
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  font-size: 9px;
+  border: 1px solid var(--ors-color-accent);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
@@ -1115,7 +1124,7 @@
 }
 
 .equipment-source-error > svg {
-  color: var(--danger);
+  color: var(--ors-color-danger);
 }
 
 .equipment-source-skeleton {
@@ -1126,8 +1135,8 @@
 
 .equipment-source-skeleton p {
   margin: 0 0 2px;
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .equipment-source-skeleton > span {
@@ -1137,8 +1146,8 @@
   gap: 10px;
   min-height: 52px;
   padding: 9px;
-  border-radius: 10px;
-  background: var(--surface-2);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-hover);
 }
 
 .equipment-source-skeleton i,
@@ -1146,9 +1155,9 @@
   display: block;
   background: linear-gradient(
     100deg,
-    color-mix(in srgb, var(--line) 75%, transparent) 20%,
-    color-mix(in srgb, var(--surface) 74%, transparent) 45%,
-    color-mix(in srgb, var(--line) 75%, transparent) 70%
+    color-mix(in srgb, var(--ors-color-line) 75%, transparent) 20%,
+    color-mix(in srgb, var(--ors-color-surface) 74%, transparent) 45%,
+    color-mix(in srgb, var(--ors-color-line) 75%, transparent) 70%
   );
   background-size: 240% 100%;
   animation: skeleton-shimmer 1.6s ease-in-out infinite;
@@ -1157,13 +1166,13 @@
 .equipment-source-skeleton i {
   width: 34px;
   height: 34px;
-  border-radius: 9px;
+  border-radius: var(--ors-radius-control);
 }
 
 .equipment-source-skeleton b {
   width: 72%;
   height: 11px;
-  border-radius: 5px;
+  border-radius: var(--ors-radius-control);
 }
 
 .detail-skeleton-media,
@@ -1172,12 +1181,12 @@
 .detail-skeleton-copy > small,
 .detail-skeleton-copy > div {
   display: block;
-  border-radius: 12px;
+  border-radius: var(--ors-radius-control);
   background: linear-gradient(
     100deg,
-    var(--surface-2) 20%,
-    color-mix(in srgb, var(--surface-2) 55%, var(--surface)) 45%,
-    var(--surface-2) 70%
+    var(--ors-color-hover) 20%,
+    color-mix(in srgb, var(--ors-color-hover) 55%, var(--ors-color-surface)) 45%,
+    var(--ors-color-hover) 70%
   );
   background-size: 240% 100%;
   animation: skeleton-shimmer 1.6s ease-in-out infinite;
@@ -1226,33 +1235,33 @@
 .detail-error > svg {
   width: 38px;
   height: 38px;
-  color: var(--accent);
+  color: var(--ors-color-accent);
 }
 
 .detail-error h1 {
   margin: 18px 0 7px;
-  font-family: "Songti SC", serif;
-  font-size: 28px;
+  font-family: var(--ors-font-heading);
+  font-size: 1.5rem;
 }
 
 .detail-error p {
   margin: 0;
-  color: var(--muted);
-  font-size: 13px;
+  color: var(--ors-color-muted);
+  font-size: 0.875rem;
 }
 
 .detail-error button {
   margin-top: 22px;
   padding: 10px 16px;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  color: var(--accent-strong);
+  border: 1px solid var(--ors-color-accent);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-accent);
   background: transparent;
   font-weight: 700;
 }
 
 .detail-error button:hover {
-  background: var(--accent-soft);
+  background: var(--ors-color-selected);
 }
 
 @media (max-width: 1120px) {
@@ -1322,7 +1331,7 @@
   }
 
   .detail-title-block h1 {
-    font-size: clamp(32px, 10vw, 45px);
+    font-size: 1.5rem;
   }
 
   .equipment-heading {
@@ -1355,12 +1364,10 @@
 @media (prefers-reduced-transparency: reduce) {
   .detail-image-count {
     background: rgba(20, 29, 30, 0.92);
-    backdrop-filter: none;
   }
 
   .equipment-source-header {
-    background: var(--surface);
-    backdrop-filter: none;
+    background: var(--ors-color-surface);
   }
 }
 
