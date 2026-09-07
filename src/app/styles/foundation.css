@@ -1,129 +1,161 @@
-/** foundation styles, including owned responsive and accessibility rules. */
-
-:root {
-  --ink: #1e2a2d;
-  --muted: #627073;
-  --paper: #f4f6f3;
-  --surface: #fbfcfa;
-  --surface-2: #e7ece9;
-  --line: #d4dcda;
-  --accent: #a66d2f;
-  --accent-strong: #795026;
-  --accent-soft: #eadbc6;
-  --home-accent: #478f91;
-  --home-accent-strong: #2f7477;
-  --danger: #9f443a;
-  --danger-strong: #7f342d;
-  --danger-soft: #f6e3df;
-  --danger-line: #dba59e;
-  --shadow: 0 18px 52px rgba(50, 72, 72, 0.12);
-}
-
+/** Shared control defaults and compatibility aliases for feature-local styles. */
+@import "./tokens.css";
 .app {
+  --ink: var(--ors-color-text);
+  --muted: var(--ors-color-muted);
+  --paper: var(--ors-color-canvas);
+  --surface: var(--ors-color-surface);
+  --surface-2: var(--ors-color-hover);
+  --line: var(--ors-color-line);
+  --accent: var(--ors-color-accent);
+  --accent-strong: var(--ors-color-accent);
+  --accent-soft: var(--ors-color-selected);
+  --home-accent: var(--ors-color-accent);
+  --home-accent-strong: var(--ors-color-accent);
+  --danger: var(--ors-color-danger);
+  --danger-strong: var(--ors-color-danger);
+  --danger-soft: var(--ors-color-surface);
+  --danger-line: var(--ors-color-danger);
+  --shadow: var(--ors-shadow-popover);
   min-height: 100dvh;
-  background: var(--paper);
-  color: var(--ink);
-  transition:
-    background-color 240ms ease,
-    color 240ms ease;
+  color: var(--ors-color-text);
+  background: var(--ors-color-canvas);
+  font-family: var(--ors-font-ui);
+  font-size: 0.875rem;
+  line-height: 1.6;
 }
-
-.app.theme-dark {
-  --ink: #e9efec;
-  --muted: #9daaa7;
-  --paper: #111817;
-  --surface: #18211f;
-  --surface-2: #222e2b;
-  --line: #34413e;
-  --accent: #c89457;
-  --accent-strong: #e4bc85;
-  --accent-soft: #493925;
-  --home-accent: #79c4c2;
-  --home-accent-strong: #91d5d2;
-  --danger: #e6a097;
-  --danger-strong: #8f3d35;
-  --danger-soft: #3e2926;
-  --danger-line: #744b46;
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.26);
+.workspace-content {
+  min-width: 0;
 }
-
-.app.feature-recruit {
-  --accent: var(--home-accent);
-  --accent-strong: var(--home-accent-strong);
-  --accent-soft: color-mix(in srgb, var(--home-accent) 16%, var(--surface));
+main {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 24px 32px;
 }
-
+h1 {
+  font-family: var(--ors-font-heading);
+  font-size: 1.5rem;
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+h2,
+h3 {
+  font-family: var(--ors-font-ui);
+  line-height: 1.5;
+}
+h2 {
+  font-size: 1.125rem;
+}
+h3 {
+  font-size: 1rem;
+}
 button,
-a,
 input,
+select,
 textarea {
+  font: inherit;
   color: inherit;
 }
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--accent);
+button {
+  transition:
+    background-color var(--ors-duration-feedback),
+    color var(--ors-duration-feedback),
+    border-color var(--ors-duration-feedback);
+}
+button:disabled {
+  cursor: not-allowed;
+}
+input,
+textarea {
+  caret-color: var(--ors-color-accent);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--ors-color-muted);
+  opacity: 1;
+}
+input[type="checkbox"],
+input[type="radio"],
+progress {
+  accent-color: var(--ors-color-accent);
+}
+.app
+  :is(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ors-color-accent);
   outline-offset: 3px;
+}
+.app ::selection {
+  background: var(--ors-color-accent);
+  color: var(--ors-color-on-accent);
+}
+.app * {
+  scrollbar-color: var(--ors-color-control-line) var(--ors-color-canvas);
 }
 .dialog-close {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border: 0;
-  border-radius: 50%;
-  color: var(--muted);
+  border-radius: 4px;
+  color: var(--ors-color-muted);
   background: transparent;
 }
 .dialog-close:hover {
-  color: var(--ink);
-  background: var(--surface-2);
+  color: var(--ors-color-text);
+  background: var(--ors-color-hover);
 }
 .dialog-close svg {
-  width: 19px;
-  height: 19px;
+  width: 20px;
+  height: 20px;
 }
 .spin {
   animation: login-spin 900ms linear infinite;
-}
-
-main {
-  width: min(1420px, 100%);
-  margin: 0 auto;
-  padding: 28px clamp(18px, 4vw, 62px) 96px;
 }
 @keyframes login-spin {
   to {
     transform: rotate(360deg);
   }
 }
-
-@media (max-width: 980px) {
-  .feature-recruit .site-header {
-    height: auto;
-    min-height: 74px;
-    grid-template-columns: 1fr auto;
-    grid-template-rows: 74px 42px;
-  }
-  .feature-recruit .main-nav {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    display: flex;
-    justify-content: center;
-    gap: 28px;
-    border-top: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
-  }
-}
-
-@media (max-width: 700px) {
+@media (max-width: 1199px) {
   main {
-    padding: 16px 16px 70px;
+    padding-inline: 24px;
   }
 }
-
+@media (max-width: 767px) {
+  main {
+    padding: 24px 16px;
+  }
+}
+@media (pointer: coarse) {
+  .app :is(button, input:not([type="checkbox"]):not([type="radio"]), select) {
+    min-height: 44px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .spin {
     animation: none;
+  }
+}
+/* Disabled controls stay identifiable; only the operation is unavailable. */
+.app button:disabled {
+  opacity: 1;
+  color: var(--ors-color-disabled);
+  border-color: var(--ors-color-line);
+  background: var(--ors-color-surface);
+  box-shadow: none;
+}
+.app
+  :is(
+    button,
+    select,
+    input:not([type="checkbox"]):not([type="radio"]):not(.gear-input)
+  ) {
+  min-height: 40px;
+}
+@media (pointer: coarse) {
+  .app :is(button, select, input:not([type="checkbox"]):not([type="radio"])) {
+    min-height: 44px;
   }
 }

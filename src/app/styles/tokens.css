@@ -1,0 +1,64 @@
+/** Semantic tokens from DESIGN.md; the light and dark palettes share roles. */
+:root {
+  --ors-color-canvas: #f3f4f8;
+  --ors-color-surface: #ffffff;
+  --ors-color-hover: #e9edf5;
+  --ors-color-selected: #e8e3d6;
+  --ors-color-text: #202a3e;
+  --ors-color-muted: #56627a;
+  --ors-color-line: #d2d8e3;
+  --ors-color-control-line: #747d8f;
+  --ors-color-accent: #755619;
+  --ors-color-accent-hover: #5d4312;
+  --ors-color-on-accent: #ffffff;
+  --ors-color-disabled: #717b8e;
+  --ors-color-success: #246b4c;
+  --ors-color-warning: #795400;
+  --ors-color-danger: #aa3937;
+  --ors-color-info: #355fad;
+  --ors-shadow-popover: 0 8px 24px rgba(23, 30, 48, 0.12);
+  --ors-shadow-dialog: 0 16px 48px rgba(23, 30, 48, 0.2);
+  color-scheme: light;
+}
+.app.theme-dark {
+  --ors-color-canvas: #171e30;
+  --ors-color-surface: #232e45;
+  --ors-color-hover: #2b3851;
+  --ors-color-selected: #30394a;
+  --ors-color-text: #eef0f7;
+  --ors-color-muted: #b3bed2;
+  --ors-color-line: #3a4762;
+  --ors-color-control-line: #76859f;
+  --ors-color-accent: #d7bd80;
+  --ors-color-accent-hover: #e8d3a0;
+  --ors-color-on-accent: #171e30;
+  --ors-color-disabled: #8792a8;
+  --ors-color-success: #8cc9aa;
+  --ors-color-warning: #e8c27b;
+  --ors-color-danger: #f2a39f;
+  --ors-color-info: #aac5f3;
+  --ors-shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --ors-shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+:root {
+  --ors-radius-control: 4px;
+  --ors-radius-panel: 4px;
+  --ors-radius-overlay: 8px;
+  --ors-radius-pill: 999px;
+  --ors-space-1: 4px;
+  --ors-space-2: 8px;
+  --ors-space-3: 12px;
+  --ors-space-4: 16px;
+  --ors-space-5: 20px;
+  --ors-space-6: 24px;
+  --ors-space-8: 32px;
+  --ors-space-10: 40px;
+  --ors-space-12: 48px;
+  --ors-font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --ors-font-heading:
+    "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", SimSun, serif;
+  --ors-duration-feedback: 120ms;
+  --ors-duration-panel: 180ms;
+  --ors-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
