@@ -1,13 +1,14 @@
 # Home surface
 
 Mode: Operate. Target: `src/pages/HomePage.tsx` and its stylesheet.
-Status: approved direction B, documented for implementation; no UI migration yet.
+Status: direction B implemented and reviewed in the web UI.
 
 ## Scope and approval
 
-The user selected B in the three-option comparison board and requested the final
-DESIGN.md. Approval covers the principal visual language and home structure, not
-the other panels or a literal pixel reproduction of generated artwork. The user's
+The user selected B in the three-option comparison board, then authorized the UI
+rebuild. The shared frame and feature workspaces now follow that direction. The
+board establishes the principal visual language, not a literal pixel reproduction
+of generated artwork. The user's
 plain-copy requirement supersedes the board's slogans and decorative theme names.
 
 Reference: `../../.impeccable/mocks/decision/ui-language-options.png`, middle panel.
@@ -25,14 +26,17 @@ FIRST VIEWPORT: Brand and utilities above horizontal navigation; a modest headin
 
 FORM: User-selected B, the middle comparison panel. No seed key exists because the engine was unavailable; direct user selection is recorded.
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: implemented; independent review findings resolved, with web validation and evidence recorded below. No generated emblem or marketing raster ships in this UI.
 
 ## Content and behavior
 
 Use `interface-copy.md` for exact home labels and descriptions. Keep recruitment,
 glamour, teleport, and gearing in the existing order. Do not add unimplemented
 destinations, recent activity, counts, notifications, or character information.
-Preserve settings, theme selection, login boundaries, and feature entry behavior.
+The shared header provides settings, theme selection, and account actions.
+Glamour and teleport replace the visible frame with the same fullscreen
+authentication barrier while signed out or checking. Opening login adds the form
+above that barrier; closing the barrier returns home.
 
 Use one semantic control per feature row, with a decorative arrow inside it.
 Pointer hover changes the row surface; keyboard focus outlines the entire target.
@@ -43,10 +47,26 @@ On narrow windows, put the description below its feature name and keep the actio
 aligned to the trailing edge. Content may grow vertically; never clip descriptions
 or hide a tool to keep the desktop viewport height.
 
-## Documentation boundary
+## Implementation and review
 
-This request finalizes the specification only. The FINISH block governs a later
-implementation, not an unrequested build in this documentation task. Actual
-rendered contrast, packaged fonts, responsive behavior, and interaction validation
-remain implementation checks. DESIGN.md owns global tokens; this brief owns the
-home composition and must not become another source of palette values.
+`HomePage.tsx` and `HomePage.css` implement four whole-row buttons in the existing
+order, with decorative icons and arrows. Desktop rows use an 80px minimum height;
+compact rows move descriptions below titles. `AppHeader` supplies global links
+with the current destination marked by `aria-current`. Header and navigation
+heights are minimums and may grow with wrapping; the home viewport calculation
+must not be read as a promise of a fixed total header height.
+
+The rebuild passed 88 tests, production build, and lint. The web review covered
+1280px desktop and 390px mobile in both themes, and independent review findings
+were resolved (SHIP). Mobile evidence uses viewport captures. Local, uncommitted
+home evidence includes `home-desktop-dark.png`,
+`home-mobile-dark.png`, and `home-mobile-light.png` under
+`../../.impeccable/review/`. The corrected auth evidence is
+`glamour-auth-fullscreen.png` and `teleport-auth-fullscreen.png` in that directory.
+Feature fixture screenshots contain synthetic data; they do not verify external
+services. Native Windows bridging and authenticated actions remain unverified.
+The Impeccable binary was unavailable, so no detector verdict is claimed.
+
+DESIGN.md owns global tokens; this brief owns home composition. Font stacks use
+local fallbacks, not packaged fonts. Future changes still need keyboard, wrapping,
+and zoom checks rather than relying on these screenshots alone.

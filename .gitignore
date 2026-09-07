@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 .release/
+# Local browser captures and isolated visual fixtures are not application assets.
+.impeccable/review/
 src-tauri/binaries/
 game-bridge/artifacts/
 game-bridge/build/

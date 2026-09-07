@@ -1,6 +1,6 @@
 ---
 name: "OpenRisingStones"
-description: "Design specification for the approved B direction: indigo surfaces, gold controls, horizontal navigation, and direct interface copy."
+description: "Implemented web UI for the approved B direction: indigo surfaces, gold controls, horizontal navigation, and direct interface copy."
 colors:
   dark-canvas: "#171E30"
   dark-surface: "#232E45"
@@ -149,15 +149,16 @@ components:
 
 # Design System: OpenRisingStones
 
-<!-- SEED: established with the user before implementation; re-run $impeccable document once there's code to capture the actual tokens and components. -->
+<!-- Refreshed from the implemented web UI after the rebuild review, 2026-09-07. -->
 
 ## Overview
 
-**Status: finalized design specification for the UI/UX rebuild; not yet implemented.**
+**Status: implemented web UI; reviewed for the approved B direction.**
 The user selected option **B** from
 [the comparison board](.impeccable/mocks/decision/ui-language-options.png).
-This document replaces the incumbent visual system as the target for new UI work.
-It does not describe the current application's rendered styles.
+The application now uses this direction across the global frame, home directory,
+authentication, settings, and feature workspaces. This record combines the approved
+tokens with observed component behavior; it does not certify native integration.
 
 **Design direction: deep indigo, restrained gold, and readable working surfaces.**
 Keep B's horizontal navigation, compact rectangular controls, quiet surface
@@ -172,13 +173,25 @@ plain copy governs all UI text. Product facts remain in [PRODUCT.md](PRODUCT.md)
 the copy specification lives in [interface-copy.md](docs/design/interface-copy.md).
 Home-specific composition lives in [home.md](docs/design/home.md).
 
-**Authority:** the frontmatter defines the target color, type, spacing, radius,
-and component tokens. Exact values are design decisions finalized for this rebuild,
-not sampled measurements or claims about installed fonts. Unlike a minimal seed,
-this record includes implementation-ready target tokens because the user explicitly
-requested a new token system before rebuilding. Additional motion, breakpoint,
-and elevation tokens live in [.impeccable/design.json](.impeccable/design.json).
-Do not duplicate primitives there or create a competing palette in CSS.
+**Authority:** the frontmatter owns the approved color, type, spacing, radius,
+and baseline component tokens. `src/app/styles/tokens.css` implements the same
+32 light/dark color declarations; feature-owned styles consume semantic variables.
+Control dimensions may exceed the baseline for their content and input method.
+Additional motion, breakpoint, and elevation metadata lives in
+[.impeccable/design.json](.impeccable/design.json). Compatibility aliases in
+`foundation.css` remain for existing inline consumers and resolve to this palette;
+do not remove them until those consumers migrate or introduce a second palette.
+
+**Review evidence:** the rebuild passed 88 tests, production build, and lint.
+Desktop at 1280px and mobile at 390px were reviewed in both themes; the independent
+reviewer's findings were resolved (SHIP). Mobile evidence uses viewport captures;
+full-page captures were unreliable. Local, uncommitted screenshots are in
+[.impeccable/review](.impeccable/review), including the corrected fullscreen auth
+views. Fixture screenshots use synthetic data, not production results. Exclude
+`recruit-fixture-desktop.png`, which predates the corrected recruitment fixture.
+Windows game bridging and authenticated external actions were not verified in
+this web review. Local font stacks still require Windows rendering checks.
+The Impeccable binary was unavailable, so no detector result is claimed.
 
 Key characteristics:
 
@@ -275,14 +288,15 @@ row. Keep the identity and utility positions stable across workspaces. Feature
 navigation belongs below this global row, clearly subordinate to it. Do not
 replace the global shell with a different brand header on every feature.
 
-Target header height is 64px and navigation height is 48px, both minimums rather
+Header height is at least 64px and navigation height is at least 48px, both minimums rather
 than clipping constraints. The desktop workspace uses 32px horizontal padding,
 24px vertical padding, and a centered maximum width of 1440px. Wide data views
 may use the available width rather than inheriting a prose measure.
 
 Navigation contains only implemented destinations. Local feature tabs, filters,
 and toolbar actions should not masquerade as global navigation. Browser or webview
-history and the current feature must agree during the eventual routing rebuild.
+history and the current feature are coordinated through the shared navigation
+controller and destination links.
 
 ### Density and spacing
 
@@ -322,9 +336,11 @@ Only menus, popovers, and dialogs use the sidecar's elevation tokens. Their shad
 is neutral, offset, and soft; gold glow is not focus, depth, or feedback.
 
 Portal menus and popovers out of clipping containers. Use the platform top layer
-or a deliberate stacking policy. The target stacking order is base content (0),
-sticky navigation (10), dropdowns (20), modal backdrop (30), modal content (40),
-and toasts (50). Do not use arbitrary higher values to repair a broken parent.
+or a deliberate stacking policy. The fullscreen authentication gate uses layer 20 and the login backdrop uses
+layer 30 above it. Settings and its confirmation retain their own modal layering.
+`useDialogFocus` tracks the topmost dialog for focus containment and Escape;
+stacking numbers alone do not implement modal behavior. Do not use arbitrary
+higher values to repair a broken parent.
 
 Motion tokens are in the sidecar. Use brief color and surface changes for hover,
 and a short transition for opening a panel. There is no animated page entrance,
@@ -352,9 +368,12 @@ they appeared in generated artwork. The brand name remains OpenRisingStones.
 
 ## Components
 
-These are target specifications, not claims that a reusable component library
-already implements them. Frontmatter component entries define theme-specific
-appearance; behavior below applies to both themes.
+The shared frame is implemented by `AppHeader` and `AppView`; home entries by
+`HomePage`; authentication by `AuthenticationGate` and `LoginDialog`; settings by
+`SettingsDialog`. Feature-local styles retain their task-specific layout while
+using the semantic palette. Frontmatter component entries are baseline treatments,
+not a claim that every field has identical dimensions: login fields, for example,
+use a 46px minimum height. The following rules apply to both themes.
 
 ### Buttons and entry rows
 
@@ -396,7 +415,9 @@ Keep search and filter values when a request fails.
 
 Unselected labels use normal secondary text. Hover raises them to normal text;
 the active destination uses accent text, semibold weight, and the underline.
-Use `aria-current` for destinations; actual tabs use the tab pattern, including
+Global links use `aria-current="page"`, 48px minimum height, and 10px by 24px
+padding (16px horizontal on compact screens). Their focus outline is inset by
+4px to remain visible inside the scroll region. Use the tab pattern for actual tabs, including
 its keyboard behavior. Visual similarity does not make every navigation a tablist.
 
 Keep account status truthful. Show a login action when signed out and real identity
@@ -413,6 +434,31 @@ Do not wrap every field in its own card. Metadata follows the content it describ
 Equipment rarity, job, and status colors remain domain meanings; do not recolor
 game data gold to match the shell. Long item, server, and character names wrap or
 have an accessible full-value treatment.
+
+Gearing keeps equipment tables in local scroll containers instead of making the
+whole page horizontally scroll. Summary controls wrap and metric columns use
+`auto-fit` with a 96px minimum. Compact layouts can grow vertically; keep the
+summary reachable without compressing labels into unreadable columns.
+
+### Fullscreen authentication boundary
+
+Signed-out or checking states for **both glamour and teleport** use the same
+`AuthenticationGate`. It covers the viewport (`position: fixed; inset: 0`),
+including the application header and navigation. Do not replace it with an inline
+card or preserve visible navigation around the gate. This fullscreen behavior
+and consistent styling are explicit user requirements.
+
+Both features share the centered content column (up to 560px), heading, spacing,
+and button geometry. Only the feature description and relevant state copy vary.
+The login action is filled accent; the home action is neutral; both use the same
+40px minimum height and 8px by 16px padding. The gate scrolls when necessary,
+reduces side padding on compact screens, and stacks actions below 360px.
+Checking disables login; expired glamour sessions show the expiry state.
+
+`LoginDialog` opens above the barrier. `useDialogFocus` contains focus, locks body
+scroll, restores the prior focus target when it still exists, and handles only
+the innermost dialog's Escape. Escape first closes the login form, returning to
+the barrier; Escape or the close/home control on the barrier returns to home.
 
 ### Dialogs and feedback
 
@@ -431,7 +477,7 @@ a ticking countdown.
 
 ### Do
 
-- Build both themes from semantic aliases and the target tokens above.
+- Build both themes from semantic aliases and the approved tokens above.
 - Keep the visible frame recognizable as B while adapting density to each task.
 - Put real posts, team composition, item values, and travel state in the foreground.
 - Write direct Chinese interface copy with established FF14 terminology.
@@ -449,5 +495,5 @@ a ticking countdown.
 - Paint all controls gold, make secondary text low-contrast, or turn warnings
   into anonymous colored boxes.
 - Reuse old teal/green global variables as an accidental second brand.
-- Treat this specification or a generated concept image as proof that the current
-  UI has been implemented, tested, or migrated.
+- Treat generated concept images, synthetic fixtures, or the web review as proof
+  of successful native bridging or authenticated external operations.

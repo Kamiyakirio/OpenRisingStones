@@ -54,8 +54,8 @@ potentially stale, unavailable, and empty inventory data.
 
 ## Brand Commitments
 
-The confirmed product name is **OpenRisingStones**. The current homepage's singular
-`OpenRisingStone` spelling is an implementation inconsistency, not a second brand.
+The confirmed product name is **OpenRisingStones**, used by the shared application
+header and fullscreen authentication boundary.
 Preserve the product's unofficial status.
 
 Use direct, task-specific interface copy in the player's vocabulary. The user

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-07T08:31:34.732Z",
+  "generatedAt": "2026-09-07T09:19:44.583684Z",
   "title": "Design System: OpenRisingStones",
   "extensions": {
     "colorMeta": {
@@ -84,17 +84,46 @@
         "name": "wide",
         "value": "1200px"
       }
-    ]
+    ],
+    "implementation": {
+      "status": "implemented-web-ui",
+      "tokenSource": "src/app/styles/tokens.css",
+      "components": [
+        "src/app/components/AppHeader.tsx",
+        "src/app/components/AppView.tsx",
+        "src/pages/HomePage.tsx",
+        "src/features/auth/components/AuthenticationGate.tsx",
+        "src/features/auth/components/LoginDialog.tsx",
+        "src/features/settings/components/SettingsDialog.tsx"
+      ],
+      "focusBehavior": "src/shared/hooks/useDialogFocus.ts",
+      "validation": {
+        "testsPassed": 88,
+        "productionBuild": "passed",
+        "lint": "passed",
+        "webReview": "1280px desktop and 390px mobile, both themes; independent findings resolved",
+        "evidenceDirectory": ".impeccable/review",
+        "excludeEvidence": ["recruit-fixture-desktop.png"],
+        "fixtures": "synthetic",
+        "notVerified": [
+          "Native Windows game bridge",
+          "Authenticated external operations",
+          "Windows font rendering"
+        ],
+        "detector": "Unavailable: Impeccable binary missing"
+      }
+    }
   },
   "components": [],
   "narrative": {
     "northStar": "Deep indigo, restrained gold, readable working surfaces",
-    "overview": "Finalized target specification based on the user's selection of option B. Not yet implemented. The latest plain-copy direction overrides the generated board's slogans and decorative framing. Components are documented as target rules in DESIGN.md; no implementation-derived snippets exist yet.",
+    "overview": "Implemented web UI based on the user-approved B direction: indigo surfaces, restrained gold, a horizontal application frame, and direct task copy. AppHeader and AppView share the frame; HomePage provides a four-row directory. Glamour and teleport share the same fullscreen AuthenticationGate, with LoginDialog above it and innermost Escape handling. Feature-local styles use semantic variables; compatibility aliases remain for inline consumers. Local font fallbacks are not bundled fonts.",
     "keyCharacteristics": [
       "Horizontal application navigation",
       "Compact rectangular controls",
       "Tonal surface separation",
-      "Direct FF14 task vocabulary"
+      "Direct FF14 task vocabulary",
+      "Identical fullscreen authentication barriers for protected workspaces"
     ],
     "rules": [
       {
@@ -110,11 +139,13 @@
     ],
     "dos": [
       "Keep both themes on the same semantic aliases.",
-      "Preserve game data and task-specific information density."
+      "Preserve game data and task-specific information density.",
+      "Cover the entire viewport, including navigation, while glamour or teleport is gated; return home on barrier dismissal."
     ],
     "donts": [
       "Do not bring slogans or themed module names into UI copy.",
-      "Do not treat generated emblems as approved brand assets."
+      "Do not treat generated emblems as approved brand assets.",
+      "Do not treat synthetic fixture screenshots or web checks as native Windows bridge or authenticated-service verification."
     ]
   }
 }
