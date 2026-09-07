@@ -1,5 +1,4 @@
 /** Public recruitment workspace with optional account controls and no login wall. */
-import { AppHeader } from "../app/components/AppHeader";
 import { AdvancedRecruitBrowser } from "../features/recruit/components/AdvancedRecruitBrowser";
 import { AdvancedRecruitRiskDialog } from "../features/recruit/components/AdvancedRecruitRiskDialog";
 import { LoginDialog } from "../features/auth/components/LoginDialog";
@@ -22,34 +21,30 @@ type RecruitPageProps = {
 };
 
 export function RecruitPage({
-  dark,
   loginOpen,
-  profile,
   onCloseLogin,
-  onGoHome,
-  onToggleTheme,
-  onOpenLogin,
-  onOpenSettings,
   onLoginSuccess,
-  onLogout,
 }: RecruitPageProps) {
   const viewModel = useRecruitWorkspace();
 
   return (
     <>
-      <AppHeader
-        dark={dark}
-        feature="recruit"
-        recruitSection={viewModel.section}
-        profile={profile}
-        onGoHome={onGoHome}
-        onToggleTheme={onToggleTheme}
-        onOpenLogin={onOpenLogin}
-        onOpenSettings={onOpenSettings}
-        onLogout={onLogout}
-        onOpenRecruitFeed={viewModel.openFeed}
-        onOpenAdvancedRecruit={viewModel.openAdvanced}
-      />
+      <nav className="workspace-tabs" aria-label="招募视图">
+        <button
+          type="button"
+          aria-pressed={viewModel.section === "feed"}
+          onClick={viewModel.openFeed}
+        >
+          招募列表
+        </button>
+        <button
+          type="button"
+          aria-pressed={viewModel.section === "advanced"}
+          onClick={viewModel.openAdvanced}
+        >
+          高级筛选
+        </button>
+      </nav>
       {viewModel.section === "feed" ? (
         <RecruitBrowser viewModel={viewModel.feed} />
       ) : (

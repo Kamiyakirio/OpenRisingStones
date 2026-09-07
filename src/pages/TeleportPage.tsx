@@ -1,5 +1,4 @@
 /** Regional Teleport diagnostic workspace bound to the game bridge state hook. */
-import { AppHeader } from "../app/components/AppHeader";
 import { LoginDialog } from "../features/auth/components/LoginDialog";
 import { SiteFooter } from "../app/components/SiteFooter";
 import { TeleportWorkspace } from "../features/teleport/components/TeleportWorkspace";
@@ -21,17 +20,13 @@ type TeleportPageProps = {
 };
 
 export function TeleportPage({
-  dark,
   loginOpen,
   loginChecking,
   profile,
   onCloseLogin,
-  onGoHome,
-  onToggleTheme,
   onOpenLogin,
-  onOpenSettings,
+  onGoHome,
   onLoginSuccess,
-  onLogout,
 }: TeleportPageProps) {
   const viewModel = useTeleportWorkspace({
     authenticated: Boolean(profile),
@@ -40,17 +35,11 @@ export function TeleportPage({
 
   return (
     <>
-      <AppHeader
-        dark={dark}
-        feature="teleport"
-        profile={profile}
-        onGoHome={onGoHome}
-        onToggleTheme={onToggleTheme}
+      <TeleportWorkspace
+        viewModel={viewModel}
         onOpenLogin={onOpenLogin}
-        onOpenSettings={onOpenSettings}
-        onLogout={onLogout}
+        onGoHome={onGoHome}
       />
-      <TeleportWorkspace viewModel={viewModel} onOpenLogin={onOpenLogin} />
       <SiteFooter feature="teleport" />
       {loginOpen && (
         <LoginDialog onClose={onCloseLogin} onSuccess={onLoginSuccess} />

@@ -1,17 +1,24 @@
 /** Composes feature authentication with application navigation, theme, and settings. */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuthSession } from "../../features/auth/hooks/useAuthSession";
 import { useNetworkLog } from "./useNetworkLog";
 
-export type ActiveFeature =
-  "home" | "glamour" | "recruit" | "teleport" | "gearing";
+import { featureFromHash, type ActiveFeature } from "../navigation";
+export type { ActiveFeature } from "../navigation";
 
 export function useAppController() {
   const auth = useAuthSession();
   useNetworkLog();
-  const [dark, setDark] = useState(false);
-  const [activeFeature, setActiveFeature] =
-    useState<ActiveFeature>(readInitialFeature);
+  const [dark, setDark] = useState(() => {
+    try {
+      return localStorage.getItem("ors.theme") !== "light";
+    } catch {
+      return true;
+    }
+  });
+  const [activeFeature, setActiveFeature] = useState<ActiveFeature>(() =>
+    readInitialFeature(),
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const openGlamour = useCallback(
     () => navigateToFeature(setActiveFeature, "glamour"),
@@ -33,7 +40,28 @@ export function useAppController() {
     () => navigateToFeature(setActiveFeature, "gearing"),
     [],
   );
+  useEffect(() => {
+    try {
+      localStorage.setItem("ors.theme", dark ? "dark" : "light");
+    } catch {
+      /* The in-memory theme remains usable without storage. */
+    }
+  }, [dark]);
+  useEffect(() => {
+    const restore = () =>
+      setActiveFeature((current) => readInitialFeature(current));
+    window.addEventListener("popstate", restore);
+    window.addEventListener("hashchange", restore);
+    return () => {
+      window.removeEventListener("popstate", restore);
+      window.removeEventListener("hashchange", restore);
+    };
+  }, []);
   const toggleTheme = useCallback(() => setDark((current) => !current), []);
+  const navigate = useCallback(
+    (feature: ActiveFeature) => navigateToFeature(setActiveFeature, feature),
+    [],
+  );
 
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
@@ -41,6 +69,7 @@ export function useAppController() {
     ...auth,
     dark,
     activeFeature,
+    navigate,
     settingsOpen,
     openGlamour,
     openRecruit,
@@ -55,16 +84,8 @@ export function useAppController() {
 
 export type AppController = ReturnType<typeof useAppController>;
 
-function readInitialFeature(): ActiveFeature {
-  const feature = window.location.hash.slice(1);
-  // Section hashes preserve the owning workspace when the webview reloads.
-  if (feature.startsWith("teleport-")) return "teleport";
-  return feature === "glamour" ||
-    feature === "recruit" ||
-    feature === "teleport" ||
-    feature === "gearing"
-    ? feature
-    : "home";
+function readInitialFeature(fallback: ActiveFeature = "home"): ActiveFeature {
+  return featureFromHash(window.location.hash, fallback);
 }
 
 function navigateToFeature(
@@ -72,10 +93,11 @@ function navigateToFeature(
   feature: ActiveFeature,
 ) {
   const hash = feature === "home" ? "" : `#${feature}`;
-  window.history.replaceState(
+  window.history.pushState(
     null,
     "",
     `${window.location.pathname}${window.location.search}${hash}`,
   );
   setFeature(feature);
+  window.scrollTo({ top: 0 });
 }

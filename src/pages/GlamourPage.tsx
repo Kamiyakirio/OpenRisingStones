@@ -1,5 +1,4 @@
 /** Glamour workspace View bound to its feature-level state hook. */
-import { AppHeader } from "../app/components/AppHeader";
 import { DiscoveryFilters } from "../features/glamour/components/DiscoveryFilters";
 import { EquipmentSearchResults } from "../features/glamour/components/EquipmentSearchResults";
 import { GlamourDetailView } from "../features/glamour/components/GlamourDetailView";
@@ -29,18 +28,14 @@ type GlamourPageProps = {
 };
 
 export function GlamourPage({
-  dark,
   loginOpen,
   loginChecking,
   loginExpired,
   profile,
   onCloseLogin,
   onGoHome,
-  onToggleTheme,
   onOpenLogin,
-  onOpenSettings,
   onLoginSuccess,
-  onLogout,
 }: GlamourPageProps) {
   const viewModel = useGlamourWorkspace({
     authenticated: Boolean(profile),
@@ -51,16 +46,6 @@ export function GlamourPage({
 
   return (
     <>
-      <AppHeader
-        dark={dark}
-        feature="glamour"
-        profile={profile}
-        onGoHome={onGoHome}
-        onToggleTheme={onToggleTheme}
-        onOpenLogin={onOpenLogin}
-        onOpenSettings={onOpenSettings}
-        onLogout={onLogout}
-      />
       {loginChecking || !profile ? (
         <GlamourLoginWall
           checking={loginChecking}
@@ -97,7 +82,8 @@ export function GlamourPage({
           onPageSizeChange={discovery.changeEquipmentPageSize}
         />
       ) : (
-        <main id="top">
+        <main id="top" className="glamour-workspace">
+          <h1>幻化</h1>
           <DiscoveryFilters
             searchMode={discovery.searchMode}
             query={discovery.query}

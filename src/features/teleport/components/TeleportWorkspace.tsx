@@ -1,5 +1,6 @@
 /** Composes travel selection, automatic mode, orders, and guarded confirmations. */
 import { useState } from "react";
+import { AuthenticationGate } from "../../auth/components/AuthenticationGate";
 import {
   AirplaneTilt,
   ArrowClockwise,
@@ -32,11 +33,13 @@ import { OrderHistory, OrderProgress, StatusMessages } from "./TeleportOrders";
 type TeleportWorkspaceProps = {
   viewModel: TeleportWorkspaceState;
   onOpenLogin: () => void;
+  onGoHome: () => void;
 };
 
 export function TeleportWorkspace({
   viewModel,
   onOpenLogin,
+  onGoHome,
 }: TeleportWorkspaceProps) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const canSubmit = Boolean(
@@ -49,13 +52,23 @@ export function TeleportWorkspace({
     !viewModel.actionLoading,
   );
 
+  if (viewModel.loginChecking || !viewModel.authenticated) {
+    return (
+      <AuthenticationGate
+        feature="超域传送"
+        description="登录后可选择角色与目标大区，提交超域传送申请。"
+        checking={viewModel.loginChecking}
+        onLogin={onOpenLogin}
+        onGoHome={onGoHome}
+      />
+    );
+  }
+
   return (
     <main className="teleport-page" id="top">
       <header className="teleport-hero">
         <div>
-          <span className="teleport-kicker">盛趣官方服务</span>
           <h1>超域传送</h1>
-          <p>选择角色与目标服务器，直接提交至官方超域传送接口。</p>
         </div>
         <button
           className="teleport-refresh"
@@ -75,11 +88,7 @@ export function TeleportWorkspace({
         </div>
       )}
 
-      {viewModel.loginChecking ? (
-        <TeleportSkeleton />
-      ) : !viewModel.authenticated ? (
-        <AccountGate onOpenLogin={onOpenLogin} />
-      ) : viewModel.loading && !viewModel.sourceAreas.length ? (
+      {viewModel.loading && !viewModel.sourceAreas.length ? (
         <TeleportSkeleton />
       ) : (
         <>
@@ -142,8 +151,7 @@ export function TeleportWorkspace({
           >
             <div className="teleport-form-panel">
               <div className="teleport-section-heading">
-                <span>出发设置</span>
-                <h2 id="journey-title">安排本次旅程</h2>
+                <h2 id="journey-title">选择角色与目标大区</h2>
               </div>
 
               {viewModel.mode === "manual" ? (
@@ -513,24 +521,6 @@ function JourneyRoute({ viewModel }: { viewModel: TeleportWorkspaceState }) {
       </div>
       <p>目标服务器状态和排队时间均来自本次实时请求。</p>
     </aside>
-  );
-}
-
-function AccountGate({ onOpenLogin }: { onOpenLogin: () => void }) {
-  return (
-    <section className="teleport-gate">
-      <UserCircle weight="duotone" />
-      <span>需要盛趣账号</span>
-      <h2>先登录，再读取传送角色</h2>
-      <p>账号凭据仅保存在本机受保护存储中，不会交给页面脚本。</p>
-      <button
-        className="teleport-gate-primary"
-        type="button"
-        onClick={onOpenLogin}
-      >
-        登录盛趣通行证
-      </button>
-    </section>
   );
 }
 

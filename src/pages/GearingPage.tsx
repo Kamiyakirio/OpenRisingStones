@@ -1,34 +1,19 @@
 /** Native React workspace composition using the host navigation and theme. */
 import { useState } from "react";
-import { ArrowLeft, GearSix, Moon, Sun } from "@phosphor-icons/react";
 import { GearingWorkspace } from "../features/gearing/components/GearingWorkspace";
 import { useGearingWorkspace } from "../features/gearing/hooks/useGearingWorkspace";
 import "../features/gearing/styles/gearing.css";
 
-type Props = {
-  dark: boolean;
-  onGoHome: () => void;
-  onToggleTheme: () => void;
-  onOpenSettings: () => void;
-};
-export function GearingPage({
-  dark,
-  onGoHome,
-  onToggleTheme,
-  onOpenSettings,
-}: Props) {
+type Props = { dark: boolean };
+export function GearingPage({ dark }: Props) {
   const vm = useGearingWorkspace(dark);
   const [importOpen, setImportOpen] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const [importing, setImporting] = useState(false);
   return (
-    <section className="gearing-workspace" aria-label="配装工作区">
+    <main className="gearing-workspace" aria-label="配装工作区">
       <header className="gearing-header">
-        <button type="button" onClick={onGoHome}>
-          <ArrowLeft />
-          返回首页
-        </button>
         <h1>配装</h1>
         <div>
           <button
@@ -37,16 +22,6 @@ export function GearingPage({
             onClick={() => setImportOpen((open) => !open)}
           >
             导入配装
-          </button>
-          <button type="button" aria-label="打开设置" onClick={onOpenSettings}>
-            <GearSix />
-          </button>
-          <button
-            type="button"
-            aria-label={dark ? "切换浅色主题" : "切换深色主题"}
-            onClick={onToggleTheme}
-          >
-            {dark ? <Sun /> : <Moon />}
           </button>
         </div>
       </header>
@@ -78,7 +53,7 @@ export function GearingPage({
             required
           />
           <button type="submit" disabled={importing}>
-            {importing ? "正在导入" : "导入"}
+            {importing ? "正在导入" : "导入配装"}
           </button>
           <button type="button" onClick={() => setImportOpen(false)}>
             取消
@@ -108,6 +83,6 @@ export function GearingPage({
           </p>
         )
       )}
-    </section>
+    </main>
   );
 }

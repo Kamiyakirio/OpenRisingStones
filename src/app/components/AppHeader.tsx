@@ -1,134 +1,127 @@
-/** Primary navigation, theme control, and authenticated account menu. */
+/** Shared application identity, navigation, theme, and account controls. */
 import {
-  Bell,
   GearSix,
   Moon,
-  SignOut,
-  Sparkle,
-  SpinnerGap,
   Sun,
+  SignOut,
+  SpinnerGap,
   UserCircle,
   UserCircleCheck,
   WarningCircle,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import type { LoginProfile } from "../../features/auth/types";
+import type { ActiveFeature } from "../hooks/useAppController";
 
 type AppHeaderProps = {
   dark: boolean;
-  feature: "glamour" | "recruit" | "teleport";
-  recruitSection?: "feed" | "advanced";
+  feature: ActiveFeature;
   profile: LoginProfile | null;
-  onGoHome: () => void;
+  onNavigate: (feature: ActiveFeature) => void;
   onToggleTheme: () => void;
   onOpenLogin: () => void;
   onOpenSettings: () => void;
   onLogout: () => Promise<void>;
-  onOpenRecruitFeed?: () => void;
-  onOpenAdvancedRecruit?: () => void;
 };
 
 export function AppHeader({
   dark,
   feature,
-  recruitSection = "feed",
   profile,
-  onGoHome,
+  onNavigate,
   onToggleTheme,
   onOpenLogin,
   onOpenSettings,
   onLogout,
-  onOpenRecruitFeed,
-  onOpenAdvancedRecruit,
 }: AppHeaderProps) {
+  const navigation = useRef<HTMLElement>(null);
+  useEffect(() => {
+    navigation.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [feature]);
+  const destinations: Array<[ActiveFeature, string]> = [
+    ["home", "首页"],
+    ["recruit", "招募"],
+    ["glamour", "幻化"],
+    ["teleport", "超域传送"],
+    ["gearing", "配装"],
+  ];
   return (
-    <header className="site-header">
-      <button
-        className="brand brand-button"
-        type="button"
-        aria-label="返回 OpenRisingStone 首页"
-        onClick={onGoHome}
-      >
-        <span className="brand-mark">
-          <Sparkle weight="fill" />
-        </span>
-        <span>
-          <strong>OpenRisingStone</strong>
-          <small>{feature.toUpperCase()}</small>
-        </span>
-      </button>
-      <nav className="main-nav" aria-label="主导航">
-        {feature === "recruit" ? (
-          <>
-            <button
-              className={recruitSection === "feed" ? "active" : ""}
-              type="button"
-              onClick={onOpenRecruitFeed}
-            >
-              招募
-            </button>
-            <button
-              className={recruitSection === "advanced" ? "active" : ""}
-              type="button"
-              onClick={onOpenAdvancedRecruit}
-            >
-              高级筛选
-            </button>
-          </>
-        ) : feature === "glamour" ? (
-          <>
-            <a className="active" href="#discover">
-              推荐
-            </a>
-            <a href="#wardrobe">衣橱</a>
-            <a href="#collections">收藏夹</a>
-          </>
-        ) : (
-          <>
-            <a className="active" href="#teleport-departure">
-              超域出发
-            </a>
-            <a href="#teleport-orders">订单记录</a>
-          </>
-        )}
-      </nav>
-      <div className="header-actions">
-        <button
-          className="icon-button"
-          type="button"
-          aria-label="打开设置"
-          onClick={onOpenSettings}
+    <header className="app-header">
+      <div className="app-header-bar">
+        <a
+          className="app-brand"
+          href="#home"
+          onClick={(event) => {
+            if (
+              !event.ctrlKey &&
+              !event.metaKey &&
+              !event.shiftKey &&
+              !event.altKey
+            ) {
+              event.preventDefault();
+              onNavigate("home");
+            }
+          }}
         >
-          <GearSix />
-        </button>
-        <button
-          className="icon-button"
-          type="button"
-          aria-label={dark ? "切换浅色主题" : "切换深色主题"}
-          onClick={onToggleTheme}
-        >
-          {dark ? <Sun /> : <Moon />}
-        </button>
-        <button
-          className="icon-button notification"
-          type="button"
-          aria-label="消息通知"
-        >
-          <Bell />
-        </button>
-        {profile ? (
-          <AuthenticatedAccountEntry profile={profile} onLogout={onLogout} />
-        ) : (
+          OpenRisingStones
+        </a>
+        <div className="header-actions">
           <button
-            className="profile-button"
+            className="icon-button"
             type="button"
-            onClick={onOpenLogin}
+            aria-label={dark ? "切换浅色主题" : "切换深色主题"}
+            title={dark ? "切换浅色主题" : "切换深色主题"}
+            onClick={onToggleTheme}
           >
-            <UserCircle />
-            登录
+            {dark ? <Sun /> : <Moon />}
           </button>
-        )}
+          <button
+            className="icon-button"
+            type="button"
+            aria-label="打开设置"
+            title="设置"
+            onClick={onOpenSettings}
+          >
+            <GearSix />
+          </button>
+          {profile ? (
+            <AuthenticatedAccountEntry profile={profile} onLogout={onLogout} />
+          ) : (
+            <button
+              className="profile-button"
+              type="button"
+              onClick={onOpenLogin}
+            >
+              <UserCircle />
+              登录
+            </button>
+          )}
+        </div>
       </div>
+      <nav className="app-navigation" ref={navigation} aria-label="应用导航">
+        {destinations.map(([key, label]) => (
+          <a
+            key={key}
+            href={`#${key}`}
+            aria-current={feature === key ? "page" : undefined}
+            onClick={(event) => {
+              if (
+                !event.ctrlKey &&
+                !event.metaKey &&
+                !event.shiftKey &&
+                !event.altKey
+              ) {
+                event.preventDefault();
+                onNavigate(key);
+              }
+            }}
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
     </header>
   );
 }
