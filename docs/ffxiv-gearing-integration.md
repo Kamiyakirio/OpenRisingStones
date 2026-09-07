@@ -3,11 +3,12 @@
 ## 来源与归属
 
 - 代码来源：`Kamiyakirio/ffxiv-gearing`，基线提交 `fd7d46b`（Add weapon customize）。
+- 游戏数据来源：`Asvel/ffxiv-gearing` 的 `master`，当前导入提交 `78f6cbb`；仍支持读取原 fork。
 - 一次性迁入后由本仓库维护；不使用 submodule、本地包链接、iframe 或独立网页入口。
 - 首次检出或更新数据时需提供来源仓库的本地目录；导入完成后，构建、测试和运行不再访问来源仓库。
 - 原项目 MIT 许可和署名保存在 `licenses/ffxiv-gearing/`，界面“来源与许可”可查看。
 - 42 个 SVG 图标合并到 `src/features/gearing/assets/icons.svg`，保留各自路径和 viewBox，通过 symbol ID 引用。
-- 本次验证使用游戏版本 7.51，共 26,144 条装备与消耗品记录；完整来源提交及文件摘要见本机生成包 `manifest.json`。
+- 当前数据为 7.55，共 26,417 条装备与消耗品记录；相较 7.51 新增 273 条，无旧记录修改或删除。来源提交、来源类型及文件摘要见本机生成包 `manifest.json`。
 
 ## 实际文件映射
 
@@ -43,12 +44,18 @@ ViewModel 管理创建、销毁、保存与导入；现有招募、幻化、传�
 
 ## 数据导入与回退
 
+首次将 `https://github.com/Asvel/ffxiv-gearing.git` 的 `master` 检出到本仓以外的本地目录，之后按以下流程更新：
+
 ```bash
+git -C /path/to/ffxiv-gearing pull --ff-only
 node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing --check
 node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing
 ```
 
+- 前一条命令在来源目录更新源码；导入命令从本仓执行，直接使用来源已提交的 `data/out`，无需安装或构建来源项目。
 - `scripts/gearing/extract.mjs` 指定源文件和符号；`contract.json` 固定字段及公式结构指纹。
+- `asvel.mjs` 将官方属性计算中的系数映射到本仓参数顺序，数值变化自动导入，结构变化必须审查；不依赖 fork 新增的优化文件。
+- `optimizer-policy.json` 仅维护官方来源没有的自动优化配置：搜索限制、武器分配、获取成本；manifest 记录其摘要，前端和 Rust 仍读取同一个生成包。
 - `reader.mjs` 仅解释受支持的声明式语法，不执行来源应用或任意源码。
 - 数据涵盖 `data/out`、职业/等级/魔晶石参数、自定义武器、来源成本与颜色，以及公式系数。
 - 公式数值可以改变；结构变化、未知字段或缺失引用会停止导入。
@@ -57,21 +64,23 @@ node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing
 - 首次检出必须先执行上述导入命令；开发、构建和测试入口检查生成数据，缺失时提示导入命令。
 - 报告包含装备记录和参数的变化；相同输入重复导入不产生内容差异。
 - 回退时从对应来源版本重新导入，或恢复本机完整生成目录及其 manifest，然后重新构建，不能混用两个版本的文件。
-- 开发服务器在生成包更新时完整刷新，避免热更新混用新旧规则。
-- 监听覆盖生成目录本身的替换事件；已通过连续两次真实导入验证自动刷新和配装草稿恢复。
+- 导入完成后重新启动 `npm run tauri dev` 或重新构建桌面应用，使 Rust 同时编译新参数与版本；更新不依赖数据热重载。
 
 ## 验证记录
 
 - 前端 production build、TypeScript 和 ESLint 通过。
-- `npm test`：70 项通过，包含 13 项配装专项测试。
+- `npm test`：72 项通过，包含 15 项配装专项测试。
 - `cargo test --offline --manifest-path src-tauri/Cargo.toml`：46 项通过，包含 4 项配装调度/IPC 测试。
 - 新增和修改的前端代码经 Prettier 格式化，Rust 经仓库配置的 rustfmt 格式化并检查。
 - 目录适配后重新通过上述检查；生成数据、规则及版本均与适配前一致，53 个 TypeScript 文件通过功能依赖边界检查。
 - 数据测试覆盖重复导入、check 不写入、参数变化、校验失败不改原包和整体回退。
+- 官方 7.55 数据已验证首次导入与重复导入，原 fork 7.51 仍可提取；新增测试覆盖官方系数映射、系数变化和结构变化拒绝。
 - 本机缺失数据和校验摘要不匹配均给出导入命令；42 个 sprite 图标的路径与 viewBox 均与来源一致，浏览器验证了可见图标渲染和全部 26,144 条记录的加载。
 - 算法测试覆盖小规模穷举、取整阈值、速度限制、戒指互斥、预算、主副手联动、生产镶嵌和 DET/DHT。
 
 用户提供的固定回归场景：学者、品级 780–795、自动选择装备、51 件全选、目标 GCD 2.40、未启用高级/开荒约束。
+历史回归固定原有装备 ID；7.55 同范围有 73 个候选（含双戒指位），已额外验证自动搜索、应用和刷新恢复，仍得到下表结果。
+其中“幻境魔导典·秘影”尚无自动分配规则，未配置副属性时会按现有规则跳过；可先手动配置后参与计算，不能将该结果解释为包含其所有分配方式的最优值。
 
 | 指标           | 验证结果          |
 | -------------- | ----------------- |
