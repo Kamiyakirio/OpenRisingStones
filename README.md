@@ -8,7 +8,7 @@ OpenRisingStones 是一个使用 React、TypeScript、Vite 与 Tauri 构建的 F
 
 ```bash
 npm install
-node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing
+npm run gearing:data:update
 npm run tauri dev
 ```
 
@@ -18,15 +18,18 @@ npm run tauri dev
 
 配装代码与本地生成的数据随本仓库构建，不需要检出 ffxiv-gearing 子模块。装备、镶嵌和属性展示使用 React；优化搜索通过 Tauri IPC 在 Rust 后台线程运行，浏览器预览不提供优化计算。
 
-数据优先来自 [Asvel/ffxiv-gearing](https://github.com/Asvel/ffxiv-gearing) 的 `master`，当前已验证 7.55。首次将它克隆到本仓以外的目录，后续先更新来源，再导入数据和公式参数：
+数据下载、转换和规则均由本仓维护，无需克隆或运行 ffxiv-gearing。
+从本仓根目录执行：
 
 ```bash
-git -C /path/to/ffxiv-gearing pull --ff-only
-node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing --check
-node scripts/import-gearing-data.mjs --source /path/to/ffxiv-gearing
+npm run gearing:data:update -- --check
+npm run gearing:data:update
 ```
 
-首次检出后，先运行上述导入命令，再启动、构建或测试应用。脚本直接读取来源已提交的 `data/out`，无需安装或运行来源项目；校验通过后整体更新 `src/features/gearing/data/generated/`，不覆盖业务代码。生成目录已加入 `.gitignore`，不保留压缩快照。更新后重新启动 Tauri 开发环境或构建桌面应用，使前端与 Rust 使用同一数据版本。
+脚本通过公开发布记录固定原始数据提交，下载中文游戏 CSV，并结合本仓规则生成装备与参数包。这里的 XIVAPI 指其数据仓库，不是在线查询接口；更新不调用 GitHub REST API。
+生成结果保存在已忽略的 `src/features/gearing/data/generated/`，不保留压缩快照或本地仓库导入入口。首次开发、构建或测试前运行更新命令；更新后重新启动 Tauri 开发环境或构建桌面应用。
+
+公式参数、职业与魔晶石规则、装备获取途径在 `scripts/gearing/config/` 维护；自动优化配置在 `scripts/gearing/optimizer-policy.json`。更新报告列出需要补充的来源和自定义武器规则。
 
 分享功能复制原协议的 base62 分享码，可在任意兼容的配装器网址后添加 `?分享码`，也可直接粘贴回本应用导入。
 

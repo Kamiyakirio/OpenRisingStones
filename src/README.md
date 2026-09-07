@@ -18,7 +18,8 @@ domain logic together instead of adding global component or service folders.
   optimization contracts live in the feature's type files, and pure rules live in
   `utils/`. Imported assets and generated data belong to this feature as well.
   SVG icons share one sprite. `data/generated/` is ignored and must be produced
-  by the local-source import script before development, builds, or tests.
+  by `npm run gearing:data:update` before development, builds, or tests.
+  The owned generator and editable input rules live under `scripts/gearing/`.
 - `features/settings/` owns local-data clearing and its confirmation UI.
 - `shared/` contains reusable UI, hooks, avatar loading, runtime detection, and the
   typed game bridge used by both glamour and teleport.
