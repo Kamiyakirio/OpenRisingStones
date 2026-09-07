@@ -37,13 +37,8 @@ export const Condition = mobxReact.observer(() => {
         store.schema.stats.includes("SKS"))) ||
       store.schema.stats.some((stat) => stat === "CMS" || stat === "GTH"));
   return (
-    <div
-      className="condition card"
-      style={store.job === undefined ? { width: "900px" } : {}}
-    >
-      {welcoming && (
-        <span className="condition_job -empty">选择一个职业开始配装</span>
-      )}
+    <div className="condition card">
+      {welcoming && <span className="condition_job -empty">选择职业</span>}
       {editing && (
         <Dropdown
           label={({ ref, toggle }) => (
@@ -80,11 +75,13 @@ export const Condition = mobxReact.observer(() => {
         <span className="condition_level">
           <span className="condition_level-value">
             <ConditionLevelInput
+              label="最低品级"
               value={store.minLevel}
               onChange={(value) => store.setMinLevel(value)}
             />
             <span className="condition_level-separator">-</span>
             <ConditionLevelInput
+              label="最高品级"
               value={store.maxLevel}
               onChange={(value) => store.setMaxLevel(value)}
             />
@@ -230,8 +227,9 @@ const ConditionLevelInput = (() => {
   let delayedChange: (() => void) | null = null;
   return mobxReact.observer<{
     value: number;
+    label: string;
     onChange: (value: number) => void;
-  }>(({ value, onChange }) => {
+  }>(({ value, label, onChange }) => {
     const [inputValue, setInputValue] = React.useState(value.toString());
     const [prevValue, setPrevValue] = React.useState(value);
     if (value !== prevValue) {
@@ -256,6 +254,7 @@ const ConditionLevelInput = (() => {
     return (
       <TextField
         inputRef={inputRef}
+        aria-label={label}
         className="condition_level-input mdc-text-field--compact"
         type="number"
         step="5"

@@ -1,19 +1,27 @@
 /** Native CSS for the gearing workspace; all business styles stay within its boundary. */
 .gearing-workspace {
-  color: var(--ink);
-  background: var(--paper);
-  min-height: 100dvh;
+  color: var(--ors-color-text);
+  background: var(--ors-color-canvas);
+  height: calc(100dvh - 112px);
+  min-height: 440px;
+  width: min(1440px, 100%);
+  padding: 0 32px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 .gearing-header {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ors-color-line);
+  padding: 24px 0;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 .gearing-header h1 {
   margin: 0;
-  font-size: 22px;
+  font-family: var(--ors-font-heading);
+  font-size: 1.5rem;
 }
 .gearing-header > div {
   display: flex;
@@ -26,10 +34,10 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: 8px;
+  border: 1px solid var(--ors-color-control-line);
+  background: var(--ors-color-surface);
+  color: var(--ors-color-text);
+  border-radius: var(--ors-radius-control);
   padding: 9px 12px;
 }
 .gearing-header svg {
@@ -41,16 +49,17 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 16px 24px;
+  padding: 16px 0;
 }
 .gearing-import input {
   flex: 1;
-  min-width: 240px;
   padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--ink);
-  background: var(--surface);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  min-width: 0;
+  flex-basis: 220px;
 }
 .gearing-import p {
   flex-basis: 100%;
@@ -61,23 +70,29 @@
   margin: 24px;
 }
 .gearing-surface {
-  --gear-accent: var(--home-accent-strong);
-  --gear-selected: color-mix(in srgb, var(--home-accent) 14%, var(--surface));
+  --gear-accent: var(--ors-color-accent);
+  --gear-selected: color-mix(
+    in srgb,
+    var(--ors-color-accent) 14%,
+    var(--ors-color-surface)
+  );
   position: relative;
-  overflow-x: auto;
-  padding: 20px 24px;
-  font-size: 13px;
+  font-size: 0.875rem;
   line-height: 1.5;
+  padding: 20px 0 0;
+  overflow-x: visible;
+  overflow-y: visible;
+  min-width: 0;
 }
 .gearing-surface .gearing-app {
-  min-width: 1020px;
-  max-width: 1500px;
   margin: auto;
+  min-width: 0;
+  max-width: 100%;
 }
 .gearing-surface .card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  background: var(--ors-color-surface);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
 }
 .gearing-surface .gear-button,
 .gearing-surface .mdc-icon-button,
@@ -88,10 +103,10 @@
   gap: 6px;
   min-height: 32px;
   padding: 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
   color: var(--gear-accent);
-  background: var(--surface);
+  background: var(--ors-color-surface);
   font-size: 12px;
   cursor: pointer;
 }
@@ -106,17 +121,17 @@
 .gearing-surface :focus-visible,
 .gearing-header :focus-visible,
 .gearing-import :focus-visible {
-  outline: 2px solid var(--home-accent);
+  outline: 2px solid var(--ors-color-accent);
   outline-offset: 2px;
 }
 .gearing-surface .gear-input {
   width: 80px;
   min-height: 32px;
   padding: 5px 8px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  color: var(--ink);
-  background: var(--paper);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-canvas);
 }
 .gearing-surface .gear-choice {
   display: inline-flex;
@@ -127,13 +142,13 @@
 }
 .gearing-surface input[type="radio"],
 .gearing-surface input[type="checkbox"] {
-  accent-color: var(--home-accent-strong);
+  accent-color: var(--ors-color-accent);
 }
 .gearing-surface .gear-tabs {
   display: flex;
   gap: 8px;
   padding: 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ors-color-line);
 }
 .gearing-surface .gear-tabs [aria-selected="true"] {
   background: var(--gear-selected);
@@ -145,13 +160,14 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--home-accent);
+  background: var(--ors-color-accent);
   margin-left: 4px;
+  color: var(--ors-color-on-accent);
 }
 .gearing-surface .gear-progress {
   width: 100%;
   height: 3px;
-  accent-color: var(--home-accent);
+  accent-color: var(--ors-color-accent);
 }
 .gearing-surface .gear-icon {
   width: 18px;
@@ -171,16 +187,19 @@
   padding: 16px;
 }
 .gearing-surface .condition:has(.job-selector) {
-  width: min(100%, 1000px) !important;
-  margin: 36px auto;
+  width: 100%;
+  margin: 0;
 }
 .gearing-surface .condition_job {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 20px;
   font-weight: 650;
   cursor: pointer;
+  background: transparent;
+  color: var(--ors-color-text);
+  border: 0;
+  font-size: 1.125rem;
 }
 .gearing-surface .condition_job.-empty {
   cursor: default;
@@ -190,9 +209,10 @@
   align-items: center;
   gap: 12px;
   margin-left: auto;
+  flex-wrap: wrap;
 }
 .gearing-surface .condition_text {
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 12px;
 }
 .gearing-surface .condition_level {
@@ -208,21 +228,21 @@
 .gearing-surface .condition_divider {
   height: 24px;
   width: 1px;
-  background: var(--line);
+  background: var(--ors-color-line);
 }
 .gearing-surface .condition_welcome-promotion {
   display: block;
   width: 400px;
   max-width: 100%;
-  border-radius: 6px;
+  border-radius: var(--ors-radius-control);
 }
 .gearing-surface .job-selector {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 32px;
   width: 100%;
-  padding: 24px 12px;
+  padding: 16px 0;
+  gap: 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .gearing-surface .job-selector_background-icon {
   display: none;
@@ -233,27 +253,30 @@
 .gearing-surface .job-selector_group-name {
   margin-bottom: 10px;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 .gearing-surface .job-selector_item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
   padding: 7px 10px;
   text-decoration: none;
-  color: var(--ink);
-  border-radius: 5px;
+  color: var(--ors-color-text);
+  border-radius: var(--ors-radius-control);
+  min-height: 40px;
+  gap: 12px;
 }
 .gearing-surface .job-selector_item:hover {
   background: var(--gear-selected);
 }
 .gearing-surface .job-select-panel {
-  min-width: 620px;
+  min-width: 0;
+  width: min(720px, calc(100vw - 48px));
+  padding: 16px;
 }
 .gearing-surface .job-select-panel_tip {
   padding: 0 18px 16px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 .gearing-surface .table {
   border-spacing: 0;
@@ -261,7 +284,7 @@
   font-variant-numeric: tabular-nums;
 }
 .gearing-surface .table th {
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-weight: 500;
   font-size: 12px;
   text-align: right;
@@ -272,12 +295,13 @@
   white-space: nowrap;
 }
 .gearing-surface .table td {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
 }
 .gearing-surface .gears_slot {
   width: 100%;
   margin: 12px 0;
   table-layout: fixed;
+  min-width: 1000px;
 }
 .gearing-surface .gears_left {
   width: 30%;
@@ -294,7 +318,11 @@
   cursor: pointer;
 }
 .gearing-surface .gears_item:hover {
-  background: color-mix(in srgb, var(--home-accent) 6%, var(--surface));
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 6%,
+    var(--ors-color-surface)
+  );
 }
 .gearing-surface .gears_item.-selected,
 .gearing-surface .-selected {
@@ -310,8 +338,8 @@
 .gearing-surface .gears_level,
 .gearing-surface .gears_stat-caps,
 .gearing-surface .gears_stat-requirement {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   margin-right: 6px;
 }
 .gearing-surface .gears_custom-stat-input {
@@ -326,9 +354,9 @@
   min-width: 44px;
   height: 28px;
   margin: 2px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  font-size: 11px;
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  font-size: 0.75rem;
   cursor: pointer;
 }
 .gearing-surface .gears_materia.-advanced {
@@ -339,7 +367,7 @@
   background: var(--gear-selected);
 }
 .gearing-surface .gears_empty {
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 .gearing-surface .gears_name.-red {
   color: #a43d43;
@@ -366,12 +394,12 @@
   color: #c1a8df;
 }
 .gearing-surface #gearing-popper > div {
-  z-index: 8;
-  max-width: min(900px, 95vw);
+  z-index: 20;
+  max-width: calc(100vw - 32px);
 }
 .gearing-surface #gearing-popper .card {
-  box-shadow: 0 12px 36px #0003;
-  max-height: 72vh;
+  box-shadow: var(--ors-shadow-popover);
+  max-height: min(640px, 70dvh);
   overflow: auto;
 }
 .gearing-surface .materias td {
@@ -384,7 +412,7 @@
 }
 .gearing-surface .materias_row.-invalid,
 .gearing-surface .-invalid {
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 .gearing-surface .materias_meldable.-overflowed {
   color: #bd454c;
@@ -394,11 +422,11 @@
 }
 .gearing-surface .-negative,
 .gearing-surface .-error {
-  color: #bd454c;
+  color: var(--ors-color-danger);
 }
 .gearing-surface .gearing-about {
   padding: 28px 10px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   text-align: center;
   font-size: 12px;
 }
@@ -425,8 +453,8 @@
 }
 .gearing-surface .setting_sub {
   display: block;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 400;
 }
 .gearing-surface .setting_controls {
@@ -440,17 +468,17 @@
 .gearing-surface .share textarea {
   width: 100%;
   min-height: 76px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
   padding: 10px;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--ors-color-canvas);
+  color: var(--ors-color-text);
   overflow-wrap: anywhere;
 }
 .gearing-surface .gear-menu_item,
 .gearing-surface .summary-menu_item {
   display: block;
-  color: var(--ink);
+  color: var(--ors-color-text);
   text-decoration: none;
   padding: 7px 10px;
 }
@@ -460,7 +488,7 @@
 .gearing-surface .gear-menu_divider {
   height: 1px;
   margin: 5px 0;
-  background: var(--line);
+  background: var(--ors-color-line);
 }
 .gearing-surface .mdc-list {
   list-style: none;
@@ -489,7 +517,7 @@
   text-align: center;
   padding: 5px 9px;
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: var(--ors-radius-control);
 }
 .gearing-surface .level-sync_level.-popular {
   font-weight: 750;
@@ -506,7 +534,7 @@
 .gearing-surface .materia-gcd-optimization_intro,
 .gearing-surface .production-materia-optimization_intro {
   margin-bottom: 12px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 .gearing-surface .materia-gcd-optimization_result,
 .gearing-surface .production-materia-optimization_result {
@@ -555,10 +583,6 @@
 
 /* Keep the controls and summary visible while only the equipment lists scroll. */
 .gearing-workspace {
-  height: 100dvh;
-  min-height: 480px;
-  display: flex;
-  flex-direction: column;
 }
 .gearing-header {
   flex: 0 0 auto;
@@ -568,8 +592,6 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 16px 24px 12px;
-  overflow-y: hidden;
 }
 .gearing-surface .gearing-app {
   display: flex;
@@ -587,18 +609,18 @@
 .gearing-surface .gearing-table-scroll {
   flex: 1;
   min-height: 0;
-  overflow: auto;
-  padding-right: 6px;
   scrollbar-gutter: stable;
+  overflow: auto;
+  padding-right: 0;
 }
 .gearing-surface .gearing-app-welcome {
   overflow-y: auto;
 }
 .gearing-surface .gearing-app-welcome .condition {
-  width: 900px !important;
+  width: 100%;
   max-width: 100%;
-  margin: 20px auto;
-  padding: 22px 28px;
+  margin: 0;
+  padding: 24px;
 }
 .gearing-surface .gearing-app-welcome .gearing-table-scroll {
   flex: 0 0 auto;
@@ -612,13 +634,13 @@
   padding-block: 5px;
 }
 .gearing-surface .gears_slot th {
-  background: var(--surface-2);
+  background: var(--ors-color-hover);
 }
 .gearing-surface .gears_slot th:first-child {
-  border-top-left-radius: 9px;
+  border-top-left-radius: 4px;
 }
 .gearing-surface .gears_slot th:last-child {
-  border-top-right-radius: 9px;
+  border-top-right-radius: 4px;
 }
 .gearing-surface .gears_left {
   position: relative;
@@ -645,7 +667,7 @@
   padding: 4px;
   border: 0;
   background: transparent;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 .gearing-surface .gears_left .mdc-icon-button:hover {
   background: var(--gear-selected);
@@ -655,16 +677,16 @@
   vertical-align: middle;
   margin-left: 8px;
   margin-right: 0;
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .gearing-surface .gears_materia {
   min-width: 38px;
   height: 25px;
-  background: var(--surface);
+  background: var(--ors-color-surface);
 }
 .gearing-surface .gears_materia:empty::before {
   content: "+";
-  color: var(--muted);
+  color: var(--ors-color-muted);
   opacity: 0.65;
 }
 .gearing-surface .gears_materia:hover {
@@ -709,7 +731,7 @@
   display: flex;
   gap: 10px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ors-color-line);
 }
 .gearing-surface .materia-gcd-optimization_target,
 .gearing-surface .materia-gcd-optimization_speed-range-controls {
@@ -726,11 +748,11 @@
   min-width: 72px;
 }
 .gearing-surface .materia-gcd-optimization_empty {
-  color: var(--muted);
+  color: var(--ors-color-muted);
   line-height: 1.75;
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
 }
 .gearing-surface .materia-gcd-optimization_gear-selector {
   display: flex;
@@ -768,7 +790,7 @@
 }
 .gearing-surface .materia-gcd-optimization_progression-tip,
 .gearing-surface .materia-gcd-optimization_speed-range-tip {
-  color: var(--muted);
+  color: var(--ors-color-muted);
   margin-top: 10px;
   line-height: 1.7;
 }
@@ -783,7 +805,7 @@
   white-space: normal;
   max-width: 580px;
   padding: 12px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 .gearing-surface .materia-det-dht-optimization {
   padding: 16px;
@@ -794,11 +816,12 @@
   line-height: 1.75;
 }
 .gearing-surface .clan {
-  min-width: 370px;
+  min-width: 0;
+  width: min(400px, calc(100vw - 48px));
 }
 .gearing-surface .clan_race {
   width: 80px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 .gearing-surface .clan_item {
   display: inline-block;
@@ -807,7 +830,7 @@
 }
 .gearing-surface .clan_item:hover {
   background: var(--gear-selected);
-  border-radius: 5px;
+  border-radius: var(--ors-radius-control);
 }
 .gearing-surface .materia-clear {
   max-width: 650px;
@@ -866,37 +889,38 @@
 
 /* A small action row sits above the metric strip; no artificial blank rows. */
 .gearing-surface .summary {
-  position: relative;
-  z-index: 5;
   flex-shrink: 0;
   margin-top: 10px;
-  padding: 8px 14px 10px;
+  padding: 16px;
+  position: relative;
+  z-index: 1;
 }
 .gearing-surface .summary_controls {
   display: flex;
   align-items: center;
   gap: 6px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ors-color-line);
+  flex-wrap: wrap;
 }
 .gearing-surface .summary_controls .gear-button,
 .gearing-surface .summary_controls .mdc-icon-button {
   min-height: 24px;
   height: 24px;
   padding: 3px 7px;
-  font-size: 11px;
+  font-size: 0.75rem;
   line-height: 16px;
   border-color: transparent;
   background: transparent;
 }
 .gearing-surface .summary_controls .summary_clan {
   padding-left: 0;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 .gearing-surface .summary_controls .summary_more {
   width: 24px;
   padding: 3px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 .gearing-surface .summary_controls .summary_more .gear-icon {
   width: 14px;
@@ -908,18 +932,12 @@
 }
 .gearing-surface .summary_metrics {
   display: grid;
-  grid-template-columns: minmax(64px, 0.7fr) minmax(138px, 1.4fr) repeat(
-      var(--summary-stat-count),
-      minmax(70px, 1fr)
-    );
-  gap: 20px;
   padding: 10px 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 16px;
 }
 .gearing-surface .summary_metrics-production {
-  grid-template-columns: minmax(64px, 0.7fr) repeat(
-      var(--summary-stat-count),
-      minmax(70px, 1fr)
-    );
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
 }
 .gearing-surface .summary_metric {
   display: flex;
@@ -929,9 +947,9 @@
   min-width: 0;
 }
 .gearing-surface .summary_label {
-  font-size: 11px;
+  font-size: 0.75rem;
   line-height: 16px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   white-space: nowrap;
 }
 .gearing-surface .summary_value {
@@ -939,12 +957,12 @@
   font-weight: 500;
   line-height: 25px;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.025em;
+  letter-spacing: normal;
   white-space: nowrap;
 }
 .gearing-surface .summary_supplement {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 14px;
   white-space: nowrap;
 }
@@ -962,8 +980,8 @@
 .gearing-surface .summary_tier {
   display: flex;
   gap: 8px;
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 14px;
   font-variant-numeric: tabular-nums;
 }
@@ -979,4 +997,50 @@
 }
 .gearing-surface button.job-selector_item:hover {
   background: var(--gear-selected);
+}
+
+/* Tables keep local horizontal scrolling; job selection and controls reflow. */
+@media (max-width: 1199px) {
+  .gearing-workspace {
+    padding-inline: 24px;
+  }
+  .gearing-surface .job-selector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  .gearing-workspace {
+    height: auto;
+    padding-inline: 16px;
+  }
+  .gearing-surface {
+    overflow: visible;
+  }
+  .gearing-surface .gearing-table-scroll {
+    flex: none;
+    max-height: 60dvh;
+  }
+  .gearing-surface .gearing-app-welcome .condition {
+    padding: 16px;
+  }
+  .gearing-surface .condition_right {
+    margin-left: 0;
+  }
+  .gearing-surface .summary_metrics {
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  }
+}
+@media (max-width: 420px) {
+  .gearing-surface .job-selector {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-height: 620px) {
+  .gearing-workspace {
+    height: auto;
+  }
+  .gearing-surface .gearing-table-scroll {
+    flex: none;
+    max-height: 60dvh;
+  }
 }

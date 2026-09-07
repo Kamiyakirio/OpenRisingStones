@@ -35,6 +35,37 @@ export const Dropdown = mobxReact.observer<DropdownProps>((props) => {
       e.stopPropagation();
     }
   }, []);
+  React.useEffect(() => {
+    if (!labelElement) return;
+    const native = labelElement.matches("button, a[href], input");
+    if (!native) {
+      labelElement.tabIndex = 0;
+      labelElement.setAttribute("role", "button");
+    }
+    if (
+      !labelElement.getAttribute("aria-label") &&
+      !labelElement.textContent?.trim()
+    ) {
+      const item = labelElement
+        .closest("tr")
+        ?.querySelector(".gears_name")
+        ?.textContent?.trim();
+      labelElement.setAttribute(
+        "aria-label",
+        item ? `${item}：装备选项` : "配装选项",
+      );
+    }
+    labelElement.setAttribute("aria-haspopup", "dialog");
+    labelElement.setAttribute("aria-expanded", String(expanded));
+    const keyboard = (event: KeyboardEvent) => {
+      if (!native && ["Enter", " "].includes(event.key)) {
+        event.preventDefault();
+        toggle();
+      }
+    };
+    labelElement.addEventListener("keydown", keyboard);
+    return () => labelElement.removeEventListener("keydown", keyboard);
+  }, [expanded, labelElement, toggle]);
   return (
     <>
       {props.label({
@@ -65,7 +96,7 @@ const DropdownPopper = mobxReact.observer<
     popper,
     placement,
     modifiers = [],
-    strategy = "absolute",
+    strategy = "fixed",
     setExpanded,
     labelElement,
     toggle,
@@ -89,10 +120,19 @@ const DropdownPopper = mobxReact.observer<
       popperOptions,
     );
     if (popperOptions.strategy === "fixed") {
-      popperElement.style.zIndex = "7"; // for search: z-index: 7;
+      popperElement.style.zIndex = "20";
     }
     return () => popperInstance.destroy();
   }, [labelElement, popperElement, popperOptions]);
+  React.useEffect(() => {
+    if (document.activeElement === labelElement) {
+      popperElement
+        ?.querySelector<HTMLElement>(
+          'button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]',
+        )
+        ?.focus();
+    }
+  }, [labelElement, popperElement]);
   React.useEffect(() => {
     const onGlobalClick = (e: MouseEvent) => {
       const target = e.target as Element;
@@ -113,13 +153,14 @@ const DropdownPopper = mobxReact.observer<
     };
     const onGlobalKeyup = (e: KeyboardEvent) => {
       const target = e.target as Element;
-      // label (比如是一个 button) 有可能成为按键事件的 target
+      // Escape closes the active panel even when focus has moved into its fields.
       if (
         target &&
-        (target.tagName === "BODY" || target === labelElement) &&
+        (target === labelElement || popperElement?.contains(target)) &&
         e.key === "Escape"
       ) {
         setExpanded(false);
+        labelElement?.focus();
       }
     };
     window.addEventListener("click", onGlobalClick, true);
@@ -139,6 +180,8 @@ const DropdownPopper = mobxReact.observer<
     ReactDOM.createPortal(
       <div
         ref={setPopperElement}
+        role="dialog"
+        aria-label={labelElement?.textContent?.trim() || "配装选项"}
         onClick={(e) => e.stopPropagation()}
         children={React.createElement(popper, { toggle, labelElement })}
       />,

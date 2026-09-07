@@ -38,6 +38,18 @@ export const GearRow = mobxReact.observer<{
   ) : (
     <tr
       data-id={gear.id}
+      tabIndex={store.isViewing ? undefined : 0}
+      aria-selected={gear.isEquipped}
+      onKeyDown={(event) => {
+        if (
+          !store.isViewing &&
+          event.target === event.currentTarget &&
+          ["Enter", " "].includes(event.key)
+        ) {
+          event.preventDefault();
+          store.equip(gear);
+        }
+      }}
       className={classNames(
         "gears_item",
         gear.isFood && "-food",

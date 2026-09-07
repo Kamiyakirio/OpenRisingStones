@@ -28,7 +28,12 @@ export const GearingWorkspace = mobxReact.observer<{ store: IStore }>(
               className={`gearing-app gearing-app-${store.mode}${store.job === undefined ? " gearing-app-welcome" : ""}`}
             >
               <Condition />
-              <div className="gearing-table-scroll">
+              <div
+                className="gearing-table-scroll"
+                role="region"
+                aria-label="装备列表"
+                tabIndex={0}
+              >
                 {store.job !== undefined &&
                   (store.isViewing ? (
                     <SlotCompact />
