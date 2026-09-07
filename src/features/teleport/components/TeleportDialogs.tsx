@@ -1,5 +1,7 @@
 /** Travel review and return dialogs with the selection fields they share. */
 
+import { useDialogFocus } from "../../../shared/hooks/useDialogFocus";
+import { useId } from "react";
 import { X } from "@phosphor-icons/react";
 
 import type { TeleportWorkspaceState } from "../hooks/useTeleportWorkspace";
@@ -120,16 +122,20 @@ export function ActionDialog({
   actions: React.ReactNode;
   onClose: () => void;
 }) {
+  const dialog = useDialogFocus(onClose);
+  const titleId = useId();
   return (
     <div className="teleport-dialog-backdrop">
       <section
+        ref={dialog}
+        tabIndex={-1}
         className="teleport-dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="teleport-dialog-title"
+        aria-labelledby={titleId}
       >
         <header>
-          <h2 id="teleport-dialog-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button type="button" aria-label="关闭" onClick={onClose}>
             <X />
           </button>

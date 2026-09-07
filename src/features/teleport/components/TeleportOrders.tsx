@@ -23,8 +23,7 @@ export function OrderHistory({
     >
       <header>
         <div>
-          <span>官方订单</span>
-          <h2 id="orders-title">最近的传送记录</h2>
+          <h2 id="orders-title">传送记录</h2>
         </div>
         <strong>{viewModel.totalOrders.toLocaleString("zh-CN")} 条</strong>
       </header>

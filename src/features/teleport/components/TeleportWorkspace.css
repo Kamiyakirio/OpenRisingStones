@@ -1,49 +1,43 @@
 /** Regional Teleport uses one compact, route-led product surface. */
-.app.feature-teleport {
-  --accent: var(--home-accent);
-  --accent-strong: var(--home-accent-strong);
-  --accent-soft: color-mix(in srgb, var(--home-accent) 14%, var(--surface));
-}
 
 .teleport-page {
-  width: min(1380px, 100%);
-  min-height: calc(100dvh - 74px);
   margin: 0 auto;
-  padding: 0 clamp(20px, 5vw, 76px) 80px;
+  width: min(1440px, 100%);
+  min-height: 0;
+  padding: 24px 32px;
 }
 
 .teleport-hero {
   display: flex;
-  align-items: flex-end;
   justify-content: space-between;
   gap: 32px;
-  padding: clamp(42px, 7vw, 76px) 0 34px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ors-color-line);
+  padding: 0 0 24px;
+  align-items: center;
 }
 
 .teleport-kicker,
 .teleport-section-heading > span,
 .teleport-orders header > div > span,
 .teleport-gate > span {
-  color: var(--accent-strong);
-  font-size: 11px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.14em;
+  letter-spacing: normal;
 }
 
 .teleport-hero h1 {
-  margin: 10px 0 0;
-  font-family:
-    "Segoe UI Variable Display", "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: clamp(44px, 6vw, 72px);
+  font-family: var(--ors-font-heading);
+  font-size: 1.5rem;
   font-weight: 670;
-  line-height: 1;
-  letter-spacing: -0.06em;
+  line-height: 1.5;
+  letter-spacing: normal;
+  margin: 0;
 }
 
 .teleport-hero p {
   margin: 18px 0 0;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 14px;
   line-height: 1.65;
 }
@@ -60,7 +54,7 @@
   gap: 8px;
   min-height: 42px;
   padding: 0 17px;
-  border-radius: 12px;
+  border-radius: var(--ors-radius-control);
   font-size: 12px;
   font-weight: 740;
   white-space: nowrap;
@@ -68,15 +62,6 @@
     transform 160ms ease,
     border-color 160ms ease,
     background-color 160ms ease;
-}
-
-.teleport-refresh:active:not(:disabled),
-.teleport-secondary-action:active:not(:disabled),
-.teleport-primary-action:active:not(:disabled),
-.teleport-gate-primary:active:not(:disabled),
-.order-row > button:active:not(:disabled),
-.order-pagination button:active:not(:disabled) {
-  transform: translateY(1px);
 }
 
 .teleport-refresh:disabled,
@@ -100,16 +85,16 @@
 .teleport-refresh,
 .teleport-secondary-action,
 .order-pagination button {
-  border: 1px solid var(--line);
-  color: var(--ink);
-  background: var(--surface);
+  border: 1px solid var(--ors-color-control-line);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
 }
 
 .teleport-refresh:hover:not(:disabled),
 .teleport-secondary-action:hover:not(:disabled),
 .order-pagination button:hover:not(:disabled) {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
 }
 
 .teleport-alert {
@@ -118,8 +103,8 @@
   gap: 12px;
   margin-top: 22px;
   padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -136,19 +121,23 @@
 }
 
 .teleport-alert.is-error {
-  border-color: var(--danger-line);
-  color: var(--danger);
-  background: var(--danger-soft);
+  border-color: var(--ors-color-danger);
+  color: var(--ors-color-danger);
+  background: var(--ors-color-surface);
 }
 
 .teleport-alert.is-warning {
-  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
-  color: var(--accent-strong);
-  background: var(--accent-soft);
+  border-color: color-mix(
+    in srgb,
+    var(--ors-color-accent) 36%,
+    var(--ors-color-line)
+  );
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
 }
 
 .teleport-alert.is-warning span {
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 
 .teleport-summary {
@@ -157,9 +146,10 @@
   gap: 1px;
   margin: 30px 0 0;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--line);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-line);
+  margin-top: 24px;
 }
 
 .teleport-summary > div {
@@ -168,7 +158,7 @@
   grid-template-rows: auto auto;
   column-gap: 12px;
   padding: 18px 20px;
-  background: var(--surface);
+  background: var(--ors-color-surface);
 }
 
 .teleport-summary svg {
@@ -176,18 +166,18 @@
   align-self: center;
   width: 24px;
   height: 24px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .teleport-summary dt {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 680;
 }
 
 .teleport-summary dd {
   margin: 3px 0 0;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--ors-font-ui);
   font-size: 16px;
   font-weight: 720;
 }
@@ -199,9 +189,9 @@
   gap: 24px;
   margin-top: 18px;
   padding: 17px 18px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
 }
 
 .teleport-mode-switch > div:first-child {
@@ -211,8 +201,8 @@
 
 .teleport-mode-switch span,
 .teleport-mode-switch small {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .teleport-mode-switch strong {
@@ -223,8 +213,8 @@
   display: flex;
   gap: 6px;
   padding: 4px;
-  border-radius: 11px;
-  background: var(--paper);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-canvas);
 }
 
 .teleport-mode-switch button {
@@ -234,18 +224,18 @@
   min-height: 36px;
   padding: 0 13px;
   border: 1px solid transparent;
-  border-radius: 8px;
-  color: var(--muted);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
   background: transparent;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 730;
 }
 
 .teleport-mode-switch button.is-active {
-  border-color: var(--line);
-  color: var(--accent-strong);
-  background: var(--surface);
-  box-shadow: 0 3px 12px rgba(10, 26, 24, 0.08);
+  border-color: var(--ors-color-line);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-surface);
+  box-shadow: none;
 }
 
 .teleport-mode-switch button:disabled {
@@ -261,30 +251,30 @@
 .teleport-builder {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
-  gap: 24px;
   align-items: start;
-  margin-top: 28px;
   scroll-margin-top: 94px;
+  margin-top: 24px;
+  gap: 24px;
 }
 
 .teleport-form-panel,
 .journey-route {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
+  box-shadow: none;
 }
 
 .teleport-form-panel {
-  padding: clamp(22px, 3vw, 34px);
+  padding: 24px;
 }
 
 .teleport-section-heading h2,
 .teleport-orders h2 {
   margin: 7px 0 0;
-  font-size: clamp(24px, 3vw, 34px);
+  font-size: 1.125rem;
   line-height: 1.12;
-  letter-spacing: -0.04em;
+  letter-spacing: normal;
 }
 
 .teleport-memory-source {
@@ -294,14 +284,18 @@
   gap: 13px;
   margin-top: 26px;
   padding: 15px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--paper);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-canvas);
 }
 
 .teleport-memory-source.is-ready {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-  background: var(--accent-soft);
+  border-color: color-mix(
+    in srgb,
+    var(--ors-color-accent) 45%,
+    var(--ors-color-line)
+  );
+  background: var(--ors-color-selected);
 }
 
 .teleport-memory-source-icon {
@@ -310,8 +304,8 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  color: var(--accent-strong);
-  background: var(--surface);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-surface);
 }
 
 .teleport-memory-source-icon svg {
@@ -327,8 +321,8 @@
 
 .teleport-memory-source span,
 .teleport-memory-source small {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .teleport-memory-source strong,
@@ -339,7 +333,7 @@
 }
 
 .teleport-memory-source strong {
-  font-size: 13px;
+  font-size: 0.875rem;
 }
 
 .teleport-memory-source > button {
@@ -348,11 +342,11 @@
   gap: 7px;
   min-height: 36px;
   padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--ink);
-  background: var(--surface);
-  font-size: 10px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
@@ -376,8 +370,8 @@
 .teleport-field {
   display: grid;
   gap: 8px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -387,10 +381,10 @@
   min-width: 0;
   min-height: 44px;
   padding: 0 36px 0 13px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  color: var(--ink);
-  background: var(--paper);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-canvas);
   font: inherit;
   font-size: 12px;
 }
@@ -403,7 +397,7 @@
 
 .teleport-field select:focus-visible,
 .teleport-field input:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ors-color-accent);
   outline-offset: 2px;
 }
 
@@ -420,8 +414,8 @@
 
 .teleport-role-picker legend {
   margin-bottom: 10px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -439,15 +433,15 @@
   gap: 11px;
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--paper);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-canvas);
   cursor: pointer;
 }
 
 .teleport-role-picker label:has(input:checked) {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
 }
 
 .teleport-role-picker input {
@@ -458,7 +452,7 @@
 .teleport-role-picker label > svg:first-of-type {
   width: 29px;
   height: 29px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .teleport-role-picker label > svg:last-child {
@@ -468,7 +462,7 @@
 }
 
 .teleport-role-picker label:has(input:checked) > svg:last-child {
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .teleport-role-picker label > span {
@@ -485,19 +479,19 @@
 }
 
 .teleport-role-picker strong {
-  font-size: 13px;
+  font-size: 0.875rem;
 }
 
 .teleport-role-picker small {
-  color: var(--muted);
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-family: var(--ors-font-ui);
+  font-size: 0.75rem;
 }
 
 .teleport-target-fields {
   margin-top: 28px;
   padding-top: 26px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
 }
 
 .teleport-target-fields .teleport-field-grid {
@@ -509,22 +503,22 @@
   align-items: center;
   gap: 7px;
   margin-top: 11px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .teleport-queue-note svg {
   width: 16px;
   height: 16px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .teleport-inline-empty {
   margin-top: 20px;
   padding: 14px;
-  border-radius: 10px;
-  color: var(--muted);
-  background: var(--paper);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
+  background: var(--ors-color-canvas);
   font-size: 12px;
 }
 
@@ -533,7 +527,7 @@
   align-items: flex-start;
   gap: 10px;
   margin-top: 28px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 12px;
   line-height: 1.55;
   cursor: pointer;
@@ -544,19 +538,19 @@
   width: 17px;
   height: 17px;
   margin: 1px 0 0;
-  accent-color: var(--accent-strong);
+  accent-color: var(--ors-color-accent);
 }
 
 .teleport-primary-action,
 .teleport-gate-primary {
-  border: 1px solid var(--accent-strong);
-  color: var(--surface);
-  background: var(--accent-strong);
+  border: 1px solid var(--ors-color-accent);
+  color: var(--ors-color-on-accent);
+  background: var(--ors-color-accent);
 }
 
 .theme-dark .teleport-primary-action,
 .theme-dark .teleport-gate-primary {
-  color: var(--paper);
+  color: var(--ors-color-canvas);
 }
 
 .teleport-primary-action {
@@ -566,7 +560,11 @@
 
 .teleport-primary-action:hover:not(:disabled),
 .teleport-gate-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent-strong) 86%, var(--ink));
+  background: color-mix(
+    in srgb,
+    var(--ors-color-accent) 86%,
+    var(--ors-color-text)
+  );
 }
 
 .journey-route {
@@ -581,15 +579,15 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 28px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
 .route-caption svg {
   width: 28px;
   height: 28px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .route-stop {
@@ -604,10 +602,11 @@
   width: 15px;
   height: 15px;
   margin-top: 4px;
-  border: 4px solid var(--surface);
+  border: 4px solid var(--ors-color-surface);
   border-radius: 50%;
-  background: var(--accent-strong);
-  box-shadow: 0 0 0 1px var(--accent);
+  background: var(--ors-color-accent);
+  box-shadow: none;
+  color: var(--ors-color-on-accent);
 }
 
 .route-stop > div {
@@ -618,8 +617,8 @@
 .route-stop small,
 .route-stop span,
 .journey-route > p {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .route-stop strong {
@@ -637,7 +636,7 @@
   min-height: 88px;
   margin-left: 7px;
   padding-left: 27px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .route-line::before {
@@ -646,7 +645,7 @@
   top: 0;
   bottom: 0;
   left: 0;
-  border-left: 1px dashed var(--accent);
+  border-left: 1px dashed var(--ors-color-accent);
 }
 
 .route-line svg {
@@ -655,14 +654,14 @@
 }
 
 .route-line span {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .journey-route > p {
   margin: 28px 0 0;
   padding-top: 18px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
   line-height: 1.6;
 }
 
@@ -680,16 +679,16 @@
 }
 
 .teleport-orders > header > strong {
-  color: var(--muted);
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-family: var(--ors-font-ui);
+  font-size: 0.75rem;
 }
 
 .order-list {
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
 }
 
 .order-row {
@@ -701,15 +700,15 @@
 }
 
 .order-row + .order-row {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ors-color-line);
 }
 
 .order-kind {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--accent-strong);
-  font-size: 11px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 740;
 }
 
@@ -737,7 +736,7 @@
   flex: 0 0 auto;
   width: 16px;
   height: 16px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
 }
 
 .order-meta {
@@ -747,23 +746,23 @@
 }
 
 .order-meta span {
-  color: var(--accent-strong);
-  font-size: 11px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
 .order-meta time,
 .order-meta code {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .order-row > button {
   min-height: 36px;
   padding: 0 12px;
-  border: 1px solid var(--accent);
-  color: var(--accent-strong);
-  background: var(--accent-soft);
+  border: 1px solid var(--ors-color-accent);
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
 }
 
 .teleport-orders-empty,
@@ -776,18 +775,18 @@
 .teleport-orders-empty {
   gap: 7px;
   padding: 58px 20px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  color: var(--muted);
-  background: var(--surface);
-  font-size: 11px;
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
+  background: var(--ors-color-surface);
+  font-size: 0.75rem;
 }
 
 .teleport-orders-empty svg {
   width: 38px;
   height: 38px;
   margin-bottom: 5px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .order-pagination {
@@ -804,41 +803,50 @@
 }
 
 .order-pagination span {
-  color: var(--muted);
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-family: var(--ors-font-ui);
+  font-size: 0.75rem;
 }
 
 .teleport-gate {
   width: min(600px, 100%);
-  gap: 10px;
   margin: clamp(54px, 9vw, 110px) auto 0;
-  padding: clamp(34px, 6vw, 58px);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
+  box-shadow: none;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px 20px;
+  padding: 32px;
+  text-align: left;
+  margin-top: 24px;
+  max-width: 680px;
 }
 
 .teleport-gate > svg {
-  width: 54px;
-  height: 54px;
   margin-bottom: 8px;
-  color: var(--accent-strong);
+  width: 28px;
+  height: 28px;
+  grid-row: 1 / 4;
+  margin: 0;
+  color: var(--ors-color-muted);
 }
 
 .teleport-gate h2 {
-  margin: 4px 0 0;
-  font-size: clamp(25px, 4vw, 37px);
-  letter-spacing: -0.04em;
+  letter-spacing: normal;
+  margin: 0;
+  font-size: 1.125rem;
 }
 
 .teleport-gate p {
   max-width: 440px;
-  margin: 4px 0 12px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 12px;
   line-height: 1.65;
+  margin: 0;
+  grid-column: 2;
 }
 
 .teleport-dialog-backdrop,
@@ -849,18 +857,18 @@
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(10, 18, 17, 0.58);
-  backdrop-filter: blur(8px);
+  background: rgba(10, 15, 26, 0.64);
 }
 
 .teleport-dialog {
   width: min(600px, 100%);
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  color: var(--ink);
-  background: var(--surface);
-  box-shadow: 0 28px 90px rgba(10, 26, 24, 0.28);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-overlay);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  box-shadow: var(--ors-shadow-dialog);
 }
 
 .teleport-dialog > header,
@@ -872,13 +880,13 @@
 
 .teleport-dialog > header {
   justify-content: space-between;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ors-color-line);
 }
 
 .teleport-dialog > header h2 {
   margin: 0;
-  font-size: 19px;
-  letter-spacing: -0.025em;
+  font-size: 1.125rem;
+  letter-spacing: normal;
 }
 
 .teleport-dialog > header button {
@@ -888,14 +896,14 @@
   height: 34px;
   padding: 0;
   border: 0;
-  border-radius: 10px;
-  color: var(--muted);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-muted);
   background: transparent;
 }
 
 .teleport-dialog > header button:hover {
-  color: var(--ink);
-  background: var(--surface-2);
+  color: var(--ors-color-text);
+  background: var(--ors-color-hover);
 }
 
 .teleport-dialog-body {
@@ -904,7 +912,7 @@
 
 .teleport-dialog-body > p {
   margin: 0 0 18px;
-  color: var(--muted);
+  color: var(--ors-color-muted);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -918,18 +926,18 @@
   gap: 5px;
   margin-bottom: 15px;
   padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: var(--paper);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-canvas);
 }
 
 .teleport-return-default span {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .teleport-return-default strong {
-  font-size: 13px;
+  font-size: 0.875rem;
 }
 
 .teleport-return-override {
@@ -937,8 +945,8 @@
   align-items: flex-start;
   gap: 9px;
   margin-bottom: 18px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
   line-height: 1.55;
 }
 
@@ -947,35 +955,35 @@
   width: 16px;
   height: 16px;
   margin: 0;
-  accent-color: var(--accent-strong);
+  accent-color: var(--ors-color-accent);
 }
 
 .teleport-dialog > footer {
   justify-content: flex-end;
   gap: 9px;
-  border-top: 1px solid var(--line);
-  background: var(--paper);
+  border-top: 1px solid var(--ors-color-line);
+  background: var(--ors-color-canvas);
 }
 
 .teleport-dialog > footer button {
   min-height: 40px;
   padding: 0 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  color: var(--ink);
-  background: var(--surface);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
   font-size: 12px;
   font-weight: 720;
 }
 
 .teleport-dialog > footer button.is-primary {
-  border-color: var(--accent-strong);
-  color: var(--surface);
-  background: var(--accent-strong);
+  border-color: var(--ors-color-accent);
+  color: var(--ors-color-on-accent);
+  background: var(--ors-color-accent);
 }
 
 .theme-dark .teleport-dialog > footer button.is-primary {
-  color: var(--paper);
+  color: var(--ors-color-canvas);
 }
 
 .journey-review,
@@ -983,9 +991,9 @@
   display: grid;
   gap: 1px;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--line);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-line);
 }
 
 .journey-review > div,
@@ -994,13 +1002,13 @@
   grid-template-columns: 120px minmax(0, 1fr);
   gap: 12px;
   padding: 13px 14px;
-  background: var(--paper);
+  background: var(--ors-color-canvas);
 }
 
 .journey-review span,
 .status-message-list span {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .journey-review strong,
@@ -1013,8 +1021,8 @@
   align-items: center;
   gap: 8px;
   margin-top: 15px;
-  color: var(--danger);
-  font-size: 11px;
+  color: var(--ors-color-danger);
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -1028,11 +1036,11 @@
   justify-items: center;
   width: min(440px, 100%);
   padding: 38px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  color: var(--ink);
-  background: var(--surface);
-  box-shadow: 0 28px 90px rgba(10, 26, 24, 0.28);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  box-shadow: none;
   text-align: center;
 }
 
@@ -1040,25 +1048,25 @@
   width: 42px;
   height: 42px;
   margin-bottom: 17px;
-  color: var(--accent-strong);
+  color: var(--ors-color-accent);
 }
 
 .teleport-progress-panel > span {
-  color: var(--accent-strong);
-  font-size: 11px;
+  color: var(--ors-color-accent);
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.12em;
+  letter-spacing: normal;
 }
 
 .teleport-progress-panel h2 {
   margin: 8px 0;
-  font-size: 25px;
+  font-size: 1.125rem;
 }
 
 .teleport-progress-panel code,
 .teleport-progress-panel p {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
 }
 
 .teleport-progress-panel p {
@@ -1075,12 +1083,12 @@
 
 .teleport-skeleton div {
   height: 96px;
-  border-radius: 14px;
+  border-radius: var(--ors-radius-control);
   background: linear-gradient(
     100deg,
-    var(--surface-2) 20%,
-    var(--surface) 44%,
-    var(--surface-2) 68%
+    var(--ors-color-hover) 20%,
+    var(--ors-color-surface) 44%,
+    var(--ors-color-hover) 68%
   );
   background-size: 200% 100%;
 }
@@ -1214,5 +1222,36 @@
 
   .teleport-dialog > footer button {
     width: 100%;
+  }
+}
+
+.teleport-section-heading {
+  margin-bottom: 24px;
+}
+
+.teleport-gate-primary {
+  grid-column: 2;
+  justify-self: start;
+  margin-top: 16px;
+}
+
+@media (max-width: 1199px) {
+  .teleport-page {
+    padding-inline: 24px;
+  }
+}
+@media (max-width: 767px) {
+  .teleport-page {
+    padding: 24px 16px;
+  }
+  .teleport-hero {
+    padding: 0 0 24px;
+  }
+  .teleport-form-panel,
+  .teleport-gate {
+    padding: 20px;
+  }
+  .teleport-builder {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
