@@ -2,7 +2,7 @@
 
 在每次执行完一次**完整的**更改后，你需要询问用户是否要commit。**完整**的定义是新增/修改一个功能后这个功能已经被确认逻辑上和视觉上都无误的状态。
 
-commit 不能过大。你需要控制commit的规模，按照功能或文件进行拆分。**禁止**将所有改动混在一个commit提交，**除非**只涉及到一个方面/功能/逻辑。原则上一个commit不得超过1500行，确有需要的可以控制在2000行以内，任何commit （除 Initial Commit外）禁止超过2000行，超过这个行数的都需要拆分提交，且保持可rollback性。
+commit 不能过大。你需要控制commit的规模，按照功能或文件进行拆分。**禁止**将所有改动混在一个commit提交，**除非**只涉及到一个方面/功能/逻辑。原则上一个commit不得超过1500行，确有需要的可以控制在2000行以内，任何commit （除 Initial Commit外）禁止超过2000行，超过这个行数的都需要拆分提交，且保持可rollback性。但是如果有必要作为一个整体提交的，可以提出让用户决定。
 
 你需要为你生成的代码提供简洁明了而能准确说明的注释，特别是文件开头，关键的函数/变量，容易混淆的函数内逻辑等。
 
@@ -10,4 +10,6 @@ commit 不能过大。你需要控制commit的规模，按照功能或文件进�
 
 任何 html, css, js, jsx, ts, tsx 文件在提交前都需使用 Prettier 格式化。任何 cpp, hpp 等 c++ 文件在提交前都需要按照 .clang-format 的格式进行格式化。
 
-当进行网页设计时，使用面向 Web App 的前端 skills: `frontend-design` and `design-taste-frontend`
+当进行网页设计时，使用面向 Web App 的前端 skills: `frontend-design`, `impeccable`
+
+Impeccable is installed locally at `.agents/skills/impeccable/SKILL.md`. Use its repository launcher and keep all Impeccable project state under `.agents/skills/impeccable/.impeccable/`; see `.agents/skills/impeccable/LOCAL-INSTALL.md`.
