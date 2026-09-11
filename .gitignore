@@ -32,9 +32,8 @@ src/features/gearing/data/generated/
 *.sln
 *.sw?
 
+# Local skill dependencies are restored with npm run skills:install.
 .agents/*
-!.agents/skills/
-!.agents/skills/**
 
 prompt.md
 sdo-session.debug.json

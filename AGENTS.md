@@ -12,4 +12,6 @@ commit 不能过大。你需要控制commit的规模，按照功能或文件进�
 
 当进行网页设计时，使用面向 Web App 的前端 skills: `frontend-design`, `impeccable`
 
-Impeccable is installed locally at `.agents/skills/impeccable/SKILL.md`. Use its original launcher and keep Impeccable project state in the root `.impeccable/` directory.
+Skills are local dependencies declared in `skills-lock.json`; their files under `.agents/skills/` are not tracked by Git. After `npm install`, run `npm run skills:install` to restore the pinned versions before using them.
+
+Impeccable is restored to `.agents/skills/impeccable/SKILL.md`. Use its original launcher and keep Impeccable project state in the root `.impeccable/` directory.
