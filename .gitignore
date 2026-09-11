@@ -20,6 +20,7 @@ game-bridge/build/
 game-bridge/target/
 src-tauri/crates/*/target/
 src/features/gearing/data/generated/
+public/data/fishing/
 
 # Editor directories and files
 .vscode/*
