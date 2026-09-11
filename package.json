@@ -23,7 +23,8 @@
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "undici": "^7.29.1"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",

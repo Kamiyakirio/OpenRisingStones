@@ -1,9 +1,13 @@
 /** Fetch raw game tables, convert them with owned rules, and atomically publish a validated package. */
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { downloadInputs } from "./gearing/download.mjs";
+import {
+  createProxyAwareFetcher,
+  downloadInputs,
+} from "./gearing/download.mjs";
 import { buildBundle, installBundle } from "./gearing/package.mjs";
 import { generatedDirectory } from "./check-gearing-data.mjs";
+import { configureSystemProxy } from "./system-proxy.mjs";
 
 const usage =
   "Usage: npm run gearing:data:update -- [--check] [--ref <release-ref>] [--lodestone-ref <ref>]";
@@ -22,8 +26,10 @@ try {
       process.exit(0);
     } else throw new Error(usage);
   }
+  configureSystemProxy({ log: (message) => console.error(message) });
   const input = await downloadInputs({
     ...options,
+    fetcher: createProxyAwareFetcher(),
     progress: (message) => console.error(message),
   });
   const previousFile = join(generatedDirectory, "manifest.json");

@@ -1,5 +1,6 @@
 /** Download immutable raw game tables using public feeds and files, without REST API quotas. */
 import { load } from "cheerio";
+import { EnvHttpProxyAgent, fetch as undiciFetch } from "undici";
 export const sheetNames = [
   "BaseParam",
   "ClassJobCategory",
@@ -12,6 +13,23 @@ export const sheetNames = [
 const indexRepository = "xivapi/ffxiv-datamining";
 const gameRepository = "thewakingsands/ffxiv-datamining-cn";
 const lodestoneRepository = "Asvel/ffxiv-lodestone-item-id";
+
+export function resolveProxyOptions(environment = process.env) {
+  const fallback = environment.all_proxy ?? environment.ALL_PROXY;
+  const httpProxy =
+    environment.http_proxy ?? environment.HTTP_PROXY ?? fallback;
+  return {
+    httpProxy,
+    httpsProxy: environment.https_proxy ?? environment.HTTPS_PROXY ?? httpProxy,
+    noProxy: environment.no_proxy ?? environment.NO_PROXY,
+  };
+}
+
+/** Create a fetch client that honors HTTP(S)_PROXY, ALL_PROXY, and NO_PROXY. */
+export function createProxyAwareFetcher(environment = process.env) {
+  const dispatcher = new EnvHttpProxyAgent(resolveProxyOptions(environment));
+  return (url, options) => undiciFetch(url, { ...options, dispatcher });
+}
 function feedCommit(text) {
   const $ = load(text, { xmlMode: true });
   const entry = $("feed > entry").first();
