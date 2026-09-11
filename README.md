@@ -24,14 +24,15 @@ npm run gearing:data:update -- --check
 npm run gearing:data:update
 ```
 
-脚本通过公开发布记录固定原始数据提交，下载中文游戏 CSV，并结合本仓规则生成装备与参数包。这里的 XIVAPI 指其数据仓库，不是在线查询接口；更新不调用 GitHub REST API。
-生成结果保存在已忽略的 `src/features/gearing/data/generated/`，不保留压缩快照或本地仓库导入入口。首次开发、构建或测试前运行更新命令；更新后重新启动 Tauri 开发环境或构建桌面应用。
+脚本通过公开发布记录固定原始数据提交，下载中文游戏 CSV，并结合本仓规则生成TS 管理的基础装备与参数资源。这里的 XIVAPI 指其数据仓库，不是在线查询接口；更新不调用 GitHub REST API。
+产物只有 `catalog.json` 与 `manifest.json`，保存在已忽略的 `src/features/gearing/data/generated/`。装备数据由 TS 加载和筛选，不进入前端 JS 分块；日常属性预览和方案处理也在 TS；仅最优搜索将数值输入整包通过 IPC 交给 Rust；不保留压缩快照或本地仓库导入入口。首次开发、构建或测试前运行更新命令；更新后重新启动 Tauri 开发环境或构建桌面应用。
 
 公式参数、职业与魔晶石规则、装备获取途径在 `scripts/gearing/config/` 维护；自动优化配置在 `scripts/gearing/optimizer-policy.json`。更新报告列出需要补充的来源和自定义武器规则。
+数据组装、格式整理、差异和原子写入集中在 `scripts/gearing/package.mjs`；开发、构建和测试共用 `scripts/check-gearing-data.mjs`。
 
 分享功能复制原协议的 base62 分享码，可在任意兼容的配装器网址后添加 `?分享码`，也可直接粘贴回本应用导入。
 
-迁移约束见 [迁移规范](docs/ffxiv-gearing-migration.md)，源码映射与验证记录见 [接入说明](docs/ffxiv-gearing-integration.md)。
+整体架构见 [重构规范](docs/gearing-refactor.md)，维护约束见 [迁移规范](docs/ffxiv-gearing-migration.md)，源码映射与验证记录见 [接入说明](docs/ffxiv-gearing-integration.md)。
 
 ## 构建发布包
 
@@ -60,3 +61,18 @@ PyInstaller 不是交叉编译器，因此发布包必须在目标系统和目�
 最终用户不需要安装 Python 或 `curl_cffi`；release 构建只会启动安装包中捆绑的 Python sidecar。首次发布构建需要联网下载 Python、npm 和 Cargo 依赖，后续构建会复用本地缓存及隔离环境。
 
 脚本只在仓库的构建目录生成安装介质，不会挂载 DMG、运行安装器或将应用复制到系统应用目录。面向外部分发时，还应在各平台构建机中配置对应的代码签名与公证凭据。
+
+## 本地开发技能
+
+技能源码不提交到 Git；版本和来源在 `skills-lock.json` 中管理。
+首次克隆或本地技能缺失时执行：
+
+```bash
+npm install
+npm run skills:install
+```
+
+安装命令使用固定版本的 [Skills CLI](https://github.com/vercel-labs/skills)，按清单中的固定提交恢复到 `.agents/skills/`。
+该目录与 `node_modules/` 一样被 Git 忽略；不会作为 `npm install` 的自动钩子执行，构建应用也不需要安装技能。
+升级技能时更新清单的 `ref` 后重新安装，并审阅清单变化；不要把下载文件重新加入 Git。
+Impeccable 保留上游 launcher；本项目的 `.impeccable/` 设计状态继续按现有规则维护。

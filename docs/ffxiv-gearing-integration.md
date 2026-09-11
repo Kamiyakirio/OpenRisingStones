@@ -1,117 +1,77 @@
-# 配装接入说明与验证记录
+# 配装接入说明
 
-## 来源与归属
+## 来源与当前架构
 
-- 代码来源：`Kamiyakirio/ffxiv-gearing`，基线提交 `fd7d46b`（Add weapon customize）。
-- 数据生成链路由本仓维护，不再读取 Asvel 或迁移 fork 的源码与生成产物。
-- 一次性迁入后由本仓库维护；不使用 submodule、本地包链接、iframe 或独立网页入口。
-- 首次检出运行 `npm run gearing:data:update`；之后构建、测试和运行使用本机生成包。
-- 原项目 MIT 许可和署名保存在 `licenses/ffxiv-gearing/`，界面“来源与许可”可查看。
-- 42 个 SVG 图标合并到 `src/features/gearing/assets/icons.svg`，保留各自路径和 viewBox，通过 symbol ID 引用。
-- 当前数据为 7.55，共 26,417 条装备与消耗品记录；相较 7.51 新增 273 条，无旧记录修改或删除。来源提交、来源类型及文件摘要见本机生成包 `manifest.json`。
+一次性代码来源为 `Kamiyakirio/ffxiv-gearing` 的 `fd7d46b`。
+编码协议、转换与搜索的复用部分保留 MIT 许可，见 `licenses/ffxiv-gearing/`。
+本仓独立维护数据更新，不依赖 Asvel 或原迁移 fork 的应用源码与构建产物。
+目标及验收约束见 [重构规范](gearing-refactor.md)。
 
-## 实际文件映射
+## 代码映射
 
-已适配远端 `7b70bce` 的功能目录重构：`app/hooks/useAppController.ts` 管理配装导航，`pages/GearingPage.tsx` 组合页面，配装内部文件集中在 `features/gearing/`，运行时检测复用 `shared/utils/runtime.ts`。
+| 位置                                                                       | 职责                                                   |
+| -------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `src/pages/GearingPage.tsx`                                                | 接入宿主路由、全局主题与错误边界                       |
+| `src/features/gearing/editor/types.ts`                                     | 不依赖生成文件的明确领域与 IPC 类型                    |
+| `editor/ViewModel.ts`                                                      | 草稿、撤销、候选、保存队列、异步版本与优化任务         |
+| `editor/{Editor,Candidates,Inspector,InspectorDrawer,SourcePicker}.tsx`    | 方案编辑、比较、镶嵌、范围与优化结果                   |
+| `editor/editor.css`                                                        | 配装作用域的原生 CSS，复用宿主 token                   |
+| `editor/{catalog,api}.ts`                                                  | TS 数据加载、索引、本地筛选与计算整包 IPC              |
+| `editor/compatibility.ts`                                                  | 旧 MST 草稿迁移与 base62 领域适配                      |
+| `utils/{share,base62,clipboard}.ts`                                        | 复用编码协议与剪贴板能力                               |
+| `src-tauri/src/gearing.rs`                                                 | 版本校验、有界后台任务、取消与文档命令                 |
+| `src-tauri/src/gearing_storage.rs`                                         | 不解释业务字段的原子 JSON 文件读写                     |
+| `editor/{evaluation,formulas,consumption,document}.ts`                     | 普通属性、阈值、镶嵌用量与方案校验                     |
+| `editor/optimization.ts`                                                   | 将用户条件解析为原生搜索输入，返回未应用方案           |
+| `gearing-engine/src/{combat,exact,frontier,formula,production,det_dht}.rs` | 复用并调整的纯计算与精确搜索                           |
+| `scripts/gearing/{download,csv,convert,rules,validate,package}.mjs`        | 下载、转换、规则校验；package 集中组装、比较和原子写入 |
 
-核心契约位于 `features/gearing/types.ts`，优化与生产契约分别位于 `optimization.types.ts`、`production.types.ts`；`models/` 只承担内部 MobX 模型，规则与编码位于 `utils/`。组件辅助控件与业务组件同处 `components/`，不再保留重复的组件目录层级。
+旧 MobX/MST 模型、SCSS、按品级动态导入及原 Worker 均已移除；普通公式和业务由 TS 维护。
+宿主其他功能的状态管理保持原样。
 
-| 来源                                                                  | 本仓库                                                                          |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `src/views/` 业务组件                                                 | `src/features/gearing/components/`；保留业务交互，基础控件改为原生 React 控件   |
-| SCSS、Material/RMWC 基础组件                                          | 未保留；样式在 `src/features/gearing/styles/gearing.css` 中以原生 CSS 重写      |
-| `src/stores/{Gear,Food,Materia,GearUnion,Store,Setting,Promotion}.ts` | `src/features/gearing/models/`；保留内部 MobX 关系，移除全局 Store 和存储副作用 |
-| `src/game.ts`、`customWeaponRules.ts`                                 | `src/features/gearing/utils/`；可变数据、规则和参数改读生成包                   |
-| `src/share.ts`、`src/utils/base62.ts`                                 | `src/features/gearing/utils/{share,base62}.ts`；保留 base62 协议                |
-| `src/stores/gearData.ts`                                              | `src/features/gearing/api/gearData.ts`；显式初始化、缓存和分组加载              |
-| 原网页入口、归档与历史监听                                            | 由 `useGearingWorkspace.ts`、`GearingPage.tsx` 和配装 Service 接管              |
-| 分享、剪贴板、保存                                                    | `src/features/gearing/utils/{sharing,clipboard,storage}.ts`                     |
-| Web Worker 优化与同步 DET/DHT 搜索                                    | `src-tauri/crates/gearing-engine/src/`，不保留 JavaScript 搜索实现或回退        |
-| 原始游戏表与可变参数                                                  | `scripts/gearing/` 独立生成 `src/features/gearing/data/generated/`              |
+## 数据与持久化
 
-## 运行链路
+`npm run gearing:data:update` 生成 `src/features/gearing/data/generated/catalog.json`。
+同目录的 `manifest.json` 记录版本和数据摘要；两者均忽略，不进入 Git。
+`scripts/check-gearing-data.mjs` 同时提供命令入口和可复用检查函数，供开发、构建和测试使用。
+Vite 将 JSON 复制为静态数据资源，不将装备解析或分割为 JS 模块。
+TS 在配装首次打开时加载并缓存，按职业建索引；名称、部位、品级、来源、排序和翻页都在内存执行。
 
-主页 → 配装 View → 配装 ViewModel → 工作区独立 Store。
-ViewModel 管理创建、销毁、保存与导入；现有招募、幻化、传送维持原状态管理。
+优化时 TS 按条件选出全部候选，准备属性上限、镶嵌约束、食物和评分参数，通过一次 IPC 发送。
+Rust 只负责求解，不读取装备文件、不解释方案文档；原 `CalculationData` 和业务编排层已移除。
+普通属性、阈值、用量及优化结果解释均由 TS 执行。共享参数和跨语言测试保持面板公式与搜索评分一致。
+浏览页过滤和分页不影响优化候选；版本化方案由 TS 校验，读写原始 JSON 使用独立的文件 I/O 接口。
 
-优化面板 → `src/features/gearing/api/optimization.ts` → Tauri `optimize_gearing` → Rust 搜索引擎。
-支持自动选装/GCD、生产采集镶嵌和 DET/DHT 分配三类搜索。
-请求校验数据版本；后台最多同时运行两个搜索，排队数量受限。
-取消入口会停止计算；输入变化、关闭面板或离开工作区会取消任务并丢弃过期结果。
+当前已验证的原始来源：
 
-大范围精确搜索包含参数化伤害上界、速度条件后缀动态规划、等价状态缓存和资源约束。
-初始可行解仅用于建立剪枝下界，必须完成精确搜索才返回最优结果。
+- 发布索引 `xivapi/ffxiv-datamining`：7.55h2，`64ff8a5`。
+- 中文表 `thewakingsands/ffxiv-datamining-cn`：`991071b`。
+- BaseParam 使用同一发布下的标准英文列，避免旧中文表头的倍率列偏移。
+- 物品链接索引 `Asvel/ffxiv-lodestone-item-id`：`3773b20`。
 
-## 数据生成与回退
+版本发现通过公开 Atom 与提交补丁，文件通过固定提交地址下载。
+这里不使用 XIVAPI sheet 查询 API、GitHub REST API、本地上游仓库或原始文件缓存。装备与职业图片按生成数据中的图标 ID 直接访问 XIVAPI asset 端点；浏览器使用其 ETag 缓存，图片失败时回退为本地占位。
+原始记录数量为 26,417；格式改变导致的差异报告不表示游戏数值发生变化。
+
+用户方案位于应用本地数据目录的 `gearsets/<id>.json`，版本为 2。
+写入先落临时文件并同步，再替换目标；坏文件保留并出现在恢复提示中。
+旧 `open-rising-stones.gearing.v1` 在首次恢复成功后标记迁移，原始内容不删除。
+“清除所有本地数据”同时清除新方案目录，数据更新不会触碰它。
+
+## 验证入口
 
 ```bash
-npm run gearing:data:update -- --check
-npm run gearing:data:update
+npm test
+npm run lint
+npm run build
+cargo test --offline --manifest-path src-tauri/Cargo.toml
+cargo test --offline --release --manifest-path src-tauri/crates/gearing-engine/Cargo.toml
 ```
 
-- 默认下载公开的原始数据，整个流程无需 ffxiv-gearing 本地目录、应用依赖或生成产物；旧导入命令已移除。
-- 发布索引：`xivapi/ffxiv-datamining` 的中文数据提交订阅，当前发布 `7.55h2`、提交 `64ff8a5`。
-- 中文游戏表：`thewakingsands/ffxiv-datamining-cn`，固定到发布指向的 `991071b`。
-- 属性上限表：同一发布提交下的 `csv/en/BaseParam.csv`，使用标准列名，避免旧中文表头中职业倍率列的偏移。
-- 物品链接 ID：`Asvel/ffxiv-lodestone-item-id` 的固定提交 `3773b20`；这是原始索引数据，不是配装应用。
-- 版本查询使用公开提交订阅与补丁，文件使用固定提交地址下载；不调用 GitHub REST API，也不使用 XIVAPI 在线查询接口。
+- Node：生成目录的重复/预览/失败/回退，base62 固定样例与往返，旧草稿，过期结果，撤销。
+- 跨语言：Node 使用真实 Rust 求解器覆盖原 51 候选、完整候选、小规模穷举、锁定、预算、联动、生产和 DET/DHT，并核对 TS 面板值。
+- Tauri MockRuntime：真实 command 分发、文档保存/读取、准备完成的求解器输入、文件 I/O 与非法命令拒绝。
+- 浏览器测试注入仅用于验证的 IPC 桥，计算使用真实 Rust harness；生产代码无浏览器计算回退。
+- Windows 游戏桥、Windows 字体和 Windows 安装包不由 Mac 验证结果代替。
 
-| 本仓文件                                                | 维护职责                                                 |
-| ------------------------------------------------------- | -------------------------------------------------------- |
-| `scripts/gearing/download.mjs`                          | 解析发布版本、固定原始提交，限制并发与文件大小，处理失败 |
-| `scripts/gearing/csv.mjs`、`convert.mjs`                | 校验 CSV 列和行 ID，转换装备/HQ、食物、职业与属性上限    |
-| `scripts/gearing/config/game.mjs`、`formulas.json`      | 职业、等级、种族、魔晶石与具名公式系数                   |
-| `scripts/gearing/config/sources.json`、`blue-mage.json` | 人工获取途径分类与青魔参数表                             |
-| `scripts/gearing/optimizer-policy.json`                 | 搜索限制、自定义武器分配和获取成本                       |
-| `scripts/gearing/validate.mjs`、`install.mjs`           | 跨表引用和参数校验、差异报告及整体替换                   |
-
-原始文件仅在进程内使用；不提交生成 JSON，不保留压缩快照、原始文件缓存或本地仓库导入入口。
-`--check` 会下载并预览，但不修改生成目录。缺失列、错误数值、下载失败等会停止更新；人工来源和自定义武器规则缺项列在报告的 `review` 中。
-manifest 记录原始来源提交、每份输入及本仓转换代码/配置的摘要；相同输入重复生成没有差异。
-回退时使用匹配的本仓配置，并通过 `--ref <发布提交>`、`--lodestone-ref <提交>` 固定原始来源。
-更新后重新启动 `npm run tauri dev` 或构建桌面应用，使 Rust 编译同一参数版本；流程不依赖热重载。
-
-自定义武器的 `statCandidates`、`slotWeights`、`linkSlotAllocations` 在 `customWeaponDefaults` 共用。
-新增武器只需在 `customWeaponRules` 添加 `id`、`source` 和 `itemLevels`。个别规则可以覆盖候选数组或联动开关，权重只覆盖指定槽位；显式 `false` 不会被默认值替代。
-生成器统一展开并校验，前端按职业解析属性和槽位分配，Rust 接收最终数值；维护者只修改这一份配置。
-
-## 验证记录
-
-- 前端 production build、TypeScript 和 ESLint 通过。
-- `npm test`：84 项通过，包含配装计算、默认配置展开、覆盖规则和下载异常测试。
-- `cargo test --offline --manifest-path src-tauri/Cargo.toml`：46 项通过，包含 4 项配装调度/IPC 测试。
-- 新增和修改的前端代码经 Prettier 格式化，Rust 经仓库配置的 rustfmt 格式化并检查。
-- 目录适配后重新通过上述检查；生成数据、规则及版本均与适配前一致，53 个 TypeScript 文件通过功能依赖边界检查。
-- 数据测试覆盖 CSV 引号/换行/稀疏 ID、缺列、非法数值、HQ、食物、职业倍率、来源冲突、下载失败与版本固定。
-- 独立生成的全部 27 张数据表与原 7.55 生成包一致；所有保留的游戏参数和公式数值一致，公式元数据不再依赖来源源码指纹。
-- 已在旧生成目录不存在时运行默认联网命令完成首次生成；预览不写入，重复输入生成结果一致。
-- 本机缺失数据和校验摘要不匹配均给出独立更新命令；42 个 sprite 图标的路径与 viewBox 均与来源一致，浏览器验证了可见图标渲染和原迁移阶段全部 26,144 条记录的加载。
-- 算法测试覆盖小规模穷举、取整阈值、速度限制、戒指互斥、预算、主副手联动、生产镶嵌和 DET/DHT。
-
-用户提供的固定回归场景：学者、品级 780–795、自动选择装备、51 件全选、目标 GCD 2.40、未启用高级/开荒约束。
-历史回归固定原有装备 ID，下表对应原 51 件装备；7.55 同范围的 73 个候选（含双戒指位）另有自动搜索回归。
-幻境 795 武器使用配置的主分配 447、次分配 108，继承公共属性候选及主副手联动。生成报告已无待补武器规则，测试覆盖前端权重解析和 Rust 联动分配。
-
-| 指标           | 验证结果          |
-| -------------- | ----------------- |
-| 最终 GCD       | 2.40s             |
-| 咏速           | 1237              |
-| 每威力伤害期望 | 128.48722         |
-| 相对空配装变化 | +127.50598        |
-| 食物           | 新薯浓汤（49244） |
-| 完整装备部位   | 11                |
-
-本机 release 独立进程复现约 2.23 秒，包含进程启动与 JSON 传输，不等同于纯算法耗时。
-Tauri MockRuntime 的单件生产镶嵌 IPC 测试往返约 2.5ms；这是小样例的测试传输开销，不代表大配装或真实窗口 IPC 性能。
-
-界面验证采用隔离浏览器调用真实 Rust 可执行文件；Tauri 命令分发另由 MockRuntime 测试。
-已验证启动、51 件计算结果显示及应用、取消、返回首页再进入、刷新恢复、含食物的完整 base62 导入与阈值展开。
-生产界面还验证了三维目标计算，生成“作业33、加工23、CP1”的三颗镶嵌方案，并检查五孔列对齐。
-已检查深浅主题、HQ 图标、两/三/五孔列对齐、固定底部汇总、装备列表滚动及主要弹层。
-目录适配后还验证了四个功能入口、设置对话框、主题切换、配装资源及 1024/1280 窗口布局。
-
-## 已修复的迁移回归
-
-- 新旧规则热更新混用造成 `rules.colors` 启动异常：整包刷新、展示字段容错及工作区错误恢复。
-- 51 件场景错误报“搜索范围过大”：补齐速度条件上界、等价状态缓存和上界权重优化。
-- 带食物的已保存方案无法重新打开：先命中已加载物品缓存，食物不再错误查询装备分组索引。
+完整的最终验证计数与限制在重构规范的实施记录中更新。
