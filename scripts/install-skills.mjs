@@ -9,9 +9,22 @@ const readLock = () =>
   JSON.parse(readFileSync(join(root, "skills-lock.json"), "utf8"));
 try {
   const expected = readLock();
-  const cli = join(root, "node_modules/skills/bin/cli.mjs");
-  if (!statSync(cli, { throwIfNoEntry: false })?.isFile())
-    throw new Error("Skills CLI is missing. Run npm install first.");
+  let cli = join(root, "node_modules/skills/bin/cli.mjs");
+  if (!statSync(cli, { throwIfNoEntry: false })?.isFile()) {
+    const npmRoot = spawnSync("npm", ["root", "--global"], {
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    });
+    cli = join(npmRoot.stdout?.trim() ?? "", "skills/bin/cli.mjs");
+    if (
+      npmRoot.status !== 0 ||
+      !statSync(cli, { throwIfNoEntry: false })?.isFile()
+    )
+      throw new Error(
+        "Skills CLI is missing. Install project dependencies or install the skills package globally.",
+      );
+    console.log(`Using globally installed Skills CLI: ${cli}`);
+  }
   const entries = Object.entries(expected.skills ?? {});
   if (!entries.length)
     throw new Error("No skills are declared in skills-lock.json.");

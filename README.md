@@ -72,7 +72,7 @@ npm install
 npm run skills:install
 ```
 
-安装命令使用固定版本的 [Skills CLI](https://github.com/vercel-labs/skills)，按清单中的固定提交恢复到 `.agents/skills/`。
+安装命令优先使用项目固定版本的 [Skills CLI](https://github.com/vercel-labs/skills)；项目依赖尚未安装时，也会查找 npm 全局安装的 Skills CLI，并按清单中的固定提交恢复到 `.agents/skills/`。
 该目录与 `node_modules/` 一样被 Git 忽略；不会作为 `npm install` 的自动钩子执行，构建应用也不需要安装技能。
 升级技能时更新清单的 `ref` 后重新安装，并审阅清单变化；不要把下载文件重新加入 Git。
 Impeccable 保留上游 launcher；本项目的 `.impeccable/` 设计状态继续按现有规则维护。
