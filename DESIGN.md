@@ -1,80 +1,74 @@
 ---
 name: "OpenRisingStones"
-description: "Implemented web UI for the approved B direction: indigo surfaces, gold controls, horizontal navigation, and direct interface copy."
+description: "A warm, restrained FF14 utility workspace organized around one clear task at a time."
 colors:
-  dark-canvas: "#171E30"
-  dark-surface: "#232E45"
-  dark-hover: "#2B3851"
-  dark-selected: "#30394A"
-  dark-text: "#EEF0F7"
-  dark-muted: "#B3BED2"
-  dark-line: "#3A4762"
-  dark-control-line: "#76859F"
-  dark-accent: "#D7BD80"
-  dark-accent-hover: "#E8D3A0"
-  dark-on-accent: "#171E30"
-  dark-disabled: "#8792A8"
-  dark-success: "#8CC9AA"
-  dark-warning: "#E8C27B"
-  dark-danger: "#F2A39F"
-  dark-info: "#AAC5F3"
-  light-canvas: "#F3F4F8"
-  light-surface: "#FFFFFF"
-  light-hover: "#E9EDF5"
-  light-selected: "#E8E3D6"
-  light-text: "#202A3E"
-  light-muted: "#56627A"
-  light-line: "#D2D8E3"
-  light-control-line: "#747D8F"
-  light-accent: "#755619"
-  light-accent-hover: "#5D4312"
+  light-canvas: "#F5F2EB"
+  light-surface: "#FCFAF6"
+  light-hover: "#EEE9DF"
+  light-selected: "#EEE7D7"
+  light-text: "#302D28"
+  light-muted: "#686158"
+  light-line: "#DDD6CA"
+  light-control-line: "#8A8175"
+  light-accent: "#7A5816"
+  light-accent-hover: "#6D5014"
   light-on-accent: "#FFFFFF"
-  light-disabled: "#717B8E"
+  light-disabled: "#817A70"
   light-success: "#246B4C"
   light-warning: "#795400"
   light-danger: "#AA3937"
   light-info: "#355FAD"
+  dark-canvas: "#1F1D1A"
+  dark-surface: "#292621"
+  dark-hover: "#353129"
+  dark-selected: "#3C3424"
+  dark-text: "#F2EEE6"
+  dark-muted: "#C2BAAD"
+  dark-line: "#494238"
+  dark-control-line: "#8F8578"
+  dark-accent: "#D3B36B"
+  dark-accent-hover: "#E4CA8E"
+  dark-on-accent: "#211D16"
+  dark-disabled: "#938B80"
+  dark-success: "#8CC9AA"
+  dark-warning: "#E8C27B"
+  dark-danger: "#F2A39F"
+  dark-info: "#AAC5F3"
 typography:
   headline:
-    fontFamily: '"Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", SimSun, serif'
+    fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
     fontSize: "1.5rem"
     fontWeight: 600
     lineHeight: 1.5
-    letterSpacing: "normal"
   title:
     fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
     fontSize: "1.125rem"
     fontWeight: 600
     lineHeight: 1.5
-    letterSpacing: "normal"
   body:
     fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
-    fontSize: "0.875rem"
+    fontSize: "0.9375rem"
     fontWeight: 400
     lineHeight: 1.6
-    letterSpacing: "normal"
   label:
     fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
-    fontSize: "0.875rem"
+    fontSize: "0.9375rem"
     fontWeight: 600
     lineHeight: 1.5
-    letterSpacing: "normal"
   caption:
     fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
-    fontSize: "0.75rem"
+    fontSize: "0.8125rem"
     fontWeight: 400
-    lineHeight: 1.5
-    letterSpacing: "normal"
+    lineHeight: 1.6
   data:
     fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
-    fontSize: "0.875rem"
+    fontSize: "0.9375rem"
     fontWeight: 400
     lineHeight: 1.5
-    letterSpacing: "normal"
 rounded:
-  control: "4px"
-  panel: "4px"
-  overlay: "8px"
+  control: "8px"
+  panel: "12px"
+  overlay: "14px"
   pill: "999px"
 spacing:
   "1": "4px"
@@ -87,48 +81,16 @@ spacing:
   "10": "40px"
   "12": "48px"
 components:
-  button-outline-dark:
-    backgroundColor: "{colors.dark-surface}"
-    textColor: "{colors.dark-accent}"
-    typography: "{typography.label}"
-    rounded: "{rounded.control}"
-    padding: "8px 16px"
-    height: "40px"
-  button-outline-hover-dark:
-    backgroundColor: "{colors.dark-hover}"
-    textColor: "{colors.dark-accent-hover}"
-  button-primary-dark:
-    backgroundColor: "{colors.dark-accent}"
-    textColor: "{colors.dark-on-accent}"
-    typography: "{typography.label}"
-    rounded: "{rounded.control}"
-    padding: "8px 16px"
-    height: "40px"
-  input-dark:
-    backgroundColor: "{colors.dark-surface}"
-    textColor: "{colors.dark-text}"
-    typography: "{typography.body}"
-    rounded: "{rounded.control}"
-    padding: "8px 12px"
-    height: "40px"
-  navigation-selected-dark:
-    textColor: "{colors.dark-accent}"
-    typography: "{typography.label}"
-    padding: "12px 20px"
-    height: "48px"
-  button-outline-light:
-    backgroundColor: "{colors.light-surface}"
-    textColor: "{colors.light-accent}"
-    typography: "{typography.label}"
-    rounded: "{rounded.control}"
-    padding: "8px 16px"
-    height: "40px"
-  button-outline-hover-light:
-    backgroundColor: "{colors.light-hover}"
-    textColor: "{colors.light-accent-hover}"
   button-primary-light:
     backgroundColor: "{colors.light-accent}"
     textColor: "{colors.light-on-accent}"
+    typography: "{typography.label}"
+    rounded: "{rounded.control}"
+    padding: "8px 16px"
+    height: "40px"
+  button-primary-dark:
+    backgroundColor: "{colors.dark-accent}"
+    textColor: "{colors.dark-on-accent}"
     typography: "{typography.label}"
     rounded: "{rounded.control}"
     padding: "8px 16px"
@@ -140,360 +102,158 @@ components:
     rounded: "{rounded.control}"
     padding: "8px 12px"
     height: "40px"
+  input-dark:
+    backgroundColor: "{colors.dark-surface}"
+    textColor: "{colors.dark-text}"
+    typography: "{typography.body}"
+    rounded: "{rounded.control}"
+    padding: "8px 12px"
+    height: "40px"
   navigation-selected-light:
+    backgroundColor: "{colors.light-selected}"
     textColor: "{colors.light-accent}"
     typography: "{typography.label}"
-    padding: "12px 20px"
+    rounded: "{rounded.control}"
+    padding: "10px 12px"
+    height: "48px"
+  navigation-selected-dark:
+    backgroundColor: "{colors.dark-selected}"
+    textColor: "{colors.dark-accent}"
+    typography: "{typography.label}"
+    rounded: "{rounded.control}"
+    padding: "10px 12px"
     height: "48px"
 ---
 
 # Design System: OpenRisingStones
 
-<!-- Refreshed from the implemented web UI after the rebuild review, 2026-09-07. -->
-
 ## Overview
 
-**Status: implemented web UI; reviewed for the approved B direction.**
-The user selected option **B** from
-[the comparison board](.impeccable/mocks/decision/ui-language-options.png).
-The application now uses this direction across the global frame, home directory,
-authentication, settings, and feature workspaces. This record combines the approved
-tokens with observed component behavior; it does not certify native integration.
+**Creative North Star: “The Warm Task Ledger”**
 
-**Design direction: deep indigo, restrained gold, and readable working surfaces.**
-Keep B's horizontal navigation, compact rectangular controls, quiet surface
-layering, and a limited serif heading treatment. Its appeal comes from precise
-alignment and contrast, not fantasy decoration. The discussion name “Adventurer
-Journal” is not a product subtitle, a page heading, or a copywriting theme.
+OpenRisingStones uses the approved direction C: a quiet utility workspace with warm ivory in light mode, charcoal in dark mode, and restrained gold for focus and selection. Clear structure, readable Chinese text, and stable task context carry the identity without turning the tools into a fantasy-themed dashboard.
 
-The board establishes the principal visual direction, not literal approval of
-every generated detail. Its slogans, repeated English, invented emblem, ornamental
-row markers, and image-generation artifacts are excluded. The later request for
-plain copy governs all UI text. Product facts remain in [PRODUCT.md](PRODUCT.md);
-the copy specification lives in [interface-copy.md](docs/design/interface-copy.md).
-Home-specific composition lives in [home.md](docs/design/home.md).
+The shared shell keeps navigation predictable while each feature retains the layout its work requires. At desktop widths the shell is a full-text sidebar. At reduced effective widths it becomes a compact top shell. Dense features reveal one task surface at a time so display scaling does not squeeze the work area.
 
-**Authority:** the frontmatter owns the approved color, type, spacing, radius,
-and baseline component tokens. `src/app/styles/tokens.css` implements the same
-32 light/dark color declarations; feature-owned styles consume semantic variables.
-Control dimensions may exceed the baseline for their content and input method.
-Additional motion, breakpoint, and elevation metadata lives in
-[.impeccable/design.json](.impeccable/design.json). Compatibility aliases in
-`foundation.css` remain for existing inline consumers and resolve to this palette;
-do not remove them until those consumers migrate or introduce a second palette.
-
-**Review evidence:** the rebuild passed 88 tests, production build, and lint.
-Desktop at 1280px and mobile at 390px were reviewed in both themes; the independent
-reviewer's findings were resolved (SHIP). Mobile evidence uses viewport captures;
-full-page captures were unreliable. Local, uncommitted screenshots are in
-[.impeccable/review](.impeccable/review), including the corrected fullscreen auth
-views. Fixture screenshots use synthetic data, not production results. Exclude
-`recruit-fixture-desktop.png`, which predates the corrected recruitment fixture.
-Windows game bridging and authenticated external actions were not verified in
-this web review. Local font stacks still require Windows rendering checks.
-The Impeccable binary was unavailable, so no detector result is claimed.
+Product facts remain in [PRODUCT.md](PRODUCT.md), exact copy in [interface-copy.md](docs/design/interface-copy.md), and implementation evidence in [verification.md](.impeccable/review/verification.md).
 
 Key characteristics:
 
-- Indigo surfaces with tonal separation, not gradients or atmospheric glow.
-- Warm gold for relevant affordances and current selection.
-- Shared application navigation; workspace-specific content supplies the variety.
-- Small, consistent controls with complete keyboard, pending, and error states.
-- Direct copy with game terminology and no promotional introduction.
+- Warm ivory and charcoal surfaces with a restrained gold accent.
+- System sans-serif typography, including headings.
+- A 176px full-text sidebar at widths of 900px and above.
+- A single-row top shell from 620px through 899px and a two-row fallback below 620px.
+- A centered 1280px content measure.
+- One task surface at a time when density would compromise readability.
+- Direct FF14 copy without slogans, invented identity, or decorative subtitles.
 
 ## Colors
 
+The palette is warm and low-chroma. Ivory and parchment neutrals define light mode; charcoal and warm brown-black define dark mode. Gold marks deliberate action, current location, focus, and selected state.
+
 ### Primary
 
-The accent is muted gold in dark mode and a deeper gold-brown in light mode.
-Both play the same role. Do not copy the dark gold onto a white background:
-it loses readable contrast. Gold is not a universal success or warning color.
+- **Light Bronze** (`#7A5816`): light-theme links, selected labels, focus, and primary actions.
+- **Dark Antique Gold** (`#D3B36B`): dark-theme links, selected labels, focus, and primary actions.
+- Hover accents deepen to `#6D5014` in light mode and brighten to `#E4CA8E` in dark mode.
 
 ### Neutral
 
-Canvas, working surface, hover, selection, text, and secondary text have separate
-roles. Dark mode is the reference presentation because the user chose B. Preserve
-an explicit light-theme choice; do not infer a new default from the operating
-system. In the rebuilt app, start in dark mode only when no user preference exists,
-then persist the user's selection.
+| Semantic role    | Light     | Dark      |
+| ---------------- | --------- | --------- |
+| Canvas           | `#F5F2EB` | `#1F1D1A` |
+| Surface          | `#FCFAF6` | `#292621` |
+| Hover            | `#EEE9DF` | `#353129` |
+| Selected         | `#EEE7D7` | `#3C3424` |
+| Text             | `#302D28` | `#F2EEE6` |
+| Muted text       | `#686158` | `#C2BAAD` |
+| Divider          | `#DDD6CA` | `#494238` |
+| Control boundary | `#8A8175` | `#8F8578` |
 
-| Semantic CSS variable      | Dark token                 | Light token                 |
-| -------------------------- | -------------------------- | --------------------------- |
-| `--ors-color-canvas`       | `colors.dark-canvas`       | `colors.light-canvas`       |
-| `--ors-color-surface`      | `colors.dark-surface`      | `colors.light-surface`      |
-| `--ors-color-hover`        | `colors.dark-hover`        | `colors.light-hover`        |
-| `--ors-color-selected`     | `colors.dark-selected`     | `colors.light-selected`     |
-| `--ors-color-text`         | `colors.dark-text`         | `colors.light-text`         |
-| `--ors-color-muted`        | `colors.dark-muted`        | `colors.light-muted`        |
-| `--ors-color-line`         | `colors.dark-line`         | `colors.light-line`         |
-| `--ors-color-control-line` | `colors.dark-control-line` | `colors.light-control-line` |
-| `--ors-color-accent`       | `colors.dark-accent`       | `colors.light-accent`       |
-| `--ors-color-accent-hover` | `colors.dark-accent-hover` | `colors.light-accent-hover` |
-| `--ors-color-on-accent`    | `colors.dark-on-accent`    | `colors.light-on-accent`    |
-| `--ors-color-disabled`     | `colors.dark-disabled`     | `colors.light-disabled`     |
-| `--ors-color-success`      | `colors.dark-success`      | `colors.light-success`      |
-| `--ors-color-warning`      | `colors.dark-warning`      | `colors.light-warning`      |
-| `--ors-color-danger`       | `colors.dark-danger`       | `colors.light-danger`       |
-| `--ors-color-info`         | `colors.dark-info`         | `colors.light-info`         |
+Success, warning, danger, and information retain semantic colors. Pair them with specific text and, where useful, an icon. Equipment rarity and other game data do not inherit shell gold.
 
-**The boundary rule.** Use `line` for nonessential dividers. Use `control-line`
-for the visible boundary of neutral inputs and controls. A quiet divider is not
-strong enough to be the only way to identify an input.
+**The restrained-gold rule.** Use gold for current state, focus, and one clearly primary commitment. Equal destinations and ordinary containers remain neutral.
 
-**The state rule.** Pair success, warning, error, and information colors with
-specific text and, when useful, an icon. Keep them on neutral surfaces; never
-infer meaning solely from a hue. Selection uses `selected` plus a structural
-cue such as a check, label weight, or navigation underline.
+**The boundary rule.** Use `line` for nonessential dividers and `control-line` for functional input boundaries.
 
-Body text, descriptions, placeholders, and functional labels must meet 4.5:1
-contrast. Control boundaries and focus indicators must meet 3:1 against adjacent
-surfaces. Disabled controls are not required to use readable-body contrast, but
-their explanation must use normal secondary text. Do not dim entire sections.
+Selected sidebar text measures approximately 5.27:1 in light mode and 6.10:1 in dark mode, meeting WCAG AA for normal text. Selection also carries fill, weight, underline, or semantic current/pressed state.
 
 ## Typography
 
-Use the frontmatter roles as a fixed rem scale, with a 16px reference root.
-Honor browser zoom and OS text scaling; do not use viewport-scaled font sizes
-for controls or data.
+Use the local system stack: `Segoe UI`, `PingFang SC`, `Microsoft YaHei`, then `sans-serif`. Headings and controls use the same family; the design has no serif or downloaded-font dependency.
 
-- **Headline:** the sole serif role, for a short top-level workspace heading.
-  Use no more than one per visible workspace. Do not set paragraphs or controls
-  in serif type, and do not enlarge a short label into a hero.
-- **Title:** sans-serif section titles and feature names.
-- **Body:** descriptions, field values, help, errors, and empty states.
-- **Label:** navigation, buttons, and field labels.
-- **Caption:** secondary metadata only, never the only instruction or error.
-- **Data:** statistics, item levels, counts, and comparison tables; apply
-  `font-variant-numeric: tabular-nums lining-nums`. Monospace is reserved for
-  codes and diagnostic content, not a general visual theme.
+- **Headline:** 24px, 600 weight, 1.5 line height.
+- **Title:** 18px, 600 weight, 1.5 line height.
+- **Body and label:** 15px base size; body line height is 1.6.
+- **Caption:** 13px with 1.6 line height for supporting metadata and state.
+- **Data:** 15px with `tabular-nums lining-nums` where alignment matters.
 
-The specified stacks are local fallbacks, not bundled assets. Prefer the named
-CJK serif when available; use the declared fallback when it is not. Avoid synthetic
-bold or italic. Validate Chinese glyphs and Latin brand text on Windows before
-treating the typography as visually verified. Do not add a runtime font CDN
-dependency. If consistent packaged fonts are introduced later, package and verify
-their licensing as part of that implementation.
-
-Use normal Chinese letter spacing and natural line breaks. Do not space Chinese
-labels out to simulate an emblem, force bilingual subtitles, or insert line breaks
-for poster-like headings. Keep explanatory prose at roughly 65 characters per
-line; tables may be wider.
+Honor browser zoom and OS text scaling. Use natural Chinese line breaks and normal letter spacing. Do not add bilingual ornaments or viewport-scaled type. Windows glyph rendering still requires native verification.
 
 ## Layout
 
-### Application frame
+At widths of 900px and above, use a sticky 176px full-height sidebar and flexible workspace. The sidebar contains brand, full-text destinations, theme and settings controls, and truthful account entry. Main content is centered at `min(1280px, 100%)` with 32px padding; padding reduces below 1200px and 768px.
 
-Use one brand/account header followed by one horizontal application navigation
-row. Keep the identity and utility positions stable across workspaces. Feature
-navigation belongs below this global row, clearly subordinate to it. Do not
-replace the global shell with a different brand header on every feature.
+From 620px through 899px, brand, horizontally scrollable text navigation, and compact utilities share one sticky top row. Below 620px, brand and utilities remain on the first row while navigation moves to a second scrollable row. Wide layouts keep the sidebar and never stack top navigation.
 
-Header height is at least 64px and navigation height is at least 48px, both minimums rather
-than clipping constraints. The desktop workspace uses 32px horizontal padding,
-24px vertical padding, and a centered maximum width of 1440px. Wide data views
-may use the available width rather than inheriting a prose measure.
+Use the 4px spacing rhythm. Controls have a 40px global minimum and at least 44px for coarse pointers. Dense gearing controls may use 36px with coarse-pointer overrides.
 
-Navigation contains only implemented destinations. Local feature tabs, filters,
-and toolbar actions should not masquerade as global navigation. Browser or webview
-history and the current feature are coordinated through the shared navigation
-controller and destination links.
+The home is a ruled 2×2 directory with four equal whole-row targets and 132px minimum entries. Below 768px it becomes one column. No destination becomes a promotional card.
 
-### Density and spacing
-
-The frontmatter spacing scale is a 4px rhythm. Use 8px within a compact control
-group, 16px between related fields, 24px between sections, and 32px between larger
-regions. Use min-height and natural wrapping instead of fixed text-box heights.
-Desktop controls have a 40px minimum height; coarse-pointer controls use at least
-44px. Dense table rows may use a 36px minimum height, but embedded touch controls
-must still meet the input-method target.
-
-Do not give every workspace identical containers. Recruitment needs comparable
-rows and filter context; glamour needs images and detail; gearing needs aligned
-values and selections; teleport needs form order and trustworthy progress.
-Their controls and state language share a system.
-
-### Responsive behavior
-
-Breakpoint values are normative in the sidecar.
-
-- **Wide, 1200px and above:** full labels, full utility header, optional contextual
-  columns when the task uses them.
-- **Medium, 768px to 1199px:** reduce horizontal padding to 24px; move nonessential
-  side panels below the main content before shrinking text or controls.
-- **Compact, below 768px:** 16px side padding; header utilities wrap if needed.
-  Keep horizontal navigation in its own keyboard-accessible scroll region;
-  reveal the active destination without adding a page-wide horizontal scrollbar.
-  Lists stack descriptions beneath titles and keep actions reachable.
-- At 320px width and at 200% zoom, all actions and messages remain available.
-  Tables that genuinely require comparison may scroll within a labeled region;
-  ordinary content must reflow.
+Preserve one task surface at a time when simultaneous panes would compete for effective width. Gearing switches among current equipment, candidates, statistics/comparison, and optimization while preserving selected slot and draft. Local tables may scroll; the page must not overflow horizontally.
 
 ## Elevation & Depth
 
-Depth comes primarily from the difference between canvas and surface, supported
-by quiet dividers. Do not add a border and broad shadow to every container.
-Only menus, popovers, and dialogs use the sidecar's elevation tokens. Their shadow
-is neutral, offset, and soft; gold glow is not focus, depth, or feedback.
+Depth comes from canvas/surface contrast and quiet rules. Resting content is flat. Menus and dialogs alone use the warm, neutral shadows in the sidecar. Focus uses an outline rather than glow.
 
-Portal menus and popovers out of clipping containers. Use the platform top layer
-or a deliberate stacking policy. The fullscreen authentication gate uses layer 20 and the login backdrop uses
-layer 30 above it. Settings and its confirmation retain their own modal layering.
-`useDialogFocus` tracks the topmost dialog for focus containment and Escape;
-stacking numbers alone do not implement modal behavior. Do not use arbitrary
-higher values to repair a broken parent.
+The fullscreen authentication boundary covers the shell for protected glamour and teleport states. `LoginDialog` opens above it; focus containment, scroll locking, restoration, and innermost Escape handling remain requirements.
 
-Motion tokens are in the sidecar. Use brief color and surface changes for hover,
-and a short transition for opening a panel. There is no animated page entrance,
-continuous orbit, pulsing decoration, parallax, or delay before a task becomes
-available. Under reduced motion, remove movement and make state changes immediate;
-retain text progress rather than a required spinning indicator.
+Motion is limited to 120ms feedback and 180ms small-panel changes. Remove movement under reduced-motion preferences.
 
 ## Shapes
 
-Use the small control and panel corners defined in `rounded`; overlays have
-a slightly larger radius. This deliberately retains B's compact rectangular
-language. Pills are reserved for small standalone tags, never navigation bars,
-full-width feature rows, or forms.
+Controls use 8px corners, panels 12px, and overlays 14px. Pills are reserved for compact standalone tags. Home directory entries and tab underlines use square structural edges.
 
-Use 1px structural rules, a 2px active navigation underline, and a 2px keyboard
-focus outline with 3px offset. The focus ring uses the theme's accent and must not
-be clipped. Do not translate B's decorative gold row bars into a default alert
-or list style.
-
-Use the existing Phosphor icon family: regular outline for neutral UI, consistent
-20px controls and 24px feature icons, with 16px icons for dense metadata.
-Gold may identify a feature entry affordance, but not every decorative object.
-Do not introduce heraldic emblems, compass ornaments, or new logos solely because
-they appeared in generated artwork. The brand name remains OpenRisingStones.
+Use 1px rules, a 2px active underline in top-shell navigation, and a 2px focus outline with 2–3px offset. Continue the Phosphor outline icon family. Do not introduce heraldic marks, generated emblems, ornamental rails, or unrelated weather motifs.
 
 ## Components
 
-The shared frame is implemented by `AppHeader` and `AppView`; home entries by
-`HomePage`; authentication by `AuthenticationGate` and `LoginDialog`; settings by
-`SettingsDialog`. Feature-local styles retain their task-specific layout while
-using the semantic palette. Frontmatter component entries are baseline treatments,
-not a claim that every field has identical dimensions: login fields, for example,
-use a 46px minimum height. The following rules apply to both themes.
-
-### Buttons and entry rows
-
-Outlined gold is the normal explicit action treatment shown in B. Use a filled
-accent button only when a form or dialog has one clearly dominant commitment.
-Equal feature destinations remain equal; none becomes a large promotional CTA.
-
-- **Rest:** use the matching outline or primary component tokens. An outline action
-  has a 1px accent border; neutral secondary buttons use `control-line`.
-- **Hover:** outline actions use `hover` and `accent-hover`; primary actions use
-  `accent-hover` with `on-accent`. The label does not change.
-- **Pressed:** outline actions use `selected`. Primary actions keep the hover
-  fill and use an inset 1px `on-accent` line. Do not shift layout or bounce.
-- **Keyboard focus:** use the shared offset outline, independently of hover.
-- **Disabled:** neutral surface, `disabled` text, no accent fill or hover response,
-  and actual disabled semantics. Explain an unmet prerequisite nearby.
-- **Pending:** preserve width, show a specific progress label, and prevent duplicate
-  submission. Error feedback belongs beside the relevant action or field.
-- **Destructive:** use `danger` text and outline on a neutral surface. Name the
-  data and consequence in the confirmation; gold is not a deletion cue.
-
-An entire feature row may be one button or link. Its arrow is decorative and
-must not create a second nested control. Accessible names identify the destination.
-Use buttons for operations and links for real navigation.
-
-### Fields and filters
-
-Labels remain visible outside inputs. Placeholders are examples, not field names.
-Use the input token, a 1px `control-line` border, and the shared focus outline.
-Validation uses `danger` plus a complete message linked with `aria-describedby`
-and invalid semantics; color alone is insufficient.
-
-Selected filter chips use `selected`, accent text, and a check or remove action.
-Unselected filters use neutral surfaces. Removing a filter must not erase unrelated
-selections. “Clear filters” appears only when it resets the advertised scope.
-Keep search and filter values when a request fails.
-
 ### Navigation
 
-Unselected labels use normal secondary text. Hover raises them to normal text;
-the active destination uses accent text, semibold weight, and the underline.
-Global links use `aria-current="page"`, 48px minimum height, and 10px by 24px
-padding (16px horizontal on compact screens). Their focus outline is inset by
-4px to remain visible inside the scroll region. Use the tab pattern for actual tabs, including
-its keyboard behavior. Visual similarity does not make every navigation a tablist.
+At 900px and above, navigation is a 176px full-text sidebar with 48px targets, muted default text, neutral hover fill, and selected fill plus gold text. At 620–899px it shares one top row; below 620px it occupies the second row. Use `aria-current="page"`, keep the active destination visible, and preserve keyboard focus.
 
-Keep account status truthful. Show a login action when signed out and real identity
-only when available. Do not add an inert notification bell, decorative notification
-dot, or a fabricated character selector.
+### Buttons and fields
 
-### Lists, galleries, and tables
+Primary buttons use accent fill and on-accent text. Secondary controls use neutral surfaces and control-line borders. Disabled controls remain identifiable and prevent duplicate action. Visible labels sit outside fields; validation uses complete messages and invalid semantics in addition to danger color.
 
-Use rows for comparable information, a gallery for actual image content, and a
-table for statistics that need column comparison. Keep row hover and selection
-distinct. A selected row is not automatically a successful operation.
+### Home directory
 
-Do not wrap every field in its own card. Metadata follows the content it describes.
-Equipment rarity, job, and status colors remain domain meanings; do not recolor
-game data gold to match the shell. Long item, server, and character names wrap or
-have an accessible full-value treatment.
+Keep recruitment, glamour, regional teleport, and gearing as equal whole-row buttons. Each has one icon, direct title, concrete description, and decorative trailing arrow. Shared rules define the 2×2 layout; compact widths stack it to one column.
 
-Gearing keeps equipment tables in local scroll containers instead of making the
-whole page horizontally scroll. Summary controls wrap and metric columns use
-`auto-fit` with a 96px minimum. Compact layouts can grow vertically; keep the
-summary reachable without compressing labels into unreadable columns.
+### Task surfaces
 
-### Fullscreen authentication boundary
+Feature layouts retain their information model: comparable rows for recruitment, images for glamour, ordered form state for teleport, and aligned equipment/stat data for gearing. Task switching must preserve user context.
 
-Signed-out or checking states for **both glamour and teleport** use the same
-`AuthenticationGate`. It covers the viewport (`position: fixed; inset: 0`),
-including the application header and navigation. Do not replace it with an inline
-card or preserve visible navigation around the gate. This fullscreen behavior
-and consistent styling are explicit user requirements.
+### Authentication and dialogs
 
-Both features share the centered content column (up to 560px), heading, spacing,
-and button geometry. Only the feature description and relevant state copy vary.
-The login action is filled accent; the home action is neutral; both use the same
-40px minimum height and 8px by 16px padding. The gate scrolls when necessary,
-reduces side padding on compact screens, and stacks actions below 360px.
-Checking disables login; expired glamour sessions show the expiry state.
-
-`LoginDialog` opens above the barrier. `useDialogFocus` contains focus, locks body
-scroll, restores the prior focus target when it still exists, and handles only
-the innermost dialog's Escape. Escape first closes the login form, returning to
-the barrier; Escape or the close/home control on the barrier returns to home.
-
-### Dialogs and feedback
-
-Use overlays only for protected decisions or short focused tasks. Dialogs need
-an accessible title, focus containment, a reachable cancel or close control, and
-focus restoration. Do not dismiss a destructive confirmation by placing initial
-focus on the destructive action.
-
-Loading, empty results, no history, expired login, unsupported platform, stale
-inventory, and request failure are different states. Use the copy specification.
-Keep existing results visible during background refresh. Use polite announcements
-for progress and appropriate alerts for new failures; do not repeatedly announce
-a ticking countdown.
+Signed-out or checking glamour and teleport states share the fullscreen `AuthenticationGate`. Closing it returns home. Login opens above it, and Escape closes the innermost layer first. Account controls show real profile data only when available.
 
 ## Do's and Don'ts
 
 ### Do
 
-- Build both themes from semantic aliases and the approved tokens above.
-- Keep the visible frame recognizable as B while adapting density to each task.
-- Put real posts, team composition, item values, and travel state in the foreground.
-- Write direct Chinese interface copy with established FF14 terminology.
-- Preserve consent, local-data boundaries, and accurate failure recovery.
-- Verify the implementation at desktop, compact widths, 200% zoom, and keyboard
-  focus in both themes before calling it visually complete.
+- **Do** build both themes from semantic aliases in `tokens.css`.
+- **Do** preserve the 176px sidebar and its responsive top-shell translations.
+- **Do** preserve the 1280px measure, 15px base type, and 13px captions.
+- **Do** keep one task surface visible when density would squeeze content.
+- **Do** preserve keyboard access, authentication boundaries, local data ownership, optimization semantics, undo, cancellation, and accurate recovery.
+- **Do** write direct Chinese UI copy with established FF14 terminology.
 
 ### Don't
 
-- Reintroduce adventure slogans, decorative bilingual headings, or themed module
-  names such as “journal” and “workbench” into the UI.
-- Copy unapproved A or C palette, sidebar topology, or decorative details into
-  the selected system.
-- Add a marketing hero, giant icon scenes, fake activity, or invented counts.
-- Paint all controls gold, make secondary text low-contrast, or turn warnings
-  into anonymous colored boxes.
-- Reuse old teal/green global variables as an accidental second brand.
-- Treat generated concept images, synthetic fixtures, or the web review as proof
-  of successful native bridging or authenticated external operations.
+- **Don't** restore the superseded palette or use stacked top navigation on wide layouts.
+- **Don't** add promotional heroes, slogans, decorative bilingual subtitles, or invented identity.
+- **Don't** turn each home destination or field into a floating card.
+- **Don't** use gold as a generic success, warning, rarity, or decoration color.
+- **Don't** shrink text to fit display scaling or allow ordinary page overflow.
+- **Don't** treat generated concepts or browser fixtures as proof of native bridging or authenticated operations.

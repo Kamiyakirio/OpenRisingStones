@@ -1,72 +1,38 @@
 # Home surface
 
-Mode: Operate. Target: `src/pages/HomePage.tsx` and its stylesheet.
-Status: direction B implemented and reviewed in the web UI.
+Mode: Operate. Target: `src/pages/HomePage.tsx` and `src/pages/HomePage.css`.
+Status: approved direction C implemented and reviewed in Chrome.
 
 ## Scope and approval
 
-The user selected B in the three-option comparison board, then authorized the UI
-rebuild. The shared frame and feature workspaces now follow that direction. The
-board establishes the principal visual language, not a literal pixel reproduction
-of generated artwork. The user's
-plain-copy requirement supersedes the board's slogans and decorative theme names.
-
-Reference: `../../.impeccable/mocks/decision/ui-language-options.png`, middle panel.
-Approval record: `../../.impeccable/mocks/decision/ui-language-options.json`.
+The user approved direction C on 2026-09-11: a full-text sidebar with task-based work-area switching. The approved composition is `.impeccable/mocks/app-layout/C.png`; its durable brief is `.impeccable/mocks/app-layout/brief.md`. The concept establishes the shell and density strategy rather than requiring literal reproduction of generated pixels. Direct functional copy remains authoritative.
 
 ## Direction contract
 
-THESIS: Choose a tool immediately from a readable directory, without a promotional hero.
+THESIS: Choose a tool immediately from a readable, ruled directory without a promotional hero.
 
-OWN-WORLD: B's indigo surfaces, restrained gold, small rectangular controls, and serif heading.
+OWN-WORLD: Warm ivory and charcoal surfaces, restrained gold, system sans typography, and a full-text sidebar while space permits.
 
-STORY: Identify the required feature, read its concrete description if needed, open it.
+STORY: Identify the required feature, read its concrete description if needed, and open it.
 
-FIRST VIEWPORT: Brand and utilities above horizontal navigation; a modest heading and four full-width feature rows; equal entry affordances aligned right. All four tools visible at 1280 by 720 with normal text scaling.
+FIRST VIEWPORT: At widths of 900px and above, a 176px sidebar anchors the shell and home uses a bounded 1280px measure. The four tools form a 2×2 ruled directory. From 620px through 899px, brand, navigation, and utilities occupy one compact top row. Below 620px, navigation becomes a second horizontally scrollable row.
 
-FORM: User-selected B, the middle comparison panel. No seed key exists because the engine was unavailable; direct user selection is recorded.
+FORM: Direction C from the app-layout comparison, approved by the user. Home is a directory of equal destinations rather than a card dashboard.
 
-FINISH: implemented; independent review findings resolved, with web validation and evidence recorded below. No generated emblem or marketing raster ships in this UI.
+FINISH: Implemented and reviewed at 1440×900, 1024×700, and 720×520 with no horizontal overflow or page errors.
 
 ## Content and behavior
 
-Use `interface-copy.md` for exact home labels and descriptions. Keep recruitment,
-glamour, teleport, and gearing in the existing order. Do not add unimplemented
-destinations, recent activity, counts, notifications, or character information.
-The shared header provides settings, theme selection, and account actions.
-Glamour and teleport replace the visible frame with the same fullscreen
-authentication barrier while signed out or checking. Opening login adds the form
-above that barrier; closing the barrier returns home.
+Use `interface-copy.md` for exact labels and descriptions. Keep recruitment, glamour, regional teleport, and gearing in the existing order. Do not add unimplemented destinations, recent activity, counts, notifications, or character information.
 
-Use one semantic control per feature row, with a decorative arrow inside it.
-Pointer hover changes the row surface; keyboard focus outlines the entire target.
-Navigation shows only the current page as selected. Do not highlight all feature
-rows with gold selection bars. No repeated entrance animation.
+Each destination is one whole-row button with a feature icon, title, concrete description, and decorative trailing arrow. The 2×2 directory uses shared rules, no card shadows, and no dominant call to action. Hover changes the row surface; keyboard focus outlines the whole target. Below 768px, entries stack into one column and preserve all descriptions and actions.
 
-On narrow windows, put the description below its feature name and keep the action
-aligned to the trailing edge. Content may grow vertically; never clip descriptions
-or hide a tool to keep the desktop viewport height.
+The shared shell provides navigation, theme selection, settings, and truthful account actions. Glamour and teleport replace the visible frame with the established fullscreen authentication boundary while signed out or checking. Opening login adds the form above that boundary; closing it returns home.
 
 ## Implementation and review
 
-`HomePage.tsx` and `HomePage.css` implement four whole-row buttons in the existing
-order, with decorative icons and arrows. Desktop rows use an 80px minimum height;
-compact rows move descriptions below titles. `AppHeader` supplies global links
-with the current destination marked by `aria-current`. Header and navigation
-heights are minimums and may grow with wrapping; the home viewport calculation
-must not be read as a promise of a fixed total header height.
+`HomePage.css` implements the ruled grid with 132px minimum entries and its single-column translation. `foundation.css` supplies the 1280px measure and 15px base type. `navigation.css` supplies the 176px sidebar, 620–899px single-row shell, and below-620px two-row fallback.
 
-The rebuild passed 88 tests, production build, and lint. The web review covered
-1280px desktop and 390px mobile in both themes, and independent review findings
-were resolved (SHIP). Mobile evidence uses viewport captures. Local, uncommitted
-home evidence includes `home-desktop-dark.png`,
-`home-mobile-dark.png`, and `home-mobile-light.png` under
-`../../.impeccable/review/`. The corrected auth evidence is
-`glamour-auth-fullscreen.png` and `teleport-auth-fullscreen.png` in that directory.
-Feature fixture screenshots contain synthetic data; they do not verify external
-services. Native Windows bridging and authenticated actions remain unverified.
-The Impeccable binary was unavailable, so no detector verdict is claimed.
+Final Chrome evidence is `.impeccable/review/app-home-desktop.png` and `.impeccable/review/app-home-scaled.png`. The broader shell review covers gearing and recruitment; see `.impeccable/review/verification.md`. The Impeccable launcher, detector, and comp-diff each exited 1 without output, so this records manual Chrome evidence rather than an automated Impeccable verdict.
 
-DESIGN.md owns global tokens; this brief owns home composition. Font stacks use
-local fallbacks, not packaged fonts. Future changes still need keyboard, wrapping,
-and zoom checks rather than relying on these screenshots alone.
+Browser evidence does not verify the native Windows game bridge, Windows font rendering, real credentials, or authenticated external operations. Those product and authentication limits remain unchanged.

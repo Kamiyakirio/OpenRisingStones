@@ -1,151 +1,206 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-07T09:19:44.583684Z",
+  "generatedAt": "2026-09-11T11:45:46+08:00",
   "title": "Design System: OpenRisingStones",
   "extensions": {
     "colorMeta": {
-      "dark-accent": {
-        "role": "primary",
-        "displayName": "Muted gold"
-      },
       "light-accent": {
         "role": "primary",
-        "displayName": "Deep gold"
+        "displayName": "Light Bronze",
+        "canonical": "#7A5816"
+      },
+      "dark-accent": {
+        "role": "primary",
+        "displayName": "Dark Antique Gold",
+        "canonical": "#D3B36B"
+      },
+      "light-canvas": {
+        "role": "neutral",
+        "displayName": "Warm Ivory",
+        "canonical": "#F5F2EB"
+      },
+      "light-surface": {
+        "role": "neutral",
+        "displayName": "Paper Surface",
+        "canonical": "#FCFAF6"
       },
       "dark-canvas": {
         "role": "neutral",
-        "displayName": "Deep indigo"
+        "displayName": "Warm Charcoal",
+        "canonical": "#1F1D1A"
       },
       "dark-surface": {
         "role": "neutral",
-        "displayName": "Blue slate"
+        "displayName": "Raised Charcoal",
+        "canonical": "#292621"
       }
     },
     "typographyMeta": {
       "headline": {
         "displayName": "Workspace heading",
-        "purpose": "Short serif heading only; never controls or data."
+        "purpose": "System sans heading for the current workspace."
+      },
+      "body": {
+        "displayName": "Base interface text",
+        "purpose": "15px labels, values, descriptions, and controls."
+      },
+      "caption": {
+        "displayName": "Supporting text",
+        "purpose": "13px metadata, compact filters, and secondary state."
       },
       "data": {
         "displayName": "Tabular data",
-        "purpose": "Aligned numbers using tabular-nums lining-nums."
+        "purpose": "Aligned values using tabular-nums lining-nums."
       }
     },
     "shadows": [
       {
-        "name": "popover-dark",
-        "value": "0 8px 24px rgba(0, 0, 0, 0.28)",
-        "purpose": "Dark-theme menus and popovers."
-      },
-      {
-        "name": "dialog-dark",
-        "value": "0 16px 48px rgba(0, 0, 0, 0.4)",
-        "purpose": "Dark-theme modal surfaces."
-      },
-      {
         "name": "popover-light",
-        "value": "0 8px 24px rgba(23, 30, 48, 0.12)",
+        "value": "0 10px 28px rgba(62, 48, 27, 0.12)",
         "purpose": "Light-theme menus and popovers."
       },
       {
         "name": "dialog-light",
-        "value": "0 16px 48px rgba(23, 30, 48, 0.2)",
+        "value": "0 18px 52px rgba(62, 48, 27, 0.2)",
         "purpose": "Light-theme modal surfaces."
+      },
+      {
+        "name": "popover-dark",
+        "value": "0 10px 28px rgba(0, 0, 0, 0.32)",
+        "purpose": "Dark-theme menus and popovers."
+      },
+      {
+        "name": "dialog-dark",
+        "value": "0 18px 52px rgba(0, 0, 0, 0.46)",
+        "purpose": "Dark-theme modal surfaces."
       }
     ],
     "motion": [
       {
         "name": "duration-feedback",
         "value": "120ms",
-        "purpose": "Hover and pressed color changes."
+        "purpose": "Hover and pressed color feedback."
       },
       {
         "name": "duration-panel",
         "value": "180ms",
-        "purpose": "Opening and closing small panels."
+        "purpose": "Small panel transitions."
       },
       {
         "name": "ease-standard",
         "value": "cubic-bezier(0.2, 0, 0, 1)",
-        "purpose": "Responsive state transitions without overshoot."
+        "purpose": "State transitions without overshoot."
       },
       {
         "name": "duration-reduced",
         "value": "0ms",
-        "purpose": "Immediate state changes when reduced motion is requested."
+        "purpose": "Immediate changes under reduced motion."
       }
     ],
     "breakpoints": [
-      {
-        "name": "medium",
-        "value": "768px"
-      },
-      {
-        "name": "wide",
-        "value": "1200px"
-      }
+      { "name": "narrow-shell", "value": "620px" },
+      { "name": "compact-content", "value": "768px" },
+      { "name": "sidebar-shell", "value": "900px" },
+      { "name": "wide-content", "value": "1200px" }
     ],
     "implementation": {
       "status": "implemented-web-ui",
+      "approvedDirection": "C",
       "tokenSource": "src/app/styles/tokens.css",
-      "components": [
-        "src/app/components/AppHeader.tsx",
-        "src/app/components/AppView.tsx",
-        "src/pages/HomePage.tsx",
-        "src/features/auth/components/AuthenticationGate.tsx",
-        "src/features/auth/components/LoginDialog.tsx",
-        "src/features/settings/components/SettingsDialog.tsx"
+      "layoutSources": [
+        "src/app/styles/foundation.css",
+        "src/app/components/navigation.css",
+        "src/pages/HomePage.css",
+        "src/features/gearing/editor/editor.css"
       ],
+      "approvedComp": ".impeccable/mocks/app-layout/C.png",
+      "brief": ".impeccable/mocks/app-layout/brief.md",
       "focusBehavior": "src/shared/hooks/useDialogFocus.ts",
       "validation": {
-        "testsPassed": 88,
-        "productionBuild": "passed",
-        "lint": "passed",
-        "webReview": "1280px desktop and 390px mobile, both themes; independent findings resolved",
-        "evidenceDirectory": ".impeccable/review",
-        "excludeEvidence": ["recruit-fixture-desktop.png"],
-        "fixtures": "synthetic",
+        "browser": "Chrome",
+        "viewports": ["1440x900", "1024x700", "720x520"],
+        "horizontalOverflow": 0,
+        "pageErrors": 0,
+        "evidence": [
+          ".impeccable/review/app-home-desktop.png",
+          ".impeccable/review/app-home-scaled.png",
+          ".impeccable/review/app-gearing-desktop.png",
+          ".impeccable/review/app-gearing-scaled.png",
+          ".impeccable/review/app-gearing-candidates.png",
+          ".impeccable/review/app-gearing-stats.png",
+          ".impeccable/review/app-gearing-compact.png",
+          ".impeccable/review/app-recruit-scaled.png"
+        ],
+        "selectedStateContrast": {
+          "light": "5.27:1",
+          "dark": "6.10:1",
+          "result": "WCAG AA for normal text"
+        },
+        "launcher": "Unavailable: exited 1 with no output",
+        "detector": "Unavailable: exited 1 with no output",
+        "compDiff": "Unavailable: exited 1 with no output",
         "notVerified": [
           "Native Windows game bridge",
           "Authenticated external operations",
           "Windows font rendering"
-        ],
-        "detector": "Unavailable: Impeccable binary missing"
+        ]
       }
     }
   },
-  "components": [],
+  "components": [
+    {
+      "name": "Desktop Sidebar Selection",
+      "kind": "nav",
+      "refersTo": "navigation-selected-light",
+      "description": "Current destination in the full-text sidebar at 900px and above.",
+      "html": "<a class=\"ds-nav-current\" aria-current=\"page\">Gearing</a>",
+      "css": ".ds-nav-current { min-height: 48px; padding: 10px 12px; border-radius: 8px; color: #7A5816; background: #EEE7D7; font: 600 15px/1.5 Segoe UI, PingFang SC, Microsoft YaHei, sans-serif; }"
+    },
+    {
+      "name": "Ruled Directory Entry",
+      "kind": "button",
+      "description": "One whole-row destination inside the home 2x2 directory.",
+      "html": "<button class=\"ds-directory-entry\"><strong>Gearing</strong><span>Configure equipment and materia</span></button>",
+      "css": ".ds-directory-entry { min-height: 132px; padding: 28px 24px; border: 0; border-radius: 0; color: #302D28; background: transparent; text-align: left; } .ds-directory-entry:hover { background: #EEE9DF; }"
+    }
+  ],
   "narrative": {
-    "northStar": "Deep indigo, restrained gold, readable working surfaces",
-    "overview": "Implemented web UI based on the user-approved B direction: indigo surfaces, restrained gold, a horizontal application frame, and direct task copy. AppHeader and AppView share the frame; HomePage provides a four-row directory. Glamour and teleport share the same fullscreen AuthenticationGate, with LoginDialog above it and innermost Escape handling. Feature-local styles use semantic variables; compatibility aliases remain for inline consumers. Local font fallbacks are not bundled fonts.",
+    "northStar": "The Warm Task Ledger",
+    "overview": "Direction C organizes OpenRisingStones as a warm ivory or charcoal utility workspace with restrained gold. A full-text sidebar anchors desktop work; compact top-shell translations preserve readable task space under display scaling. Dense features reveal one task surface at a time while retaining draft and selection.",
     "keyCharacteristics": [
-      "Horizontal application navigation",
-      "Compact rectangular controls",
-      "Tonal surface separation",
-      "Direct FF14 task vocabulary",
-      "Identical fullscreen authentication barriers for protected workspaces"
+      "Warm ivory and charcoal neutral surfaces",
+      "Restrained gold for focus and selected state",
+      "System sans-serif typography",
+      "176px full-text desktop sidebar",
+      "Single-row top shell from 620px through 899px",
+      "Two-row narrow fallback below 620px",
+      "1280px content measure",
+      "Ruled 2x2 home directory",
+      "One task surface at a time"
     ],
     "rules": [
       {
-        "name": "The boundary rule",
-        "body": "Use control-line for functional input boundaries; line is for nonessential dividers.",
+        "name": "The restrained-gold rule",
+        "body": "Use gold for current state, focus, and a clearly primary commitment.",
         "section": "colors"
       },
       {
-        "name": "The state rule",
-        "body": "Pair semantic colors with specific text and a structural cue where appropriate.",
-        "section": "colors"
+        "name": "The task-surface rule",
+        "body": "Reveal one work surface at a time when simultaneous panes would compromise readability.",
+        "section": "layout"
       }
     ],
     "dos": [
       "Keep both themes on the same semantic aliases.",
-      "Preserve game data and task-specific information density.",
-      "Cover the entire viewport, including navigation, while glamour or teleport is gated; return home on barrier dismissal."
+      "Preserve the 176px sidebar and responsive top-shell translations.",
+      "Keep 15px base type and 13px supporting captions.",
+      "Preserve game data, authentication boundaries, keyboard access, and task state."
     ],
     "donts": [
-      "Do not bring slogans or themed module names into UI copy.",
-      "Do not treat generated emblems as approved brand assets.",
-      "Do not treat synthetic fixture screenshots or web checks as native Windows bridge or authenticated-service verification."
+      "Do not restore the superseded palette or stack top navigation on wide layouts.",
+      "Do not add slogans, invented identity, or decorative subtitles.",
+      "Do not shrink text or expose every task pane to fit scaling.",
+      "Do not treat browser fixtures as proof of native or authenticated operations."
     ]
   }
 }
