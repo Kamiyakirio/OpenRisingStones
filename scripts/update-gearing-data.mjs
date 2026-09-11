@@ -2,9 +2,8 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { downloadInputs } from "./gearing/download.mjs";
-import { buildBundle } from "./gearing/build.mjs";
-import { installBundle } from "./gearing/install.mjs";
-import { generatedDirectory } from "./gearing/check.mjs";
+import { buildBundle, installBundle } from "./gearing/package.mjs";
+import { generatedDirectory } from "./check-gearing-data.mjs";
 
 const usage =
   "Usage: npm run gearing:data:update -- [--check] [--ref <release-ref>] [--lodestone-ref <ref>]";

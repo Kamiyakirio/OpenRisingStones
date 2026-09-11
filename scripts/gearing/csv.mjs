@@ -66,6 +66,7 @@ const fields = {
   Item: [
     "Name",
     "Description",
+    "Icon",
     "LevelItem",
     "Rarity",
     "EquipSlotCategory",
@@ -183,7 +184,14 @@ export function parseSheet(
 
 export function sourceIndex(sources) {
   const index = {};
-  for (const [source, ranges] of Object.entries(sources)) {
+  for (const [id, source] of Object.entries(sources)) {
+    if (
+      !/^[a-z0-9-]+$/.test(id) ||
+      typeof source.label !== "string" ||
+      typeof source.items !== "string"
+    )
+      throw new Error("Invalid source definition.");
+    const ranges = source.items;
     for (const range of ranges.split(",")) {
       if (!/^\d+(?:-\d+)?$/.test(range))
         throw new Error(`Invalid item source range: ${range}`);
@@ -194,7 +202,7 @@ export function sourceIndex(sources) {
       for (let id = begin; id <= end; id++) {
         if (Object.hasOwn(index, id))
           throw new Error(`Conflicting item source: ${id}`);
-        index[id] = source;
+        index[id] = source.label;
       }
     }
   }

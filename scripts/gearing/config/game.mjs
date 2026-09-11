@@ -139,8 +139,8 @@ const slotSchemaCommon = [
   { slot: 9, name: "耳饰", uiGroup: "right" },
   { slot: 10, name: "项链", uiGroup: "right" },
   { slot: 11, name: "手镯", uiGroup: "right" },
-  { slot: 12, name: "戒指", uiGroup: "right" },
-  { slot: -12, name: "戒指", uiGroup: "right" },
+  { slot: 12, name: "左戒指", uiGroup: "right" },
+  { slot: -12, name: "右戒指", uiGroup: "right" },
   { slot: -1, name: "食品", levelWeight: 0, uiGroup: "misc" },
 ];
 const slotSchemaCombat = [

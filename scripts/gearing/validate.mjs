@@ -1,25 +1,34 @@
 /** Validate owned rule coefficients and cross-table item references before installation. */
 export function validate({ data, rules }, contract) {
-  for (const [name, length] of Object.entries(contract.formulaLengths)) {
-    const values = rules.formulas[name]?.numbers;
-    if (
-      !Array.isArray(values) ||
-      values.length !== length ||
-      values.some((value) => !Number.isFinite(value))
-    )
-      throw new Error(`Invalid formula parameters: ${name}`);
+  function coefficients(value, path = "parameters") {
+    if (typeof value === "number") {
+      if (!Number.isFinite(value) || value < 0)
+        throw new Error(`Invalid formula parameter: ${path}`);
+      return;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      throw new Error(`Missing formula parameters: ${path}`);
+    for (const [key, child] of Object.entries(value))
+      coefficients(child, `${path}.${key}`);
   }
-  const gears = Object.entries(data)
-    .filter(([k]) => /^gears-/.test(k))
-    .flatMap(([, v]) => v);
+  coefficients(rules.parameters);
+  for (const path of contract.positiveCoefficients) {
+    const value = path
+      .split(".")
+      .reduce((v, key) => v?.[key], rules.parameters);
+    if (!(value > 0))
+      throw new Error(`Missing or invalid formula divisor: ${path}`);
+  }
   const ids = new Set();
-  for (const gear of [...gears, ...data.foods]) {
+  for (const gear of data.items) {
     if (!Number.isSafeInteger(gear.id) || gear.id <= 0 || ids.has(gear.id))
       throw new Error(`Invalid or duplicate item ID: ${gear.id}`);
     ids.add(gear.id);
     if (
       !data.jobCategories[gear.jobCategory] ||
       !Number.isFinite(gear.level) ||
+      (gear.iconId !== undefined &&
+        (!Number.isSafeInteger(gear.iconId) || gear.iconId <= 0)) ||
       !gear.stats
     )
       throw new Error(`Invalid item metadata: ${gear.id}`);
@@ -32,23 +41,9 @@ export function validate({ data, rules }, contract) {
       )
     )
       throw new Error(`Invalid item stats: ${gear.id}`);
-    if (
-      gear.slot > 0 &&
-      (!data.gearGroups[gear.id] || !data.levelCaps.level.includes(gear.level))
-    )
+    if (gear.slot > 0 && !data.levelCaps.level.includes(gear.level))
       throw new Error(`Missing gear index or caps: ${gear.id}`);
   }
-  for (const [key, items] of Object.entries(data).filter(([k]) =>
-    /^gears-/.test(k),
-  ))
-    for (const gear of items) {
-      const group =
-        key === "gears-recent"
-          ? data.gearGroupBasis.at(-1)
-          : Number(key.slice(6));
-      if (data.gearGroups[gear.id] !== group)
-        throw new Error(`Mismatched gear group: ${gear.id}`);
-    }
   for (const [job, schema] of Object.entries(rules.jobSchemas)) {
     if (
       !rules.jobLevelModifiers[schema.jobLevel] ||

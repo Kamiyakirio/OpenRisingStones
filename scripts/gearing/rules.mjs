@@ -13,8 +13,8 @@ export function expandCustomWeaponRules(policy, statNames) {
       typeof rule.id !== "string" ||
       !rule.id.trim() ||
       ids.has(rule.id) ||
-      typeof rule.source !== "string" ||
-      !rule.source.trim()
+      typeof rule.sourceId !== "string" ||
+      !rule.sourceId.trim()
     )
       throw new Error(
         "Custom weapon rules require unique IDs and nonempty sources.",
@@ -63,7 +63,7 @@ export function expandCustomWeaponRules(policy, statNames) {
     if (!isObject(rule.itemLevels) || !Object.keys(rule.itemLevels).length)
       throw new Error(`Missing custom weapon item levels: ${rule.id}`);
     for (const [level, allocation] of Object.entries(rule.itemLevels)) {
-      const key = `${rule.source}:${level}`;
+      const key = `${rule.sourceId}:${level}`;
       if (
         !Number.isSafeInteger(Number(level)) ||
         Number(level) <= 0 ||
@@ -82,7 +82,7 @@ export function expandCustomWeaponRules(policy, statNames) {
     // Emit a complete independent rule so frontend and native callers share one interpretation.
     return {
       id: rule.id,
-      source: rule.source,
+      sourceId: rule.sourceId,
       itemLevels: Object.fromEntries(
         Object.entries(rule.itemLevels).map(([level, allocation]) => [
           level,
@@ -96,70 +96,4 @@ export function expandCustomWeaponRules(policy, statNames) {
       linkSlotAllocations: linked,
     };
   });
-}
-
-export function formulaRules(parameters, policy) {
-  const g = parameters.gcd,
-    e = parameters.effects;
-  const c = e.critical,
-    d = e.determination,
-    h = e.directHit,
-    t = e.tenacity;
-  const formula = (numbers) => ({ numbers });
-  return {
-    floor: formula([parameters.roundingEpsilon]),
-    calcGcd: formula([
-      g.base,
-      g.speedScale,
-      g.timeUnits,
-      g.baseDivisor,
-      g.modifierLevel,
-      g.defaultModifier,
-      g.modifierDivisor,
-      g.resultDivisor,
-    ]),
-    calcRequiredSpeed: formula(policy.requiredSpeedSearch),
-    // Zero fallbacks and identity factors belong to the formula; variable game coefficients have names above.
-    calcEffects: formula([
-      e.blueMimicry,
-      0,
-      c.chanceScale,
-      c.chanceBase,
-      c.divisor,
-      c.damageScale,
-      c.damageBase,
-      c.divisor,
-      d.scale,
-      d.base,
-      d.divisor,
-      h.chanceScale,
-      h.divisor,
-      t.damageScale,
-      t.damageBase,
-      t.divisor,
-      t.mitigationScale,
-      t.divisor,
-      e.weaponDivisor,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      e.main.partyBonus,
-      e.main.damageBase,
-      e.main.divisor,
-      e.potencyScale,
-      1,
-      1,
-      h.damageBonus,
-      1,
-      e.speed.scale,
-      e.speed.base,
-      e.speed.divisor,
-      e.mp.scale,
-      e.mp.base,
-    ]),
-    getCaps: formula([parameters.capDivisor]),
-  };
 }

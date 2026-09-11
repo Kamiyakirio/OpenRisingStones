@@ -1,7 +1,7 @@
 /** Synthetic conversion cases, download failures, and owned-parameter regressions. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import Papa from "papaparse";
+import { fixture } from "./helpers/gearing-fixture.mjs";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import {
@@ -10,187 +10,14 @@ import {
   statColumns,
 } from "../scripts/gearing/csv.mjs";
 import { downloadInputs, downloadText } from "../scripts/gearing/download.mjs";
-import { buildBundle } from "../scripts/gearing/build.mjs";
-import {
-  formulaRules,
-  expandCustomWeaponRules,
-} from "../scripts/gearing/rules.mjs";
+import { buildBundle } from "../scripts/gearing/package.mjs";
+import { expandCustomWeaponRules } from "../scripts/gearing/rules.mjs";
 import { validate } from "../scripts/gearing/validate.mjs";
 import { convert } from "../scripts/gearing/convert.mjs";
 import * as game from "../scripts/gearing/config/game.mjs";
 
 const json = (path) => JSON.parse(readFileSync(path, "utf8"));
 const contract = json("scripts/gearing/contract.json");
-// Build a tiny fictional data set in memory; no exported game CSV records are retained.
-function fixture() {
-  const indexed = (names, count) =>
-    Array.from({ length: count }, (_, i) =>
-      names.map((name) => `${name}[${i}]`),
-    ).flat();
-  const table = (columns, rows) => {
-    const fields = ["#", ...columns];
-    return Papa.unparse({
-      fields,
-      data: rows.map((row) => fields.map((field) => row[field] ?? 0)),
-    });
-  };
-  const jobs = Object.keys(game.jobSchemas);
-  const category = (id, allowed) => ({
-    "#": id,
-    ...Object.fromEntries(
-      jobs.map((job) => [job, allowed.includes(job) ? "True" : "False"]),
-    ),
-  });
-  const healer = ["WHM", "SCH", "AST", "SGE"];
-  const casters = [...healer, "BLM", "SMN", "RDM", "PCT", "BLU"];
-  const itemFields = [
-    "Name",
-    "Description",
-    "LevelItem",
-    "Rarity",
-    "EquipSlotCategory",
-    "BaseParamModifier",
-    "ClassJobCategory",
-    "LevelEquip",
-    "MateriaSlotCount",
-    "IsAdvancedMeldingPermitted",
-    "CanBeHq",
-    "DamagePhys",
-    "DamageMag",
-    "Delayms",
-    "ItemSpecialBonus",
-    "ItemAction",
-    ...indexed(
-      [
-        "BaseParam",
-        "BaseParamValue",
-        "BaseParamSpecial",
-        "BaseParamValueSpecial",
-      ],
-      6,
-    ),
-  ];
-  const item = (id, fields) => ({
-    "#": id,
-    Name: `Fixture ${id}`,
-    Description: "",
-    CanBeHq: "False",
-    IsAdvancedMeldingPermitted: "False",
-    ...fields,
-  });
-  const items = [
-    item(101, {
-      LevelItem: 5,
-      Rarity: 1,
-      EquipSlotCategory: 3,
-      BaseParamModifier: 8,
-      ClassJobCategory: 31,
-      LevelEquip: 5,
-      "BaseParam[0]": 4,
-      "BaseParamValue[0]": 1,
-      "BaseParam[1]": 5,
-      "BaseParamValue[1]": 1,
-    }),
-    item(102, {
-      LevelItem: 780,
-      Rarity: 2,
-      EquipSlotCategory: 13,
-      BaseParamModifier: 6,
-      ClassJobCategory: 64,
-      LevelEquip: 100,
-      MateriaSlotCount: 2,
-      CanBeHq: "True",
-      DamageMag: 50,
-      "BaseParam[0]": 3,
-      "BaseParamValue[0]": 100,
-      "BaseParam[1]": 5,
-      "BaseParamValue[1]": 90,
-      "BaseParam[2]": 6,
-      "BaseParamValue[2]": 6,
-      "BaseParam[3]": 44,
-      "BaseParamValue[3]": 16,
-      "BaseParamSpecial[0]": 3,
-      "BaseParamValueSpecial[0]": 20,
-      "BaseParamSpecial[1]": 5,
-      "BaseParamValueSpecial[1]": 10,
-      "BaseParamSpecial[2]": 6,
-      "BaseParamValueSpecial[2]": 4,
-      "BaseParamSpecial[3]": 44,
-      "BaseParamValueSpecial[3]": 8,
-      "BaseParamSpecial[4]": 13,
-      "BaseParamValueSpecial[4]": 2,
-    }),
-    item(103, {
-      LevelItem: 795,
-      Rarity: 4,
-      EquipSlotCategory: 13,
-      BaseParamModifier: 6,
-      ClassJobCategory: 64,
-      LevelEquip: 100,
-      DamageMag: 50,
-      "BaseParam[0]": 3,
-      "BaseParamValue[0]": 100,
-      "BaseParam[1]": 5,
-      "BaseParamValue[1]": 100,
-    }),
-    item(104, { LevelItem: 770, CanBeHq: "True", ItemAction: 1 }),
-  ];
-  const foodFields = indexed(
-    ["BaseParam", "IsRelative", "ValueHQ", "MaxHQ"],
-    3,
-  );
-  const food = { "#": 1 };
-  [27, 3, 46].forEach((stat, i) =>
-    Object.assign(food, {
-      [`BaseParam[${i}]`]: stat,
-      [`IsRelative[${i}]`]: "True",
-      [`ValueHQ[${i}]`]: 10,
-      [`MaxHQ[${i}]`]: [20, 30, 10][i],
-    }),
-  );
-  const slots =
-    "OneHandWeaponPercent OffHandPercent HeadPercent ChestPercent HandsPercent WaistPercent LegsPercent FeetPercent EarringPercent NecklacePercent BraceletPercent RingPercent TwoHandWeaponPercent UnderArmorPercent ChestHeadPercent ChestHeadLegsFeetPercent Unknown0 LegsFeetPercent HeadChestHandsLegsFeetPercent ChestLegsGlovesPercent ChestLegsFeetPercent Unknown1".split(
-      " ",
-    );
-  const melds = indexed(["MeldParam"], 13);
-  const caps = Object.keys(statColumns).map((id) => ({
-    "#": Number(id),
-    ...Object.fromEntries(slots.map((slot) => [slot, 100])),
-    ...Object.fromEntries(melds.map((field, i) => [field, i === 0 ? 90 : 100])),
-  }));
-  const levels = [5, 780, 795].map((level) => ({
-    "#": level,
-    ...Object.fromEntries(
-      Object.entries(statColumns).map(([id, name]) => [name, Number(id) * 100]),
-    ),
-  }));
-  const raw = {
-    "Item.csv": table(itemFields, items),
-    "ClassJobCategory.csv": table(jobs, [
-      category(0, []),
-      category(31, casters),
-      category(64, healer),
-    ]),
-    "ItemAction.csv": table(
-      ["Action", "Data[1]"],
-      [{ "#": 0 }, { "#": 1, Action: 844, "Data[1]": 1 }],
-    ),
-    "ItemFood.csv": table(foodFields, [food]),
-    "ContentFinderCondition.csv": table(
-      ["ClassJobLevelRequired", "ItemLevelRequired", "ItemLevelSync"],
-      [{ "#": 0 }],
-    ),
-    // Reverse cap columns to check name-based access rather than incidental column positions.
-    "BaseParam.csv": table([...melds].reverse().concat(slots), caps),
-    "ItemLevel.csv": table(Object.values(statColumns), levels),
-    "lodestone-item-id.txt": "",
-  };
-  return {
-    raw,
-    sources: { game: { release: "fixture" } },
-    gameVersion: "7.55",
-  };
-}
 
 test("CSV parsing preserves sparse IDs, quoted newlines and the last row without a newline", () => {
   const rows = parseSheet(
@@ -231,18 +58,25 @@ test("CSV schema and scalar corruption are rejected before conversion", () => {
 });
 
 test("curated source ranges reject ambiguous assignments", () => {
-  assert.deepEqual(sourceIndex({ Raid: "10-12,20" }), {
-    10: "Raid",
-    11: "Raid",
-    12: "Raid",
-    20: "Raid",
-  });
+  assert.deepEqual(
+    sourceIndex({ raid: { label: "Raid", items: "10-12,20" } }),
+    {
+      10: "Raid",
+      11: "Raid",
+      12: "Raid",
+      20: "Raid",
+    },
+  );
   assert.throws(
-    () => sourceIndex({ Raid: "10-12", Craft: "12" }),
+    () =>
+      sourceIndex({
+        raid: { label: "Raid", items: "10-12" },
+        craft: { label: "Craft", items: "12" },
+      }),
     /Conflicting item source/,
   );
   assert.throws(
-    () => sourceIndex({ Raid: "12-10" }),
+    () => sourceIndex({ raid: { label: "Raid", items: "12-10" } }),
     /Invalid item source bounds/,
   );
 });
@@ -250,7 +84,8 @@ test("curated source ranges reject ambiguous assignments", () => {
 test("synthetic rows produce HQ stats, consumables, custom weapons and correct role cap columns", () => {
   const bundle = buildBundle(fixture());
   assert.equal(validate(bundle, contract), 4);
-  const weapon = bundle.data["gears-recent"].find((item) => item.id === 102);
+  const weapon = bundle.data.items.find((item) => item.id === 102);
+  assert.equal(weapon.iconId, 10_102);
   assert.equal(weapon.hq, true);
   assert.equal(weapon.materiaSlot, 2);
   assert.deepEqual(weapon.stats, {
@@ -262,15 +97,18 @@ test("synthetic rows produce HQ stats, consumables, custom weapons and correct r
   });
   assert.equal(bundle.data.roleCaps.STR[0], 90);
   assert.equal(bundle.data.roleCaps.STR[1], 100);
-  assert.equal(bundle.data.foods[0].id, 104);
-  assert.deepEqual(bundle.data.foods[0].stats, { CRT: 20, VIT: 30, SPS: 10 });
-  assert.deepEqual(bundle.data.foods[0].statRates, {
+  assert.equal(bundle.data.items.find((i) => i.slot === -1).id, 104);
+  assert.equal(bundle.data.items.find((i) => i.slot === -1).iconId, 10_104);
+  assert.deepEqual(bundle.data.items.find((i) => i.slot === -1).stats, {
+    CRT: 20,
+    VIT: 30,
+    SPS: 10,
+  });
+  assert.deepEqual(bundle.data.items.find((i) => i.slot === -1).statRates, {
     CRT: 10,
     VIT: 10,
     SPS: 10,
   });
-  assert.equal(bundle.data.gearGroups[101], 1);
-  assert.equal(bundle.data.gearGroups[102], 750);
   assert.deepEqual(
     bundle.review.customWeapons.map((item) => item.id),
     [103],
@@ -285,22 +123,19 @@ test("missing source annotations are reported while valid equipment stays availa
     conversion: json("scripts/gearing/config/conversion.json"),
     blueMage: json("scripts/gearing/config/blue-mage.json"),
   });
-  assert.ok(data["gears-recent"].some((item) => item.id === 103));
+  assert.ok(data.items.some((item) => item.id === 103));
   assert.ok(Object.hasOwn(sourcesMissing, 103));
 });
 
-test("owned named coefficients update the shared frontend/native parameter slots", () => {
-  const parameters = json("scripts/gearing/config/formulas.json"),
-    policy = json("scripts/gearing/optimizer-policy.json");
-  parameters.effects.critical.chanceScale = 210;
-  parameters.gcd.speedScale = 145;
-  parameters.roundingEpsilon = 2e-7;
-  const formulas = formulaRules(parameters, policy);
-  assert.equal(formulas.calcEffects.numbers[2], 210);
-  assert.equal(formulas.calcEffects.numbers[33], 130);
-  assert.equal(formulas.calcGcd.numbers[1], 145);
-  assert.equal(formulas.floor.numbers[0], 2e-7);
-  assert.equal(formulas.calcEffects.numbers.length, 38);
+test("owned named coefficients are the sole runtime formula parameters", () => {
+  const bundle = buildBundle(fixture());
+  assert.deepEqual(
+    bundle.rules.parameters,
+    json("scripts/gearing/config/formulas.json"),
+  );
+  assert.ok(!("formulas" in bundle.rules));
+  bundle.rules.parameters.gcd.resultDivisor = 0;
+  assert.throws(() => validate(bundle, contract), /divisor/);
 });
 
 test("custom weapons inherit shared defaults without changing source allocations", () => {
@@ -458,4 +293,23 @@ test("removed local repository arguments are rejected without modifying generate
     readFileSync("src/features/gearing/data/generated/manifest.json", "utf8"),
     before,
   );
+});
+
+test("renaming a source label preserves its ID and acquisition policy", () => {
+  const config = {
+    rules: game,
+    sources: { raid: { label: "Original raid", items: "101", kind: "raid" } },
+    conversion: json("scripts/gearing/config/conversion.json"),
+    blueMage: json("scripts/gearing/config/blue-mage.json"),
+  };
+  const before = convert(fixture().raw, config).data.items.find(
+    (i) => i.id === 101,
+  );
+  config.sources.raid.label = "Renamed raid";
+  const after = convert(fixture().raw, config).data.items.find(
+    (i) => i.id === 101,
+  );
+  assert.equal(before.sourceId, after.sourceId);
+  assert.equal(after.acquisitionKind, "raid");
+  assert.notEqual(before.source, after.source);
 });

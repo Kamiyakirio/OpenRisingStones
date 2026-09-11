@@ -11,7 +11,6 @@
   "customWeaponRules": [
     {
       "id": "manderville",
-      "source": "曼德维尔武器",
       "itemLevels": {
         "645": {
           "major": 293,
@@ -21,47 +20,21 @@
           "major": 306,
           "minor": 72
         }
-      }
+      },
+      "sourceId": "source-369f25095fbcad96"
     },
     {
       "id": "huanjing",
-      "source": "幻境武器",
       "itemLevels": {
         "795": {
           "major": 447,
           "minor": 108
         }
-      }
+      },
+      "sourceId": "source-3c56cbb6e4e857c3"
     }
   ],
   "acquisition": {
-    "acquisitionRules": [
-      {
-        "kind": "tomestone",
-        "sourcePrefix": "点数/",
-        "ringExclusive": true
-      },
-      {
-        "kind": "augmentedTomestone",
-        "sourcePrefix": "点数强化/",
-        "ringExclusive": true
-      },
-      {
-        "kind": "raid",
-        "sourcePrefix": "大型任务/",
-        "ringExclusive": true
-      },
-      {
-        "kind": "raid",
-        "sourcePrefix": "零式/",
-        "ringExclusive": true
-      },
-      {
-        "kind": "dungeon",
-        "sourcePrefix": "迷宫挑战/",
-        "ringExclusive": true
-      }
-    ],
     "tomestoneCostsBySlot": {
       "3": 495,
       "4": 825,
@@ -99,6 +72,5 @@
     "gcdOptimizationDamageTolerance": 1e-10,
     "gcdOptimizationBoundTolerance": 1e-10,
     "productionMateriaSearchStateLimit": 350000
-  },
-  "requiredSpeedSearch": [0, 0, 1000, 100000, 2, 100000, 2, 1]
+  }
 }

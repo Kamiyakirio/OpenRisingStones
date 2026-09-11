@@ -1,12 +1,5 @@
 {
-  "formatVersion": 1,
-  "formulaLengths": {
-    "floor": 1,
-    "calcGcd": 8,
-    "calcRequiredSpeed": 8,
-    "calcEffects": 38,
-    "getCaps": 1
-  },
+  "formatVersion": 2,
   "itemFields": [
     "best",
     "customizable",
@@ -14,6 +7,7 @@
     "equipLevelVariable",
     "hq",
     "id",
+    "iconId",
     "jobCategory",
     "level",
     "materiaAdvanced",
@@ -28,6 +22,23 @@
     "source",
     "statMain",
     "statRates",
-    "stats"
+    "stats",
+    "baseStats",
+    "hqStats",
+    "sourceId",
+    "acquisitionKind"
+  ],
+  "positiveCoefficients": [
+    "capDivisor",
+    "gcd.baseDivisor",
+    "gcd.modifierDivisor",
+    "gcd.resultDivisor",
+    "effects.critical.divisor",
+    "effects.determination.divisor",
+    "effects.directHit.divisor",
+    "effects.tenacity.divisor",
+    "effects.weaponDivisor",
+    "effects.main.divisor",
+    "effects.speed.divisor"
   ]
 }

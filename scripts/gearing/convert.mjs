@@ -5,6 +5,12 @@ export function convert(raw, config) {
   const statAbbrs = { ...config.conversion.statAbbrs };
   const jobs = Object.keys(config.rules.jobSchemas);
   const sourceOfId = sourceIndex(config.sources);
+  const sourcesByLabel = Object.fromEntries(
+    Object.entries(config.sources).map(([id, source]) => [
+      source.label,
+      { id, ...source },
+    ]),
+  );
   const labels = config.conversion.sourceLabels;
   const BaseParam = loadExd("BaseParam.csv");
   const ClassJobCategory = loadExd("ClassJobCategory.csv");
@@ -63,6 +69,8 @@ export function convert(raw, config) {
     const ret = {};
     ret.id = +x["#"];
     ret.name = x["Name"];
+    const iconId = +x["Icon"];
+    if (Number.isSafeInteger(iconId) && iconId > 0) ret.iconId = iconId;
     ret.level = +x["LevelItem"];
     ret.rarity = +x["Rarity"];
     ret.slot = +x["EquipSlotCategory"];
@@ -83,6 +91,8 @@ export function convert(raw, config) {
     ret.stats = {};
     ret.hq = x["CanBeHq"] === "True" ? true : undefined;
     ret.source = sourceOfId[ret.id];
+    ret.sourceId = sourcesByLabel[ret.source]?.id;
+    ret.acquisitionKind = sourcesByLabel[ret.source]?.kind ?? "other";
     ret.obsolete =
       (ret.rarity === 7 &&
         ret.source !== labels.fate &&
@@ -93,10 +103,15 @@ export function convert(raw, config) {
         : undefined;
     // HQ bonuses are additive; special non-HQ bonuses are handled separately below.
     const rawStats = {};
+    const hqStats = {};
     for (let i = 0; i < 6; i++) {
       rawStats[x[`BaseParam[${i}]`]] ??= 0;
       rawStats[x[`BaseParam[${i}]`]] += +x[`BaseParamValue[${i}]`];
       if (ret.hq) {
+        const stat = statAbbrs[x[`BaseParamSpecial[${i}]`]];
+        if (stat)
+          hqStats[stat] =
+            (hqStats[stat] ?? 0) + +x[`BaseParamValueSpecial[${i}]`];
         rawStats[x[`BaseParamSpecial[${i}]`]] ??= 0;
         rawStats[x[`BaseParamSpecial[${i}]`]] +=
           +x[`BaseParamValueSpecial[${i}]`];
@@ -128,6 +143,15 @@ export function convert(raw, config) {
       ret.stats["MDMG"] = rawStats[13];
     }
     if (Object.keys(ret.stats).length === 0) return;
+    ret.hqStats = Object.fromEntries(
+      Object.entries(hqStats).filter(([stat]) => stat in ret.stats),
+    );
+    ret.baseStats = Object.fromEntries(
+      Object.entries(ret.stats).map(([stat, value]) => [
+        stat,
+        value - (ret.hqStats[stat] ?? 0),
+      ]),
+    );
     if (x["ItemSpecialBonus"] === "9" || x["ItemSpecialBonus"] === "10") {
       ret.occultStats = {};
       for (let i = 0; i < 6; i++) {
@@ -166,6 +190,7 @@ export function convert(raw, config) {
     if (ret.source?.startsWith(labels.craftGather)) {
       const craft =
         "CMS" in ret.stats || "CRL" in ret.stats || "CP" in ret.stats;
+      ret.sourceId += craft ? "-craft" : "-gather";
       ret.source =
         (craft ? labels.craft : labels.gather) +
         ret.source.slice(labels.craftGather.length);
@@ -199,6 +224,8 @@ export function convert(raw, config) {
     const ret = {};
     ret.id = +x["#"];
     ret.name = x["Name"];
+    const iconId = +x["Icon"];
+    if (Number.isSafeInteger(iconId) && iconId > 0) ret.iconId = iconId;
     ret.level = +x["LevelItem"];
     ret.slot = isFood ? -1 : -2;
     ret.jobCategory = undefined;
@@ -327,31 +354,10 @@ export function convert(raw, config) {
       (_, j) => +BaseParam[+i][`MeldParam[${j}]`],
     );
   }
-  const levelGroupBasis = config.conversion.levelGroupBasis;
-  const levelGroupLast = levelGroupBasis.at(-1);
-  // Group by item level while retaining sparse item-ID lookups used by saved share codes.
-  const gearGroups = [];
-  const groupedGears = [];
-  for (const gear of gears) {
-    let groupId = levelGroupBasis.findLast((level) => level <= gear.level);
-    if ((gear.id >= 10337 && gear.id <= 10344) || gear.id === 17726) {
-      groupId = levelGroupLast;
-    }
-    gearGroups[gear.id] = groupId;
-    groupedGears[groupId] ??= [];
-    groupedGears[groupId].push(gear);
-  }
-  const bluMdmgAdditions = config.blueMage;
-
   const data = {
-    bluMdmgAdditions,
-    foods,
-    gearGroupBasis: levelGroupBasis,
-    gearGroups,
+    items: [...gears, ...foods],
+    bluMdmgAdditions: config.blueMage,
   };
-  for (const id of levelGroupBasis)
-    data["gears-" + (id === levelGroupLast ? "recent" : id)] =
-      groupedGears[id] ?? [];
   Object.assign(data, {
     jobCategories: jobCategoriesUsed,
     levelCaps,
