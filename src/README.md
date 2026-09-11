@@ -5,7 +5,7 @@ domain logic together instead of adding global component or service folders.
 
 - `app/` composes navigation, theme, authentication, diagnostics, and settings.
   Its components are the application shell, including the header and footer.
-- `pages/` assembles the home, glamour, recruitment, teleport, and gearing entrypoints.
+- `pages/` assembles the home, glamour, recruitment, teleport, gearing, and fishing entrypoints.
   Page components connect feature hooks to feature UI and application chrome.
 - `features/auth/` owns login methods, session state, expiry events, and consent.
 - `features/glamour/` owns discovery, details, equipment search, Wiki integration,
@@ -20,9 +20,15 @@ domain logic together instead of adding global component or service folders.
   SVG icons share one sprite. `data/generated/` is ignored and must be produced
   by `npm run gearing:data:update` before development, builds, or tests.
   The owned generator and editable input rules live under `scripts/gearing/`.
+- `features/fishing/` owns catalog filtering, time/weather windows, catch sheets,
+  and device-local fishing progress. Its ignored offline snapshot is in `public/data/fishing/`;
+  `npm run fishing:data:update` generates it before development, builds, or tests.
+  Only the importer and licenses are committed; built applications include the generated asset.
 - `features/settings/` owns local-data clearing and its confirmation UI.
 - `shared/` contains reusable UI, hooks, avatar loading, runtime detection, and the
   typed game bridge used by both glamour and teleport.
+  `shared/wiki/` owns item acquisition transport, parsing, verification, and caching
+  for both glamour equipment and fishing bait.
 
 Within a feature, use `api/` for transport, `components/` for UI, `hooks/` for state
 and effects, and `utils/` for pure logic or browser persistence. Add directories

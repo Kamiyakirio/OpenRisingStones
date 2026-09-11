@@ -1,6 +1,7 @@
 /** Shared application identity, navigation, theme, and account controls. */
 import {
   CoatHanger,
+  FishSimple,
   GearSix,
   House,
   MapTrifold,
@@ -51,6 +52,7 @@ export function AppHeader({
     ["glamour", "幻化", CoatHanger],
     ["teleport", "超域传送", MapTrifold],
     ["gearing", "配装", Sword],
+    ["fishing", "钓鱼数据库", FishSimple],
   ] satisfies Array<[ActiveFeature, string, typeof House]>;
   return (
     <header className="app-header">

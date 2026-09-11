@@ -2,6 +2,7 @@
 import {
   ArrowRight,
   CoatHanger,
+  FishSimple,
   MapTrifold,
   Sword,
   UsersThree,
@@ -13,6 +14,7 @@ type HomePageProps = {
   onOpenGlamour: () => void;
   onOpenTeleport: () => void;
   onOpenGearing: () => void;
+  onOpenFishing: () => void;
 };
 
 export function HomePage({
@@ -20,6 +22,7 @@ export function HomePage({
   onOpenGlamour,
   onOpenTeleport,
   onOpenGearing,
+  onOpenFishing,
 }: HomePageProps) {
   const features = [
     {
@@ -45,6 +48,12 @@ export function HomePage({
       description: "搭配装备与魔晶石，计算属性",
       icon: Sword,
       open: onOpenGearing,
+    },
+    {
+      name: "钓鱼数据库",
+      description: "查询鱼类、钓获条件，记录钓鱼进度",
+      icon: FishSimple,
+      open: onOpenFishing,
     },
   ];
   return (

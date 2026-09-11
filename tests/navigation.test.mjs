@@ -4,14 +4,26 @@ import test from "node:test";
 import { featureFromHash } from "../src/app/navigation.ts";
 
 test("browser history returning to the initial URL selects home", () => {
-  for (const previous of ["glamour", "recruit", "teleport", "gearing"]) {
+  for (const previous of [
+    "glamour",
+    "recruit",
+    "teleport",
+    "gearing",
+    "fishing",
+  ]) {
     assert.equal(featureFromHash("", previous), "home");
     assert.equal(featureFromHash("#home", previous), "home");
   }
 });
 
 test("explicit feature links select their destination", () => {
-  for (const feature of ["glamour", "recruit", "teleport", "gearing"]) {
+  for (const feature of [
+    "glamour",
+    "recruit",
+    "teleport",
+    "gearing",
+    "fishing",
+  ]) {
     assert.equal(featureFromHash(`#${feature}`, "home"), feature);
   }
 });

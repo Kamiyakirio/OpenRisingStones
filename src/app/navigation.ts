@@ -1,6 +1,6 @@
 /** Maps application destinations and feature-owned section anchors to their workspace. */
 export type ActiveFeature =
-  "home" | "glamour" | "recruit" | "teleport" | "gearing";
+  "home" | "glamour" | "recruit" | "teleport" | "gearing" | "fishing";
 
 export function featureFromHash(
   hash: string,
@@ -8,7 +8,11 @@ export function featureFromHash(
 ): ActiveFeature {
   const destination = hash.replace(/^#/, "");
   if (!destination || destination === "home") return "home";
-  if (["glamour", "recruit", "teleport", "gearing"].includes(destination))
+  if (
+    ["glamour", "recruit", "teleport", "gearing", "fishing"].includes(
+      destination,
+    )
+  )
     return destination as ActiveFeature;
   if (destination.startsWith("teleport-")) return "teleport";
   if (

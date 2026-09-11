@@ -1,6 +1,6 @@
 # OpenRisingStones
 
-OpenRisingStones 是一个使用 React、TypeScript、Vite 与 Tauri 构建的 FF14 桌面工具集，包含招募、幻化、超域传送和配装。
+OpenRisingStones 是一个使用 React、TypeScript、Vite 与 Tauri 构建的 FF14 桌面工具集，包含招募、幻化、超域传送、配装和钓鱼数据库。
 
 幻化工作区可以在用户明确确认注入风险后读取当前游戏角色的背包、兵装库、投影台和收藏柜，并在投稿列表及详情中标记已持有或同模装备。物品索引使用当前游戏登录会话派生的密钥加密后保存在本机，仅在登录有效时解密；清除本地数据时删除。
 
@@ -33,6 +33,12 @@ npm run gearing:data:update
 分享功能复制原协议的 base62 分享码，可在任意兼容的配装器网址后添加 `?分享码`，也可直接粘贴回本应用导入。
 
 整体架构见 [重构规范](docs/gearing-refactor.md)，维护约束见 [迁移规范](docs/ffxiv-gearing-migration.md)，源码映射与验证记录见 [接入说明](docs/ffxiv-gearing-integration.md)。
+
+## 钓鱼数据库
+
+从首页或侧栏进入，无需登录。支持鱼名与钓点搜索、版本和鱼类等分组筛选、鱼眼计算、窗口倒计时与排序、鱼饵获取方式、收藏及本机钓获记录。鱼王与鱼皇分别展示；缺失条件会明确标注，不代表当前版本的完整图鉴。
+
+钓鱼数据文件不提交到 Git。首次开发、构建或测试前，执行 `npm run fishing:data:update` 生成本地数据；生成结果随构建产物分发。参考实现分析、数据来源与边界见 [钓鱼数据库说明](docs/fishing-database.md)。
 
 ## 构建发布包
 

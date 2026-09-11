@@ -1,4 +1,4 @@
-/** The home directory keeps the requested 2x2 grid inside the shared sidebar shell. */
+/** Equal feature entries extend the shared sidebar directory as tools are added. */
 .product-home {
   display: flex;
   flex-direction: column;
@@ -38,7 +38,8 @@
 .feature-entry:nth-child(odd) {
   border-right: 1px solid var(--ors-color-line);
 }
-.feature-entry:nth-child(-n + 2) {
+.feature-entry:not(:nth-last-child(-n + 2)),
+.feature-entry:nth-last-child(2):nth-child(even) {
   border-bottom: 1px solid var(--ors-color-line);
 }
 .feature-entry strong {
@@ -91,7 +92,7 @@
   .feature-entry:nth-child(odd) {
     border-right: 0;
   }
-  .feature-entry:nth-child(-n + 3) {
+  .feature-entry:not(:last-child) {
     border-bottom: 1px solid var(--ors-color-line);
   }
   .feature-entry-icon {

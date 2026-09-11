@@ -9,6 +9,11 @@ import { TeleportPage } from "../../pages/TeleportPage";
 import type { AppController } from "../hooks/useAppController";
 import { lazy, Suspense } from "react";
 import { GearingErrorBoundary } from "../../features/gearing/components/GearingErrorBoundary";
+const FishingPage = lazy(() =>
+  import("../../pages/FishingPage").then((module) => ({
+    default: module.FishingPage,
+  })),
+);
 const GearingPage = lazy(() =>
   import("../../pages/GearingPage").then((module) => ({
     default: module.GearingPage,
@@ -44,7 +49,12 @@ export function AppView({ viewModel }: AppViewProps) {
             onOpenRecruit={viewModel.openRecruit}
             onOpenTeleport={viewModel.openTeleport}
             onOpenGearing={viewModel.openGearing}
+            onOpenFishing={viewModel.openFishing}
           />
+        ) : viewModel.activeFeature === "fishing" ? (
+          <Suspense fallback={<p role="status">正在加载钓鱼数据库…</p>}>
+            <FishingPage />
+          </Suspense>
         ) : viewModel.activeFeature === "gearing" ? (
           <GearingErrorBoundary onGoHome={viewModel.goHome}>
             <Suspense fallback={<p role="status">正在加载配装…</p>}>
@@ -96,7 +106,8 @@ export function AppView({ viewModel }: AppViewProps) {
         )}
       </div>
       {(viewModel.activeFeature === "home" ||
-        viewModel.activeFeature === "gearing") &&
+        viewModel.activeFeature === "gearing" ||
+        viewModel.activeFeature === "fishing") &&
         viewModel.loginOpen && (
           <LoginDialog
             onClose={viewModel.closeLogin}

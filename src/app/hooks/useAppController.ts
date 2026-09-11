@@ -32,6 +32,10 @@ export function useAppController() {
     () => navigateToFeature(setActiveFeature, "teleport"),
     [],
   );
+  const openFishing = useCallback(
+    () => navigateToFeature(setActiveFeature, "fishing"),
+    [],
+  );
   const goHome = useCallback(
     () => navigateToFeature(setActiveFeature, "home"),
     [],
@@ -75,6 +79,7 @@ export function useAppController() {
     openRecruit,
     openTeleport,
     openGearing,
+    openFishing,
     goHome,
     toggleTheme,
     openSettings,
