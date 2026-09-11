@@ -1,28 +1,31 @@
-/** Direction B: readable tool rows, without a marketing introduction. */
+/** The home directory keeps the requested 2x2 grid inside the shared sidebar shell. */
 .product-home {
   display: flex;
   flex-direction: column;
-  min-height: calc(100dvh - 112px);
+  min-height: 100dvh;
 }
 .product-home h1 {
-  margin: 4px 0 24px;
+  margin: 0 0 28px;
 }
 .feature-directory {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border-block: 1px solid var(--ors-color-line);
 }
 .feature-entry {
   display: grid;
-  grid-template-columns: 24px 120px minmax(0, 1fr) 44px;
+  grid-template-columns: 28px minmax(0, 1fr) 44px;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 24px;
+  gap: 6px 16px;
   width: 100%;
-  min-height: 80px;
-  padding: 16px 24px;
+  min-height: 132px;
+  padding: 28px 24px;
   text-align: left;
-  border: 1px solid var(--ors-color-line);
-  border-radius: var(--ors-radius-panel);
-  background: var(--ors-color-surface);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--ors-color-text);
   transition: background var(--ors-duration-feedback);
 }
@@ -32,25 +35,36 @@
 .feature-entry:active {
   background: var(--ors-color-selected);
 }
+.feature-entry:nth-child(odd) {
+  border-right: 1px solid var(--ors-color-line);
+}
+.feature-entry:nth-child(-n + 2) {
+  border-bottom: 1px solid var(--ors-color-line);
+}
 .feature-entry strong {
+  grid-column: 2;
   font-size: 1.125rem;
   font-weight: 600;
 }
 .feature-entry-icon {
-  width: 24px;
-  height: 24px;
+  grid-row: 1 / 3;
+  width: 28px;
+  height: 28px;
   color: var(--ors-color-accent);
 }
 .feature-description {
+  grid-column: 2;
   color: var(--ors-color-muted);
   line-height: 1.6;
 }
 .feature-entry-action {
+  grid-column: 3;
+  grid-row: 1 / 3;
   display: grid;
   place-items: center;
   width: 44px;
   min-height: 36px;
-  border: 1px solid var(--ors-color-accent);
+  border: 0;
   border-radius: var(--ors-radius-control);
   color: var(--ors-color-accent);
 }
@@ -65,10 +79,20 @@
   font-size: 0.75rem;
 }
 @media (max-width: 767px) {
+  .feature-directory {
+    grid-template-columns: 1fr;
+  }
+
   .feature-entry {
     grid-template-columns: 24px minmax(0, 1fr) 40px;
     gap: 4px 16px;
     padding: 16px;
+  }
+  .feature-entry:nth-child(odd) {
+    border-right: 0;
+  }
+  .feature-entry:nth-child(-n + 3) {
+    border-bottom: 1px solid var(--ors-color-line);
   }
   .feature-entry-icon {
     grid-row: 1 / 3;

@@ -6,12 +6,14 @@ export function RecruitStatus({
   icon,
   title,
   description,
+  technicalDetails,
   action,
   onAction,
 }: {
   icon: ReactNode;
   title: string;
   description: string;
+  technicalDetails?: string;
   action: string;
   onAction: () => void;
 }) {
@@ -20,6 +22,12 @@ export function RecruitStatus({
       {icon}
       <h3>{title}</h3>
       <p>{description}</p>
+      {technicalDetails && (
+        <details>
+          <summary>错误详情</summary>
+          <p>{technicalDetails}</p>
+        </details>
+      )}
       <button type="button" onClick={onAction}>
         {action}
       </button>

@@ -169,7 +169,8 @@ export function RecruitDetailView({
           <RecruitStatus
             icon={<WarningCircle weight="duotone" />}
             title="详情暂时无法读取"
-            description={error}
+            description="请检查网络连接后重新加载。"
+            technicalDetails={error}
             action="重新加载"
             onAction={onRetry}
           />

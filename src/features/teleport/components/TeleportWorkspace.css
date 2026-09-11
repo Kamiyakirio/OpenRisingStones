@@ -2,7 +2,7 @@
 
 .teleport-page {
   margin: 0 auto;
-  width: min(1440px, 100%);
+  width: min(1280px, 100%);
   min-height: 0;
   padding: 24px 32px;
 }
@@ -33,6 +33,10 @@
   line-height: 1.5;
   letter-spacing: normal;
   margin: 0;
+}
+
+.teleport-kicker {
+  display: none;
 }
 
 .teleport-hero p {

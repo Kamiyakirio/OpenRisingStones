@@ -116,7 +116,7 @@
   font-size: 0.75rem;
 }
 .eyebrow {
-  display: inline-flex;
+  display: none;
   align-items: center;
   margin-bottom: 24px;
   color: var(--ors-color-accent);
@@ -1119,7 +1119,7 @@ button.equipment-card:hover {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  width: min(1440px, 100%);
+  width: min(1280px, 100%);
   margin: 0 auto;
   padding: 24px 32px;
   color: var(--ors-color-muted);

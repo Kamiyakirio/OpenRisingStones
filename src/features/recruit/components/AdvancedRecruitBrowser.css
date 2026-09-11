@@ -2,7 +2,7 @@
 .advanced-recruit-page {
   min-height: calc(100dvh - 74px);
   margin: 0 auto;
-  width: min(1440px, 100%);
+  width: min(1280px, 100%);
   padding: 24px 32px;
 }
 

@@ -21,16 +21,18 @@
   color: var(--ors-color-text);
   background: var(--ors-color-canvas);
   font-family: var(--ors-font-ui);
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   line-height: 1.6;
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
 }
 .workspace-content {
   min-width: 0;
 }
 main {
-  width: min(1440px, 100%);
+  width: min(1280px, 100%);
   margin: 0 auto;
-  padding: 24px 32px;
+  padding: 32px;
 }
 h1 {
   font-family: var(--ors-font-heading);
@@ -120,12 +122,17 @@ progress {
 }
 @media (max-width: 1199px) {
   main {
-    padding-inline: 24px;
+    padding-inline: 28px;
+  }
+}
+@media (max-width: 899px) {
+  .app {
+    display: block;
   }
 }
 @media (max-width: 767px) {
   main {
-    padding: 24px 16px;
+    padding: 24px 20px;
   }
 }
 @media (pointer: coarse) {

@@ -1,12 +1,17 @@
 /** Shared application identity, navigation, theme, and account controls. */
 import {
+  CoatHanger,
   GearSix,
+  House,
+  MapTrifold,
   Moon,
+  Sword,
   Sun,
   SignOut,
   SpinnerGap,
   UserCircle,
   UserCircleCheck,
+  UsersThree,
   WarningCircle,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
@@ -40,13 +45,13 @@ export function AppHeader({
       ?.querySelector('[aria-current="page"]')
       ?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [feature]);
-  const destinations: Array<[ActiveFeature, string]> = [
-    ["home", "首页"],
-    ["recruit", "招募"],
-    ["glamour", "幻化"],
-    ["teleport", "超域传送"],
-    ["gearing", "配装"],
-  ];
+  const destinations = [
+    ["home", "首页", House],
+    ["recruit", "招募", UsersThree],
+    ["glamour", "幻化", CoatHanger],
+    ["teleport", "超域传送", MapTrifold],
+    ["gearing", "配装", Sword],
+  ] satisfies Array<[ActiveFeature, string, typeof House]>;
   return (
     <header className="app-header">
       <div className="app-header-bar">
@@ -67,41 +72,9 @@ export function AppHeader({
         >
           OpenRisingStones
         </a>
-        <div className="header-actions">
-          <button
-            className="icon-button"
-            type="button"
-            aria-label={dark ? "切换浅色主题" : "切换深色主题"}
-            title={dark ? "切换浅色主题" : "切换深色主题"}
-            onClick={onToggleTheme}
-          >
-            {dark ? <Sun /> : <Moon />}
-          </button>
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="打开设置"
-            title="设置"
-            onClick={onOpenSettings}
-          >
-            <GearSix />
-          </button>
-          {profile ? (
-            <AuthenticatedAccountEntry profile={profile} onLogout={onLogout} />
-          ) : (
-            <button
-              className="profile-button"
-              type="button"
-              onClick={onOpenLogin}
-            >
-              <UserCircle />
-              登录
-            </button>
-          )}
-        </div>
       </div>
       <nav className="app-navigation" ref={navigation} aria-label="应用导航">
-        {destinations.map(([key, label]) => (
+        {destinations.map(([key, label, Icon]) => (
           <a
             key={key}
             href={`#${key}`}
@@ -118,10 +91,45 @@ export function AppHeader({
               }
             }}
           >
-            {label}
+            <Icon aria-hidden="true" />
+            <span>{label}</span>
           </a>
         ))}
       </nav>
+      <div className="header-actions">
+        <button
+          className="icon-button"
+          type="button"
+          aria-label={dark ? "切换浅色主题" : "切换深色主题"}
+          title={dark ? "切换浅色主题" : "切换深色主题"}
+          onClick={onToggleTheme}
+        >
+          {dark ? <Sun /> : <Moon />}
+          <span>主题</span>
+        </button>
+        <button
+          className="icon-button"
+          type="button"
+          aria-label="打开设置"
+          title="设置"
+          onClick={onOpenSettings}
+        >
+          <GearSix />
+          <span>设置</span>
+        </button>
+        {profile ? (
+          <AuthenticatedAccountEntry profile={profile} onLogout={onLogout} />
+        ) : (
+          <button
+            className="profile-button"
+            type="button"
+            onClick={onOpenLogin}
+          >
+            <UserCircle />
+            登录
+          </button>
+        )}
+      </div>
     </header>
   );
 }

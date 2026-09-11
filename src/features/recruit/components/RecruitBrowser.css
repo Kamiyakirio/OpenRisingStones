@@ -1,7 +1,7 @@
 /** Recruitment UI: dense public data, calm surfaces, and party slots as the signature. */
 .recruit-page,
 .recruit-detail-page {
-  width: min(1440px, 100%);
+  width: min(1280px, 100%);
   margin: 0 auto;
   padding: 24px 32px;
 }
@@ -11,15 +11,11 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 36px;
-  padding: 0 0 clamp(28px, 4vw, 48px);
+  padding: 0 0 28px;
 }
 
 .recruit-kicker {
-  margin: 0 0 13px;
-  color: var(--ors-color-accent);
-  font-size: 0.75rem;
-  font-weight: 780;
-  letter-spacing: normal;
+  display: none;
 }
 
 .recruit-intro h1 {

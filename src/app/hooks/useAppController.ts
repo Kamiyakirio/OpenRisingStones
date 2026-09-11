@@ -11,9 +11,9 @@ export function useAppController() {
   useNetworkLog();
   const [dark, setDark] = useState(() => {
     try {
-      return localStorage.getItem("ors.theme") !== "light";
+      return localStorage.getItem("ors.theme") === "dark";
     } catch {
-      return true;
+      return false;
     }
   });
   const [activeFeature, setActiveFeature] = useState<ActiveFeature>(() =>
