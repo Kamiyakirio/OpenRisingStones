@@ -1,3 +1,4 @@
+/** Configure React development without watching native binaries or build workspaces. */
 import { defineConfig } from "vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
@@ -16,5 +17,9 @@ export default defineConfig({
     host: process.env.TAURI_DEV_HOST || false,
     port: 1420,
     strictPort: true,
+    watch: {
+      // Tauri watches Rust itself; Vite must not open DLLs held by the native app.
+      ignored: ["**/src-tauri/**", "**/game-bridge/**", "**/.release/**"],
+    },
   },
 });
