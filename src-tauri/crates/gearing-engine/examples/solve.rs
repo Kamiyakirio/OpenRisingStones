@@ -1,18 +1,23 @@
-//! Line-oriented harness for regression checks and repeatable release measurements.
+//! Line-oriented harness for testing the exact same complete request passed over IPC.
 use std::io::{self, BufRead};
 use std::sync::atomic::AtomicBool;
 fn main() {
   for line in io::stdin().lock().lines() {
-    let output = match line
-      .and_then(|line| serde_json::from_str::<serde_json::Value>(&line).map_err(io::Error::other))
-    {
-      Ok(value) => gearing_engine::solve(
+    let result = (|| -> Result<serde_json::Value, String> {
+      let mut value: serde_json::Value =
+        serde_json::from_str(&line.map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+      let parameters = gearing_engine::parameters::Parameters::from_rules(&value["parameters"])?;
+      let input = value["input"].take();
+      Ok(gearing_engine::solve(
+        &parameters,
         value["kind"].as_str().unwrap_or(""),
-        value["input"].clone(),
+        input,
         &AtomicBool::new(false),
-      ),
-      Err(error) => serde_json::json!({"status":"error","message":error.to_string()}),
-    };
-    println!("{output}");
+      ))
+    })();
+    println!(
+      "{}",
+      result.unwrap_or_else(|message| serde_json::json!({"status":"error","message":message}))
+    );
   }
 }

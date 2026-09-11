@@ -6,6 +6,7 @@ mod elevation;
 #[cfg_attr(not(windows), path = "game_bridge_unsupported.rs")]
 mod game_bridge;
 mod gearing;
+mod gearing_storage;
 mod glamour;
 mod glamour_verification;
 mod network;
@@ -69,7 +70,9 @@ pub fn run() {
         owned_items_path,
       ));
       app.manage(avatar::AvatarState::default());
-      app.manage(gearing::GearingState::default());
+      app.manage(gearing::GearingState::with_documents_path(
+        app.path().app_local_data_dir()?.join("gearsets"),
+      ));
       app.manage(glamour_verification::GlamourVerificationState::default());
       app.manage(recruit::RecruitSessionState::default());
       app.manage(wiki::WikiVerificationState::default());
@@ -97,6 +100,7 @@ pub fn run() {
     })
     .invoke_handler(tauri::generate_handler![
       avatar::fetch_rising_stones_avatar,
+      gearing::gearing_request,
       gearing::optimize_gearing,
       gearing::cancel_gearing_optimization,
       elevation::restart_as_administrator,

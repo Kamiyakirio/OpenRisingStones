@@ -19,7 +19,7 @@ fn dot(weights: &[f64; N], stats: &Stats) -> f64 {
   weights.iter().zip(stats.values).map(|(a, b)| a * b).sum()
 }
 fn factor(ctx: &Context, stat: usize, value: f64) -> f64 {
-  let p = &crate::parameters::parameters().effects;
+  let p = &ctx.input.parameters.coefficients.effects;
   let schema = &ctx.input.rules.schema;
   let level = &ctx.input.rules.level;
   let main = schema.main_stat.as_deref().unwrap();
@@ -30,34 +30,60 @@ fn factor(ctx: &Context, stat: usize, value: f64) -> f64 {
     18
   };
   if stat == stat_index(attack).unwrap() {
-    return formula::floor(
+    return ctx.input.parameters.floor(
       (if main == "VIT" {
         level.ap_tank
       } else {
         level.ap
-      }) * (formula::floor(value * schema.party_bonus.unwrap_or(p[25])) - level.main)
+      }) * (ctx
+        .input
+        .parameters
+        .floor(value * schema.party_bonus.unwrap_or(p.main.party_bonus))
+        - level.main)
         / level.main
-        + p[26],
-    ) / p[27];
+        + p.main.damage_base,
+    ) / p.main.divisor;
   }
   if stat == weapon {
-    return formula::floor(
-      level.main * schema.stat_modifiers.get(attack).copied().unwrap_or(100.0) / p[18],
+    return ctx.input.parameters.floor(
+      level.main * schema.stat_modifiers.get(attack).copied().unwrap_or(100.0) / p.weapon_divisor,
     ) + value;
   }
   match stat {
     5 => {
-      let chance = formula::floor(p[2] * (value - level.sub) / level.div + p[3]) / p[4];
-      let amount = formula::floor(p[5] * (value - level.sub) / level.div + p[6]) / p[7];
-      (amount - p[29]) * chance + p[30]
+      let chance =
+        ctx.input.parameters.floor(
+          p.critical.chance_scale * (value - level.sub) / level.div + p.critical.chance_base,
+        ) / p.critical.divisor;
+      let amount =
+        ctx.input.parameters.floor(
+          p.critical.damage_scale * (value - level.sub) / level.div + p.critical.damage_base,
+        ) / p.critical.divisor;
+      (amount - 1.0) * chance + 1.0
     }
     7 => {
-      formula::floor((p[8] * (value - level.main) / level.det + p[9]) / level.det_trunc)
-        * level.det_trunc
-        / p[10]
+      ctx.input.parameters.floor(
+        (p.determination.scale * (value - level.main) / level.det + p.determination.base)
+          / level.det_trunc,
+      ) * level.det_trunc
+        / p.determination.divisor
     }
-    6 => p[31] * formula::floor(p[11] * (value - level.sub) / level.div) / p[12] + p[32],
-    10 => formula::floor(p[13] * (value - level.sub) / level.div + p[14]) / p[15],
+    6 => {
+      p.direct_hit.damage_bonus
+        * ctx
+          .input
+          .parameters
+          .floor(p.direct_hit.chance_scale * (value - level.sub) / level.div)
+        / p.direct_hit.divisor
+        + 1.0
+    }
+    10 => {
+      ctx
+        .input
+        .parameters
+        .floor(p.tenacity.damage_scale * (value - level.sub) / level.div + p.tenacity.damage_base)
+        / p.tenacity.divisor
+    }
     _ => f64::NAN,
   }
 }
@@ -182,7 +208,7 @@ fn tuned_weights(ctx: &Context, slots: &[SlotStates]) -> Result<Vec<[f64; N]>, S
     return Ok(vec![]);
   }
   let evaluate = |weights: &[f64; N]| {
-    let constant = (crate::parameters::parameters().effects[28]
+    let constant = (ctx.input.parameters.coefficients.effects.potency_scale
       * ctx
         .input
         .rules
@@ -363,7 +389,7 @@ fn duals(
     .collect();
   let mut output = vec![];
   for weights in candidates.unwrap_or(&default_weights) {
-    let mut intercept = (crate::parameters::parameters().effects[28]
+    let mut intercept = (ctx.input.parameters.coefficients.effects.potency_scale
       * ctx
         .input
         .rules
@@ -497,10 +523,8 @@ fn seed_incumbent(
         .speed_range
         .map_or(0.0, |r| (speed - r.max).max(0.0));
     if let Some(weeks) = ctx.input.progression_weeks {
-      violation +=
-        (state.points as f64 - weeks * crate::parameters::parameters().points_per_week).max(0.0);
-      violation +=
-        (state.raid as f64 - weeks * crate::parameters::parameters().raid_per_week).max(0.0);
+      violation += (state.points as f64 - weeks * ctx.input.parameters.points_per_week).max(0.0);
+      violation += (state.raid as f64 - weeks * ctx.input.parameters.raid_per_week).max(0.0);
     }
     (violation, formula::effects(ctx.input, &stats).damage)
   };
@@ -556,10 +580,10 @@ fn seed_incumbent(
 }
 
 fn filter_choices(ctx: &Context, slots: &mut [SlotStates], bounds: &mut [Dual], best: f64) -> bool {
-  let threshold = (best - crate::parameters::parameters().damage_tolerance)
+  let threshold = (best - ctx.input.parameters.damage_tolerance)
     .max(f64::MIN_POSITIVE)
     .ln()
-    - crate::parameters::parameters().bound_tolerance;
+    - ctx.input.parameters.bound_tolerance;
   loop {
     let maximums: Vec<Vec<f64>> = bounds
       .iter()
@@ -717,18 +741,18 @@ pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Va
         }
         if self.duals.iter().any(|d| {
           d.intercept + dot(&d.weights, &state.stats) + d.suffix[index]
-            < (best.effects.damage - crate::parameters::parameters().damage_tolerance)
+            < (best.effects.damage - self.ctx.input.parameters.damage_tolerance)
               .max(f64::MIN_POSITIVE)
               .ln()
-              - crate::parameters::parameters().bound_tolerance
+              - self.ctx.input.parameters.bound_tolerance
         }) {
           return Ok(());
         }
         let needed = (self.required_raw - speed).max(0.0) as usize;
-        let threshold = (best.effects.damage - crate::parameters::parameters().damage_tolerance)
+        let threshold = (best.effects.damage - self.ctx.input.parameters.damage_tolerance)
           .max(f64::MIN_POSITIVE)
           .ln()
-          - crate::parameters::parameters().bound_tolerance;
+          - self.ctx.input.parameters.bound_tolerance;
         if self.speed_bounds.iter().any(|bound| {
           bound.intercept + dot(&bound.weights, &state.stats) + bound.suffixes[index][needed]
             < threshold
@@ -738,7 +762,7 @@ pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Va
         if self.ctx.input.job != "BLU" {
           let stats = formula::final_stats(self.ctx.input, &high, self.food);
           if formula::effects(self.ctx.input, &stats).damage
-            < best.effects.damage - crate::parameters::parameters().damage_tolerance
+            < best.effects.damage - self.ctx.input.parameters.damage_tolerance
           {
             return Ok(());
           }
@@ -772,7 +796,7 @@ pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Va
       }
       self.seen[index].insert(key, (speed, state.change));
       self.nodes += 1;
-      if self.seen[index].len() > crate::parameters::parameters().exact_limit {
+      if self.seen[index].len() > self.ctx.input.parameters.exact_limit {
         return Err(RANGE_ERROR.into());
       }
       for i in 0..self.slots[index].states.len() {

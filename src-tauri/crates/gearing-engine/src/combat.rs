@@ -23,8 +23,8 @@ pub(crate) struct SlotStates {
 impl Context<'_> {
   pub fn budget(&self, state: &State) -> bool {
     self.input.progression_weeks.map_or(true, |w| {
-      state.points as f64 <= crate::parameters::parameters().points_per_week * w
-        && state.raid as f64 <= crate::parameters::parameters().raid_per_week * w
+      state.points as f64 <= self.input.parameters.points_per_week * w
+        && state.raid as f64 <= self.input.parameters.raid_per_week * w
     })
   }
   fn current(&self, slot: i32) -> Option<&CombatGear> {
@@ -128,6 +128,28 @@ impl Context<'_> {
     }
     stats
   }
+  fn fixed_stats(&self, g: &CombatGear) -> Stats {
+    let mut stats = self.base(g, g.custom_stats);
+    if g.sync_caps.is_none() {
+      for m in &g.materias {
+        if let (Some(stat), Some(grade)) = (&m.stat, m.grade) {
+          if let (Ok(i), Some(value)) = (
+            stat_index(stat),
+            self
+              .input
+              .rules
+              .materias
+              .get(stat)
+              .and_then(|v| v.get(grade.wrapping_sub(1))),
+          ) {
+            let base = stats.get(i);
+            stats.set(i, (base + value).min(base.max(g.caps.get(i))));
+          }
+        }
+      }
+    }
+    stats
+  }
   fn custom_options(&self, g: &CombatGear) -> Vec<(Stats, String, Option<String>)> {
     let Some(rule) = &g.custom_rule else {
       return vec![];
@@ -198,7 +220,7 @@ impl Context<'_> {
     if self.input.progression_weeks.is_some() {
       initial.points = if weapon && g.acquisition.kind == "tomestone" {
         if self.charge_slot == Some(g.slot) {
-          crate::parameters::parameters().weapon_cost
+          self.input.parameters.weapon_cost
         } else {
           0
         }
@@ -215,6 +237,20 @@ impl Context<'_> {
         custom_stats,
       })))
     };
+    if g.materia_locked {
+      if let Some((_, key, linked)) = self.custom_options(g).into_iter().find(|(stats, _, _)| {
+        g.custom_stats
+          .is_some_and(|current| current.values == stats.values)
+      }) {
+        initial.allocation = Some(key);
+        initial.linked = linked;
+      }
+      return Ok(vec![State {
+        stats: self.fixed_stats(g),
+        plan: make_plan(Some(g.materias.clone()), g.custom_stats),
+        ..initial
+      }]);
+    }
     let custom = self.custom_options(g);
     if !custom.is_empty() {
       return Ok(
@@ -396,6 +432,7 @@ impl Context<'_> {
       self.speed,
       self.required,
       self.cancelled,
+      self.input.parameters.frontier_limit,
     )
   }
   fn grouped_prune(&self, states: Vec<State>, ring: bool) -> Result<Vec<State>, String> {
@@ -452,7 +489,7 @@ impl Context<'_> {
       .filter(|(_, s)| {
         let slot = &self.input.rules.schema.slots[s.index];
         if ring {
-          slot.slot.abs() == 12
+          slot.slot == 12 || slot.slot == 24
         } else {
           slot.ui_group == "weapon" && s.states.iter().any(|s| s.allocation.is_some())
         }
@@ -528,8 +565,8 @@ impl Context<'_> {
             .iter()
             .all(|&i| choices[i].1.len() == 1 && choices[i].1[0].acquisition.kind == "tomestone");
         if force {
-          if weeks * crate::parameters::parameters().points_per_week
-            < crate::parameters::parameters().weapon_cost as f64
+          if weeks * self.input.parameters.points_per_week
+            < self.input.parameters.weapon_cost as f64
           {
             return Err("The progression budget cannot purchase the required weapon.".into());
           }
@@ -572,7 +609,9 @@ impl Context<'_> {
         )?);
       }
       if self.input.mode == "all" {
-        states = if self.input.rules.schema.slots[index].slot.abs() == 12 {
+        states = if self.input.rules.schema.slots[index].slot == 12
+          || self.input.rules.schema.slots[index].slot == 24
+        {
           self.grouped_prune(states, true)?
         } else if states.iter().any(|s| s.allocation.is_some()) {
           self.grouped_prune(states, false)?
@@ -596,9 +635,15 @@ impl Context<'_> {
   }
 }
 
-pub(crate) fn better(a: &Candidate, b: &Candidate, speed: usize, required: f64) -> bool {
+pub(crate) fn better(
+  a: &Candidate,
+  b: &Candidate,
+  speed: usize,
+  required: f64,
+  tolerance: f64,
+) -> bool {
   let diff = a.effects.damage - b.effects.damage;
-  if diff.abs() > crate::parameters::parameters().damage_tolerance {
+  if diff.abs() > tolerance {
     return diff > 0.0;
   }
   let ao = (a.stats.get(speed) - required).max(0.0);
@@ -679,11 +724,15 @@ impl Evaluation {
     {
       return;
     }
-    if self
-      .best
-      .as_ref()
-      .map_or(true, |old| better(&candidate, old, ctx.speed, ctx.required))
-    {
+    if self.best.as_ref().map_or(true, |old| {
+      better(
+        &candidate,
+        old,
+        ctx.speed,
+        ctx.required,
+        ctx.input.parameters.damage_tolerance,
+      )
+    }) {
       self.best = Some(candidate);
     }
   }
@@ -740,9 +789,7 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
   {
     return Err("Invalid combat gear input.".into());
   }
-  if !(crate::parameters::parameters().target_min..=crate::parameters::parameters().target_max)
-    .contains(&input.target_gcd)
-  {
+  if !(input.parameters.target_min..=input.parameters.target_max).contains(&input.target_gcd) {
     return Err("Target GCD must be between 1.80s and 2.50s.".into());
   }
   if input
@@ -756,7 +803,7 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
       || r.max.fract() != 0.0
       || r.min < 0.0
       || r.max < r.min
-      || r.max > crate::parameters::parameters().max_speed
+      || r.max > input.parameters.max_speed
   }) {
     return Err("Invalid speed stat range.".into());
   }
@@ -825,7 +872,7 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
     ..State::default()
   }];
   for slot in &slots {
-    if states.len() * slot.states.len() > frontier::limit() * 20 {
+    if states.len() * slot.states.len() > input.parameters.frontier_limit * 20 {
       return super::exact::optimize(&ctx, &slots, skipped);
     }
     let combined: Vec<_> = states

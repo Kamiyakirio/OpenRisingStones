@@ -315,7 +315,11 @@ pub fn sdo_logout(state: State<'_, LoginState>) -> Result<(), String> {
 
 /// Remove credentials and every application-owned local cache.
 #[tauri::command]
-pub fn clear_all_local_data(state: State<'_, LoginState>) -> Result<(), String> {
+pub fn clear_all_local_data(
+  state: State<'_, LoginState>,
+  gearing: State<'_, crate::gearing::GearingState>,
+) -> Result<(), String> {
+  gearing.clear_documents()?;
   clear_all_local_data_inner(&state)
 }
 

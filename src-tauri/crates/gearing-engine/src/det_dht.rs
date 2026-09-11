@@ -1,5 +1,5 @@
 //! Exact DET/DHT distribution search retaining near-optimal alternatives and existing melds.
-use crate::{check_cancelled, formula, parameters::parameters, types::*};
+use crate::{check_cancelled, formula, types::*};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{collections::BTreeMap, sync::atomic::AtomicBool};
@@ -7,6 +7,8 @@ use std::{collections::BTreeMap, sync::atomic::AtomicBool};
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Input {
+  #[serde(skip)]
+  pub parameters: crate::parameters::Parameters,
   base_stats: Stats,
   gears: Vec<Gear>,
   food: Option<Food>,
@@ -152,12 +154,12 @@ pub fn optimize(input: Input, cancelled: &AtomicBool) -> Result<Value, String> {
         );
       }
     }
-    if next.len() > parameters().frontier_limit {
+    if next.len() > input.parameters.frontier_limit {
       return Err("DET/DHT search range too large.".into());
     }
     frontier = next;
   }
-  let p = &parameters().effects;
+  let p = &input.parameters.coefficients.effects;
   let mut scored = vec![];
   let mut maximum = 0.0_f64;
   for state in frontier.into_values() {
@@ -166,23 +168,25 @@ pub fn optimize(input: Input, cancelled: &AtomicBool) -> Result<Value, String> {
     stats.set(7, state.pair.0 as f64);
     stats.set(6, state.pair.1 as f64);
     if let Some(food) = &input.food {
-      stats = stats.add(&formula::food_bonus(&stats, food));
+      stats = stats.add(&formula::food_bonus(&input.parameters, &stats, food));
     }
-    let det = formula::floor(
-      (p[8] * (stats.get(7) - input.level.main) / input.level.det + p[9]) / input.level.det_trunc,
+    let det = input.parameters.floor(
+      (p.determination.scale * (stats.get(7) - input.level.main) / input.level.det
+        + p.determination.base)
+        / input.level.det_trunc,
     ) * input.level.det_trunc
-      / p[10];
-    let direct = formula::floor(
-      p[11] * (stats.get(6) - input.level.sub) / input.level.div
-        + if input.blu { p[0] } else { p[1] },
-    ) / p[12];
-    let damage = det * (p[31] * direct + p[32]);
+      / p.determination.divisor;
+    let direct = input.parameters.floor(
+      p.direct_hit.chance_scale * (stats.get(6) - input.level.sub) / input.level.div
+        + if input.blu { p.blue_mimicry } else { 0.0 },
+    ) / p.direct_hit.divisor;
+    let damage = det * (p.direct_hit.damage_bonus * direct + 1.0);
     maximum = maximum.max(damage);
     scored.push((damage, state, stats));
   }
   let mut unique = BTreeMap::new();
   for (damage, state, stats) in scored {
-    if damage <= maximum * parameters().det_dht_ratio {
+    if damage <= maximum * input.parameters.det_dht_ratio {
       continue;
     }
     let key = (stats.get(7) as i64, stats.get(6) as i64);

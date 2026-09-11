@@ -167,6 +167,7 @@ impl Context<'_> {
       route: Vec<usize>,
       failed: HashSet<(usize, usize, [i32; 3])>,
       states: usize,
+      state_limit: usize,
       cancelled: &'a AtomicBool,
     }
     impl Search<'_> {
@@ -199,7 +200,7 @@ impl Context<'_> {
           return Ok(false);
         }
         self.states += 1;
-        if self.states > crate::parameters::parameters().production_limit {
+        if self.states > self.state_limit {
           return Err("Search range too large; adjust target stats.".into());
         }
         let mut order: Vec<usize> = (0..self.choices[index].len()).collect();
@@ -236,6 +237,7 @@ impl Context<'_> {
       route: vec![0; gears.len()],
       failed: HashSet::new(),
       states: 0,
+      state_limit: self.input.parameters.production_limit,
       cancelled: self.cancelled,
     };
     let needed = std::array::from_fn(|s| {

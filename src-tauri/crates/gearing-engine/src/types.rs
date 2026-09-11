@@ -141,6 +141,8 @@ pub struct CustomRule {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CombatGear {
+  #[serde(default)]
+  pub materia_locked: bool,
   pub id: i64,
   pub slot: i32,
   pub data: GearData,
@@ -213,6 +215,8 @@ pub struct SpeedRange {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CombatInput {
+  #[serde(skip)]
+  pub parameters: crate::parameters::Parameters,
   pub mode: String,
   pub target_gcd: f64,
   pub speed_range: Option<SpeedRange>,
@@ -247,6 +251,8 @@ pub struct ProductionGear {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductionInput {
+  #[serde(skip)]
+  pub parameters: crate::parameters::Parameters,
   pub stats: [String; 3],
   pub base_stats: Stats,
   pub targets: Stats,

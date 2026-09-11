@@ -50,9 +50,6 @@ impl State {
     output
   }
 }
-pub fn limit() -> usize {
-  crate::parameters::parameters().frontier_limit
-}
 pub const RANGE_ERROR: &str = "Search range too large; narrow the item level range.";
 pub fn unique(
   states: impl IntoIterator<Item = State>,
@@ -191,6 +188,7 @@ pub fn prune(
   speed: usize,
   required: f64,
   cancelled: &AtomicBool,
+  limit: usize,
 ) -> Result<Vec<State>, String> {
   check_cancelled(cancelled)?;
   let mut states = unique(states, relevant, speed, required);
@@ -249,7 +247,7 @@ pub fn prune(
     .enumerate()
     .filter_map(|(i, s)| keep[i].then_some(s))
     .collect();
-  if output.len() > limit() {
+  if output.len() > limit {
     Err(RANGE_ERROR.into())
   } else {
     Ok(output)

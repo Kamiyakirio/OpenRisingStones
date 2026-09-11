@@ -15,18 +15,37 @@ struct Jobs {
   cancelled: HashMap<String, std::time::Instant>,
 }
 pub struct GearingState {
+  documents_path: std::path::PathBuf,
+  saves: Arc<Mutex<()>>,
   jobs: Mutex<Jobs>,
   permits: Arc<tokio::sync::Semaphore>,
 }
 impl Default for GearingState {
   fn default() -> Self {
     Self {
+      documents_path: std::env::temp_dir().join("ors-gearing-test-documents"),
+      saves: Arc::new(Mutex::new(())),
       jobs: Mutex::new(Jobs::default()),
       permits: Arc::new(tokio::sync::Semaphore::new(2)),
     }
   }
 }
 impl GearingState {
+  pub fn clear_documents(&self) -> Result<(), String> {
+    let _guard = self.saves.lock().map_err(|e| e.to_string())?;
+    match std::fs::remove_dir_all(&self.documents_path) {
+      Ok(()) => Ok(()),
+      Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+      Err(error) => Err(error.to_string()),
+    }
+  }
+
+  pub fn with_documents_path(documents_path: std::path::PathBuf) -> Self {
+    Self {
+      documents_path,
+      ..Self::default()
+    }
+  }
   fn begin(&self, id: &str) -> Result<Arc<AtomicBool>, String> {
     let mut jobs = self.jobs.lock().map_err(|e| e.to_string())?;
     jobs
@@ -69,17 +88,9 @@ pub async fn optimize_gearing(
   kind: String,
   request_id: String,
   input: Value,
-  data_version: String,
-  parameter_version: String,
+  parameters: Value,
   state: State<'_, GearingState>,
 ) -> Result<Value, String> {
-  let manifest: Value = serde_json::from_str(include_str!(
-    "../../src/features/gearing/data/generated/manifest.json"
-  ))
-  .map_err(|e| e.to_string())?;
-  if manifest["dataVersion"] != data_version || manifest["parameterVersion"] != parameter_version {
-    return Err("Gearing data versions do not match; restart the application.".into());
-  }
   if !["combat", "production", "det-dht"].contains(&kind.as_str())
     || request_id.is_empty()
     || request_id.len() > 80
@@ -96,7 +107,33 @@ pub async fn optimize_gearing(
   let output = tauri::async_runtime::spawn_blocking(move || {
     let _permit = permit;
     let start = std::time::Instant::now();
-    let result = gearing_engine::solve(&kind, input, &cancelled);
+    let result = (|| -> Result<Value, String> {
+      let parameters = gearing_engine::parameters::Parameters::from_rules(&parameters)?;
+      let mut result = gearing_engine::solve(&parameters, &kind, input, &cancelled);
+      if result["status"] == "error" {
+        result["status"] = json!(if cancelled.load(Ordering::Relaxed) {
+          "cancelled"
+        } else if result["message"]
+          .as_str()
+          .is_some_and(|m| m.contains("range too large"))
+        {
+          "limited"
+        } else {
+          "invalid"
+        });
+      }
+      Ok(result)
+    })()
+    .unwrap_or_else(|message| {
+      let status = if cancelled.load(Ordering::Relaxed) {
+        "cancelled"
+      } else if message.contains("range too large") {
+        "limited"
+      } else {
+        "invalid"
+      };
+      json!({"status":status,"message":message})
+    });
     log::debug!(
       "Gearing {kind} calculation finished in {} ms",
       start.elapsed().as_millis()
@@ -151,12 +188,21 @@ mod tests {
     }
     assert!(state.begin("overflow").is_err());
   }
-
   #[test]
-  fn ipc_dispatches_native_search_and_rejects_stale_data() {
+  fn ipc_runs_prepared_solver_inputs_and_opaque_storage() {
+    let data: Value = serde_json::from_str(
+      &std::fs::read_to_string(
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+          .join("../src/features/gearing/data/generated/catalog.json"),
+      )
+      .unwrap(),
+    )
+    .unwrap();
+    let root = std::env::temp_dir().join(format!("gearing-ipc-{}", std::process::id()));
     let app = tauri::test::mock_builder()
-      .manage(GearingState::default())
+      .manage(GearingState::with_documents_path(root.clone()))
       .invoke_handler(tauri::generate_handler![
+        gearing_request,
         optimize_gearing,
         cancel_gearing_optimization
       ])
@@ -165,14 +211,6 @@ mod tests {
     let view = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
       .build()
       .unwrap();
-    let manifest: Value = serde_json::from_str(include_str!(
-      "../../src/features/gearing/data/generated/manifest.json"
-    ))
-    .unwrap();
-    let rules: Value = serde_json::from_str(include_str!(
-      "../../src/features/gearing/data/generated/rules.json"
-    ))
-    .unwrap();
     let call = |cmd: &str, body: Value| {
       tauri::test::get_ipc_response(
         &view,
@@ -186,29 +224,62 @@ mod tests {
           invoke_key: tauri::test::INVOKE_KEY.into(),
         },
       )
-      .map(|response| response.deserialize::<Value>().unwrap())
+      .map(|r| r.deserialize::<Value>().unwrap())
     };
-    let mut body = json!({"kind":"production","requestId":"ipc-production","dataVersion":manifest["dataVersion"],"parameterVersion":manifest["parameterVersion"],"input":{
-        "stats":["CMS","CRL","CP"],"baseStats":{"CMS":0,"CRL":0,"CP":0},"targets":{"CMS":10,"CRL":0,"CP":0},
-        "materias":rules["materias"],"gears":[{"gearId":1,"slot":3,"baseStats":{},"caps":{"CMS":100,"CRL":100,"CP":100},"slots":[{"allowedGrades":[1,2,3,4,5,6,7,8,9,10,11,12]}]}]
-    }});
-    let start = std::time::Instant::now();
-    let result = call("optimize_gearing", body.clone()).unwrap();
-    println!(
-      "Gearing mock IPC round trip: {} us",
-      start.elapsed().as_micros()
-    );
-    assert_eq!(result["status"], "ok");
-    assert_eq!(result["plan"][0]["materias"][0]["grade"], 5);
-    body["dataVersion"] = json!("stale");
-    assert!(call("optimize_gearing", body.clone()).is_err());
-    body["dataVersion"] = manifest["dataVersion"].clone();
-    body["requestId"] = json!("cancel-before-start");
+    let doc = json!({"formatVersion":2,"id":"ipc-test","name":"IPC test","job":"SCH","jobLevel":100,"clan":0,"syncLevel":null,"foodId":null,"potionId":null,"equipment":{"mainHand":{"itemId":49512,"materias":[],"customStats":null,"equipmentLocked":false,"materiaLocked":false}},"alternatives":{}});
     call(
-      "cancel_gearing_optimization",
-      json!({"requestId":"cancel-before-start"}),
+      "gearing_request",
+      json!({"operation":"save","input":{"id":"ipc-test","document":doc}}),
     )
     .unwrap();
-    assert!(call("optimize_gearing", body).is_err());
+    let restored = call(
+      "gearing_request",
+      json!({"operation":"load","input":{"id":"ipc-test"}}),
+    )
+    .unwrap();
+    assert_eq!(restored["equipment"], doc["equipment"]);
+    assert!(call(
+      "gearing_request",
+      json!({"operation":"evaluate","input":{}})
+    )
+    .is_err());
+    let mut request = json!({"kind":"production","requestId":"ipc-search","parameters":data["rules"],"input":{"stats":["CMS","CRL","CP"],"baseStats":{"CMS":0,"CRL":0,"CP":0},"targets":{"CMS":10,"CRL":0,"CP":0},"materias":data["rules"]["materias"],"gears":[{"gearId":1,"slot":3,"baseStats":{},"caps":{"CMS":100,"CRL":100,"CP":100},"slots":[{"allowedGrades":[1,2,3,4,5,6,7,8,9,10,11,12]}]}]}});
+    assert_eq!(
+      call("optimize_gearing", request.clone()).unwrap()["status"],
+      "ok"
+    );
+    request["kind"] = json!("invalid");
+    assert!(call("optimize_gearing", request).is_err());
+    tauri::Manager::state::<GearingState>(&app)
+      .clear_documents()
+      .unwrap();
+    assert!(!root.exists());
   }
+}
+
+/// Opaque document I/O only. Browsing, validation and ordinary evaluation stay in TS.
+#[tauri::command]
+pub async fn gearing_request(
+  operation: String,
+  input: Value,
+  state: State<'_, GearingState>,
+) -> Result<Value, String> {
+  let root = state.documents_path.clone();
+  let saves = state.saves.clone();
+  tauri::async_runtime::spawn_blocking(move || {
+    use crate::gearing_storage as storage;
+    match operation.as_str() {
+      "list" => storage::list(&root),
+      "load" => storage::load(&root, input["id"].as_str().ok_or("Missing document ID.")?),
+      "save" => {
+        let id = input["id"].as_str().ok_or("Missing document ID.")?;
+        let _guard = saves.lock().map_err(|e| e.to_string())?;
+        storage::save(&root, id, &input["document"])?;
+        Ok(json!({"id":id}))
+      }
+      _ => Err("Unknown storage operation.".into()),
+    }
+  })
+  .await
+  .map_err(|e| e.to_string())?
 }
