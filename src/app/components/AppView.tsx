@@ -48,7 +48,7 @@ export function AppView({ viewModel }: AppViewProps) {
         ) : viewModel.activeFeature === "gearing" ? (
           <GearingErrorBoundary onGoHome={viewModel.goHome}>
             <Suspense fallback={<p role="status">正在加载配装…</p>}>
-              <GearingPage dark={viewModel.dark} />
+              <GearingPage />
             </Suspense>
           </GearingErrorBoundary>
         ) : viewModel.activeFeature === "glamour" ? (

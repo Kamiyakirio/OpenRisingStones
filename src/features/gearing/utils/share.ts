@@ -1,6 +1,6 @@
 /** Gearing domain module adapted from ffxiv-gearing (MIT); see licenses/ffxiv-gearing. */
 import * as base62 from "./base62.ts";
-import type * as G from "./game.ts";
+import type * as G from "../types.ts";
 
 const reverseMapping = <T>(map: T[]) => {
   const ret: Record<string, number> = {};
