@@ -17,6 +17,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [features]
 default = []
 bundled-python-sidecar = []
+bundled-game-bridge = []
 
 # Debug packages keep the benchmark engine optimized so timings represent shipped code.
 [profile.dev.package.gearing-engine]
