@@ -870,6 +870,65 @@ struct PeImage {
     scan_text: Vec<u8>,
 }
 
+/// Resolve only fixed read-only telemetry fields. Each AOB must match exactly once.
+/// This does not load the payload or relax the manifest gates for its writable API.
+pub(crate) fn resolve_fishing_signatures(
+    process_id: u32,
+) -> BridgeResult<([usize; 4], Vec<(usize, Vec<u8>)>)> {
+    let module = crate::process::target_module_info(process_id)?;
+    let image = parse_pe_image(&fs::read(&module.path)?)?;
+    if image.image_size != module.image_size {
+        return Err(BridgeError::InvalidData(
+            "fishing executable image size mismatch".into(),
+        ));
+    }
+    let patterns = [
+        "4C 8D 0D ?? ?? ?? ?? 4C 8B 13",
+        "48 8D 0D ? ? ? ? E8 ? ? ? ? 44 0F B6 83 ? ? ? ? C6 83",
+        "48 8D 0D ? ? ? ? 45 33 C0 4C 8B F0",
+        "48 8B 1D ?? ?? ?? ?? 8B 7C 24",
+    ];
+    let mut addresses = [0; 4];
+    let mut instructions = Vec::new();
+    for (index, pattern) in patterns.iter().enumerate() {
+        let instruction = RuntimeFunction {
+            pattern: (*pattern).into(),
+            resolve: "direct".into(),
+            offset: 0,
+            next_instruction: 0,
+        };
+        let rva = match resolve_function_rva(&image, &instruction) {
+            Ok(rva) => rva,
+            // A missing optional log address must not disable cast and bite detection.
+            Err(_) if index == 3 => continue,
+            Err(error) => return Err(error),
+        };
+        let length = pattern.split_whitespace().count();
+        let offset = rva - image.text_rva;
+        instructions.push((
+            module.base_address + rva,
+            image.scan_text[offset..offset + length].to_vec(),
+        ));
+        let field = RuntimeFunction {
+            resolve: "rip_relative".into(),
+            offset: 3,
+            next_instruction: 7,
+            ..instruction
+        };
+        let address = resolve_function_rva(&image, &field)?;
+        if address + 8 > image.image_size {
+            return Err(BridgeError::InvalidData(
+                "fishing field extends past the executable image".into(),
+            ));
+        }
+        addresses[index] = module
+            .base_address
+            .checked_add(address)
+            .ok_or_else(|| BridgeError::InvalidData("fishing field address overflow".into()))?;
+    }
+    Ok((addresses, instructions))
+}
+
 fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<SharedGameApi> {
     let manifest: RuntimeManifest = serde_json::from_slice(&fs::read(manifest_path)?)?;
     if manifest.schema_version != 6 {

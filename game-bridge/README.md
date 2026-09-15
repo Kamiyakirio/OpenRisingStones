@@ -15,6 +15,10 @@ The Tauri API accepts only a process ID, an optional manifest filename, and fixe
 
 ## Safety gates
 
+The fishing timer has a separate read-only path in `crates/host/src/fishing*.rs`. It opens the selected game with `PROCESS_VM_READ`, validates unique executable signatures against live instruction bytes, and reads fixed animation/condition fields without loading a DLL. Its optional catch reader follows the Framework/UI log pointers, validates bounded vectors, skips existing entries on attachment, and decodes only local gathering item links during gathering and for five seconds after leaving the stance; result handling does not depend on the current animation. Only the item ID and a session-local sequence reach the timer; chat text is neither emitted nor persisted. Layout/read failures disable catch display without disabling the stopwatch.
+
+Layout references are [FFXIVClientStructs Framework](https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/System/Framework/Framework.cs), [UIModule](https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/UI/UIModule.cs), and [LogModule](https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Component/Log/LogModule.cs). Channel and item-link formats are documented by [Dalamud XivChatType](https://github.com/goatcorp/Dalamud/blob/master/Dalamud/Game/Text/XivChatType.cs) and [ItemPayload](https://github.com/goatcorp/Dalamud/blob/master/Dalamud/Game/Text/SeStringHandling/Payloads/ItemPayload.cs). Game updates may require revalidation. `cargo run --manifest-path game-bridge/Cargo.toml -p game-bridge-host --example fishing_probe -- 120` observes transitions and catch IDs without performing game actions.
+
 The Rust host validates all of the following before loading the payload:
 
 1. Exact game version from `ffxivgame.ver`.

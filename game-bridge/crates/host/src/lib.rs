@@ -1,6 +1,7 @@
 //! Desktop-side process control, IPC monitoring, and semantic game commands.
 
 mod error;
+pub mod fishing;
 mod manager;
 mod world_map;
 
