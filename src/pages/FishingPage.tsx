@@ -9,6 +9,7 @@ import {
 import { kindLabels, timeRequirement } from "../features/fishing/presentation";
 import { WeatherRequirements } from "../features/fishing/Weather";
 import { FishClock } from "../features/fishing/FishClock";
+import { TimerLauncher } from "../features/fishing/timer/TimerLauncher";
 import { FishFilters } from "../features/fishing/FishFilters";
 import { initialFilters, useFishing } from "../features/fishing/useFishing";
 import { useListDetailScroll } from "../shared/hooks/useListDetailScroll";
@@ -66,7 +67,10 @@ export function FishingPage() {
         <>
           <header className="fish-page-heading">
             <h1>钓鱼数据库</h1>
-            <FishClock />
+            <div className="fish-heading-tools">
+              <TimerLauncher />
+              <FishClock />
+            </div>
           </header>
           <p className="fish-catalog-summary">
             图鉴共 {catalog.fish.length} 条 · 垂钓与刺鱼{" "}

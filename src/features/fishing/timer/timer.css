@@ -1,0 +1,297 @@
+/** The floating tool retains the app palette while removing navigation and page whitespace. */
+.fishing-timer-window {
+  min-height: 100dvh;
+  background: var(--ors-color-canvas);
+  color: var(--ors-color-text);
+  border: 1px solid var(--ors-color-control-line);
+  font-size: 13px;
+}
+.fishing-timer-window button {
+  font: inherit;
+  color: inherit;
+  background: var(--ors-color-surface);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: 6px;
+  min-height: 32px;
+  padding: 5px 10px;
+}
+.fishing-timer-window button:hover {
+  background: var(--ors-color-hover);
+}
+.fishing-timer-window button[aria-pressed="true"] {
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
+}
+.fishing-timer-window button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.fishing-timer-window :focus-visible {
+  outline: 2px solid var(--ors-color-accent);
+  outline-offset: 2px;
+}
+.timer-titlebar {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  gap: 3px;
+  border-bottom: 1px solid var(--ors-color-line);
+  background: var(--ors-color-surface);
+  user-select: none;
+}
+.timer-drag {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  cursor: move;
+  align-self: stretch;
+}
+.timer-drag h1 {
+  font-size: 13px;
+  margin: 0;
+  font-weight: 650;
+}
+.timer-titlebar svg {
+  width: 17px;
+  height: 17px;
+}
+.timer-titlebar button {
+  width: 32px;
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border-color: transparent;
+  background: transparent;
+}
+.timer-content {
+  padding: 14px 16px 12px;
+}
+.timer-loading {
+  min-height: calc(100dvh - 47px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  text-align: center;
+}
+.timer-loading > .timer-spinner {
+  width: 40px;
+  height: 40px;
+  color: var(--ors-color-accent);
+}
+.timer-loading strong {
+  font-size: 15px;
+}
+.timer-loading p {
+  max-width: 32ch;
+  line-height: 1.6;
+  color: var(--ors-color-muted);
+  margin: 10px 0 0;
+}
+.timer-loading-actions {
+  display: flex;
+  gap: 8px;
+}
+.timer-mode {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: var(--ors-color-muted);
+  font-size: 12px;
+}
+.timer-mode [role="group"] {
+  display: flex;
+  gap: 4px;
+}
+.timer-mode button {
+  min-height: 28px;
+  padding: 3px 12px;
+}
+.timer-connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.timer-catch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--ors-color-line);
+}
+.timer-catch .fish-icon,
+.timer-catch .fish-icon img,
+.timer-catch .fish-icon svg {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.timer-catch > div {
+  min-width: 0;
+}
+.timer-catch > div > span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--ors-color-muted);
+  font-size: 11px;
+}
+.timer-catch strong {
+  overflow-wrap: anywhere;
+}
+.timer-spinner {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  animation: timer-spin 1s linear infinite;
+}
+@keyframes timer-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .timer-spinner {
+    animation-duration: 3s;
+  }
+}
+.timer-reading {
+  --timer-fill: var(--ors-color-accent);
+  margin: 16px 0;
+}
+.timer-reading > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.timer-phase {
+  font-weight: 600;
+  color: var(--timer-fill);
+}
+.timer-reading output {
+  font-size: 42px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+.timer-reading output small {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ors-color-muted);
+  margin-left: 6px;
+}
+.timer-track {
+  height: 7px;
+  background: var(--ors-color-line);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.timer-track > span {
+  display: block;
+  height: 100%;
+  background: var(--timer-fill);
+}
+.timer-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ors-color-muted);
+  font-size: 11px;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.timer-tug-light {
+  --timer-fill: var(--ors-color-success);
+}
+.timer-tug-medium {
+  --timer-fill: var(--ors-color-info);
+}
+.timer-tug-heavy {
+  --timer-fill: var(--ors-color-danger);
+}
+.timer-manual-actions {
+  display: flex;
+  gap: 5px;
+}
+.timer-manual-actions button {
+  flex: 1;
+  padding-inline: 5px;
+}
+.timer-manual-actions .timer-cast {
+  background: var(--ors-color-accent);
+  color: var(--ors-color-on-accent);
+  border-color: transparent;
+}
+.timer-hint {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ors-color-muted);
+  margin: 12px 0 0;
+}
+.timer-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  color: var(--ors-color-danger);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.timer-error span {
+  flex: 1;
+}
+.timer-error button {
+  flex-shrink: 0;
+}
+.timer-settings {
+  border-top: 1px solid var(--ors-color-line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.timer-settings label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.timer-settings input {
+  accent-color: var(--ors-color-accent);
+}
+.timer-settings form {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.timer-settings form label {
+  display: grid;
+  gap: 6px;
+  flex: 1;
+}
+.timer-settings input[type="number"] {
+  width: 100%;
+  min-width: 0;
+  padding: 6px;
+  background: var(--ors-color-surface);
+  color: var(--ors-color-text);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: 4px;
+}
+.timer-settings p {
+  color: var(--ors-color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .timer-track > span {
+    transition: none;
+  }
+}

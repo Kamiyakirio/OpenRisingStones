@@ -1,4 +1,32 @@
 /** Extend the established task-ledger tokens with comparable fish rows and catch sheets. */
+.fish-heading-tools {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.fish-timer-launcher {
+  position: relative;
+}
+.fish-timer-launcher button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fish-timer-launcher svg {
+  width: 19px;
+  height: 19px;
+}
+.fish-timer-launcher small {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 240px;
+  padding: 12px;
+  background: var(--ors-color-surface);
+  color: var(--ors-color-danger);
+  z-index: 10;
+}
 .fish-browser-layout {
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr);
