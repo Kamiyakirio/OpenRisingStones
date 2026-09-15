@@ -44,6 +44,10 @@ export function useAppController() {
     () => navigateToFeature(setActiveFeature, "gearing"),
     [],
   );
+  const openGearingBenchmark = useCallback(
+    () => navigateToFeature(setActiveFeature, "gearing-benchmark"),
+    [],
+  );
   useEffect(() => {
     try {
       localStorage.setItem("ors.theme", dark ? "dark" : "light");
@@ -79,6 +83,7 @@ export function useAppController() {
     openRecruit,
     openTeleport,
     openGearing,
+    openGearingBenchmark,
     openFishing,
     goHome,
     toggleTheme,

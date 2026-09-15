@@ -19,6 +19,13 @@ const GearingPage = lazy(() =>
     default: module.GearingPage,
   })),
 );
+const GearingBenchmarkPage = __DEBUG_BUILD__
+  ? lazy(() =>
+      import("../../pages/GearingBenchmarkPage").then((module) => ({
+        default: module.GearingBenchmarkPage,
+      })),
+    )
+  : null;
 
 type AppViewProps = {
   viewModel: AppController;
@@ -59,6 +66,13 @@ export function AppView({ viewModel }: AppViewProps) {
           <GearingErrorBoundary onGoHome={viewModel.goHome}>
             <Suspense fallback={<p role="status">正在加载配装…</p>}>
               <GearingPage />
+            </Suspense>
+          </GearingErrorBoundary>
+        ) : viewModel.activeFeature === "gearing-benchmark" &&
+          GearingBenchmarkPage ? (
+          <GearingErrorBoundary onGoHome={viewModel.goHome}>
+            <Suspense fallback={<p role="status">正在加载性能测试…</p>}>
+              <GearingBenchmarkPage onBack={viewModel.openGearing} />
             </Suspense>
           </GearingErrorBoundary>
         ) : viewModel.activeFeature === "glamour" ? (
@@ -115,7 +129,10 @@ export function AppView({ viewModel }: AppViewProps) {
           />
         )}
       {viewModel.settingsOpen && (
-        <SettingsDialog onClose={viewModel.closeSettings} />
+        <SettingsDialog
+          onClose={viewModel.closeSettings}
+          onOpenGearingBenchmark={viewModel.openGearingBenchmark}
+        />
       )}
     </div>
   );

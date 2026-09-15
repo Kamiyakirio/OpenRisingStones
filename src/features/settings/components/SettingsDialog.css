@@ -125,6 +125,45 @@
   padding-top: 22px;
   border-top: 1px solid var(--ors-color-danger);
 }
+.settings-debug-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 16px;
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-canvas);
+}
+.settings-debug-action strong {
+  font-size: 0.875rem;
+}
+.settings-debug-action p {
+  margin: 3px 0 0;
+  color: var(--ors-color-muted);
+  font-size: 12px;
+}
+.settings-debug-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  font-size: 12px;
+  font-weight: 700;
+}
+.settings-debug-button:hover {
+  border-color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
+}
+.settings-debug-button svg {
+  width: 16px;
+  height: 16px;
+}
 .settings-danger-action strong {
   color: var(--ors-color-danger);
 }
@@ -235,6 +274,15 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 16px;
+  }
+  .settings-debug-action {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .settings-debug-button {
+    width: 100%;
+    justify-content: center;
   }
   .settings-danger-action .settings-danger-button {
     width: 100%;

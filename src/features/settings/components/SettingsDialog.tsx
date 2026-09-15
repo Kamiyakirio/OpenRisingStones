@@ -4,6 +4,7 @@ import {
   Cookie,
   Database,
   GearSix,
+  Gauge,
   SpinnerGap,
   Trash,
   WarningCircle,
@@ -14,9 +15,13 @@ import { useSettingsDialog } from "../hooks/useSettingsDialog";
 
 type SettingsDialogProps = {
   onClose: () => void;
+  onOpenGearingBenchmark: () => void;
 };
 
-export function SettingsDialog({ onClose }: SettingsDialogProps) {
+export function SettingsDialog({
+  onClose,
+  onOpenGearingBenchmark,
+}: SettingsDialogProps) {
   const viewModel = useSettingsDialog(onClose);
   const closeDialog = viewModel.close;
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -95,6 +100,26 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                   description="本地设置、配装草稿、物品缓存与确认记录"
                 />
               </div>
+
+              {__DEBUG_BUILD__ && (
+                <div className="settings-debug-action">
+                  <div>
+                    <strong>配装 Benchmark</strong>
+                    <p>使用真实装备测量当前配装算法。</p>
+                  </div>
+                  <button
+                    className="settings-debug-button"
+                    type="button"
+                    onClick={() => {
+                      closeDialog();
+                      onOpenGearingBenchmark();
+                    }}
+                  >
+                    <Gauge />
+                    打开工具
+                  </button>
+                </div>
+              )}
 
               <div className="settings-danger-action">
                 <div>

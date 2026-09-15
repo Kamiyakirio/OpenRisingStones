@@ -28,6 +28,14 @@ test("explicit feature links select their destination", () => {
   }
 });
 
+test("debug-only benchmark hash requires an explicit debug build", () => {
+  assert.equal(
+    featureFromHash("#gearing-benchmark", "home", true),
+    "gearing-benchmark",
+  );
+  assert.equal(featureFromHash("#gearing-benchmark", "home", false), "home");
+});
+
 test("known section links restore their owning feature", () => {
   assert.equal(featureFromHash("#teleport-orders"), "teleport");
   assert.equal(featureFromHash("#recommendations"), "glamour");
