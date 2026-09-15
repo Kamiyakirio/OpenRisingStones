@@ -4,16 +4,49 @@ use crate::{
   check_cancelled,
   combat::{Context, Evaluation, SlotStates},
   formula,
-  frontier::{State, RANGE_ERROR},
+  frontier::{PlanTree, State, StateKey, RANGE_ERROR},
   types::*,
 };
 use serde_json::Value;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 struct Dual {
-  weights: [f64; N],
+  weights: SparseWeights,
   intercept: f64,
   suffix: Vec<f64>,
+}
+#[derive(Clone, PartialEq)]
+struct SparseWeights {
+  values: [f64; N],
+  indices: [u8; N],
+  len: u8,
+}
+impl SparseWeights {
+  fn new(values: [f64; N]) -> Self {
+    let mut indices = [0; N];
+    let mut len = 0;
+    for (index, value) in values.iter().enumerate() {
+      if *value != 0.0 {
+        indices[len] = index as u8;
+        len += 1;
+      }
+    }
+    Self {
+      values,
+      indices,
+      len: len as u8,
+    }
+  }
+  #[inline]
+  fn dot(&self, stats: &Stats) -> f64 {
+    self.indices[..self.len as usize]
+      .iter()
+      .map(|&index| {
+        let index = index as usize;
+        self.values[index] * stats.values[index]
+      })
+      .sum()
+  }
 }
 fn dot(weights: &[f64; N], stats: &Stats) -> f64 {
   weights.iter().zip(stats.values).map(|(a, b)| a * b).sum()
@@ -489,7 +522,7 @@ fn duals(
             .fold(f64::NEG_INFINITY, f64::max);
       }
       output.push(Dual {
-        weights,
+        weights: SparseWeights::new(weights),
         intercept,
         suffix,
       });
@@ -535,8 +568,10 @@ fn seed_incumbent(
       .map(|slot| {
         (0..slot.states.len())
           .max_by(|&a, &b| {
-            dot(&bound.weights, &slot.states[a].stats)
-              .total_cmp(&dot(&bound.weights, &slot.states[b].stats))
+            bound
+              .weights
+              .dot(&slot.states[a].stats)
+              .total_cmp(&bound.weights.dot(&slot.states[b].stats))
           })
           .unwrap()
       })
@@ -594,7 +629,7 @@ fn filter_choices(ctx: &Context, slots: &mut [SlotStates], bounds: &mut [Dual], 
             slot
               .states
               .iter()
-              .map(|state| dot(&bound.weights, &state.stats))
+              .map(|state| bound.weights.dot(&state.stats))
               .fold(f64::NEG_INFINITY, f64::max)
           })
           .collect()
@@ -604,7 +639,7 @@ fn filter_choices(ctx: &Context, slots: &mut [SlotStates], bounds: &mut [Dual], 
       .iter()
       .zip(&maximums)
       .map(|(bound, values)| {
-        bound.intercept + dot(&bound.weights, &ctx.input.base_stats) + values.iter().sum::<f64>()
+        bound.intercept + bound.weights.dot(&ctx.input.base_stats) + values.iter().sum::<f64>()
       })
       .collect();
     let mut changed = false;
@@ -612,7 +647,7 @@ fn filter_choices(ctx: &Context, slots: &mut [SlotStates], bounds: &mut [Dual], 
       let old = slot.states.len();
       slot.states.retain(|state| {
         bounds.iter().enumerate().all(|(d, bound)| {
-          roots[d] - maximums[d][index] + dot(&bound.weights, &state.stats) >= threshold
+          roots[d] - maximums[d][index] + bound.weights.dot(&state.stats) >= threshold
         })
       });
       if slot.states.is_empty() {
@@ -631,15 +666,61 @@ fn filter_choices(ctx: &Context, slots: &mut [SlotStates], bounds: &mut [Dual], 
         + slots[i]
           .states
           .iter()
-          .map(|s| dot(&bound.weights, &s.stats))
+          .map(|s| bound.weights.dot(&s.stats))
           .fold(f64::NEG_INFINITY, f64::max);
     }
   }
   true
 }
 
+/// Proves that using this food strictly beats no food for every reachable damage-stat value.
+fn food_strictly_dominates_none(ctx: &Context, slots: &[SlotStates], food: &Food) -> bool {
+  if ctx.input.job == "BLU" || ctx.input.speed_range.is_some() {
+    return false;
+  }
+  let mut strict_dimension = false;
+  for &stat in ctx.relevant.iter().filter(|&&stat| stat != ctx.speed) {
+    let low = ctx.input.base_stats.get(stat)
+      + slots
+        .iter()
+        .map(|slot| {
+          slot
+            .states
+            .iter()
+            .map(|state| state.stats.get(stat))
+            .fold(f64::INFINITY, f64::min)
+        })
+        .sum::<f64>();
+    let high = ctx.input.base_stats.get(stat)
+      + slots
+        .iter()
+        .map(|slot| {
+          slot
+            .states
+            .iter()
+            .map(|state| state.stats.get(stat))
+            .fold(f64::NEG_INFINITY, f64::max)
+        })
+        .sum::<f64>();
+    if low.fract() != 0.0 || high.fract() != 0.0 || high - low > 20_000.0 {
+      return false;
+    }
+    let mut always_strict = true;
+    for value in low as i64..=high as i64 {
+      let without = factor(ctx, stat, value as f64);
+      let with = factor(ctx, stat, final_value(ctx, Some(food), stat, value as f64));
+      if !with.is_finite() || with < without {
+        return false;
+      }
+      always_strict &= with > without;
+    }
+    strict_dimension |= always_strict;
+  }
+  strict_dimension
+}
+
 struct SpeedBound {
-  weights: [f64; N],
+  weights: SparseWeights,
   intercept: f64,
   suffixes: Vec<Vec<f64>>,
 }
@@ -652,12 +733,13 @@ fn speed_bounds(
   let needed = (required - ctx.input.base_stats.get(ctx.speed)).max(0.0) as usize;
   let mut output: Vec<SpeedBound> = vec![];
   for bound in bounds {
-    let mut weights = bound.weights;
+    let mut weights = bound.weights.values;
     weights[ctx.speed] = 0.0;
-    if output.iter().any(|old| old.weights == weights) {
+    if output.iter().any(|old| old.weights.values == weights) {
       continue;
     }
-    let intercept = bound.intercept + bound.weights[ctx.speed] * required;
+    let intercept = bound.intercept + bound.weights.values[ctx.speed] * required;
+    let weights = SparseWeights::new(weights);
     let mut exact = vec![f64::NEG_INFINITY; needed + 1];
     exact[0] = 0.0;
     let mut suffixes = vec![vec![f64::NEG_INFINITY; needed + 1]; slots.len() + 1];
@@ -667,7 +749,7 @@ fn speed_bounds(
       let mut next = vec![f64::NEG_INFINITY; needed + 1];
       for state in &slots[depth].states {
         let speed = state.stats.get(ctx.speed) as usize;
-        let score = dot(&weights, &state.stats);
+        let score = weights.dot(&state.stats);
         for (remaining, &suffix_score) in exact.iter().enumerate() {
           if suffix_score == f64::NEG_INFINITY {
             continue;
@@ -692,6 +774,38 @@ fn speed_bounds(
   Ok(output)
 }
 pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Value, String> {
+  optimize_slots(ctx, slots, skipped)
+}
+
+/// Continues exact search from an already Pareto-pruned prefix without repeating earlier slots.
+pub fn optimize_from_frontier(
+  ctx: &Context,
+  frontier: Vec<State>,
+  remaining: &[SlotStates],
+  skipped: bool,
+) -> Result<Value, String> {
+  if frontier.is_empty() {
+    return Err("No frontier states are available for exact search.".into());
+  }
+  let prefix = SlotStates {
+    index: usize::MAX,
+    states: frontier
+      .into_iter()
+      .map(|mut state| {
+        for index in 0..N {
+          state.stats.values[index] -= ctx.input.base_stats.values[index];
+        }
+        state
+      })
+      .collect(),
+  };
+  let mut slots = Vec::with_capacity(remaining.len() + 1);
+  slots.push(prefix);
+  slots.extend_from_slice(remaining);
+  optimize_slots(ctx, &slots, skipped)
+}
+
+fn optimize_slots(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Value, String> {
   struct Search<'a, 'b> {
     ctx: &'a Context<'b>,
     slots: Vec<SlotStates>,
@@ -700,7 +814,7 @@ pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Va
     speed_bounds: Vec<SpeedBound>,
     required_raw: f64,
     maximum_raw: f64,
-    seen: Vec<HashMap<Vec<i64>, (f64, i64)>>,
+    seen: Vec<HashMap<StateKey, (f64, i64)>>,
     suffix_min: Vec<Stats>,
     suffix_max: Vec<Stats>,
     minimum_cost: Vec<(i64, i64)>,
@@ -708,7 +822,7 @@ pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Va
     evaluation: &'a mut Evaluation,
   }
   impl Search<'_, '_> {
-    fn visit(&mut self, index: usize, state: State) -> Result<(), String> {
+    fn visit(&mut self, index: usize, state: State, path: &mut Vec<usize>) -> Result<(), String> {
       check_cancelled(self.ctx.cancelled)?;
       let budget_state = State {
         points: state.points + self.minimum_cost[index].0,
@@ -740,7 +854,7 @@ pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Va
           return Ok(());
         }
         if self.duals.iter().any(|d| {
-          d.intercept + dot(&d.weights, &state.stats) + d.suffix[index]
+          d.intercept + d.weights.dot(&state.stats) + d.suffix[index]
             < (best.effects.damage - self.ctx.input.parameters.damage_tolerance)
               .max(f64::MIN_POSITIVE)
               .ln()
@@ -754,7 +868,7 @@ pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Va
           .ln()
           - self.ctx.input.parameters.bound_tolerance;
         if self.speed_bounds.iter().any(|bound| {
-          bound.intercept + dot(&bound.weights, &state.stats) + bound.suffixes[index][needed]
+          bound.intercept + bound.weights.dot(&state.stats) + bound.suffixes[index][needed]
             < threshold
         }) {
           return Ok(());
@@ -769,23 +883,36 @@ pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Va
         }
       }
       if index == self.slots.len() {
-        self.evaluation.consider(self.ctx, &state, self.food);
+        let mut resolved = state;
+        resolved.plan = path
+          .iter()
+          .enumerate()
+          .fold(None, |plan, (depth, &choice)| {
+            let next = self.slots[depth].states[choice].plan.clone();
+            match (plan, next) {
+              (Some(a), Some(b)) => Some(Arc::new(PlanTree::Join(a, b))),
+              (a, None) => a,
+              (None, b) => b,
+            }
+          });
+        self.evaluation.consider(self.ctx, &resolved, self.food);
         return Ok(());
       }
       // Keep the exact damage dimensions and resource costs; speed above the target favors less overflow.
-      let mut key: Vec<_> = self
-        .ctx
-        .relevant
-        .iter()
-        .map(|&stat| {
-          if stat == self.ctx.speed {
-            speed.min(self.required_raw) as i64
-          } else {
-            state.stats.get(stat) as i64
-          }
-        })
-        .collect();
-      key.extend([state.points, state.raid]);
+      let key = StateKey::new(
+        self
+          .ctx
+          .relevant
+          .iter()
+          .map(|&stat| {
+            if stat == self.ctx.speed {
+              speed.min(self.required_raw) as i64
+            } else {
+              state.stats.get(stat) as i64
+            }
+          })
+          .chain([state.points, state.raid]),
+      );
       if self.seen[index]
         .get(&key)
         .is_some_and(|&(old_speed, cost)| {
@@ -800,9 +927,11 @@ pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Va
         return Err(RANGE_ERROR.into());
       }
       for i in 0..self.slots[index].states.len() {
-        let next = state.combine(&self.slots[index].states[i]);
+        let next = state.combine_values(&self.slots[index].states[i]);
         if self.ctx.budget(&next) {
-          self.visit(index + 1, next)?;
+          path.push(i);
+          self.visit(index + 1, next, path)?;
+          path.pop();
         }
       }
       Ok(())
@@ -819,107 +948,153 @@ pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Va
       .total_cmp(&a.stats.values.iter().sum::<f64>())
       .then(a.id.cmp(&b.id))
   });
+  let search_without_food = !foods
+    .iter()
+    .any(|food| food_strictly_dominates_none(ctx, slots, food));
   for food in foods.iter().take(12) {
     check_cancelled(ctx.cancelled)?;
     seed_incumbent(ctx, slots, Some(food), &mut evaluation)?;
   }
-  seed_incumbent(ctx, slots, None, &mut evaluation)?;
-  for food in foods.into_iter().map(Some).chain(std::iter::once(None)) {
-    check_cancelled(ctx.cancelled)?;
-    let mut ordered = slots.to_vec();
-    // A speed-conditioned suffix bound benefits from placing the larger choice sets at the end.
-    ordered.sort_by_key(|s| (s.states.len(), s.index));
-    let mut duals = duals(ctx, &ordered, food, Some(&weight_candidates));
-    if let Some(best) = &evaluation.best {
-      if !filter_choices(ctx, &mut ordered, &mut duals, best.effects.damage) {
-        continue;
-      }
-    }
-    let required_raw = inverse_speed(ctx, food, ctx.required, false);
-    let maximum_raw = ctx.input.speed_range.map_or(f64::INFINITY, |range| {
-      inverse_speed(ctx, food, range.max, true)
-    });
-    let available = ctx.input.base_stats.get(ctx.speed)
-      + ordered
-        .iter()
-        .map(|slot| {
-          slot
-            .states
-            .iter()
-            .map(|s| s.stats.get(ctx.speed))
-            .fold(0.0, f64::max)
-        })
-        .sum::<f64>();
-    if required_raw > available || required_raw > maximum_raw {
-      continue;
-    }
-    let speed_bounds = speed_bounds(ctx, &ordered, &duals, required_raw)?;
-    if let Some(dual) = duals.get(1).or(duals.first()) {
-      for slot in &mut ordered {
-        slot.states.sort_by(|a, b| {
-          dot(&dual.weights, &b.stats)
-            .total_cmp(&dot(&dual.weights, &a.stats))
-            .then(a.change.cmp(&b.change))
+  if search_without_food {
+    seed_incumbent(ctx, slots, None, &mut evaluation)?;
+  }
+  let search =
+    |options: Vec<Option<&Food>>, mut evaluation: Evaluation| -> Result<Evaluation, String> {
+      for food in options {
+        check_cancelled(ctx.cancelled)?;
+        let mut ordered = slots.to_vec();
+        // A speed-conditioned suffix bound benefits from placing the larger choice sets at the end.
+        ordered.sort_by_key(|s| (s.states.len(), s.index));
+        let mut duals = duals(ctx, &ordered, food, Some(&weight_candidates));
+        if let Some(best) = &evaluation.best {
+          if !filter_choices(ctx, &mut ordered, &mut duals, best.effects.damage) {
+            continue;
+          }
+        }
+        let required_raw = inverse_speed(ctx, food, ctx.required, false);
+        let maximum_raw = ctx.input.speed_range.map_or(f64::INFINITY, |range| {
+          inverse_speed(ctx, food, range.max, true)
         });
-      }
-    }
-    let mut suffix_min = vec![Stats::default(); ordered.len() + 1];
-    let mut suffix_max = suffix_min.clone();
-    let mut minimum_cost = vec![(0, 0); ordered.len() + 1];
-    for i in (0..ordered.len()).rev() {
-      suffix_min[i] = suffix_min[i + 1];
-      suffix_max[i] = suffix_max[i + 1];
-      for s in 0..N {
-        let low = ordered[i]
-          .states
-          .iter()
-          .map(|g| g.stats.get(s))
-          .fold(f64::INFINITY, f64::min);
-        let high = ordered[i]
-          .states
-          .iter()
-          .map(|g| g.stats.get(s))
-          .fold(f64::NEG_INFINITY, f64::max);
-        if ordered[i].states.iter().any(|g| g.stats.has(s)) {
-          let a = suffix_min[i].get(s);
-          suffix_min[i].set(s, a + low);
-          let b = suffix_max[i].get(s);
-          suffix_max[i].set(s, b + high);
+        let available = ctx.input.base_stats.get(ctx.speed)
+          + ordered
+            .iter()
+            .map(|slot| {
+              slot
+                .states
+                .iter()
+                .map(|s| s.stats.get(ctx.speed))
+                .fold(0.0, f64::max)
+            })
+            .sum::<f64>();
+        if required_raw > available || required_raw > maximum_raw {
+          continue;
+        }
+        let speed_bounds = speed_bounds(ctx, &ordered, &duals, required_raw)?;
+        if let Some(dual) = duals.get(1).or(duals.first()) {
+          for slot in &mut ordered {
+            slot.states.sort_by(|a, b| {
+              dual
+                .weights
+                .dot(&b.stats)
+                .total_cmp(&dual.weights.dot(&a.stats))
+                .then(a.change.cmp(&b.change))
+            });
+          }
+        }
+        let mut suffix_min = vec![Stats::default(); ordered.len() + 1];
+        let mut suffix_max = suffix_min.clone();
+        let mut minimum_cost = vec![(0, 0); ordered.len() + 1];
+        for i in (0..ordered.len()).rev() {
+          suffix_min[i] = suffix_min[i + 1];
+          suffix_max[i] = suffix_max[i + 1];
+          for s in 0..N {
+            let low = ordered[i]
+              .states
+              .iter()
+              .map(|g| g.stats.get(s))
+              .fold(f64::INFINITY, f64::min);
+            let high = ordered[i]
+              .states
+              .iter()
+              .map(|g| g.stats.get(s))
+              .fold(f64::NEG_INFINITY, f64::max);
+            if ordered[i].states.iter().any(|g| g.stats.has(s)) {
+              let a = suffix_min[i].get(s);
+              suffix_min[i].set(s, a + low);
+              let b = suffix_max[i].get(s);
+              suffix_max[i].set(s, b + high);
+            }
+          }
+          minimum_cost[i] = (
+            minimum_cost[i + 1].0
+              + ordered[i]
+                .states
+                .iter()
+                .map(|g| g.points)
+                .min()
+                .unwrap_or(0),
+            minimum_cost[i + 1].1 + ordered[i].states.iter().map(|g| g.raid).min().unwrap_or(0),
+          );
+        }
+        let mut search = Search {
+          ctx,
+          slots: ordered,
+          food,
+          duals,
+          speed_bounds,
+          required_raw,
+          maximum_raw,
+          seen: vec![HashMap::new(); slots.len() + 1],
+          suffix_min,
+          suffix_max,
+          minimum_cost,
+          nodes: 0,
+          evaluation: &mut evaluation,
+        };
+        search.visit(
+          0,
+          State {
+            stats: ctx.input.base_stats,
+            ..State::default()
+          },
+          &mut Vec::with_capacity(slots.len()),
+        )?;
+        if std::env::var_os("ORS_GEARING_TRACE").is_some() {
+          eprintln!(
+            "gearing exact food={} nodes={} slots={:?}",
+            food.map_or(0, |value| value.id),
+            search.nodes,
+            search
+              .slots
+              .iter()
+              .map(|slot| slot.states.len())
+              .collect::<Vec<_>>()
+          );
         }
       }
-      minimum_cost[i] = (
-        minimum_cost[i + 1].0
-          + ordered[i]
-            .states
-            .iter()
-            .map(|g| g.points)
-            .min()
-            .unwrap_or(0),
-        minimum_cost[i + 1].1 + ordered[i].states.iter().map(|g| g.raid).min().unwrap_or(0),
-      );
-    }
-    Search {
-      ctx,
-      slots: ordered,
-      food,
-      duals,
-      speed_bounds,
-      required_raw,
-      maximum_raw,
-      seen: vec![HashMap::new(); slots.len() + 1],
-      suffix_min,
-      suffix_max,
-      minimum_cost,
-      nodes: 0,
-      evaluation: &mut evaluation,
-    }
-    .visit(
-      0,
-      State {
-        stats: ctx.input.base_stats,
-        ..State::default()
-      },
-    )?;
-  }
+      Ok(evaluation)
+    };
+  let food_options: Vec<_> = foods.into_iter().map(Some).collect();
+  evaluation = if search_without_food && !food_options.is_empty() {
+    let food_seed = evaluation.clone();
+    let none_seed = evaluation;
+    std::thread::scope(|scope| {
+      let foods = scope.spawn(|| search(food_options, food_seed));
+      let without_food = search(vec![None], none_seed);
+      let mut combined = foods
+        .join()
+        .map_err(|_| "Food optimization task failed.".to_owned())??;
+      combined.merge(ctx, without_food?);
+      Ok::<Evaluation, String>(combined)
+    })?
+  } else {
+    search(
+      food_options
+        .into_iter()
+        .chain(search_without_food.then_some(None))
+        .collect(),
+      evaluation,
+    )?
+  };
   evaluation.result(ctx, skipped)
 }

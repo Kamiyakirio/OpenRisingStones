@@ -1,35 +1,67 @@
 //! Deterministic Pareto pruning with a balanced spatial index and shared plan trees.
 use crate::{check_cancelled, types::*};
-use std::{collections::HashMap, rc::Rc, sync::atomic::AtomicBool};
+use std::{
+  collections::HashMap,
+  sync::{atomic::AtomicBool, Arc},
+};
+
+const MAX_KEY_VALUES: usize = 10;
+const MAX_COORDINATES: usize = 10;
+
+/// Inline search keys avoid one heap allocation for every temporary state.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) struct StateKey {
+  values: [i64; MAX_KEY_VALUES],
+  len: u8,
+}
+impl StateKey {
+  pub fn new(values: impl IntoIterator<Item = i64>) -> Self {
+    let mut key = Self {
+      values: [0; MAX_KEY_VALUES],
+      len: 0,
+    };
+    for value in values {
+      let index = key.len as usize;
+      assert!(index < MAX_KEY_VALUES, "search key exceeds inline capacity");
+      key.values[index] = value;
+      key.len += 1;
+    }
+    key
+  }
+}
 
 #[derive(Clone, Debug)]
 pub enum PlanTree {
   Leaf(Plan),
-  Join(Rc<PlanTree>, Rc<PlanTree>),
+  Join(Arc<PlanTree>, Arc<PlanTree>),
 }
 #[derive(Clone, Debug, Default)]
 pub struct State {
   pub stats: Stats,
-  pub plan: Option<Rc<PlanTree>>,
+  pub plan: Option<Arc<PlanTree>>,
   pub change: i64,
   pub points: i64,
   pub raid: i64,
-  pub allocation: Option<String>,
-  pub linked: Option<String>,
-  pub ring_group: Option<String>,
+  pub allocation: Option<u16>,
+  pub linked: Option<u16>,
+  pub ring_group: Option<u16>,
 }
 impl State {
   pub fn combine(&self, other: &Self) -> Self {
+    let mut combined = self.combine_values(other);
+    combined.plan = match (&self.plan, &other.plan) {
+      (Some(a), Some(b)) => Some(Arc::new(PlanTree::Join(a.clone(), b.clone()))),
+      (a, None) => a.clone(),
+      (None, b) => b.clone(),
+    };
+    combined
+  }
+  pub fn combine_values(&self, other: &Self) -> Self {
     Self {
       stats: self.stats.add(&other.stats),
       change: self.change + other.change,
       points: self.points + other.points,
       raid: self.raid + other.raid,
-      plan: match (&self.plan, &other.plan) {
-        (Some(a), Some(b)) => Some(Rc::new(PlanTree::Join(a.clone(), b.clone()))),
-        (a, None) => a.clone(),
-        (None, b) => b.clone(),
-      },
       ..Self::default()
     }
   }
@@ -57,21 +89,21 @@ pub fn unique(
   speed: usize,
   required: f64,
 ) -> Vec<State> {
-  let mut keys = HashMap::<Vec<i64>, usize>::new();
+  let mut keys = HashMap::<StateKey, usize>::new();
   let mut output: Vec<State> = Vec::new();
   for state in states {
-    let mut key: Vec<_> = relevant
-      .iter()
-      .map(|&s| {
-        if s == speed {
-          state.stats.get(s).min(required) as i64
-        } else {
-          state.stats.get(s) as i64
-        }
-      })
-      .collect();
-    key.push(state.points);
-    key.push(state.raid);
+    let key = StateKey::new(
+      relevant
+        .iter()
+        .map(|&s| {
+          if s == speed {
+            state.stats.get(s).min(required) as i64
+          } else {
+            state.stats.get(s) as i64
+          }
+        })
+        .chain([state.points, state.raid]),
+    );
     if let Some(&i) = keys.get(&key) {
       let a = (state.stats.get(speed) - required).max(0.0);
       let b = (output[i].stats.get(speed) - required).max(0.0);
@@ -88,21 +120,23 @@ pub fn unique(
 #[derive(Clone)]
 struct Point {
   index: usize,
-  coordinates: Vec<f64>,
+  coordinates: [f64; MAX_COORDINATES],
+  dimensions: u8,
 }
 struct Node {
   start: usize,
   end: usize,
-  min: Vec<f64>,
-  max: Vec<f64>,
+  min: [f64; MAX_COORDINATES],
+  max: [f64; MAX_COORDINATES],
+  dimensions: u8,
   first: usize,
   children: Option<(Box<Node>, Box<Node>)>,
 }
 impl Node {
   fn build(points: &mut [Point], offset: usize, ranges: Option<&[f64]>, depth: usize) -> Self {
-    let dim = points[0].coordinates.len();
-    let mut min = vec![f64::INFINITY; dim];
-    let mut max = vec![f64::NEG_INFINITY; dim];
+    let dim = points[0].dimensions as usize;
+    let mut min = [f64::INFINITY; MAX_COORDINATES];
+    let mut max = [f64::NEG_INFINITY; MAX_COORDINATES];
     let mut first = usize::MAX;
     for point in points.iter() {
       first = first.min(point.index);
@@ -116,14 +150,18 @@ impl Node {
       end: offset + points.len(),
       min,
       max,
+      dimensions: dim as u8,
       first,
       children: None,
     };
     if points.len() <= 32 {
       return node;
     }
-    let root_ranges: Vec<_> = (0..dim).map(|s| node.max[s] - node.min[s]).collect();
-    let ranges = ranges.unwrap_or(&root_ranges);
+    let mut root_ranges = [0.0; MAX_COORDINATES];
+    for (index, range) in root_ranges.iter_mut().enumerate().take(dim) {
+      *range = node.max[index] - node.min[index];
+    }
+    let ranges = ranges.unwrap_or(&root_ranges[..dim]);
     let mut axis = depth % dim;
     let mut widest = f64::NEG_INFINITY;
     for i in 0..dim {
@@ -152,15 +190,23 @@ impl Node {
     node
   }
   fn dominates(&self, points: &[Point], target: &Point) -> bool {
-    if self.first >= target.index || self.max.iter().zip(&target.coordinates).any(|(a, b)| a < b) {
+    let dim = self.dimensions as usize;
+    if self.first >= target.index
+      || self.max[..dim]
+        .iter()
+        .zip(&target.coordinates[..dim])
+        .any(|(a, b)| a < b)
+    {
       return false;
     }
-    if self
-      .min
+    if self.min[..dim]
       .iter()
-      .zip(&target.coordinates)
+      .zip(&target.coordinates[..dim])
       .all(|(a, b)| a >= b)
-      && self.min.iter().zip(&target.coordinates).any(|(a, b)| a > b)
+      && self.min[..dim]
+        .iter()
+        .zip(&target.coordinates[..dim])
+        .any(|(a, b)| a > b)
     {
       return true;
     }
@@ -169,15 +215,13 @@ impl Node {
     }
     points[self.start..self.end].iter().any(|p| {
       p.index < target.index
-        && p
-          .coordinates
+        && p.coordinates[..dim]
           .iter()
-          .zip(&target.coordinates)
+          .zip(&target.coordinates[..dim])
           .all(|(a, b)| a >= b)
-        && p
-          .coordinates
+        && p.coordinates[..dim]
           .iter()
-          .zip(&target.coordinates)
+          .zip(&target.coordinates[..dim])
           .any(|(a, b)| a > b)
     })
   }
@@ -216,21 +260,33 @@ pub fn prune(
   });
   let mut groups = HashMap::<i64, Vec<Point>>::new();
   for (index, state) in states.iter().enumerate() {
-    let mut coordinates: Vec<_> = relevant
-      .iter()
-      .filter(|&&s| s != speed)
-      .map(|&s| state.stats.get(s))
-      .collect();
-    coordinates.extend([
+    let mut coordinates = [0.0; MAX_COORDINATES];
+    let mut dimensions = 0;
+    for &stat in relevant.iter().filter(|&&stat| stat != speed) {
+      coordinates[dimensions] = state.stats.get(stat);
+      dimensions += 1;
+    }
+    for value in [
       -(state.stats.get(speed) - required).max(0.0),
       -state.points as f64,
       -state.raid as f64,
       -state.change as f64,
-    ]);
+    ] {
+      assert!(
+        dimensions < MAX_COORDINATES,
+        "Pareto point exceeds inline capacity"
+      );
+      coordinates[dimensions] = value;
+      dimensions += 1;
+    }
     groups
       .entry(state.stats.get(speed).min(required) as i64)
       .or_default()
-      .push(Point { index, coordinates });
+      .push(Point {
+        index,
+        coordinates,
+        dimensions: dimensions as u8,
+      });
   }
   let mut keep = vec![false; states.len()];
   for points in groups.values_mut() {

@@ -5,7 +5,10 @@ use crate::{
   types::*,
 };
 use serde_json::{json, Value};
-use std::{collections::HashMap, rc::Rc, sync::atomic::AtomicBool};
+use std::{
+  collections::HashMap,
+  sync::{atomic::AtomicBool, Arc},
+};
 
 pub(crate) struct Context<'a> {
   pub input: &'a CombatInput,
@@ -14,6 +17,8 @@ pub(crate) struct Context<'a> {
   pub relevant: Vec<usize>,
   pub cancelled: &'a AtomicBool,
   pub charge_slot: Option<i32>,
+  pub linked_groups: Vec<String>,
+  pub ring_groups: Vec<String>,
 }
 #[derive(Clone)]
 pub(crate) struct SlotStates {
@@ -150,7 +155,7 @@ impl Context<'_> {
     }
     stats
   }
-  fn custom_options(&self, g: &CombatGear) -> Vec<(Stats, String, Option<String>)> {
+  fn custom_options(&self, g: &CombatGear) -> Vec<(Stats, u16, Option<u16>)> {
     let Some(rule) = &g.custom_rule else {
       return vec![];
     };
@@ -173,8 +178,8 @@ impl Context<'_> {
             stats.set(cid, rule.minor);
             out.push((
               stats,
-              format!("{},{};{}", names[a], names[b], names[c]),
-              rule.linked_slot_group.clone(),
+              ((aid * N + bid) * N + cid + 1) as u16,
+              group_id(&self.linked_groups, rule.linked_slot_group.as_deref()),
             ));
           }
         }
@@ -214,7 +219,10 @@ impl Context<'_> {
       .any(|s| s.slot == g.slot && s.ui_group == "weapon");
     let mut initial = State {
       change,
-      ring_group: g.acquisition.ring_exclusivity_group.clone(),
+      ring_group: group_id(
+        &self.ring_groups,
+        g.acquisition.ring_exclusivity_group.as_deref(),
+      ),
       ..State::default()
     };
     if self.input.progression_weeks.is_some() {
@@ -230,7 +238,7 @@ impl Context<'_> {
       initial.raid = g.acquisition.raid_cost as i64;
     }
     let make_plan = |materias, custom_stats| {
-      Some(Rc::new(PlanTree::Leaf(Plan {
+      Some(Arc::new(PlanTree::Leaf(Plan {
         slot: g.slot,
         gear_id: g.id,
         materias,
@@ -390,7 +398,7 @@ impl Context<'_> {
             } else {
               1
             };
-          let key: Vec<_> = (0..N).map(|s| stats.get(s).to_bits()).collect();
+          let key = std::array::from_fn::<_, N, _>(|s| stats.get(s).to_bits());
           let mut materias = state.materias.clone();
           materias.push(option.clone());
           let value = MeldState {
@@ -436,12 +444,12 @@ impl Context<'_> {
     )
   }
   fn grouped_prune(&self, states: Vec<State>, ring: bool) -> Result<Vec<State>, String> {
-    let mut groups = Vec::<(Option<String>, Vec<State>)>::new();
+    let mut groups = Vec::<(Option<u16>, Vec<State>)>::new();
     for state in states {
       let key = if ring {
-        state.ring_group.clone()
+        state.ring_group
       } else {
-        state.allocation.clone()
+        state.allocation
       };
       if let Some((_, group)) = groups.iter_mut().find(|(k, _)| k == &key) {
         group.push(state);
@@ -656,6 +664,43 @@ pub(crate) fn better(
   }
   a.food_id.unwrap_or(0) < b.food_id.unwrap_or(0)
 }
+
+fn group_id(groups: &[String], value: Option<&str>) -> Option<u16> {
+  value.and_then(|value| {
+    groups
+      .binary_search_by(|candidate| candidate.as_str().cmp(value))
+      .ok()
+      .map(|index| index as u16)
+  })
+}
+
+fn sorted_groups(values: impl IntoIterator<Item = String>) -> Vec<String> {
+  let mut groups: Vec<_> = values.into_iter().collect();
+  groups.sort();
+  groups.dedup();
+  groups
+}
+
+fn continue_with_exact(
+  ctx: &Context,
+  frontier: Vec<State>,
+  remaining: &[SlotStates],
+  slots: &[SlotStates],
+  skipped: bool,
+  prefix_limit: usize,
+) -> Result<Value, String> {
+  if frontier.len() <= prefix_limit {
+    if std::env::var_os("ORS_GEARING_TRACE").is_some() {
+      eprintln!("gearing switch=exact-reuse roots={}", frontier.len());
+    }
+    super::exact::optimize_from_frontier(ctx, frontier, remaining, skipped)
+  } else {
+    if std::env::var_os("ORS_GEARING_TRACE").is_some() {
+      eprintln!("gearing switch=exact-restart roots={}", frontier.len());
+    }
+    super::exact::optimize(ctx, slots, skipped)
+  }
+}
 #[derive(Clone)]
 pub(crate) struct Candidate {
   pub state: State,
@@ -665,6 +710,7 @@ pub(crate) struct Candidate {
   pub food_name: String,
   pub change: i64,
 }
+#[derive(Clone)]
 pub(crate) struct Evaluation {
   pub best: Option<Candidate>,
   fastest: Option<Candidate>,
@@ -734,6 +780,46 @@ impl Evaluation {
       )
     }) {
       self.best = Some(candidate);
+    }
+  }
+  pub fn merge(&mut self, ctx: &Context, other: Self) {
+    if let Some(candidate) = other.fastest {
+      if self.fastest.as_ref().map_or(true, |old| {
+        candidate.effects.gcd < old.effects.gcd
+          || (candidate.effects.gcd == old.effects.gcd
+            && candidate.effects.damage > old.effects.damage)
+      }) {
+        self.fastest = Some(candidate);
+      }
+    }
+    if let Some(candidate) = other.closest {
+      let distance = |stats: &Stats| {
+        ctx.input.speed_range.map_or(0.0, |range| {
+          (range.min - stats.get(ctx.speed))
+            .max(stats.get(ctx.speed) - range.max)
+            .max(0.0)
+        })
+      };
+      if self.closest.as_ref().map_or(true, |old| {
+        distance(&candidate.stats) < distance(&old.stats)
+          || (distance(&candidate.stats) == distance(&old.stats)
+            && candidate.effects.damage > old.effects.damage)
+      }) {
+        self.closest = Some(candidate);
+      }
+    }
+    if let Some(candidate) = other.best {
+      if self.best.as_ref().map_or(true, |old| {
+        better(
+          &candidate,
+          old,
+          ctx.speed,
+          ctx.required,
+          ctx.input.parameters.damage_tolerance,
+        )
+      }) {
+        self.best = Some(candidate);
+      }
     }
   }
   pub fn result(self, ctx: &Context, skipped: bool) -> Result<Value, String> {
@@ -858,6 +944,18 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
   if schema.stats.iter().any(|s| s == "TEN") {
     relevant.push(10);
   }
+  let linked_groups = sorted_groups(
+    input
+      .gears
+      .iter()
+      .filter_map(|gear| gear.custom_rule.as_ref()?.linked_slot_group.clone()),
+  );
+  let ring_groups = sorted_groups(
+    input
+      .gears
+      .iter()
+      .filter_map(|gear| gear.acquisition.ring_exclusivity_group.clone()),
+  );
   let mut ctx = Context {
     input: &input,
     speed,
@@ -865,16 +963,41 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
     relevant,
     cancelled,
     charge_slot: None,
+    linked_groups,
+    ring_groups,
   };
   let (slots, skipped) = ctx.slots()?;
   let mut states = vec![State {
     stats: input.base_stats,
     ..State::default()
   }];
-  for slot in &slots {
-    if states.len() * slot.states.len() > input.parameters.frontier_limit * 20 {
-      return super::exact::optimize(&ctx, &slots, skipped);
+  // Switch from materialized Pareto merging when observed pruning cannot keep the next round cheap.
+  let mut ineffective_rounds = 0_u8;
+  const ESTIMATED_TRANSIENT_BYTES_PER_STATE: usize = 512;
+  const FRONTIER_MEMORY_BUDGET: usize = 2_400 * 1024 * 1024;
+  let exact_prefix_limit = (input.parameters.frontier_limit / 1_000).max(1);
+  for (index, slot) in slots.iter().enumerate() {
+    let projected = states.len().saturating_mul(slot.states.len());
+    if std::env::var_os("ORS_GEARING_TRACE").is_some() {
+      eprintln!(
+        "gearing frontier states={} slot={} projected={}",
+        states.len(),
+        slot.states.len(),
+        projected
+      );
     }
+    if projected.saturating_mul(ESTIMATED_TRANSIENT_BYTES_PER_STATE) > FRONTIER_MEMORY_BUDGET {
+      return continue_with_exact(
+        &ctx,
+        states,
+        &slots[index..],
+        &slots,
+        skipped,
+        exact_prefix_limit,
+      );
+    }
+    let previous = states.len();
+    let started = std::time::Instant::now();
     let combined: Vec<_> = states
       .iter()
       .flat_map(|a| slot.states.iter().map(move |b| a.combine(b)))
@@ -887,6 +1010,46 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
       }
       Err(error) => return Err(error),
     };
+    let elapsed = started.elapsed().as_secs_f64().max(1e-9);
+    let retention = states.len() as f64 / projected.max(1) as f64;
+    let growth = states.len() as f64 / previous.max(1) as f64;
+    if retention >= 0.15 && growth >= 2.0 {
+      ineffective_rounds = ineffective_rounds.saturating_add(1);
+    } else {
+      ineffective_rounds = ineffective_rounds.saturating_sub(1);
+    }
+    let Some(next) = slots.get(index + 1) else {
+      continue;
+    };
+    let next_projected = states.len().saturating_mul(next.states.len());
+    let pairs_per_second = projected as f64 / elapsed;
+    let next_seconds = next_projected as f64 / pairs_per_second.max(1.0);
+    let poor_pruning = ineffective_rounds >= 3
+      && states.len() <= exact_prefix_limit
+      && next_projected > (input.parameters.frontier_limit / 200).max(1);
+    let slow_projection = next_seconds > 0.25;
+    let memory_pressure =
+      next_projected.saturating_mul(ESTIMATED_TRANSIENT_BYTES_PER_STATE) > FRONTIER_MEMORY_BUDGET;
+    if std::env::var_os("ORS_GEARING_TRACE").is_some() {
+      eprintln!(
+        "gearing frontier pruned={} retention={:.3} growth={:.3} next={} estimate_ms={:.1}",
+        states.len(),
+        retention,
+        growth,
+        next_projected,
+        next_seconds * 1000.0
+      );
+    }
+    if poor_pruning || slow_projection || memory_pressure {
+      return continue_with_exact(
+        &ctx,
+        states,
+        &slots[index + 1..],
+        &slots,
+        skipped,
+        exact_prefix_limit,
+      );
+    }
   }
   let mut result = Evaluation::new();
   let mut foods: Vec<_> = input.foods.iter().collect();
