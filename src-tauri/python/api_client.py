@@ -12,6 +12,7 @@ import re
 import sys
 import time
 import uuid
+import random
 from typing import Any, Collection
 from urllib.parse import quote, urlencode, urlparse
 
@@ -42,9 +43,7 @@ GLAMOUR_LIST_URL = (
 GLAMOUR_DETAIL_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/glamour/glamourDetail"
 )
-GLAMOUR_SEARCH_URL = (
-    "https://apiff14risingstones.web.sdo.com/api/common/search"
-)
+GLAMOUR_SEARCH_URL = "https://apiff14risingstones.web.sdo.com/api/common/search"
 RECRUIT_JOB_CONFIG_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/recruit/getJobConfigList"
 )
@@ -245,7 +244,9 @@ class ApiClient:
         user_agent: str | None = None,
     ) -> None:
         if requests is None:
-            raise ApiClientError("curl_cffi is missing. Install python/requirements.txt.")
+            raise ApiClientError(
+                "curl_cffi is missing. Install python/requirements.txt."
+            )
         snapshot_user_agent = snapshot.get("userAgent") if snapshot else None
         requested_user_agent = (
             user_agent if user_agent is not None else snapshot_user_agent
@@ -451,7 +452,9 @@ def bootstrap(client: ApiClient) -> str:
         path="/",
     )
     client.request(
-        "GET", SITE_INDEX_URL, error_message="Unable to initialize the Rising Stones login."
+        "GET",
+        SITE_INDEX_URL,
+        error_message="Unable to initialize the Rising Stones login.",
     )
     client.request(
         "GET",
@@ -577,7 +580,11 @@ def poll_qr(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
         client, "https://w.cas.sdo.com/authen/codeKeyLogin.jsonp", params
     )
     if payload.get("return_code") == PENDING_QR_CODE:
-        status = "scanned" if payload.get("data", {}).get("isScanned") == 1 else "awaiting_scan"
+        status = (
+            "scanned"
+            if payload.get("data", {}).get("isScanned") == 1
+            else "awaiting_scan"
+        )
         return pending_result(client, biz_context, status)
     require_success(payload, "The QR login confirmation failed.")
     return finish_ticket_login(client, biz_context, payload)
@@ -763,9 +770,7 @@ def get_character_binding(client: ApiClient) -> dict[str, Any] | None:
     return data
 
 
-def pending_result(
-    client: ApiClient, biz_context: str, status: str
-) -> dict[str, Any]:
+def pending_result(client: ApiClient, biz_context: str, status: str) -> dict[str, Any]:
     return {
         "status": status,
         "session": client.snapshot(),
@@ -854,7 +859,9 @@ def prepare_teleport_game_region(
     session_payload = get_jsonp(
         client, "https://w.cas.sdo.com/authen/ssoLogin.jsonp", session_params
     )
-    require_success(session_payload, "Unable to refresh the game authentication session.")
+    require_success(
+        session_payload, "Unable to refresh the game authentication session."
+    )
     game_session = str(session_payload.get("data", {}).get("ticket") or "").strip()
     if not game_session or len(game_session) > 4096:
         raise ApiClientError("The refreshed game session is invalid.")
@@ -871,7 +878,9 @@ def prepare_teleport_game_region(
     )
     try:
         area_script = response.content.decode("utf-8-sig").strip()
-        match = re.fullmatch(r"var\s+servers\s*=\s*(\[.*\])\s*;?", area_script, re.DOTALL)
+        match = re.fullmatch(
+            r"var\s+servers\s*=\s*(\[.*\])\s*;?", area_script, re.DOTALL
+        )
         areas = json.loads(match.group(1)) if match else None
     except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as error:
         raise ApiClientError("The official game area list is invalid.") from error
@@ -888,12 +897,12 @@ def prepare_teleport_game_region(
         None,
     )
     if not selected:
-        raise ApiClientError("The target area is absent from the official game area list.")
+        raise ApiClientError(
+            "The target area is absent from the official game area list."
+        )
 
     lobby_host = official_game_host(selected.get("AreaLobby"), "lobby")
-    save_data_host = official_game_host(
-        selected.get("AreaConfigUpload"), "save-data"
-    )
+    save_data_host = official_game_host(selected.get("AreaConfigUpload"), "save-data")
     gm_host = official_game_host(selected.get("AreaGm"), "game-master")
     return {
         "regionName": region_name,
@@ -973,12 +982,9 @@ def refresh_teleport_service_session(client: ApiClient) -> dict[str, Any]:
 
 def official_game_host(value: Any, label: str) -> str:
     host = str(value or "").strip().lower()
-    if (
-        len(host) > 253
-        or not re.fullmatch(
-            r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+sdo\.com",
-            host,
-        )
+    if len(host) > 253 or not re.fullmatch(
+        r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+sdo\.com",
+        host,
     ):
         raise ApiClientError(f"The official {label} host is invalid.")
     return host
@@ -1063,7 +1069,9 @@ def fetch_teleport(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]
             "roleList": json.dumps(
                 [
                     {
-                        "roleId": bounded_identifier(role.get("roleId"), "role identifier"),
+                        "roleId": bounded_identifier(
+                            role.get("roleId"), "role identifier"
+                        ),
                         "roleName": bounded_text(role.get("roleName"), 64, "role name"),
                         "key": bounded_int(role.get("key", 0), 0, 100, "role key"),
                     }
@@ -1090,9 +1098,7 @@ def fetch_teleport(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]
             {
                 "appId": TELEPORT_APP_ID,
                 "pageIndex": bounded_int(request.get("page"), 1, 10_000, "page"),
-                "pageNum": bounded_int(
-                    request.get("pageSize"), 1, 50, "page size"
-                ),
+                "pageNum": bounded_int(request.get("pageSize"), 1, 50, "page size"),
             },
         )
     elif action == "returnGroups":
@@ -1149,8 +1155,10 @@ def bounded_int(value: Any, minimum: int, maximum: int, label: str) -> int:
 
 def bounded_text(value: Any, maximum: int, label: str) -> str:
     text = str(value or "").strip()
-    if not text or len(text) > maximum or any(
-        ord(character) < 32 or ord(character) == 127 for character in text
+    if (
+        not text
+        or len(text) > maximum
+        or any(ord(character) < 32 or ord(character) == 127 for character in text)
     ):
         raise ApiClientError(f"The Regional Teleport {label} is invalid.")
     return text
@@ -1203,6 +1211,8 @@ def fetch_glamour_page(client: ApiClient, request: dict[str, Any]) -> dict[str, 
             params["race_id"] = request["raceId"]
         if request.get("genderId") is not None:
             params["gender_id"] = request["genderId"]
+        if int(params["page"]) > 1:
+            params["pageTime"] = now_ms() + random.randint(0, 999)
     response = client.request(
         "GET",
         url,
@@ -1249,9 +1259,7 @@ def fetch_glamour_detail(client: ApiClient, request: dict[str, Any]) -> dict[str
     return {
         "status": response.status_code,
         "body": body,
-        "url": str(
-            getattr(response, "url", GLAMOUR_DETAIL_URL) or GLAMOUR_DETAIL_URL
-        ),
+        "url": str(getattr(response, "url", GLAMOUR_DETAIL_URL) or GLAMOUR_DETAIL_URL),
     }
 
 
@@ -1484,5 +1492,8 @@ if __name__ == "__main__":
         raise SystemExit(1)
     except Exception:
         # Unexpected errors may include URLs or local paths, so emit fixed safe copy.
-        print("The Rising Stones request failed. Check the network and retry.", file=sys.stderr)
+        print(
+            "The Rising Stones request failed. Check the network and retry.",
+            file=sys.stderr,
+        )
         raise SystemExit(1)
