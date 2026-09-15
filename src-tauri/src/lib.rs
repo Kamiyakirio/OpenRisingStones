@@ -2,6 +2,8 @@
 
 mod avatar;
 mod elevation;
+mod fishing_timer;
+mod fishing_monitor;
 #[cfg_attr(windows, path = "game_bridge.rs")]
 #[cfg_attr(not(windows), path = "game_bridge_unsupported.rs")]
 mod game_bridge;
@@ -77,6 +79,7 @@ pub fn run() {
       app.manage(glamour_verification::GlamourVerificationState::default());
       app.manage(recruit::RecruitSessionState::default());
       app.manage(wiki::WikiVerificationState::default());
+      app.manage(fishing_monitor::FishingMonitorState::default());
       app.manage(game_bridge::GameBridgeState::new(app.handle().clone())?);
       #[cfg(debug_assertions)]
       {
@@ -108,6 +111,10 @@ pub fn run() {
       gearing::gearing_benchmark_info,
       gearing::export_gearing_benchmark,
       elevation::restart_as_administrator,
+      fishing_timer::open_fishing_timer,
+      fishing_timer::control_fishing_timer,
+      fishing_monitor::start_fishing_monitor,
+      fishing_monitor::stop_fishing_monitor,
       glamour::fetch_glamour_detail,
       glamour::fetch_glamour_page,
       game_bridge::game_bridge_status,
@@ -157,6 +164,7 @@ pub fn run() {
 
   app.run(move |app_handle, event| {
     if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
+      app_handle.state::<fishing_monitor::FishingMonitorState>().stop();
       if let Some(state) = app_handle.try_state::<game_bridge::GameBridgeState>() {
         state.shutdown();
       }
