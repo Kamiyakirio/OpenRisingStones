@@ -2328,6 +2328,7 @@ dependencies = [
  "game-bridge-host",
  "gearing-engine",
  "hkdf",
+ "libc",
  "log",
  "rand 0.8.8",
  "reqwest 0.12.28",

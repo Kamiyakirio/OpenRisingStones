@@ -11,6 +11,7 @@ mod glamour;
 mod glamour_verification;
 mod network;
 mod owned_items;
+mod process_memory;
 mod python_sidecar;
 mod recruit;
 mod sdo_login;
@@ -103,6 +104,9 @@ pub fn run() {
       gearing::gearing_request,
       gearing::optimize_gearing,
       gearing::cancel_gearing_optimization,
+      gearing::benchmark_gearing,
+      gearing::gearing_benchmark_info,
+      gearing::export_gearing_benchmark,
       elevation::restart_as_administrator,
       glamour::fetch_glamour_detail,
       glamour::fetch_glamour_page,

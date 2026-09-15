@@ -18,6 +18,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 default = []
 bundled-python-sidecar = []
 
+# Debug packages keep the benchmark engine optimized so timings represent shipped code.
+[profile.dev.package.gearing-engine]
+opt-level = 3
+
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 
@@ -38,11 +42,17 @@ rand = "0.8"
 sha2 = "0.10"
 zeroize = "1.8"
 
+[target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 tauri = { version = "2.11.3", features = ["test"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [
+  "Win32_Foundation",
+  "Win32_System_ProcessStatus",
+  "Win32_System_Threading",
   "Win32_UI_Shell",
   "Win32_UI_WindowsAndMessaging",
 ] }

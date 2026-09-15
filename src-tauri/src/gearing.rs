@@ -7,7 +7,7 @@ use std::{
     Arc, Mutex,
   },
 };
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 #[derive(Default)]
 struct Jobs {
@@ -153,6 +153,108 @@ pub async fn optimize_gearing(
   Ok(output)
 }
 
+/// Runs one debug-only solver sample and measures only native search time.
+#[tauri::command]
+pub async fn benchmark_gearing(
+  algorithm: String,
+  request_id: String,
+  input: Value,
+  parameters: Value,
+  state: State<'_, GearingState>,
+) -> Result<Value, String> {
+  if !cfg!(debug_assertions) {
+    return Err("Gearing benchmark is available only in debug builds.".into());
+  }
+  if algorithm != "current" || request_id.is_empty() || request_id.len() > 80 || !input.is_object()
+  {
+    return Err("Invalid gearing benchmark request.".into());
+  }
+  let cancelled = state.begin(&request_id)?;
+  let permit = state
+    .permits
+    .clone()
+    .acquire_owned()
+    .await
+    .map_err(|e| e.to_string())?;
+  let output = tauri::async_runtime::spawn_blocking(move || {
+    let _permit = permit;
+    let parameters = gearing_engine::parameters::Parameters::from_rules(&parameters)?;
+    let memory = crate::process_memory::MemorySampler::start();
+    let start = std::time::Instant::now();
+    let mut result = gearing_engine::solve(&parameters, "combat", input, &cancelled);
+    let duration_ms = start.elapsed().as_secs_f64() * 1000.0;
+    let memory = memory.finish();
+    if result["status"] == "error" {
+      result["status"] = json!(if cancelled.load(Ordering::Relaxed) {
+        "cancelled"
+      } else if result["message"]
+        .as_str()
+        .is_some_and(|message| message.contains("range too large"))
+      {
+        "limited"
+      } else {
+        "invalid"
+      });
+    }
+    Ok::<Value, String>(json!({"durationMs":duration_ms,"memory":memory,"result":result}))
+  })
+  .await
+  .map_err(|error| format!("Native gearing benchmark failed: {error}"))?;
+  state
+    .jobs
+    .lock()
+    .map_err(|e| e.to_string())?
+    .active
+    .remove(&request_id);
+  output
+}
+
+/// Returns stable runtime facts used to identify exported benchmark results.
+#[tauri::command]
+pub fn gearing_benchmark_info() -> Result<Value, String> {
+  if !cfg!(debug_assertions) {
+    return Err("Gearing benchmark is available only in debug builds.".into());
+  }
+  Ok(json!({
+    "appVersion": env!("CARGO_PKG_VERSION"),
+    "architecture": std::env::consts::ARCH,
+    "buildProfile": "debug",
+    "logicalCpus": std::thread::available_parallelism().map(|value| value.get()).unwrap_or(1),
+    "operatingSystem": std::env::consts::OS,
+  }))
+}
+
+/// Exports one validated result file to the current user's downloads directory.
+#[tauri::command]
+pub fn export_gearing_benchmark(contents: String, app: AppHandle) -> Result<String, String> {
+  if !cfg!(debug_assertions) {
+    return Err("Gearing benchmark is available only in debug builds.".into());
+  }
+  if contents.len() > 16 * 1024 * 1024 {
+    return Err("Gearing benchmark result exceeds the size limit.".into());
+  }
+  serde_json::from_str::<Value>(&contents)
+    .map_err(|error| format!("Invalid gearing benchmark result: {error}"))?;
+  let timestamp = std::time::SystemTime::now()
+    .duration_since(std::time::UNIX_EPOCH)
+    .map_err(|error| error.to_string())?
+    .as_millis();
+  let path = app
+    .path()
+    .download_dir()
+    .map_err(|error| error.to_string())?
+    .join(format!(
+      "open-rising-stones-gearing-benchmark-{timestamp}.json"
+    ));
+  let mut file = std::fs::OpenOptions::new()
+    .write(true)
+    .create_new(true)
+    .open(&path)
+    .map_err(|error| error.to_string())?;
+  std::io::Write::write_all(&mut file, contents.as_bytes()).map_err(|error| error.to_string())?;
+  Ok(path.to_string_lossy().into_owned())
+}
+
 #[tauri::command]
 pub fn cancel_gearing_optimization(
   request_id: String,
@@ -204,7 +306,9 @@ mod tests {
       .invoke_handler(tauri::generate_handler![
         gearing_request,
         optimize_gearing,
-        cancel_gearing_optimization
+        cancel_gearing_optimization,
+        benchmark_gearing,
+        gearing_benchmark_info
       ])
       .build(tauri::test::mock_context(tauri::test::noop_assets()))
       .unwrap();
@@ -248,6 +352,15 @@ mod tests {
       call("optimize_gearing", request.clone()).unwrap()["status"],
       "ok"
     );
+    assert_eq!(
+      call("gearing_benchmark_info", json!({})).unwrap()["buildProfile"],
+      "debug"
+    );
+    assert!(call(
+      "benchmark_gearing",
+      json!({"algorithm":"unknown","requestId":"benchmark","parameters":data["rules"],"input":{}})
+    )
+    .is_err());
     request["kind"] = json!("invalid");
     assert!(call("optimize_gearing", request).is_err());
     tauri::Manager::state::<GearingState>(&app)
