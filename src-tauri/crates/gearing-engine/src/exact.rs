@@ -5,6 +5,7 @@ use crate::{
   combat::{Context, Evaluation, SlotStates},
   formula,
   frontier::{PlanTree, State, StateKey, RANGE_ERROR},
+  trace,
   types::*,
 };
 use serde_json::Value;
@@ -80,14 +81,24 @@ fn factor(ctx: &Context, stat: usize, value: f64) -> f64 {
   if stat == weapon {
     return ctx.input.parameters.floor(
       level.main * schema.stat_modifiers.get(attack).copied().unwrap_or(100.0) / p.weapon_divisor,
-    ) + value;
+    ) + value
+      + if ctx.input.job == "BLU" {
+        ctx.blu_max_bonus
+      } else {
+        0.0
+      };
   }
   match stat {
     5 => {
-      let chance =
-        ctx.input.parameters.floor(
-          p.critical.chance_scale * (value - level.sub) / level.div + p.critical.chance_base,
-        ) / p.critical.divisor;
+      let chance = ctx.input.parameters.floor(
+        p.critical.chance_scale * (value - level.sub) / level.div
+          + p.critical.chance_base
+          + if ctx.input.job == "BLU" {
+            p.blue_mimicry
+          } else {
+            0.0
+          },
+      ) / p.critical.divisor;
       let amount =
         ctx.input.parameters.floor(
           p.critical.damage_scale * (value - level.sub) / level.div + p.critical.damage_base,
@@ -103,10 +114,14 @@ fn factor(ctx: &Context, stat: usize, value: f64) -> f64 {
     }
     6 => {
       p.direct_hit.damage_bonus
-        * ctx
-          .input
-          .parameters
-          .floor(p.direct_hit.chance_scale * (value - level.sub) / level.div)
+        * ctx.input.parameters.floor(
+          p.direct_hit.chance_scale * (value - level.sub) / level.div
+            + if ctx.input.job == "BLU" {
+              p.blue_mimicry
+            } else {
+              0.0
+            },
+        )
         / p.direct_hit.divisor
         + 1.0
     }
@@ -146,9 +161,6 @@ fn inverse_speed(ctx: &Context, food: Option<&Food>, value: f64, upper: bool) ->
 }
 
 fn tuned_weights(ctx: &Context, slots: &[SlotStates]) -> Result<Vec<[f64; N]>, String> {
-  if ctx.input.job == "BLU" {
-    return Ok(vec![]);
-  }
   let dimensions: Vec<_> = ctx
     .relevant
     .iter()
@@ -341,9 +353,6 @@ fn duals(
   food: Option<&Food>,
   candidates: Option<&[[f64; N]]>,
 ) -> Vec<Dual> {
-  if ctx.input.job == "BLU" {
-    return vec![];
-  }
   let damage: Vec<_> = ctx
     .relevant
     .iter()
@@ -588,9 +597,23 @@ fn seed_incumbent(
         let old = indices[slot];
         let mut selected = old;
         let mut best_rank = rank(&current);
+        // Reuse unchanged equipment on both sides of the slot during local search.
+        let mut prefix = Vec::with_capacity(slots.len() + 1);
+        prefix.push(State {
+          stats: ctx.input.base_stats,
+          ..State::default()
+        });
+        for (index, group) in slots.iter().enumerate() {
+          prefix.push(prefix[index].combine(&group.states[indices[index]]));
+        }
+        let mut suffix = vec![State::default(); slots.len() + 1];
+        for index in (0..slots.len()).rev() {
+          suffix[index] = slots[index].states[indices[index]].combine(&suffix[index + 1]);
+        }
         for choice in 0..slots[slot].states.len() {
-          indices[slot] = choice;
-          let candidate = combine(&indices);
+          let candidate = prefix[slot]
+            .combine(&slots[slot].states[choice])
+            .combine(&suffix[slot + 1]);
           let candidate_rank = rank(&candidate);
           if ctx.budget(&candidate) {
             evaluation.consider(ctx, &candidate, food);
@@ -659,6 +682,8 @@ fn filter_choices(ctx: &Context, slots: &mut [SlotStates], bounds: &mut [Dual], 
       break;
     }
   }
+  // Filtering can change slot cardinalities substantially; restore the intended low-branching order.
+  slots.sort_by_key(|slot| (slot.states.len(), slot.index));
   for bound in bounds {
     bound.suffix.fill(0.0);
     for i in (0..slots.len()).rev() {
@@ -673,46 +698,272 @@ fn filter_choices(ctx: &Context, slots: &mut [SlotStates], bounds: &mut [Dual], 
   true
 }
 
-/// Proves that using this food strictly beats no food for every reachable damage-stat value.
-fn food_strictly_dominates_none(ctx: &Context, slots: &[SlotStates], food: &Food) -> bool {
+fn reachable_stat_bounds(ctx: &Context, slots: &[SlotStates], stat: usize) -> Option<(i64, i64)> {
+  let low = ctx.input.base_stats.get(stat)
+    + slots
+      .iter()
+      .map(|slot| {
+        slot
+          .states
+          .iter()
+          .map(|state| state.stats.get(stat))
+          .fold(f64::INFINITY, f64::min)
+      })
+      .sum::<f64>();
+  let high = ctx.input.base_stats.get(stat)
+    + slots
+      .iter()
+      .map(|slot| {
+        slot
+          .states
+          .iter()
+          .map(|state| state.stats.get(stat))
+          .fold(f64::NEG_INFINITY, f64::max)
+      })
+      .sum::<f64>();
+  (low.is_finite()
+    && high.is_finite()
+    && low.fract() == 0.0
+    && high.fract() == 0.0
+    && high >= low
+    && high - low <= 20_000.0)
+    .then_some((low as i64, high as i64))
+}
+
+// Each ordinary-job damage factor depends on one integer stat. Cache those factors
+// so the spatial-tree bound avoids recalculating the full formula at every node.
+struct DamageTable {
+  stats: [usize; 6],
+  lower: [i64; 6],
+  factors: [Vec<f64>; 6],
+  absent: [bool; 6],
+  multiplier: f64,
+  blu_max_bonus: f64,
+}
+impl DamageTable {
+  fn new(ctx: &Context, slots: &[SlotStates], food: Option<&Food>) -> Option<Self> {
+    let main = ctx.input.rules.schema.main_stat.as_deref()?;
+    let attack = if main == "VIT" { "STR" } else { main };
+    let stats = [
+      if main == "MND" || main == "INT" {
+        19
+      } else {
+        18
+      },
+      stat_index(attack).ok()?,
+      7,
+      10,
+      5,
+      6,
+    ];
+    let mut lower = [0; 6];
+    let mut factors: [Vec<f64>; 6] = std::array::from_fn(|_| Vec::new());
+    let mut absent = [false; 6];
+    for (index, &stat) in stats.iter().enumerate() {
+      if !ctx.input.base_stats.has(stat)
+        && slots
+          .iter()
+          .all(|slot| slot.states.iter().all(|state| !state.stats.has(stat)))
+      {
+        let final_stats = formula::final_stats(ctx.input, &Stats::default(), food);
+        let fallback = match stat {
+          5 | 6 | 10 => ctx.input.rules.level.sub,
+          7 => ctx.input.rules.level.main,
+          _ => 0.0,
+        };
+        factors[index].push(factor(ctx, stat, final_stats.or(stat, fallback)));
+        absent[index] = true;
+        continue;
+      }
+      if !ctx.input.base_stats.has(stat)
+        && !slots
+          .iter()
+          .any(|slot| slot.states.iter().all(|state| state.stats.has(stat)))
+      {
+        return None;
+      }
+      let (low, high) = reachable_stat_bounds(ctx, slots, stat)?;
+      lower[index] = low;
+      factors[index] = (low..=high)
+        .map(|value| factor(ctx, stat, final_value(ctx, food, stat, value as f64)))
+        .collect();
+      if factors[index]
+        .iter()
+        .any(|value| !value.is_finite() || *value <= 0.0)
+      {
+        return None;
+      }
+    }
+    if factors
+      .iter()
+      .flatten()
+      .any(|value| !value.is_finite() || *value <= 0.0)
+    {
+      return None;
+    }
+    let table = Self {
+      stats,
+      lower,
+      factors,
+      absent,
+      multiplier: ctx.input.parameters.coefficients.effects.potency_scale
+        * ctx
+          .input
+          .rules
+          .schema
+          .trait_damage_multiplier
+          .unwrap_or(1.0),
+      blu_max_bonus: if ctx.input.job == "BLU" {
+        ctx.blu_max_bonus
+      } else {
+        0.0
+      },
+    };
+    let mut reference = ctx.input.base_stats;
+    for (index, &stat) in table.stats.iter().enumerate() {
+      if !table.absent[index] {
+        reference.set(stat, table.lower[index] as f64);
+      }
+    }
+    for (index, &stat) in table.stats.iter().enumerate() {
+      for offset in [
+        0,
+        table.factors[index].len() / 2,
+        table.factors[index].len() - 1,
+      ] {
+        let mut sample = reference;
+        if !table.absent[index] {
+          sample.set(stat, (table.lower[index] + offset as i64) as f64);
+        }
+        let final_stats = formula::final_stats(ctx.input, &sample, food);
+        let bonus = (ctx.input.job == "BLU")
+          .then(|| blu_bonus(ctx, final_stats.get(2) - ctx.input.base_stats.get(2)));
+        let cached = table.damage_pair(&sample, &Stats::default(), bonus)?;
+        let full = formula::effects(ctx.input, &final_stats).damage;
+        if (cached - full).abs() > full.abs() * 1e-10 + 1e-8 {
+          return None;
+        }
+      }
+    }
+    Some(table)
+  }
+
+  #[inline]
+  fn damage_pair(&self, prefix: &Stats, suffix: &Stats, blu_bonus: Option<f64>) -> Option<f64> {
+    let mut factors = [0.0; 6];
+    for index in 0..6 {
+      if self.absent[index] {
+        factors[index] = self.factors[index][0];
+        continue;
+      }
+      let stat = self.stats[index];
+      let value = prefix.get(stat) + suffix.get(stat);
+      if !value.is_finite() || value.fract() != 0.0 {
+        return None;
+      }
+      let offset = usize::try_from(value as i64 - self.lower[index]).ok()?;
+      factors[index] = *self.factors[index].get(offset)?;
+    }
+    if let Some(bonus) = blu_bonus {
+      factors[0] += bonus - self.blu_max_bonus;
+    }
+    Some(
+      self.multiplier * factors[0] * factors[1] * factors[2] * factors[3] * factors[4] * factors[5],
+    )
+  }
+}
+
+fn blu_bonus(ctx: &Context, delta: f64) -> f64 {
+  if delta < 0.0 {
+    return 0.0;
+  }
+  ctx
+    .input
+    .rules
+    .blu_mdmg_additions
+    .get(delta as usize)
+    .copied()
+    .unwrap_or(0.0)
+}
+
+// BLU's weapon bonus depends on INT; a range maximum keeps that upper bound safe
+// even if future game data makes the lookup non-monotonic.
+struct BluBonusRange {
+  levels: Vec<Vec<f64>>,
+  maximum: f64,
+}
+impl BluBonusRange {
+  fn new(values: &[f64]) -> Self {
+    let maximum = values.iter().copied().fold(0.0, f64::max);
+    let mut levels = vec![values.to_vec()];
+    while let Some(previous) = levels.last() {
+      let half = 1 << (levels.len() - 1);
+      if previous.len() <= half {
+        break;
+      }
+      let next = (0..previous.len() - half)
+        .map(|index| previous[index].max(previous[index + half]))
+        .collect();
+      levels.push(next);
+    }
+    Self { levels, maximum }
+  }
+
+  fn maximum_between(&self, lower: f64, upper: f64) -> f64 {
+    let Some(values) = self.levels.first() else {
+      return 0.0;
+    };
+    if !lower.is_finite() || !upper.is_finite() || lower > upper {
+      return self.maximum;
+    }
+    if values.is_empty() || upper < 0.0 || lower >= values.len() as f64 {
+      return 0.0;
+    }
+    let start = lower.floor().max(0.0) as usize;
+    let end = upper.ceil().min((values.len() - 1) as f64) as usize;
+    if start > end {
+      return 0.0;
+    }
+    let width = end - start + 1;
+    let level = (usize::BITS - 1 - width.leading_zeros()) as usize;
+    let span = 1 << level;
+    self.levels[level][start].max(self.levels[level][end + 1 - span])
+  }
+}
+
+/// Remove a food only when another is strictly better for every reachable gear state.
+fn food_strictly_dominates(
+  ctx: &Context,
+  slots: &[SlotStates],
+  better: Option<&Food>,
+  worse: Option<&Food>,
+) -> bool {
   if ctx.input.job == "BLU" || ctx.input.speed_range.is_some() {
     return false;
   }
-  let mut strict_dimension = false;
-  for &stat in ctx.relevant.iter().filter(|&&stat| stat != ctx.speed) {
-    let low = ctx.input.base_stats.get(stat)
-      + slots
-        .iter()
-        .map(|slot| {
-          slot
-            .states
-            .iter()
-            .map(|state| state.stats.get(stat))
-            .fold(f64::INFINITY, f64::min)
-        })
-        .sum::<f64>();
-    let high = ctx.input.base_stats.get(stat)
-      + slots
-        .iter()
-        .map(|slot| {
-          slot
-            .states
-            .iter()
-            .map(|state| state.stats.get(stat))
-            .fold(f64::NEG_INFINITY, f64::max)
-        })
-        .sum::<f64>();
-    if low.fract() != 0.0 || high.fract() != 0.0 || high - low > 20_000.0 {
+  let Some((low_speed, high_speed)) = reachable_stat_bounds(ctx, slots, ctx.speed) else {
+    return false;
+  };
+  for value in low_speed..=high_speed {
+    if final_value(ctx, better, ctx.speed, value as f64)
+      < final_value(ctx, worse, ctx.speed, value as f64)
+    {
       return false;
     }
+  }
+  let mut strict_dimension = false;
+  for &stat in ctx.relevant.iter().filter(|&&stat| stat != ctx.speed) {
+    let Some((low, high)) = reachable_stat_bounds(ctx, slots, stat) else {
+      return false;
+    };
     let mut always_strict = true;
-    for value in low as i64..=high as i64 {
-      let without = factor(ctx, stat, value as f64);
-      let with = factor(ctx, stat, final_value(ctx, Some(food), stat, value as f64));
-      if !with.is_finite() || with < without {
+    for value in low..=high {
+      let better_factor = factor(ctx, stat, final_value(ctx, better, stat, value as f64));
+      let worse_factor = factor(ctx, stat, final_value(ctx, worse, stat, value as f64));
+      if !better_factor.is_finite() || !worse_factor.is_finite() || better_factor < worse_factor {
         return false;
       }
-      always_strict &= with > without;
+      always_strict &= better_factor > worse_factor;
     }
     strict_dimension |= always_strict;
   }
@@ -773,6 +1024,85 @@ fn speed_bounds(
   }
   Ok(output)
 }
+
+// A spatial tree bounds groups of final-slot choices before expanding individual leaves.
+// Every node stores componentwise extrema, so rejecting a node cannot discard a better build.
+#[derive(Clone, Copy)]
+struct LastChoiceNode {
+  start: usize,
+  end: usize,
+  left: Option<usize>,
+  right: Option<usize>,
+  low: Stats,
+  high: Stats,
+  min_points: i64,
+  min_raid: i64,
+}
+struct LastChoiceTree {
+  order: Vec<usize>,
+  nodes: Vec<LastChoiceNode>,
+}
+impl LastChoiceTree {
+  fn new(slot: &SlotStates, relevant: &[usize]) -> Self {
+    let mut tree = Self {
+      order: (0..slot.states.len()).collect(),
+      nodes: Vec::new(),
+    };
+    tree.build(slot, relevant, 0, slot.states.len());
+    tree
+  }
+
+  fn build(&mut self, slot: &SlotStates, relevant: &[usize], start: usize, end: usize) -> usize {
+    let first = &slot.states[self.order[start]];
+    let mut low = first.stats;
+    let mut high = first.stats;
+    let mut min_points = first.points;
+    let mut min_raid = first.raid;
+    for &choice in &self.order[start + 1..end] {
+      let state = &slot.states[choice];
+      for stat in 0..N {
+        low.values[stat] = low.values[stat].min(state.stats.get(stat));
+        high.values[stat] = high.values[stat].max(state.stats.get(stat));
+      }
+      low.present |= state.stats.present;
+      high.present |= state.stats.present;
+      min_points = min_points.min(state.points);
+      min_raid = min_raid.min(state.raid);
+    }
+    let index = self.nodes.len();
+    self.nodes.push(LastChoiceNode {
+      start,
+      end,
+      left: None,
+      right: None,
+      low,
+      high,
+      min_points,
+      min_raid,
+    });
+    if end - start > 8 {
+      let split_stat = relevant
+        .iter()
+        .copied()
+        .max_by(|&a, &b| (high.get(a) - low.get(a)).total_cmp(&(high.get(b) - low.get(b))));
+      if let Some(stat) = split_stat {
+        self.order[start..end].sort_by(|&a, &b| {
+          slot.states[a]
+            .stats
+            .get(stat)
+            .total_cmp(&slot.states[b].stats.get(stat))
+            .then(a.cmp(&b))
+        });
+        let middle = (start + end) / 2;
+        let left = self.build(slot, relevant, start, middle);
+        let right = self.build(slot, relevant, middle, end);
+        self.nodes[index].left = Some(left);
+        self.nodes[index].right = Some(right);
+      }
+    }
+    index
+  }
+}
 pub fn optimize(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Value, String> {
   optimize_slots(ctx, slots, skipped)
 }
@@ -806,23 +1136,193 @@ pub fn optimize_from_frontier(
 }
 
 fn optimize_slots(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<Value, String> {
+  #[derive(Default)]
+  struct SearchMetrics {
+    visited: usize,
+    dual_pruned: usize,
+    speed_bound_pruned: usize,
+    damage_pruned: usize,
+    memo_pruned: usize,
+    last_tree_pruned: usize,
+    last_tree_checked: usize,
+    dual_checks: usize,
+    speed_bound_checks: usize,
+  }
   struct Search<'a, 'b> {
     ctx: &'a Context<'b>,
-    slots: Vec<SlotStates>,
+    slots: &'a [SlotStates],
     food: Option<&'a Food>,
-    duals: Vec<Dual>,
-    speed_bounds: Vec<SpeedBound>,
+    duals: &'a [Dual],
+    speed_bounds: &'a [SpeedBound],
     required_raw: f64,
     maximum_raw: f64,
     seen: Vec<HashMap<StateKey, (f64, i64)>>,
-    suffix_min: Vec<Stats>,
-    suffix_max: Vec<Stats>,
-    minimum_cost: Vec<(i64, i64)>,
+    suffix_min: &'a [Stats],
+    suffix_max: &'a [Stats],
+    minimum_cost: &'a [(i64, i64)],
+    last_tree: Option<&'a LastChoiceTree>,
+    pair_tree: Option<&'a LastChoiceTree>,
+    pair_slot: Option<&'a SlotStates>,
+    pair_paths: Option<&'a [(usize, usize)]>,
+    damage_table: Option<&'a DamageTable>,
+    blu_bonus_range: Option<&'a BluBonusRange>,
     nodes: usize,
+    memo_entries: usize,
+    metrics: SearchMetrics,
+    speed_bounds_enabled: bool,
+    dual_order: Vec<usize>,
+    dual_hits: Vec<usize>,
+    dual_seen: Vec<usize>,
+    dual_order_tuned: bool,
+    prefer_damage_bound: bool,
     evaluation: &'a mut Evaluation,
   }
   impl Search<'_, '_> {
+    fn blu_bonus_bound(&self, low: &Stats, high: &Stats) -> Option<f64> {
+      let range = self.blu_bonus_range?;
+      let base = self.ctx.input.base_stats.get(2);
+      let lower = final_value(self.ctx, self.food, 2, low.get(2)) - base;
+      let upper = final_value(self.ctx, self.food, 2, high.get(2)) - base;
+      Some(range.maximum_between(lower, upper))
+    }
+
+    fn damage_pair_prunes(
+      &self,
+      prefix: &Stats,
+      suffix_low: &Stats,
+      suffix_high: &Stats,
+      best_damage: f64,
+    ) -> bool {
+      let low = prefix.add(suffix_low);
+      let high = prefix.add(suffix_high);
+      if let Some(damage) = self
+        .damage_table
+        .and_then(|table| table.damage_pair(prefix, suffix_high, self.blu_bonus_bound(&low, &high)))
+      {
+        let margin = damage.abs() * 1e-12 + 1e-10;
+        return damage + margin < best_damage - self.ctx.input.parameters.damage_tolerance;
+      }
+      self.damage_bound_prunes(&low, &high, best_damage)
+    }
+
+    fn visit_tail_tree(
+      &mut self,
+      node_index: usize,
+      state: &State,
+      path: &mut Vec<usize>,
+      paired: bool,
+    ) -> Result<(), String> {
+      let tree = if paired {
+        self.pair_tree.expect("pair choice tree is present")
+      } else {
+        self.last_tree.expect("final choice tree is present")
+      };
+      let node = tree.nodes[node_index];
+      self.metrics.last_tree_checked += 1;
+      if self.ctx.input.progression_weeks.is_some() {
+        let cheapest = State {
+          points: state.points + node.min_points,
+          raid: state.raid + node.min_raid,
+          ..State::default()
+        };
+        if !self.ctx.budget(&cheapest) {
+          self.metrics.last_tree_pruned += 1;
+          return Ok(());
+        }
+      }
+      let speed = state.stats.get(self.ctx.speed);
+      if speed + node.high.get(self.ctx.speed) < self.required_raw
+        || speed + node.low.get(self.ctx.speed) > self.maximum_raw
+      {
+        self.metrics.last_tree_pruned += 1;
+        return Ok(());
+      }
+      if let Some(best) = &self.evaluation.best {
+        if self.damage_pair_prunes(&state.stats, &node.low, &node.high, best.effects.damage) {
+          self.metrics.last_tree_pruned += 1;
+          return Ok(());
+        }
+      }
+      if let (Some(left), Some(right)) = (node.left, node.right) {
+        // Visit the high-stat half first to improve the incumbent earlier.
+        self.visit_tail_tree(right, state, path, paired)?;
+        self.visit_tail_tree(left, state, path, paired)?;
+      } else {
+        for offset in node.start..node.end {
+          let choice = if paired {
+            self.pair_tree.unwrap().order[offset]
+          } else {
+            self.last_tree.unwrap().order[offset]
+          };
+          let selected = if paired {
+            &self.pair_slot.unwrap().states[choice]
+          } else {
+            &self.slots[self.slots.len() - 1].states[choice]
+          };
+          let next = state.combine_values(selected);
+          if self.ctx.budget(&next) {
+            if paired {
+              let (left, right) = self.pair_paths.unwrap()[choice];
+              path.push(left);
+              path.push(right);
+            } else {
+              path.push(choice);
+            }
+            self.visit(self.slots.len(), next, path)?;
+            path.pop();
+            if paired {
+              path.pop();
+            }
+          }
+        }
+      }
+      Ok(())
+    }
+
+    fn damage_bound_prunes(&self, low: &Stats, high: &Stats, best_damage: f64) -> bool {
+      if let Some(damage) = self.damage_table.and_then(|table| {
+        table.damage_pair(high, &Stats::default(), self.blu_bonus_bound(low, high))
+      }) {
+        let margin = damage.abs() * 1e-12 + 1e-10;
+        return damage + margin < best_damage - self.ctx.input.parameters.damage_tolerance;
+      }
+      let mut stats = formula::final_stats(self.ctx.input, high, self.food);
+      if self.ctx.input.job == "BLU" {
+        let delta = stats.get(2) - self.ctx.input.base_stats.get(2);
+        let max_bonus = self
+          .blu_bonus_bound(low, high)
+          .unwrap_or(self.ctx.blu_max_bonus);
+        let current_bonus = blu_bonus(self.ctx, delta);
+        stats.set(19, stats.get(19) + max_bonus - current_bonus);
+      }
+      formula::effects(self.ctx.input, &stats).damage
+        < best_damage - self.ctx.input.parameters.damage_tolerance
+    }
+
     fn visit(&mut self, index: usize, state: State, path: &mut Vec<usize>) -> Result<(), String> {
+      self.metrics.visited += 1;
+      if self.metrics.visited & ((1 << 23) - 1) == 0 {
+        trace::emit(|| {
+          serde_json::json!({
+            "event":"exact_progress",
+            "visited":self.metrics.visited,
+            "nodes":self.nodes,
+            "dualPruned":self.metrics.dual_pruned,
+            "speedBoundPruned":self.metrics.speed_bound_pruned,
+            "damagePruned":self.metrics.damage_pruned,
+            "memoPruned":self.metrics.memo_pruned,
+            "lastTreePruned":self.metrics.last_tree_pruned,
+            "lastTreeChecked":self.metrics.last_tree_checked,
+            "bestDamage":self.evaluation.best.as_ref().map(|candidate| candidate.effects.damage)
+          })
+        });
+      }
+      if !self.prefer_damage_bound
+        && self.metrics.visited >= 100_000
+        && self.metrics.damage_pruned > self.metrics.dual_pruned
+      {
+        self.prefer_damage_bound = true;
+      }
       check_cancelled(self.ctx.cancelled)?;
       let budget_state = State {
         points: state.points + self.minimum_cost[index].0,
@@ -853,33 +1353,60 @@ fn optimize_slots(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<
         {
           return Ok(());
         }
-        if self.duals.iter().any(|d| {
-          d.intercept + d.weights.dot(&state.stats) + d.suffix[index]
-            < (best.effects.damage - self.ctx.input.parameters.damage_tolerance)
-              .max(f64::MIN_POSITIVE)
-              .ln()
-              - self.ctx.input.parameters.bound_tolerance
-        }) {
+        if self.prefer_damage_bound && self.damage_bound_prunes(&low, &high, best.effects.damage) {
+          self.metrics.damage_pruned += 1;
           return Ok(());
         }
-        let needed = (self.required_raw - speed).max(0.0) as usize;
         let threshold = (best.effects.damage - self.ctx.input.parameters.damage_tolerance)
           .max(f64::MIN_POSITIVE)
           .ln()
           - self.ctx.input.parameters.bound_tolerance;
-        if self.speed_bounds.iter().any(|bound| {
-          bound.intercept + bound.weights.dot(&state.stats) + bound.suffixes[index][needed]
-            < threshold
-        }) {
+        let mut dual_checks = 0;
+        let dual_pruned = self.dual_order.iter().any(|&dual_index| {
+          dual_checks += 1;
+          if !self.dual_order_tuned {
+            self.dual_seen[dual_index] += 1;
+          }
+          let d = &self.duals[dual_index];
+          let pruned = d.intercept + d.weights.dot(&state.stats) + d.suffix[index] < threshold;
+          if pruned && !self.dual_order_tuned {
+            self.dual_hits[dual_index] += 1;
+          }
+          pruned
+        });
+        self.metrics.dual_checks += dual_checks;
+        if !self.dual_order_tuned && self.metrics.visited >= 10_000 {
+          self.dual_order.sort_by(|&a, &b| {
+            (self.dual_hits[b] * self.dual_seen[a])
+              .cmp(&(self.dual_hits[a] * self.dual_seen[b]))
+              .then(a.cmp(&b))
+          });
+          self.dual_order_tuned = true;
+        }
+        if dual_pruned {
+          self.metrics.dual_pruned += 1;
           return Ok(());
         }
-        if self.ctx.input.job != "BLU" {
-          let stats = formula::final_stats(self.ctx.input, &high, self.food);
-          if formula::effects(self.ctx.input, &stats).damage
-            < best.effects.damage - self.ctx.input.parameters.damage_tolerance
-          {
+        let needed = (self.required_raw - speed).max(0.0) as usize;
+        if self.speed_bounds_enabled {
+          let mut speed_bound_checks = 0;
+          let speed_bound_pruned = self.speed_bounds.iter().any(|bound| {
+            speed_bound_checks += 1;
+            bound.intercept + bound.weights.dot(&state.stats) + bound.suffixes[index][needed]
+              < threshold
+          });
+          self.metrics.speed_bound_checks += speed_bound_checks;
+          if speed_bound_pruned {
+            self.metrics.speed_bound_pruned += 1;
             return Ok(());
           }
+          if self.metrics.speed_bound_checks >= 10_000 && self.metrics.speed_bound_pruned == 0 {
+            self.speed_bounds_enabled = false;
+          }
+        }
+        if !self.prefer_damage_bound && self.damage_bound_prunes(&low, &high, best.effects.damage) {
+          self.metrics.damage_pruned += 1;
+          return Ok(());
         }
       }
       if index == self.slots.len() {
@@ -919,12 +1446,36 @@ fn optimize_slots(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<
           old_speed < speed || (old_speed == speed && cost <= state.change)
         })
       {
+        self.metrics.memo_pruned += 1;
         return Ok(());
       }
-      self.seen[index].insert(key, (speed, state.change));
+      if self.seen[index]
+        .insert(key, (speed, state.change))
+        .is_none()
+      {
+        self.memo_entries += 1;
+      }
       self.nodes += 1;
-      if self.seen[index].len() > self.ctx.input.parameters.exact_limit {
+      let base_limit = self.ctx.input.parameters.exact_limit;
+      // Tail grouping can keep the search tractable after one layer exceeds the
+      // default cap. Bound both that layer and the total retained hash entries.
+      let layer_limit = if self.pair_tree.is_some() {
+        base_limit.saturating_mul(5).min(5_000_000).max(base_limit)
+      } else {
+        base_limit
+      };
+      let total_limit = layer_limit
+        .saturating_mul(2)
+        .min(8_000_000)
+        .max(layer_limit);
+      if self.seen[index].len() > layer_limit || self.memo_entries > total_limit {
         return Err(RANGE_ERROR.into());
+      }
+      if index + 2 == self.slots.len() && self.pair_tree.is_some() {
+        return self.visit_tail_tree(0, &state, path, true);
+      }
+      if index + 1 == self.slots.len() && self.last_tree.is_some() {
+        return self.visit_tail_tree(0, &state, path, false);
       }
       for i in 0..self.slots[index].states.len() {
         let next = state.combine_values(&self.slots[index].states[i]);
@@ -937,7 +1488,13 @@ fn optimize_slots(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<
       Ok(())
     }
   }
+  let weight_started = std::time::Instant::now();
   let weight_candidates = tuned_weights(ctx, slots)?;
+  let blu_bonus_range =
+    (ctx.input.job == "BLU").then(|| BluBonusRange::new(&ctx.input.rules.blu_mdmg_additions));
+  trace::emit(
+    || serde_json::json!({"event":"exact_weights","elapsedMs":weight_started.elapsed().as_secs_f64() * 1000.0,"candidateCount":weight_candidates.len()}),
+  );
   let mut evaluation = Evaluation::new();
   let mut foods: Vec<_> = ctx.input.foods.iter().collect();
   foods.sort_by(|a, b| {
@@ -948,153 +1505,411 @@ fn optimize_slots(ctx: &Context, slots: &[SlotStates], skipped: bool) -> Result<
       .total_cmp(&a.stats.values.iter().sum::<f64>())
       .then(a.id.cmp(&b.id))
   });
-  let search_without_food = !foods
+  let food_filter_started = std::time::Instant::now();
+  let mut available_foods: Vec<_> = foods
     .iter()
-    .any(|food| food_strictly_dominates_none(ctx, slots, food));
-  for food in foods.iter().take(12) {
+    .copied()
+    .filter(|food| {
+      !foods.iter().any(|candidate| {
+        candidate.id != food.id && food_strictly_dominates(ctx, slots, Some(candidate), Some(food))
+      })
+    })
+    .collect();
+  let search_without_food = !available_foods
+    .iter()
+    .any(|food| food_strictly_dominates(ctx, slots, Some(food), None));
+  trace::emit(
+    || serde_json::json!({"event":"food_filter","inputFoods":foods.len(),"retainedFoods":available_foods.len(),"searchWithoutFood":search_without_food,"retainedFoodIds":available_foods.iter().map(|food| food.id).collect::<Vec<_>>(),"elapsedMs":food_filter_started.elapsed().as_secs_f64() * 1000.0}),
+  );
+  let seed_started = std::time::Instant::now();
+  let mut seed_attempts = 0;
+  let mut stagnant_attempts = 0;
+  let score_food = |state: &State, food: &Food| {
+    let stats = formula::final_stats(ctx.input, &state.stats, Some(food));
+    formula::effects(ctx.input, &stats).damage
+  };
+  let mut seed_options = available_foods.clone();
+  while seed_attempts < 12 && !seed_options.is_empty() {
     check_cancelled(ctx.cancelled)?;
+    if let Some(best) = &evaluation.best {
+      seed_options.sort_by(|a, b| {
+        score_food(&best.state, b)
+          .total_cmp(&score_food(&best.state, a))
+          .then(a.id.cmp(&b.id))
+      });
+    }
+    let food = seed_options.remove(0);
+    let attempt_started = std::time::Instant::now();
+    let previous_damage = evaluation.best.as_ref().map(|best| best.effects.damage);
+    let challenger_damage = trace::enabled()
+      .then(|| {
+        previous_damage.and_then(|_| {
+          evaluation.best.as_ref().map(|best| {
+            let stats = formula::final_stats(ctx.input, &best.state.stats, Some(food));
+            formula::effects(ctx.input, &stats).damage
+          })
+        })
+      })
+      .flatten();
     seed_incumbent(ctx, slots, Some(food), &mut evaluation)?;
+    seed_attempts += 1;
+    let current_damage = evaluation.best.as_ref().map(|best| best.effects.damage);
+    let improved = match (previous_damage, current_damage) {
+      (Some(previous), Some(current)) => current > previous + ctx.input.parameters.damage_tolerance,
+      (None, Some(_)) => true,
+      _ => false,
+    };
+    stagnant_attempts = if improved { 0 } else { stagnant_attempts + 1 };
+    trace::emit(
+      || serde_json::json!({"event":"exact_seed_food","foodId":food.id,"elapsedMs":attempt_started.elapsed().as_secs_f64() * 1000.0,"challengerDamage":challenger_damage,"bestDamage":evaluation.best.as_ref().map(|candidate| candidate.effects.damage)}),
+    );
+    // The exact search covers every food; stop only the deterministic lower-bound heuristic.
+    if seed_attempts >= 3 && stagnant_attempts >= 2 {
+      let promising = evaluation.best.as_ref().is_some_and(|best| {
+        seed_options.iter().any(|candidate| {
+          score_food(&best.state, candidate)
+            > best.effects.damage + ctx.input.parameters.damage_tolerance
+        })
+      });
+      if !promising && evaluation.best.is_some() {
+        break;
+      }
+    }
   }
   if search_without_food {
     seed_incumbent(ctx, slots, None, &mut evaluation)?;
   }
-  let search =
-    |options: Vec<Option<&Food>>, mut evaluation: Evaluation| -> Result<Evaluation, String> {
-      for food in options {
-        check_cancelled(ctx.cancelled)?;
-        let mut ordered = slots.to_vec();
-        // A speed-conditioned suffix bound benefits from placing the larger choice sets at the end.
-        ordered.sort_by_key(|s| (s.states.len(), s.index));
-        let mut duals = duals(ctx, &ordered, food, Some(&weight_candidates));
-        if let Some(best) = &evaluation.best {
-          if !filter_choices(ctx, &mut ordered, &mut duals, best.effects.damage) {
-            continue;
-          }
-        }
-        let required_raw = inverse_speed(ctx, food, ctx.required, false);
-        let maximum_raw = ctx.input.speed_range.map_or(f64::INFINITY, |range| {
-          inverse_speed(ctx, food, range.max, true)
-        });
-        let available = ctx.input.base_stats.get(ctx.speed)
-          + ordered
-            .iter()
-            .map(|slot| {
-              slot
-                .states
-                .iter()
-                .map(|s| s.stats.get(ctx.speed))
-                .fold(0.0, f64::max)
-            })
-            .sum::<f64>();
-        if required_raw > available || required_raw > maximum_raw {
+  trace::emit(
+    || serde_json::json!({"event":"exact_seed","elapsedMs":seed_started.elapsed().as_secs_f64() * 1000.0,"attempts":seed_attempts,"bestDamage":evaluation.best.as_ref().map(|candidate| candidate.effects.damage)}),
+  );
+  if let Some(best) = &evaluation.best {
+    // Search the foods most promising for the current gear first. Every food is
+    // still searched, so this only improves the incumbent and pruning order.
+    available_foods.sort_by(|a, b| {
+      score_food(&best.state, b)
+        .total_cmp(&score_food(&best.state, a))
+        .then(a.id.cmp(&b.id))
+    });
+  }
+  let search = |options: Vec<Option<&Food>>,
+                mut evaluation: Evaluation|
+   -> Result<Evaluation, String> {
+    for food in options {
+      check_cancelled(ctx.cancelled)?;
+      let food_started = std::time::Instant::now();
+      let mut ordered = slots.to_vec();
+      // A speed-conditioned suffix bound benefits from placing the larger choice sets at the end.
+      ordered.sort_by_key(|s| (s.states.len(), s.index));
+      let mut duals = duals(ctx, &ordered, food, Some(&weight_candidates));
+      if let Some(best) = &evaluation.best {
+        if !filter_choices(ctx, &mut ordered, &mut duals, best.effects.damage) {
+          trace::emit(
+            || serde_json::json!({"event":"exact_food_skipped","foodId":food.map(|value| value.id),"reason":"upper_bound","elapsedMs":food_started.elapsed().as_secs_f64() * 1000.0}),
+          );
           continue;
         }
-        let speed_bounds = speed_bounds(ctx, &ordered, &duals, required_raw)?;
-        if let Some(dual) = duals.get(1).or(duals.first()) {
-          for slot in &mut ordered {
-            slot.states.sort_by(|a, b| {
-              dual
-                .weights
-                .dot(&b.stats)
-                .total_cmp(&dual.weights.dot(&a.stats))
-                .then(a.change.cmp(&b.change))
-            });
-          }
-        }
-        let mut suffix_min = vec![Stats::default(); ordered.len() + 1];
-        let mut suffix_max = suffix_min.clone();
-        let mut minimum_cost = vec![(0, 0); ordered.len() + 1];
-        for i in (0..ordered.len()).rev() {
-          suffix_min[i] = suffix_min[i + 1];
-          suffix_max[i] = suffix_max[i + 1];
-          for s in 0..N {
-            let low = ordered[i]
+      }
+      let required_raw = inverse_speed(ctx, food, ctx.required, false);
+      let maximum_raw = ctx.input.speed_range.map_or(f64::INFINITY, |range| {
+        inverse_speed(ctx, food, range.max, true)
+      });
+      let available = ctx.input.base_stats.get(ctx.speed)
+        + ordered
+          .iter()
+          .map(|slot| {
+            slot
               .states
               .iter()
-              .map(|g| g.stats.get(s))
-              .fold(f64::INFINITY, f64::min);
-            let high = ordered[i]
-              .states
-              .iter()
-              .map(|g| g.stats.get(s))
-              .fold(f64::NEG_INFINITY, f64::max);
-            if ordered[i].states.iter().any(|g| g.stats.has(s)) {
-              let a = suffix_min[i].get(s);
-              suffix_min[i].set(s, a + low);
-              let b = suffix_max[i].get(s);
-              suffix_max[i].set(s, b + high);
-            }
-          }
-          minimum_cost[i] = (
-            minimum_cost[i + 1].0
-              + ordered[i]
-                .states
-                .iter()
-                .map(|g| g.points)
-                .min()
-                .unwrap_or(0),
-            minimum_cost[i + 1].1 + ordered[i].states.iter().map(|g| g.raid).min().unwrap_or(0),
-          );
-        }
-        let mut search = Search {
-          ctx,
-          slots: ordered,
-          food,
-          duals,
-          speed_bounds,
-          required_raw,
-          maximum_raw,
-          seen: vec![HashMap::new(); slots.len() + 1],
-          suffix_min,
-          suffix_max,
-          minimum_cost,
-          nodes: 0,
-          evaluation: &mut evaluation,
-        };
-        search.visit(
-          0,
-          State {
-            stats: ctx.input.base_stats,
-            ..State::default()
-          },
-          &mut Vec::with_capacity(slots.len()),
-        )?;
-        if std::env::var_os("ORS_GEARING_TRACE").is_some() {
-          eprintln!(
-            "gearing exact food={} nodes={} slots={:?}",
-            food.map_or(0, |value| value.id),
-            search.nodes,
-            search
-              .slots
-              .iter()
-              .map(|slot| slot.states.len())
-              .collect::<Vec<_>>()
-          );
+              .map(|s| s.stats.get(ctx.speed))
+              .fold(0.0, f64::max)
+          })
+          .sum::<f64>();
+      if required_raw > available || required_raw > maximum_raw {
+        trace::emit(
+          || serde_json::json!({"event":"exact_food_skipped","foodId":food.map(|value| value.id),"reason":"speed_unreachable","elapsedMs":food_started.elapsed().as_secs_f64() * 1000.0}),
+        );
+        continue;
+      }
+      let speed_bounds = speed_bounds(ctx, &ordered, &duals, required_raw)?;
+      if let Some(dual) = duals.get(1).or(duals.first()) {
+        for slot in &mut ordered {
+          slot.states.sort_by(|a, b| {
+            dual
+              .weights
+              .dot(&b.stats)
+              .total_cmp(&dual.weights.dot(&a.stats))
+              .then(a.change.cmp(&b.change))
+          });
         }
       }
-      Ok(evaluation)
-    };
-  let food_options: Vec<_> = foods.into_iter().map(Some).collect();
-  evaluation = if search_without_food && !food_options.is_empty() {
-    let food_seed = evaluation.clone();
-    let none_seed = evaluation;
-    std::thread::scope(|scope| {
-      let foods = scope.spawn(|| search(food_options, food_seed));
-      let without_food = search(vec![None], none_seed);
-      let mut combined = foods
-        .join()
-        .map_err(|_| "Food optimization task failed.".to_owned())??;
-      combined.merge(ctx, without_food?);
-      Ok::<Evaluation, String>(combined)
-    })?
-  } else {
-    search(
-      food_options
-        .into_iter()
-        .chain(search_without_food.then_some(None))
-        .collect(),
-      evaluation,
-    )?
+      let mut suffix_min = vec![Stats::default(); ordered.len() + 1];
+      let mut suffix_max = suffix_min.clone();
+      let mut minimum_cost = vec![(0, 0); ordered.len() + 1];
+      for i in (0..ordered.len()).rev() {
+        suffix_min[i] = suffix_min[i + 1];
+        suffix_max[i] = suffix_max[i + 1];
+        for s in 0..N {
+          let low = ordered[i]
+            .states
+            .iter()
+            .map(|g| g.stats.get(s))
+            .fold(f64::INFINITY, f64::min);
+          let high = ordered[i]
+            .states
+            .iter()
+            .map(|g| g.stats.get(s))
+            .fold(f64::NEG_INFINITY, f64::max);
+          if ordered[i].states.iter().any(|g| g.stats.has(s)) {
+            let a = suffix_min[i].get(s);
+            suffix_min[i].set(s, a + low);
+            let b = suffix_max[i].get(s);
+            suffix_max[i].set(s, b + high);
+          }
+        }
+        minimum_cost[i] = (
+          minimum_cost[i + 1].0
+            + ordered[i]
+              .states
+              .iter()
+              .map(|g| g.points)
+              .min()
+              .unwrap_or(0),
+          minimum_cost[i + 1].1 + ordered[i].states.iter().map(|g| g.raid).min().unwrap_or(0),
+        );
+      }
+      // A bounded pair index trades a modest setup allocation for earlier pruning.
+      let pair = ordered
+        .len()
+        .checked_sub(2)
+        .and_then(|index| {
+          let count = ordered[index]
+            .states
+            .len()
+            .checked_mul(ordered[index + 1].states.len())?;
+          ((2_000..=150_000).contains(&count)
+            && ordered[index].states.len() <= u16::MAX as usize
+            && ordered[index + 1].states.len() <= u16::MAX as usize)
+            .then_some(index)
+        })
+        .map(|index| -> Result<_, String> {
+          let mut states =
+            Vec::with_capacity(ordered[index].states.len() * ordered[index + 1].states.len());
+          for (left, first) in ordered[index].states.iter().enumerate() {
+            for (right, second) in ordered[index + 1].states.iter().enumerate() {
+              let mut state = first.combine_values(second);
+              state.allocation = Some(left as u16);
+              state.linked = Some(right as u16);
+              states.push(state);
+            }
+          }
+          let monotonic_damage = ctx.input.job != "BLU"
+            || reachable_stat_bounds(ctx, &ordered, 2).is_some_and(|(_, upper)| {
+              let delta = final_value(ctx, food, 2, upper as f64) - ctx.input.base_stats.get(2);
+              delta < ctx.input.rules.blu_mdmg_additions.len() as f64
+                && ctx
+                  .input
+                  .rules
+                  .blu_mdmg_additions
+                  .windows(2)
+                  .all(|values| values[0] <= values[1])
+            });
+          if monotonic_damage {
+            states = crate::frontier::prune(
+              states,
+              &ctx.relevant,
+              ctx.speed,
+              ctx.required,
+              ctx.cancelled,
+              ctx.input.parameters.frontier_limit,
+            )?;
+          }
+          let paths: Vec<(usize, usize)> = states
+            .iter_mut()
+            .map(|state| {
+              (
+                state.allocation.take().unwrap() as usize,
+                state.linked.take().unwrap() as usize,
+              )
+            })
+            .collect();
+          Ok((
+            SlotStates {
+              index: usize::MAX,
+              states,
+            },
+            paths,
+          ))
+        })
+        .transpose()?;
+      let pair_tree = pair
+        .as_ref()
+        .map(|(slot, _)| LastChoiceTree::new(slot, &ctx.relevant));
+      let last_tree = (pair_tree.is_none()
+        && ordered.last().is_some_and(|slot| slot.states.len() > 32))
+      .then(|| LastChoiceTree::new(ordered.last().unwrap(), &ctx.relevant));
+      let damage_table = DamageTable::new(ctx, &ordered, food);
+      let mut search = Search {
+        ctx,
+        slots: &ordered,
+        food,
+        duals: &duals,
+        speed_bounds: &speed_bounds,
+        required_raw,
+        maximum_raw,
+        seen: vec![HashMap::new(); slots.len() + 1],
+        suffix_min: &suffix_min,
+        suffix_max: &suffix_max,
+        minimum_cost: &minimum_cost,
+        last_tree: last_tree.as_ref(),
+        pair_tree: pair_tree.as_ref(),
+        pair_slot: pair.as_ref().map(|(slot, _)| slot),
+        pair_paths: pair.as_ref().map(|(_, paths)| paths.as_slice()),
+        damage_table: damage_table.as_ref(),
+        blu_bonus_range: blu_bonus_range.as_ref(),
+        nodes: 0,
+        memo_entries: 0,
+        metrics: SearchMetrics::default(),
+        speed_bounds_enabled: true,
+        dual_order: (0..duals.len()).collect(),
+        dual_hits: vec![0; duals.len()],
+        dual_seen: vec![0; duals.len()],
+        dual_order_tuned: false,
+        prefer_damage_bound: false,
+        evaluation: &mut evaluation,
+      };
+      trace::emit(|| {
+        serde_json::json!({
+          "event":"exact_food_ready",
+          "foodId":food.map(|value| value.id),
+          "slotStateCounts":ordered.iter().map(|slot| slot.states.len()).collect::<Vec<_>>(),
+          "pairTreeStates":pair.as_ref().map(|(slot, _)| slot.states.len()),
+          "pairSourceStates":ordered.get(ordered.len().saturating_sub(2)).and_then(|first| ordered.last().map(|last| first.states.len() * last.states.len())),
+          "damageTable":search.damage_table.is_some(),
+          "bestDamage":search.evaluation.best.as_ref().map(|candidate| candidate.effects.damage),
+          "setupMs":food_started.elapsed().as_secs_f64() * 1000.0
+        })
+      });
+      let search_started = std::time::Instant::now();
+      let search_result = search.visit(
+        0,
+        State {
+          stats: ctx.input.base_stats,
+          ..State::default()
+        },
+        &mut Vec::with_capacity(slots.len()),
+      );
+      if let Err(error) = search_result {
+        trace::emit(|| {
+          serde_json::json!({
+            "event":"exact_food_error",
+            "foodId":food.map(|value| value.id),
+            "message":error,
+            "nodes":search.nodes,
+            "memoEntries":search.memo_entries,
+            "visited":search.metrics.visited,
+            "dualPruned":search.metrics.dual_pruned,
+            "speedBoundPruned":search.metrics.speed_bound_pruned,
+            "damagePruned":search.metrics.damage_pruned,
+            "memoPruned":search.metrics.memo_pruned,
+            "lastTreePruned":search.metrics.last_tree_pruned,
+            "lastTreeChecked":search.metrics.last_tree_checked,
+            "bestDamage":search.evaluation.best.as_ref().map(|candidate| candidate.effects.damage),
+            "elapsedMs":food_started.elapsed().as_secs_f64() * 1000.0
+          })
+        });
+        return Err(error);
+      }
+      trace::emit(|| {
+        serde_json::json!({
+          "event":"exact_food",
+          "foodId":food.map(|value| value.id),
+          "slotStateCounts":ordered.iter().map(|slot| slot.states.len()).collect::<Vec<_>>(),
+          "nodes":search.nodes,
+          "memoEntries":search.memo_entries,
+          "visited":search.metrics.visited,
+          "dualPruned":search.metrics.dual_pruned,
+          "speedBoundPruned":search.metrics.speed_bound_pruned,
+          "damagePruned":search.metrics.damage_pruned,
+          "memoPruned":search.metrics.memo_pruned,
+          "lastTreePruned":search.metrics.last_tree_pruned,
+          "lastTreeChecked":search.metrics.last_tree_checked,
+          "dualChecks":search.metrics.dual_checks,
+          "speedBoundChecks":search.metrics.speed_bound_checks,
+          "speedBoundEnabled":search.speed_bounds_enabled,
+          "damageFirst":search.prefer_damage_bound,
+          "setupMs":(food_started.elapsed() - search_started.elapsed()).as_secs_f64() * 1000.0,
+          "searchMs":search_started.elapsed().as_secs_f64() * 1000.0,
+          "elapsedMs":food_started.elapsed().as_secs_f64() * 1000.0
+        })
+      });
+    }
+    Ok(evaluation)
   };
+  evaluation = search(
+    available_foods
+      .into_iter()
+      .map(Some)
+      .chain(search_without_food.then_some(None))
+      .collect(),
+    evaluation,
+  )?;
   evaluation.result(ctx, skipped)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn blu_bonus_range_covers_every_reachable_lookup_value() {
+    let values = [0.0, 4.0, 2.0, 9.0, 3.0];
+    let bound = BluBonusRange::new(&values);
+    for lower in -2..=7 {
+      for upper in lower..=7 {
+        let expected = (lower..=upper)
+          .map(|index| values.get(index as usize).copied().unwrap_or(0.0))
+          .fold(0.0, f64::max);
+        assert_eq!(bound.maximum_between(lower as f64, upper as f64), expected);
+      }
+    }
+  }
+
+  #[test]
+  fn final_choice_tree_bounds_all_member_states() {
+    let slot = SlotStates {
+      index: 0,
+      states: (0..41)
+        .map(|index| {
+          let mut stats = Stats::default();
+          stats.set(0, (index * 7 % 29) as f64);
+          stats.set(5, (index * 11 % 31) as f64);
+          stats.set(8, (index * 13 % 37) as f64);
+          State {
+            stats,
+            points: (index * 3 % 17) as i64,
+            raid: (index * 5 % 19) as i64,
+            ..State::default()
+          }
+        })
+        .collect(),
+    };
+    let tree = LastChoiceTree::new(&slot, &[0, 5, 8]);
+    let mut seen = Vec::new();
+    for node in &tree.nodes {
+      for &choice in &tree.order[node.start..node.end] {
+        let state = &slot.states[choice];
+        for stat in [0, 5, 8] {
+          assert!(node.low.get(stat) <= state.stats.get(stat));
+          assert!(node.high.get(stat) >= state.stats.get(stat));
+        }
+        assert!(node.min_points <= state.points);
+        assert!(node.min_raid <= state.raid);
+        if node.left.is_none() {
+          seen.push(choice);
+        }
+      }
+    }
+    seen.sort_unstable();
+    assert_eq!(seen, (0..slot.states.len()).collect::<Vec<_>>());
+  }
 }

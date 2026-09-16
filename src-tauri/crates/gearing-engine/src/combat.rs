@@ -2,6 +2,7 @@
 use crate::{
   check_cancelled, formula,
   frontier::{self, PlanTree, State},
+  trace,
   types::*,
 };
 use serde_json::{json, Value};
@@ -16,6 +17,7 @@ pub(crate) struct Context<'a> {
   pub required: f64,
   pub relevant: Vec<usize>,
   pub cancelled: &'a AtomicBool,
+  pub blu_max_bonus: f64,
   pub charge_slot: Option<i32>,
   pub linked_groups: Vec<String>,
   pub ring_groups: Vec<String>,
@@ -688,16 +690,17 @@ fn continue_with_exact(
   slots: &[SlotStates],
   skipped: bool,
   prefix_limit: usize,
+  reason: &str,
 ) -> Result<Value, String> {
   if frontier.len() <= prefix_limit {
-    if std::env::var_os("ORS_GEARING_TRACE").is_some() {
-      eprintln!("gearing switch=exact-reuse roots={}", frontier.len());
-    }
+    trace::emit(
+      || json!({"event":"switch","mode":"exact-reuse","reason":reason,"frontierStates":frontier.len()}),
+    );
     super::exact::optimize_from_frontier(ctx, frontier, remaining, skipped)
   } else {
-    if std::env::var_os("ORS_GEARING_TRACE").is_some() {
-      eprintln!("gearing switch=exact-restart roots={}", frontier.len());
-    }
+    trace::emit(
+      || json!({"event":"switch","mode":"exact-restart","reason":reason,"frontierStates":frontier.len()}),
+    );
     super::exact::optimize(ctx, slots, skipped)
   }
 }
@@ -710,7 +713,6 @@ pub(crate) struct Candidate {
   pub food_name: String,
   pub change: i64,
 }
-#[derive(Clone)]
 pub(crate) struct Evaluation {
   pub best: Option<Candidate>,
   fastest: Option<Candidate>,
@@ -780,46 +782,6 @@ impl Evaluation {
       )
     }) {
       self.best = Some(candidate);
-    }
-  }
-  pub fn merge(&mut self, ctx: &Context, other: Self) {
-    if let Some(candidate) = other.fastest {
-      if self.fastest.as_ref().map_or(true, |old| {
-        candidate.effects.gcd < old.effects.gcd
-          || (candidate.effects.gcd == old.effects.gcd
-            && candidate.effects.damage > old.effects.damage)
-      }) {
-        self.fastest = Some(candidate);
-      }
-    }
-    if let Some(candidate) = other.closest {
-      let distance = |stats: &Stats| {
-        ctx.input.speed_range.map_or(0.0, |range| {
-          (range.min - stats.get(ctx.speed))
-            .max(stats.get(ctx.speed) - range.max)
-            .max(0.0)
-        })
-      };
-      if self.closest.as_ref().map_or(true, |old| {
-        distance(&candidate.stats) < distance(&old.stats)
-          || (distance(&candidate.stats) == distance(&old.stats)
-            && candidate.effects.damage > old.effects.damage)
-      }) {
-        self.closest = Some(candidate);
-      }
-    }
-    if let Some(candidate) = other.best {
-      if self.best.as_ref().map_or(true, |old| {
-        better(
-          &candidate,
-          old,
-          ctx.speed,
-          ctx.required,
-          ctx.input.parameters.damage_tolerance,
-        )
-      }) {
-        self.best = Some(candidate);
-      }
     }
   }
   pub fn result(self, ctx: &Context, skipped: bool) -> Result<Value, String> {
@@ -962,11 +924,24 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
     required,
     relevant,
     cancelled,
+    blu_max_bonus: input
+      .rules
+      .blu_mdmg_additions
+      .iter()
+      .copied()
+      .fold(0.0, f64::max),
     charge_slot: None,
     linked_groups,
     ring_groups,
   };
+  let slot_preparation_started = std::time::Instant::now();
   let (slots, skipped) = ctx.slots()?;
+  trace::emit(
+    || json!({"event":"slot_preparation","elapsedMs":slot_preparation_started.elapsed().as_secs_f64() * 1000.0,"slotStateCounts":slots.iter().map(|slot| slot.states.len()).collect::<Vec<_>>()}),
+  );
+  trace::emit(
+    || json!({"event":"solver_input","job":input.job,"gearCount":input.gears.len(),"foodCount":input.foods.len(),"slotStateCounts":slots.iter().map(|slot| slot.states.len()).collect::<Vec<_>>()}),
+  );
   let mut states = vec![State {
     stats: input.base_stats,
     ..State::default()
@@ -978,14 +953,9 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
   let exact_prefix_limit = (input.parameters.frontier_limit / 1_000).max(1);
   for (index, slot) in slots.iter().enumerate() {
     let projected = states.len().saturating_mul(slot.states.len());
-    if std::env::var_os("ORS_GEARING_TRACE").is_some() {
-      eprintln!(
-        "gearing frontier states={} slot={} projected={}",
-        states.len(),
-        slot.states.len(),
-        projected
-      );
-    }
+    trace::emit(
+      || json!({"event":"frontier_projection","round":index,"frontierStates":states.len(),"slotStates":slot.states.len(),"projectedStates":projected}),
+    );
     if projected.saturating_mul(ESTIMATED_TRANSIENT_BYTES_PER_STATE) > FRONTIER_MEMORY_BUDGET {
       return continue_with_exact(
         &ctx,
@@ -994,6 +964,7 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
         &slots,
         skipped,
         exact_prefix_limit,
+        "memory_projection",
       );
     }
     let previous = states.len();
@@ -1030,16 +1001,9 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
     let slow_projection = next_seconds > 0.25;
     let memory_pressure =
       next_projected.saturating_mul(ESTIMATED_TRANSIENT_BYTES_PER_STATE) > FRONTIER_MEMORY_BUDGET;
-    if std::env::var_os("ORS_GEARING_TRACE").is_some() {
-      eprintln!(
-        "gearing frontier pruned={} retention={:.3} growth={:.3} next={} estimate_ms={:.1}",
-        states.len(),
-        retention,
-        growth,
-        next_projected,
-        next_seconds * 1000.0
-      );
-    }
+    trace::emit(
+      || json!({"event":"frontier_round","round":index,"inputStates":previous,"combinedStates":projected,"retainedStates":states.len(),"retention":retention,"growth":growth,"elapsedMs":elapsed * 1000.0,"nextProjectedStates":next_projected,"nextEstimatedMs":next_seconds * 1000.0}),
+    );
     if poor_pruning || slow_projection || memory_pressure {
       return continue_with_exact(
         &ctx,
@@ -1048,9 +1012,17 @@ pub fn optimize(input: CombatInput, cancelled: &AtomicBool) -> Result<Value, Str
         &slots,
         skipped,
         exact_prefix_limit,
+        if poor_pruning {
+          "poor_pruning"
+        } else if slow_projection {
+          "time_projection"
+        } else {
+          "memory_projection"
+        },
       );
     }
   }
+  trace::emit(|| json!({"event":"frontier_complete","retainedStates":states.len()}));
   let mut result = Evaluation::new();
   let mut foods: Vec<_> = input.foods.iter().collect();
   foods.sort_by_key(|f| f.id);

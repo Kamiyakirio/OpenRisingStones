@@ -7,6 +7,7 @@ mod formula;
 mod frontier;
 pub mod parameters;
 mod production;
+mod trace;
 mod types;
 
 use serde_json::{json, Value};
@@ -41,6 +42,16 @@ pub fn solve(
     _ => Err("Unknown gearing optimization kind.".to_owned()),
   };
   result.unwrap_or_else(|message| json!({ "status": "error", "message": message }))
+}
+
+/// Captures internal stages for debug benchmarks without changing the regular solver API.
+pub fn solve_with_diagnostics(
+  parameters: &parameters::Parameters,
+  kind: &str,
+  input: Value,
+  cancelled: &AtomicBool,
+) -> (Value, Vec<Value>) {
+  trace::capture(|| solve(parameters, kind, input, cancelled))
 }
 
 pub(crate) fn check_cancelled(cancelled: &AtomicBool) -> Result<(), String> {
