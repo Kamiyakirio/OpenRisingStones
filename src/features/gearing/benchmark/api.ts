@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { NativeResult } from "../editor/calculation.types";
 import type {
   BenchmarkAlgorithm,
+  BenchmarkDiagnostic,
   BenchmarkInfo,
   BenchmarkMemory,
   BenchmarkVariant,
@@ -20,6 +21,7 @@ export function runBenchmarkSample(
   return invoke<{
     durationMs: number;
     memory: BenchmarkMemory;
+    diagnostics: BenchmarkDiagnostic[];
     result: NativeResult;
   }>("benchmark_gearing", {
     algorithm,

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import "./helpers/gearing-loader.mjs";
 const { ItemCatalog } =
   await import("../src/features/gearing/editor/catalog.ts");
@@ -12,6 +12,10 @@ const { calculation, prepareGear, evaluate, customRule } =
   await import("../src/features/gearing/editor/evaluation.ts");
 const { prepareOptimization } =
   await import("../src/features/gearing/editor/optimization.ts");
+const { generateBenchmarkDataset } =
+  await import("../src/features/gearing/benchmark/generator.ts");
+const { isValidSample } =
+  await import("../src/features/gearing/benchmark/results.ts");
 const dataset = JSON.parse(
   readFileSync("src/features/gearing/data/generated/catalog.json", "utf8"),
 );
@@ -70,6 +74,80 @@ const query = (job, slot, minLevel = 780, maxLevel = 795) => ({
   sortStat: "",
   offset: 0,
   limit: 30000,
+});
+
+test("real-catalog optimization emits structured, internally consistent stage diagnostics", () => {
+  const variant = generateBenchmarkDataset(catalog, {
+    job: "SCH",
+    seed: "alpha",
+    caseCount: 1,
+  }).variants[0];
+  const run = spawnSync(
+    "src-tauri/crates/gearing-engine/target/release/examples/solve",
+    [],
+    {
+      input:
+        JSON.stringify({
+          kind: "combat",
+          input: variant.input,
+          parameters: variant.parameters,
+        }) + "\n",
+      encoding: "utf8",
+      env: { ...process.env, ORS_GEARING_TRACE: "1" },
+      timeout: 30000,
+    },
+  );
+  assert.equal(run.status, 0, run.stderr);
+  const tracedResult = JSON.parse(run.stdout);
+  assert.equal(tracedResult.status, "ok");
+  assert.deepEqual(
+    tracedResult,
+    solve("combat", variant.input, variant.parameters),
+  );
+  const events = run.stderr
+    .trim()
+    .split("\n")
+    .filter((line) => line.startsWith("ORS_GEARING_TRACE "))
+    .map((line) => JSON.parse(line.slice("ORS_GEARING_TRACE ".length)));
+  assert.ok(events.length > 3);
+  assert.ok(events.every((event) => event.schemaVersion === 1));
+  assert.ok(events.some((event) => event.event === "slot_preparation"));
+  assert.equal(
+    events.find((event) => event.event === "solver_input")?.gearCount,
+    44,
+  );
+  assert.ok(events.some((event) => event.event === "food_filter"));
+  assert.ok(events.some((event) => event.event === "exact_food"));
+  for (const event of events.filter(
+    (value) => value.event === "frontier_round",
+  )) {
+    assert.ok(event.retainedStates <= event.combinedStates);
+    assert.ok(event.elapsedMs >= 0);
+  }
+  for (const event of events.filter((value) => value.event === "exact_food")) {
+    assert.ok(event.visited >= event.nodes);
+    assert.ok(event.searchMs >= 0);
+  }
+});
+
+test("hard seeded combat scopes finish with exact valid plans", () => {
+  for (const [job, seed, size, checksum, damage] of [
+    ["WAR", "4a2a7df5bdba969c", 4, "1ab375ac", 55.90690263834694],
+    ["BRD", "8abced29", 64, "b7352779", 123.93222657074288],
+    ["BLU", "20260916", 4, "248e9a03", 22.63197486552473],
+  ]) {
+    const variant = generateBenchmarkDataset(catalog, {
+      job,
+      seed,
+      caseCount: 1,
+    }).variants.find((entry) => entry.size === size);
+    assert.ok(variant);
+    assert.equal(variant.inputChecksum, checksum);
+    const result = solve("combat", variant.input, variant.parameters);
+    assert.equal(result.status, "ok");
+    assert.equal(isValidSample(result, variant), true);
+    assert.ok(Math.abs(result.effects.damage - damage) < 1e-10);
+  }
 });
 
 test("original SCH 51 candidates retain the supplied result across TS and Rust", () => {

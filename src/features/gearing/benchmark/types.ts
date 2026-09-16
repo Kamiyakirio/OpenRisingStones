@@ -28,6 +28,12 @@ export interface BenchmarkMemory {
   samplingIntervalMs: number;
 }
 
+export interface BenchmarkDiagnostic {
+  schemaVersion: number;
+  event: string;
+  [key: string]: unknown;
+}
+
 export interface BenchmarkVariant {
   caseId: string;
   caseIndex: number;
@@ -63,6 +69,7 @@ export interface BenchmarkSample {
   repetition: number;
   durationMs: number;
   memory: BenchmarkMemory;
+  diagnostics: BenchmarkDiagnostic[];
   timedOut: boolean;
   valid: boolean;
   result: NativeResult;

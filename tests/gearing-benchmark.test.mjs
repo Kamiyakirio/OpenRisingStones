@@ -80,6 +80,7 @@ test("result validation rejects structurally invalid solver output", () => {
         size: 4,
         repetition: 0,
         durationMs: 12,
+        diagnostics: [],
         memory: {
           supported: true,
           beforeBytes: 100,
@@ -99,4 +100,37 @@ test("result validation rejects structurally invalid solver output", () => {
   assert.equal(aggregates[0].completionRate, 1);
   assert.equal(aggregates[0].validRate, 0);
   assert.equal(aggregates[0].medianPeakDeltaBytes, 60);
+});
+
+test("memory summaries include timed-out samples without counting them as completed", () => {
+  const aggregates = aggregateSamples(
+    [
+      {
+        algorithm: "current",
+        caseId: "timeout-memory",
+        caseIndex: 0,
+        size: 4,
+        repetition: 0,
+        durationMs: 30000,
+        diagnostics: [],
+        memory: {
+          supported: true,
+          beforeBytes: 100,
+          peakBytes: 300,
+          afterBytes: 200,
+          peakDeltaBytes: 200,
+          retainedDeltaBytes: 100,
+          samplingIntervalMs: 5,
+        },
+        timedOut: true,
+        valid: false,
+        result: { status: "cancelled" },
+      },
+    ],
+    ["current"],
+  );
+  assert.equal(aggregates[0].completionRate, 0);
+  assert.equal(aggregates[0].medianMs, null);
+  assert.equal(aggregates[0].medianPeakBytes, 300);
+  assert.equal(aggregates[0].medianPeakDeltaBytes, 200);
 });

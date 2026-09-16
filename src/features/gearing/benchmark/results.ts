@@ -22,7 +22,8 @@ export function aggregateSamples(
       const durations = completed
         .map((sample) => sample.durationMs)
         .sort((a, b) => a - b);
-      const memory = completed.filter((sample) => sample.memory.supported);
+      // Timeout samples still have observed RSS; keep them in memory summaries.
+      const memory = rows.filter((sample) => sample.memory.supported);
       const comparisons =
         algorithms.length < 2
           ? []

@@ -164,6 +164,7 @@ export function useGearingBenchmark() {
               response = {
                 durationMs: timedOut ? DEFAULT_TIMEOUT_MS : 0,
                 memory: unsupportedMemory,
+                diagnostics: [],
                 result: { status: "error", message: readError(reason) },
               };
             } finally {
@@ -178,6 +179,7 @@ export function useGearingBenchmark() {
               repetition,
               durationMs: response.durationMs,
               memory: response.memory,
+              diagnostics: response.diagnostics,
               timedOut,
               valid: !timedOut && isValidSample(response.result, variant),
               result: response.result,

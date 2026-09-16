@@ -181,7 +181,8 @@ pub async fn benchmark_gearing(
     let parameters = gearing_engine::parameters::Parameters::from_rules(&parameters)?;
     let memory = crate::process_memory::MemorySampler::start();
     let start = std::time::Instant::now();
-    let mut result = gearing_engine::solve(&parameters, "combat", input, &cancelled);
+    let (mut result, diagnostics) =
+      gearing_engine::solve_with_diagnostics(&parameters, "combat", input, &cancelled);
     let duration_ms = start.elapsed().as_secs_f64() * 1000.0;
     let memory = memory.finish();
     if result["status"] == "error" {
@@ -196,7 +197,9 @@ pub async fn benchmark_gearing(
         "invalid"
       });
     }
-    Ok::<Value, String>(json!({"durationMs":duration_ms,"memory":memory,"result":result}))
+    Ok::<Value, String>(
+      json!({"durationMs":duration_ms,"memory":memory,"result":result,"diagnostics":diagnostics}),
+    )
   })
   .await
   .map_err(|error| format!("Native gearing benchmark failed: {error}"))?;
