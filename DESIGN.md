@@ -200,7 +200,7 @@ Use the 4px spacing rhythm. Controls have a 40px global minimum and at least 44p
 
 The home is a ruled 2×2 directory with four equal whole-row targets and 132px minimum entries. Below 768px it becomes one column. No destination becomes a promotional card.
 
-Preserve one task surface at a time when simultaneous panes would compete for effective width. Gearing switches among current equipment, candidates, statistics/comparison, and optimization while preserving selected slot and draft. Local tables may scroll; the page must not overflow horizontally.
+Preserve one task surface at a time when simultaneous panes would compete for effective width. Gearing groups equipment and candidates into one editing task, with statistics/comparison and optimization as separate tasks. Wide screens retain equipped context beside candidates; compact screens provide a slot selector and return action. Drafts are saved only through explicit save actions. Local tables may scroll; the page must not overflow horizontally.
 
 ## Elevation & Depth
 
