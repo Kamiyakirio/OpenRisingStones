@@ -77,6 +77,9 @@ export class GearingApi {
   async query(query: Query) {
     return (await this.data()).query(query);
   }
+  async sourceIds(query: Pick<Query, "job" | "minLevel" | "maxLevel">) {
+    return (await this.data()).sourceIds({ ...query, hideObsolete: true });
+  }
   async evaluate(document: GearsetDocument, revision: number, tiers = false) {
     return {
       revision,

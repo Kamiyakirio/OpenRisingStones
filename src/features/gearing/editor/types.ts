@@ -74,6 +74,7 @@ export interface Item {
   slotKey: Selection;
   kind: "equipment" | "food" | "potion";
   stats: Stats;
+  statRates?: Stats;
   jobs: string[];
   sourceId: string | null;
   hq?: boolean;
@@ -141,6 +142,7 @@ export interface Evaluation {
       {
         item: Item;
         stats?: Stats;
+        materiaStats?: Stats;
         caps?: Stats;
         synced?: boolean;
         allowedGrades?: number[][];
@@ -167,6 +169,7 @@ export interface Query {
   sourceIds: string[];
   hideObsolete: boolean;
   sortStat: Stat | "";
+  sortDirection?: "asc" | "desc";
   offset: number;
   limit: number;
 }

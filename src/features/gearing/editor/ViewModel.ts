@@ -23,6 +23,7 @@ import type {
 } from "./types";
 interface State {
   loading: boolean;
+  needsSetup: boolean;
   error: string | null;
   data: Bootstrap | null;
   document: GearsetDocument | null;
@@ -34,6 +35,8 @@ interface State {
   selection: Selection;
   query: Query;
   items: Item[];
+  availableSourceIds: string[];
+  optimizationSourceIds: string[];
   total: number;
   querying: boolean;
   preview: Item | null;
@@ -44,20 +47,21 @@ interface State {
   proposalRevision: number | null;
   running: boolean;
   startedAt: number | null;
-  saving: "saved" | "saving" | "error";
+  saving: "saved" | "unsaved" | "saving" | "error";
   canUndo: boolean;
   canRedo: boolean;
   migrationIssue: boolean;
 }
 const defaultQuery: Query = {
-  job: "SCH",
+  job: "",
   slot: "mainHand",
-  minLevel: 780,
-  maxLevel: 795,
+  minLevel: 0,
+  maxLevel: 9999,
   search: "",
   sourceIds: [],
-  hideObsolete: true,
+  hideObsolete: false,
   sortStat: "",
+  sortDirection: "desc",
   offset: 0,
   limit: 60,
 };
@@ -78,6 +82,7 @@ const defaultConditions: Conditions = {
 export class GearingViewModel {
   private state: State = {
     loading: true,
+    needsSetup: false,
     error: null,
     data: null,
     document: null,
@@ -89,6 +94,8 @@ export class GearingViewModel {
     selection: "mainHand",
     query: defaultQuery,
     items: [],
+    availableSourceIds: [],
+    optimizationSourceIds: [],
     total: 0,
     querying: false,
     preview: null,
@@ -110,11 +117,15 @@ export class GearingViewModel {
   private alive = true;
   private lifecycle = 0;
   private sequence = 0;
+  private sourceSequence = 0;
   private previewSequence = 0;
   private requestId: string | null = null;
   private evaluateTimer: ReturnType<typeof setTimeout> | undefined;
   private saveTail: Promise<unknown> = Promise.resolve();
+  private savedDocument: GearsetDocument | null = null;
+  private migrationDocumentId: string | null = null;
   private cache = new Map<number, Item>();
+  private browseFilters = new Map<string, Query>();
   private api: GearingApi;
   constructor(api = new GearingApi()) {
     this.api = api;
@@ -154,6 +165,7 @@ export class GearingViewModel {
         );
       const current = localStorage.getItem("ors.gearing.active.v2");
       let document: GearsetDocument;
+      let persisted = true;
       if (listing.documents.length)
         document = await this.api.load(
           listing.documents.find((d) => d.id === current)?.id ??
@@ -167,15 +179,19 @@ export class GearingViewModel {
               migrateLegacy(legacy, "恢复的配装"),
               this.api,
             );
-            await this.api.save(document);
-            localStorage.setItem("ors.gearing.migrated.v2", document.id);
+            persisted = false;
+            this.migrationDocumentId = document.id;
           } catch (error) {
             this.update({ migrationIssue: true, loading: false });
             throw error;
           }
-        } else document = newDocument("新配装");
+        } else {
+          // First use waits for explicit job selection and never writes an unsolicited plan.
+          this.update({ loading: false, needsSetup: true });
+          return;
+        }
       }
-      await this.open(document);
+      await this.open(document, persisted);
       this.update({ loading: false });
     } catch (error) {
       this.update({ loading: false });
@@ -186,19 +202,25 @@ export class GearingViewModel {
     for (const slot of Object.values(evaluation.slots))
       this.cache.set(slot.item.id, slot.item);
   }
-  private async open(document: GearsetDocument) {
+  private async open(document: GearsetDocument, persisted = true) {
     this.cancel();
+    this.previewSequence++;
+    this.browseFilters.clear();
     this.undoStack = [];
     this.redoStack = [];
+    this.savedDocument = persisted ? structuredClone(document) : null;
     const job = this.state.data!.jobs.find((j) => j.id === document.job);
     if (!job) throw new Error("Saved job is not supported by this catalog.");
     const range = job.defaultItemLevel;
     this.update({
       document,
+      saving: persisted ? "saved" : "unsaved",
+      needsSetup: false,
       revision: this.state.revision + 1,
       evaluation: null,
       preview: null,
       previewEvaluation: null,
+      previewing: false,
       proposal: null,
       proposalRevision: null,
       selection: job.slots[0].key,
@@ -206,8 +228,6 @@ export class GearingViewModel {
         ...defaultQuery,
         job: job.id,
         slot: job.slots[0].key,
-        minLevel: range[0],
-        maxLevel: range[1],
       },
       conditions: {
         ...defaultConditions,
@@ -218,28 +238,34 @@ export class GearingViewModel {
       canUndo: false,
       canRedo: false,
     });
-    localStorage.setItem("ors.gearing.active.v2", document.id);
+    if (persisted) localStorage.setItem("ors.gearing.active.v2", document.id);
     this.evaluate();
     void this.search();
-    await this.save();
+    void this.refreshOptimizationSources();
   }
   async load(id: string) {
-    await this.saveTail;
+    await this.saveTail.catch(() => {});
     await this.open(await this.api.load(id));
   }
-  async create(name: string) {
-    await this.saveTail;
-    await this.open(newDocument(name));
+  async create(name: string, job = this.state.document?.job) {
+    await this.saveTail.catch(() => {});
+    const schema = this.state.data!.jobs.find((entry) => entry.id === job);
+    if (!schema)
+      throw new Error("Choose a supported job before creating a gearset.");
+    await this.open(newDocument(name, job, schema.jobLevel), false);
     this.update({ migrationIssue: false });
   }
   async duplicate(name: string, source = this.state.document) {
-    await this.saveTail;
+    await this.saveTail.catch(() => {});
     if (source)
-      await this.open({
-        ...structuredClone(source),
-        id: crypto.randomUUID(),
-        name,
-      });
+      await this.open(
+        {
+          ...structuredClone(source),
+          id: crypto.randomUUID(),
+          name,
+        },
+        false,
+      );
   }
   edit(change: (draft: GearsetDocument) => void) {
     if (!this.state.document) return;
@@ -257,6 +283,11 @@ export class GearingViewModel {
     this.previewSequence++;
     this.update({
       document,
+      saving:
+        this.savedDocument &&
+        JSON.stringify(document) === JSON.stringify(this.savedDocument)
+          ? "saved"
+          : "unsaved",
       revision: this.state.revision + 1,
       preview: null,
       previewEvaluation: null,
@@ -268,7 +299,6 @@ export class GearingViewModel {
       error: null,
     });
     this.evaluate();
-    void this.save();
   }
   undo() {
     const doc = this.undoStack.pop();
@@ -285,15 +315,37 @@ export class GearingViewModel {
     }
   }
   async changeJob(job: string) {
-    await this.saveTail;
+    await this.saveTail.catch(() => {});
     const schema = this.state.data!.jobs.find((j) => j.id === job)!;
-    // A different job starts a separate document so incompatible equipment is never discarded silently.
-    await this.open(newDocument(schema.name, job, schema.jobLevel));
+    const current = this.state.document;
+    const empty =
+      current &&
+      !Object.keys(current.equipment).length &&
+      !current.foodId &&
+      !current.potionId;
+    // Empty drafts keep their identity; populated drafts are preserved as separate plans.
+    const next = newDocument(schema.name, job, schema.jobLevel);
+    if (empty)
+      Object.assign(next, {
+        id: current.id,
+        name: current.name,
+        clan: current.clan,
+      });
+    await this.open(next, false);
+  }
+  hasUnsavedChanges() {
+    return (
+      !!this.state.document &&
+      (!this.savedDocument ||
+        JSON.stringify(this.state.document) !==
+          JSON.stringify(this.savedDocument))
+    );
   }
   async save() {
     const document = this.state.document;
-    if (!document) return;
+    if (!document) return false;
     const revision = this.state.revision;
+    const recovering = this.state.saving === "error";
     this.update({ saving: "saving" });
     const task = this.saveTail
       .catch(() => {})
@@ -301,19 +353,29 @@ export class GearingViewModel {
     this.saveTail = task;
     try {
       await task;
-      if (!this.alive) return;
+      if (!this.alive) return false;
+      if (this.state.document?.id === document.id) {
+        this.savedDocument = structuredClone(document);
+        localStorage.setItem("ors.gearing.active.v2", document.id);
+      }
+      if (this.migrationDocumentId === document.id)
+        localStorage.setItem("ors.gearing.migrated.v2", document.id);
       this.update({
         documents: [
           ...this.state.documents.filter((d) => d.id !== document.id),
           { id: document.id, name: document.name, job: document.job },
         ],
         ...(this.state.revision === revision
-          ? { saving: "saved" as const }
-          : {}),
+          ? { saving: "saved" as const, ...(recovering ? { error: null } : {}) }
+          : this.state.document?.id === document.id
+            ? { saving: "unsaved" as const }
+            : {}),
       });
+      return true;
     } catch (error) {
       this.update({ saving: "error" });
       this.report(error);
+      return false;
     }
   }
   private evaluate() {
@@ -344,9 +406,24 @@ export class GearingViewModel {
   }
   select(selection: Selection) {
     this.previewSequence++;
+    // Consumables and specialist stones use different item levels and acquisition paths.
+    const group = (slot: Selection) =>
+      ["food", "potion", "soul"].includes(slot) ? slot : "equipment";
+    this.browseFilters.set(group(this.state.selection), this.state.query);
+    const query = this.browseFilters.get(group(selection)) ?? {
+      ...defaultQuery,
+      job: this.state.document!.job,
+    };
     this.update({
       selection,
-      query: { ...this.state.query, slot: selection, search: "", offset: 0 },
+      query: {
+        ...query,
+        slot: selection,
+        search: "",
+        offset: 0,
+      },
+      items: [],
+      total: 0,
       preview: null,
       previewEvaluation: null,
       previewing: false,
@@ -358,6 +435,21 @@ export class GearingViewModel {
       query: { ...this.state.query, ...patch, offset: patch.offset ?? 0 },
     });
     void this.search();
+  }
+  resetFilters() {
+    this.filter({
+      minLevel: 0,
+      maxLevel: 9999,
+      search: "",
+      sourceIds: [],
+      hideObsolete: false,
+      sortStat: "",
+      sortDirection: "desc",
+    });
+  }
+  cancelPreview() {
+    this.previewSequence++;
+    this.update({ preview: null, previewEvaluation: null, previewing: false });
   }
   private async search() {
     const sequence = ++this.sequence;
@@ -453,6 +545,23 @@ export class GearingViewModel {
       proposal: null,
       proposalRevision: null,
     });
+    if (patch.minLevel !== undefined || patch.maxLevel !== undefined)
+      void this.refreshOptimizationSources();
+  }
+  private async refreshOptimizationSources() {
+    if (!this.state.document) return;
+    const sequence = ++this.sourceSequence;
+    try {
+      const sourceIds = await this.api.sourceIds({
+        job: this.state.document.job,
+        minLevel: this.state.conditions.minLevel,
+        maxLevel: this.state.conditions.maxLevel,
+      });
+      if (sequence === this.sourceSequence)
+        this.update({ optimizationSourceIds: sourceIds });
+    } catch (error) {
+      this.report(error);
+    }
   }
   async optimize() {
     if (!this.state.document) return;
@@ -500,16 +609,18 @@ export class GearingViewModel {
       this.edit((d) => Object.assign(d, structuredClone(proposal.document)));
   }
   async saveProposal(name: string) {
-    if (this.state.proposalRevision === this.state.revision)
+    if (this.state.proposalRevision === this.state.revision) {
       await this.duplicate(name, this.state.proposal?.document);
+      await this.save();
+    }
   }
   chooseAlternative(index: number) {
     const value = this.state.proposal?.alternatives?.[index];
     if (value) this.update({ proposal: { ...this.state.proposal!, ...value } });
   }
   async import(text: string) {
-    await this.saveTail;
-    await this.open(await importShare(text, "导入的配装", this.api));
+    await this.saveTail.catch(() => {});
+    await this.open(await importShare(text, "导入的配装", this.api), false);
   }
   share() {
     if (
@@ -527,6 +638,7 @@ export class GearingViewModel {
     this.alive = false;
     this.lifecycle++;
     this.sequence++;
+    this.sourceSequence++;
     this.previewSequence++;
     this.listeners.clear();
   }

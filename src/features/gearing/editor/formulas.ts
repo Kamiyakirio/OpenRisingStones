@@ -137,7 +137,7 @@ export function addStats(a: Stats, b: Stats): Stats {
 }
 export function foodBonus(
   stats: Stats,
-  food: Definition,
+  food: Pick<Definition, "stats" | "statRates">,
   p: Coefficients,
 ): Stats {
   return Object.fromEntries(

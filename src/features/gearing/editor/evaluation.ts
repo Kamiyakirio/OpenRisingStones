@@ -281,11 +281,19 @@ export function evaluate(
     try {
       const g = prepareGear(catalog, input, key, config),
         values = equipmentStats(input, g);
+      // Compare the same item without melds to respect caps, custom stats and sync.
+      const withoutMateria = equipmentStats(input, { ...g, materias: [] });
+      const materiaStats: Stats = {};
+      for (const stat of Object.keys(values) as Stat[]) {
+        const bonus = (values[stat] ?? 0) - (withoutMateria[stat] ?? 0);
+        if (bonus > 0) materiaStats[stat] = bonus;
+      }
       stats = addStats(stats, values);
       levelSum += g.data.level * weight;
       slots[key] = {
         item: g.data,
         stats: values,
+        materiaStats,
         caps: g.caps,
         synced: !!g.syncCaps,
         allowedGrades: g.materias.map((_, i) =>
@@ -322,11 +330,10 @@ export function evaluate(
     if (id) {
       try {
         const item = consumable(catalog, doc.job, kind, id);
-        stats = addStats(
-          stats,
-          foodBonus(bare, item, catalog.rules.parameters),
-        );
-        slots[kind] = { item };
+        // Reuse the applied bonus so inline consumable stats match gearset totals.
+        const bonus = foodBonus(bare, item, catalog.rules.parameters);
+        stats = addStats(stats, bonus);
+        slots[kind] = { item, stats: bonus };
       } catch (error) {
         issues.push({
           slot: kind,

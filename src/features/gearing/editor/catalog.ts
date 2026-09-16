@@ -79,7 +79,32 @@ export class ItemCatalog {
       return item;
     });
   }
-  query(query: Query): { items: Item[]; total: number } {
+  /** Source facets cover the whole eligible scope, not just the current result page. */
+  sourceIds(
+    query: Pick<Query, "job" | "minLevel" | "maxLevel"> &
+      Partial<Pick<Query, "slot" | "hideObsolete" | "search">>,
+  ): string[] {
+    const slot = query.slot === "ringRight" ? "ringLeft" : query.slot;
+    return [
+      ...new Set(
+        (this.byJob.get(query.job) ?? [])
+          .filter(
+            (item) =>
+              (slot ? item.slotKey === slot : item.kind === "equipment") &&
+              item.level >= query.minLevel &&
+              item.level <= query.maxLevel &&
+              (!query.search || item.name.includes(query.search)) &&
+              (!query.hideObsolete || !item.obsolete),
+          )
+          .flatMap((item) => (item.sourceId ? [item.sourceId] : [])),
+      ),
+    ];
+  }
+  query(query: Query): {
+    items: Item[];
+    total: number;
+    availableSourceIds: string[];
+  } {
     if (!this.data.rules.jobSchemas[query.job])
       throw new Error("Unknown gearing job.");
     const slot = query.slot === "ringRight" ? "ringLeft" : query.slot;
@@ -93,17 +118,18 @@ export class ItemCatalog {
         (!query.sourceIds.length ||
           (!!item.sourceId && query.sourceIds.includes(item.sourceId))),
     );
+    const direction = query.sortDirection === "asc" ? -1 : 1;
     rows.sort(
       (a, b) =>
-        (query.sortStat
-          ? (b.stats[query.sortStat] ?? 0) - (a.stats[query.sortStat] ?? 0)
-          : 0) ||
-        b.level - a.level ||
-        a.id - b.id,
+        direction *
+          ((query.sortStat
+            ? (b.stats[query.sortStat] ?? 0) - (a.stats[query.sortStat] ?? 0)
+            : 0) || b.level - a.level) || a.id - b.id,
     );
     return {
       items: rows.slice(query.offset, query.offset + query.limit),
       total: rows.length,
+      availableSourceIds: this.sourceIds(query),
     };
   }
   get rules() {

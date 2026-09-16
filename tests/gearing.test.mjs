@@ -1,4 +1,4 @@
-/** Catalog installation, legacy compatibility, and async editor regressions without game snapshots. */
+﻿/** Catalog installation, legacy compatibility, and async editor regressions without game snapshots. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -20,8 +20,13 @@ import { buildBundle, installBundle } from "../scripts/gearing/package.mjs";
 import { checkGearingData } from "../scripts/check-gearing-data.mjs";
 const { GearingViewModel } =
   await import("../src/features/gearing/editor/ViewModel.ts");
-const { migrateLegacy, newDocument, shareDocument, importShare } =
-  await import("../src/features/gearing/editor/compatibility.ts");
+const {
+  migrateLegacy,
+  newDocument,
+  configuration,
+  shareDocument,
+  importShare,
+} = await import("../src/features/gearing/editor/compatibility.ts");
 const codec = await import("../src/features/gearing/utils/share.ts");
 const contract = JSON.parse(readFileSync("scripts/gearing/contract.json"));
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -87,12 +92,118 @@ function api() {
       return { id: d.id };
     },
     query: async () => ({ items: [], total: 0 }),
+    sourceIds: async () => [],
     items: async () => [],
     evaluate: async (d, revision) => ({ revision, evaluation }),
     cancel: async () => {},
     optimize: async () => ({ status: "ok" }),
   };
 }
+
+test("consumables and specialist stones use independent browsing ranges", async () => {
+  storage();
+  const vm = new GearingViewModel(api());
+  await vm.initialize();
+  if (!vm.getSnapshot().document && !vm.getSnapshot().migrationIssue)
+    await vm.create("Test plan", "SCH");
+  vm.filter({
+    minLevel: 780,
+    maxLevel: 795,
+    sourceIds: ["raid"],
+    search: "weapon",
+  });
+  vm.select("food");
+  assert.equal(vm.getSnapshot().query.minLevel, 0);
+  assert.equal(vm.getSnapshot().query.maxLevel, 9999);
+  assert.deepEqual(vm.getSnapshot().query.sourceIds, []);
+  vm.select("mainHand");
+  assert.equal(vm.getSnapshot().query.minLevel, 780);
+  assert.deepEqual(vm.getSnapshot().query.sourceIds, ["raid"]);
+  assert.equal(vm.getSnapshot().query.search, "");
+  vm.select("soul");
+  assert.equal(vm.getSnapshot().query.minLevel, 0);
+  vm.resetFilters();
+  assert.equal(vm.getSnapshot().query.hideObsolete, false);
+  vm.dispose();
+});
+
+test("cancelling a pending preview rejects its late evaluation", async () => {
+  storage();
+  const service = api();
+  const vm = new GearingViewModel(service);
+  await vm.initialize();
+  if (!vm.getSnapshot().document && !vm.getSnapshot().migrationIssue)
+    await vm.create("Test plan", "SCH");
+  await pause(50);
+  const pending = deferred();
+  service.evaluate = () => pending.promise;
+  const preview = vm.preview({ id: 10, kind: "equipment" });
+  vm.cancelPreview();
+  pending.resolve({ evaluation });
+  await preview;
+  assert.equal(vm.getSnapshot().preview, null);
+  assert.equal(vm.getSnapshot().previewEvaluation, null);
+  assert.equal(vm.getSnapshot().previewing, false);
+  assert.equal(vm.getSnapshot().canUndo, false);
+  vm.dispose();
+});
+
+test("empty job changes retain identity and new plans retain the selected job", async () => {
+  storage();
+  const service = api();
+  const bootstrap = service.bootstrap;
+  service.bootstrap = async () => {
+    const data = await bootstrap();
+    data.jobs.push({ ...data.jobs[0], id: "PLD", name: "Paladin" });
+    return data;
+  };
+  const vm = new GearingViewModel(service);
+  await vm.initialize();
+  if (!vm.getSnapshot().document && !vm.getSnapshot().migrationIssue)
+    await vm.create("Test plan", "SCH");
+  const original = vm.getSnapshot().document.id;
+  await vm.changeJob("PLD");
+  assert.equal(vm.getSnapshot().document.id, original);
+  assert.equal(service.documents.size, 0);
+  vm.edit((draft) => {
+    draft.equipment.mainHand = configuration(10);
+  });
+  await vm.save();
+  await vm.changeJob("SCH");
+  assert.notEqual(vm.getSnapshot().document.id, original);
+  assert.equal(service.documents.get(original).equipment.mainHand.itemId, 10);
+  await vm.changeJob("PLD");
+  await vm.create("Another plan");
+  assert.equal(vm.getSnapshot().document.job, "PLD");
+  vm.dispose();
+});
+
+test("retrying failed storage clears the stale error without losing the draft", async () => {
+  storage();
+  const service = api();
+  const vm = new GearingViewModel(service);
+  await vm.initialize();
+  if (!vm.getSnapshot().document && !vm.getSnapshot().migrationIssue)
+    await vm.create("Test plan", "SCH");
+  const save = service.save;
+  service.save = async () => {
+    throw new Error("Storage unavailable.");
+  };
+  vm.edit((draft) => {
+    draft.name = "Retained draft";
+  });
+  await vm.save();
+  assert.equal(vm.getSnapshot().saving, "error");
+  service.save = save;
+  await vm.save();
+  assert.equal(vm.getSnapshot().saving, "saved");
+  assert.equal(vm.getSnapshot().error, null);
+  assert.equal(
+    service.documents.get(vm.getSnapshot().document.id).name,
+    "Retained draft",
+  );
+  vm.dispose();
+});
 
 test("JSON is the only generated data asset and installation is atomic, repeatable and reversible", () => {
   const root = mkdtempSync(join(tmpdir(), "gearing-catalog-"));
@@ -213,7 +324,7 @@ test("sharing preserves rings, food and custom values and rejects unrepresentabl
   );
 });
 
-test("StrictMode-like reinitialization creates only one saved document", async () => {
+test("StrictMode-like first use waits for an explicit job before saving", async () => {
   storage();
   const transport = api();
   const a = deferred();
@@ -226,7 +337,49 @@ test("StrictMode-like reinitialization creates only one saved document", async (
   await vm.initialize();
   a.resolve(await bootstrap());
   await first;
-  assert.equal(transport.documents.size, 1);
+  assert.equal(transport.documents.size, 0);
+  assert.equal(vm.getSnapshot().needsSetup, true);
+  assert.equal(vm.getSnapshot().document, null);
+  await vm.create("Chosen plan", "SCH");
+  assert.equal(transport.documents.size, 0);
+  assert.equal(vm.getSnapshot().query.minLevel, 0);
+  assert.equal(vm.getSnapshot().query.maxLevel, 9999);
+  assert.equal(vm.getSnapshot().query.hideObsolete, false);
+  vm.dispose();
+});
+
+test("creation, edits, undo and opening a saved plan never write without explicit save", async () => {
+  storage();
+  const service = api();
+  let writes = 0;
+  const save = service.save;
+  service.save = async (document) => {
+    writes++;
+    return save(document);
+  };
+  const vm = new GearingViewModel(service);
+  await vm.initialize();
+  await vm.create("Draft", "SCH");
+  vm.edit((draft) => {
+    draft.name = "Edited";
+  });
+  assert.equal(writes, 0);
+  assert.equal(vm.hasUnsavedChanges(), true);
+  await vm.save();
+  assert.equal(writes, 1);
+  assert.equal(vm.hasUnsavedChanges(), false);
+  vm.edit((draft) => {
+    draft.name = "Unsaved";
+  });
+  assert.equal(
+    service.documents.get(vm.getSnapshot().document.id).name,
+    "Edited",
+  );
+  vm.undo();
+  assert.equal(vm.hasUnsavedChanges(), false);
+  assert.equal(vm.getSnapshot().saving, "saved");
+  await vm.load(vm.getSnapshot().document.id);
+  assert.equal(writes, 1);
   vm.dispose();
 });
 
@@ -235,6 +388,8 @@ test("stale evaluations and optimization results cannot overwrite newer edits", 
   const transport = api();
   const vm = new GearingViewModel(transport);
   await vm.initialize();
+  if (!vm.getSnapshot().document && !vm.getSnapshot().migrationIssue)
+    await vm.create("Test plan", "SCH");
   await pause(60);
   const old = deferred();
   transport.evaluate = () => old.promise;
@@ -272,6 +427,8 @@ test("preview, apply, undo and independent optimizer scope preserve user intent"
   const transport = api();
   const vm = new GearingViewModel(transport);
   await vm.initialize();
+  if (!vm.getSnapshot().document && !vm.getSnapshot().migrationIssue)
+    await vm.create("Test plan", "SCH");
   await pause(50);
   const item = {
     id: 100,
@@ -299,6 +456,8 @@ test("failed legacy migration retains raw data and never creates a replacement a
   const transport = api();
   const vm = new GearingViewModel(transport);
   await vm.initialize();
+  if (!vm.getSnapshot().document && !vm.getSnapshot().migrationIssue)
+    await vm.create("Test plan", "SCH");
   assert.equal(vm.getSnapshot().migrationIssue, true);
   assert.equal(transport.documents.size, 0);
   assert.equal(store.get("open-rising-stones.gearing.v1"), "{invalid");
@@ -316,6 +475,8 @@ test("explicit cancellation remains visible and rejects a late successful propos
   };
   const vm = new GearingViewModel(transport);
   await vm.initialize();
+  if (!vm.getSnapshot().document && !vm.getSnapshot().migrationIssue)
+    await vm.create("Test plan", "SCH");
   const running = vm.optimize();
   vm.cancel(true);
   assert.equal(vm.getSnapshot().proposal.status, "cancelled");
