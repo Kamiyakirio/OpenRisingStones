@@ -2,7 +2,11 @@
 import { useState } from "react";
 import { Cube } from "@phosphor-icons/react";
 import type { Item } from "./types";
-import { assetSourceAvailable, itemIconUrl } from "./xivapiAssets";
+import {
+  assetSourceAvailable,
+  itemIconUrl,
+  officialAssetUrl,
+} from "./xivapiAssets";
 
 export function ItemIcon({ item }: { item: Pick<Item, "iconId" | "name"> }) {
   const source = item.iconId ? itemIconUrl(item.iconId) : null;
@@ -17,16 +21,22 @@ export function GameAssetIcon({
   className?: string;
 }) {
   const [failedSource, setFailedSource] = useState<string | null>(null);
-  const available = assetSourceAvailable(source, failedSource);
+  const [failedFallback, setFailedFallback] = useState<string | null>(null);
+  const resolved =
+    source && source === failedSource ? officialAssetUrl(source) : source;
+  const available = assetSourceAvailable(resolved, failedFallback);
   return (
     <span className={`gear-item-icon ${className}`} aria-hidden="true">
       {available && (
         <img
-          src={source ?? undefined}
+          src={resolved ?? undefined}
           alt=""
           loading="lazy"
           decoding="async"
-          onError={() => setFailedSource(source)}
+          onError={() => {
+            if (resolved === source) setFailedSource(source);
+            else setFailedFallback(resolved);
+          }}
         />
       )}
       <Cube />

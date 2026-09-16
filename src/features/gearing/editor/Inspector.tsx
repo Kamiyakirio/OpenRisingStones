@@ -1,5 +1,6 @@
 /** Compact numeric comparisons and native task controls share a stable inspector column. */
 import { SourcePicker } from "./SourcePicker";
+import { ItemName } from "./ItemName";
 import type { GearingViewModel } from "./ViewModel";
 import type { EditorState } from "./Editor";
 import type { Slot, Stat } from "./types";
@@ -92,7 +93,12 @@ export function Inspector({
               <th>属性</th>
               <th>当前</th>
               {preview && <th>变化</th>}
-              {state.tiers && <th>下一档</th>}
+              {state.tiers && (
+                <>
+                  <th>前一档</th>
+                  <th>后一档</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -120,13 +126,22 @@ export function Inspector({
                     </td>
                   )}
                   {state.tiers && (
-                    <td
-                      title={`上一档：${evaluation?.tiers[stat]?.previous ?? "—"}`}
-                    >
-                      {evaluation?.tiers[stat]?.next
-                        ? `+${evaluation.tiers[stat]!.next}`
-                        : "—"}
-                    </td>
+                    <>
+                      <td title="降至前一档所需减少的属性值">
+                        {state.evaluating
+                          ? "…"
+                          : number(
+                              evaluation?.tiers[stat]?.previous ?? undefined,
+                            )}
+                      </td>
+                      <td title="升至后一档所需增加的属性值">
+                        {state.evaluating
+                          ? "…"
+                          : evaluation?.tiers[stat]?.next != null
+                            ? `+${number(evaluation.tiers[stat]!.next!)}`
+                            : "—"}
+                      </td>
+                    </>
                   )}
                 </tr>
               );
@@ -330,7 +345,9 @@ function Optimizer({
         <>
           <details className="gear-scope" open>
             <summary>参与计算的范围</summary>
-            <p className="gear-muted">独立于装备列表的浏览筛选。</p>
+            <p className="gear-muted">
+              初始品级为当前版本推荐范围，可按需调整；不会限制配装页的浏览结果。
+            </p>
             <div className="gear-level-range">
               <label>
                 最低品级
@@ -358,7 +375,9 @@ function Optimizer({
               </label>
             </div>
             <SourcePicker
-              sources={data.sources}
+              sources={data.sources.filter((source) =>
+                state.optimizationSourceIds.includes(source.id),
+              )}
               value={c.sourceIds}
               onChange={(sourceIds) => vm.setConditions({ sourceIds })}
             />
@@ -460,8 +479,14 @@ function Optimizer({
                   .map(([slot, g]) => (
                     <li key={slot}>
                       {job.slots.find((s) => s.key === slot)?.name}：
-                      {proposal.evaluation?.slots[slot as Slot]?.item.name ??
-                        `#${g.itemId}`}
+                      {proposal.evaluation?.slots[slot as Slot] ? (
+                        <ItemName
+                          item={proposal.evaluation.slots[slot as Slot]!.item}
+                          sources={data.sources}
+                        />
+                      ) : (
+                        `#${g.itemId}`
+                      )}
                       {doc.equipment[slot as Slot]?.itemId === g.itemId
                         ? "（镶嵌或属性调整）"
                         : ""}
@@ -470,7 +495,14 @@ function Optimizer({
                 {proposal.document!.foodId !== doc.foodId && (
                   <li>
                     食物：
-                    {proposal.evaluation?.slots.food?.item.name ?? "不使用"}
+                    {proposal.evaluation?.slots.food ? (
+                      <ItemName
+                        item={proposal.evaluation.slots.food.item}
+                        sources={data.sources}
+                      />
+                    ) : (
+                      "不使用"
+                    )}
                   </li>
                 )}
               </ul>

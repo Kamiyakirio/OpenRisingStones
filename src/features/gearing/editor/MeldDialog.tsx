@@ -47,6 +47,7 @@ export function MeldDialog({
         />
       </section>
     </div>,
-    document.body,
+    // Keep theme tokens inherited while escaping the editor's clipped workspace.
+    document.querySelector(".app") ?? document.body,
   );
 }

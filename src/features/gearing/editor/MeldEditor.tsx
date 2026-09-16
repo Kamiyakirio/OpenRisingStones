@@ -2,6 +2,7 @@
 import { LockSimple } from "@phosphor-icons/react";
 import type { EditorState } from "./Editor";
 import { ItemIcon } from "./ItemIcon";
+import { ItemName } from "./ItemName";
 import type { GearingViewModel } from "./ViewModel";
 import type { Slot, Stat } from "./types";
 
@@ -24,12 +25,23 @@ export function MeldEditor({
     job.slots.find((slot) => slot.key === state.selection)?.name ??
     state.selection;
 
+  // Include weapon performance and main stats as well as available materia stats.
+  const detailStats = [
+    ...new Set([
+      ...Object.keys(selected.item.stats),
+      ...Object.keys(selected.stats ?? {}),
+      ...job.stats.filter((stat) => data.materias[stat]),
+    ]),
+  ].filter((stat) => stat !== "main" && stat !== "secondary") as Stat[];
+
   return (
     <div className="gear-meld-editor" id="gearing-meld-editor">
       <div className="gear-meld-identity">
         <ItemIcon item={selected.item} />
         <span>
-          <strong>{selected.item.name}</strong>
+          <strong>
+            <ItemName item={selected.item} sources={data.sources} />
+          </strong>
           <small>
             {slotName} · i{selected.item.level}
           </small>
@@ -44,12 +56,49 @@ export function MeldEditor({
           }
         >
           <LockSimple weight={gear.materiaLocked ? "fill" : "regular"} />
-          锁定
+          {gear.materiaLocked ? "已锁定镶嵌" : "锁定镶嵌"}
         </button>
       </div>
       {selected.synced && (
         <p className="gear-muted">品级同步中，魔晶石不计入属性。</p>
       )}
+      <section
+        className="gear-meld-stats"
+        aria-label="此装备属性"
+        aria-busy={state.evaluating}
+      >
+        <h2>此装备属性</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>属性</th>
+              <th>基础</th>
+              <th>当前生效</th>
+              <th>镶嵌上限</th>
+            </tr>
+          </thead>
+          <tbody>
+            {detailStats.map((stat) => (
+              <tr key={stat}>
+                <th>{data.statNames[stat] ?? stat}</th>
+                <td>{selected.item.stats[stat] ?? 0}</td>
+                <td>
+                  {state.evaluating ? "…" : (selected.stats?.[stat] ?? 0)}
+                </td>
+                <td>
+                  {!selected.synced && data.materias[stat]
+                    ? (selected.caps?.[stat] ?? "—")
+                    : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="gear-muted">
+          当前生效包含自定义属性、魔晶石与品级同步的影响。同步时魔晶石不生效。
+        </p>
+      </section>
+      <h2 className="gear-meld-heading">魔晶石与自定义属性</h2>
       <div className="gear-meld-fields">
         {selected.allowedGrades?.map((grades, index) => (
           <label className="gear-meld-field" key={index}>
@@ -116,7 +165,10 @@ export function MeldEditor({
                   vm.configure(state.selection as Slot, (current) => {
                     current.customStats = {
                       ...current.customStats,
-                      [stat]: Number(event.target.value),
+                      [stat]: Math.min(
+                        1000,
+                        Math.max(0, Math.trunc(Number(event.target.value))),
+                      ),
                     };
                   })
                 }

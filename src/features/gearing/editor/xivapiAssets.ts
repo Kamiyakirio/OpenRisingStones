@@ -1,6 +1,13 @@
 /** Builds stable XIVAPI asset URLs without adding runtime sheet requests. */
 const ASSET_ORIGIN = "https://xivapi-v2.xivcdn.com";
 
+/** The mirror can lag new patches; retry the same asset on the official service. */
+export function officialAssetUrl(source: string) {
+  const url = new URL(source);
+  url.host = "v2.xivapi.com";
+  return url.toString();
+}
+
 const jobRowIds: Record<string, number> = {
   PLD: 19,
   WAR: 21,
