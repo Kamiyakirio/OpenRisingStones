@@ -5,9 +5,11 @@ import type { EditorState } from "./Editor";
 export function OptimizerActions({
   vm,
   state,
+  onSaveProposal,
 }: {
   vm: GearingViewModel;
   state: EditorState;
+  onSaveProposal: () => void;
 }) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
@@ -27,8 +29,43 @@ export function OptimizerActions({
     state.proposalRevision === state.revision;
   const next = proposal?.evaluation;
   const job = data?.jobs.find((j) => j.id === doc?.job);
+  const c = state.conditions;
+  const invalidScope =
+    c.minLevel > c.maxLevel || c.minLevel < 0 || c.maxLevel > 9999;
+  const invalidSpeed =
+    c.speedRange &&
+    (c.speedRange.min < 0 || c.speedRange.min > c.speedRange.max);
+  const invalidGcd =
+    c.kind === "combat" && (c.targetGcd < 1.8 || c.targetGcd > 2.5);
+  const invalidTargets = Object.values(c.targets).some(
+    (value) => value !== undefined && (value < 0 || value > 100000),
+  );
+  const invalidWeeks =
+    c.progressionWeeks !== null &&
+    (c.progressionWeeks < 0 || c.progressionWeeks > 100);
+  const validation = invalidScope
+    ? "最低品级不能高于最高品级，请填写 0–9999 之间的品级。"
+    : invalidSpeed
+      ? "最低速度不能高于最高速度，且不能小于 0。"
+      : invalidGcd
+        ? "目标 GCD 需在 1.80–2.50 秒之间。"
+        : invalidTargets
+          ? "属性目标需在 0–100000 之间。"
+          : invalidWeeks
+            ? "准备周数需在 0–100 之间。"
+            : "";
   return (
     <div className="gear-optimizer-actions">
+      {validation && (
+        <p className="gear-negative" role="alert">
+          {validation}
+        </p>
+      )}
+      {c.kind !== "combat" && !Object.keys(doc?.equipment ?? {}).length && (
+        <p className="gear-muted">
+          请先在配装页选择装备，再计算当前装备的属性分配。
+        </p>
+      )}
       {ready && next && (
         <div className="gear-apply-summary">
           <strong>应用前确认</strong>
@@ -77,15 +114,7 @@ export function OptimizerActions({
             <button className="gear-primary" onClick={() => vm.applyProposal()}>
               应用方案
             </button>
-            <button
-              onClick={() =>
-                void vm
-                  .saveProposal(`${doc?.name} 优化`)
-                  .catch((e) => vm.report(e))
-              }
-            >
-              另存为新方案
-            </button>
+            <button onClick={onSaveProposal}>另存为新方案</button>
           </div>
         </div>
       )}
@@ -95,6 +124,7 @@ export function OptimizerActions({
           className={ready ? "" : "gear-primary"}
           disabled={
             state.running ||
+            !!validation ||
             !!state.evaluation?.issues.length ||
             state.evaluating
           }

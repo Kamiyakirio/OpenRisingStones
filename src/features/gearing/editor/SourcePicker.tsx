@@ -31,7 +31,17 @@ export function SourcePicker({
         <button onClick={() => onChange([])}>全选</button>
         <button onClick={() => onChange(["none"])}>全不选</button>
       </div>
+      {value.some(
+        (id) => id !== "none" && !sources.some((source) => source.id === id),
+      ) && (
+        <p className="gear-muted">
+          有已选途径不在当前品级范围内。调整品级或点击全选可重新选择。
+        </p>
+      )}
       <div className="gear-source-options">
+        {!sources.some((source) => source.label.includes(search)) && (
+          <p className="gear-muted">没有匹配的获取途径，请修改搜索词。</p>
+        )}
         {sources
           .filter((s) => s.label.includes(search))
           .map((s) => (

@@ -6,7 +6,6 @@ import {
   LockSimple,
   FloppyDisk,
   Copy,
-  ArrowRight,
   X,
 } from "@phosphor-icons/react";
 import { GearingViewModel } from "./ViewModel";
@@ -16,9 +15,26 @@ import { OptimizerActions } from "./OptimizerActions";
 import { Inspector } from "./Inspector";
 import { GameAssetIcon, ItemIcon } from "./ItemIcon";
 import { MeldDialog } from "./MeldDialog";
+import { PreviewActions } from "./PreviewActions";
+import { ItemStats } from "./ItemStats";
+import { ItemName } from "./ItemName";
+import { NewGearset } from "./NewGearset";
+import { UnsavedDialog } from "./UnsavedDialog";
 import { jobIconUrl } from "./xivapiAssets";
 import type { Slot } from "./types";
 import "./editor.css";
+
+/** Preserve anatomical column order independently of the catalog's slot order. */
+const equipmentGroups = [
+  { id: "weapons", slots: ["mainHand", "offHand"] },
+  { id: "armor", slots: ["head", "body", "hands", "feet", "legs", "waist"] },
+  {
+    id: "accessories",
+    slots: ["ears", "neck", "wrists", "ringLeft", "ringRight"],
+  },
+  { id: "extras", slots: ["soul", "food", "potion"] },
+];
+
 export function Editor() {
   const [vm] = useState(() => new GearingViewModel());
   const state = useSyncExternalStore(vm.subscribe, vm.getSnapshot);
@@ -31,8 +47,18 @@ export function Editor() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [meldOpen, setMeldOpen] = useState(false);
+  const [pendingTransition, setPendingTransition] = useState<{
+    label: string;
+    action: () => Promise<unknown>;
+  } | null>(null);
+  const [feedback, setFeedback] = useState("");
+  const meldTrigger = useRef<HTMLElement | null>(null);
+  const allowNavigation = useRef(false);
   const restoreMeldFocus = useRef(false);
-  const editMelds = () => setMeldOpen(true);
+  const editMelds = () => {
+    meldTrigger.current = document.activeElement as HTMLElement;
+    setMeldOpen(true);
+  };
   const closeMelds = () => {
     restoreMeldFocus.current = true;
     setMeldOpen(false);
@@ -40,14 +66,92 @@ export function Editor() {
   useEffect(() => {
     if (meldOpen || state.evaluating || !restoreMeldFocus.current) return;
     restoreMeldFocus.current = false;
-    document.getElementById("gearing-edit-melds")?.focus();
+    if (meldTrigger.current?.isConnected) meldTrigger.current.focus();
   }, [meldOpen, state.evaluating]);
   useEffect(() => {
     void vm.initialize();
     return () => vm.dispose();
   }, [vm]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (vm.hasUnsavedChanges()) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    const navigate = (event: MouseEvent) => {
+      const link = (event.target as Element)?.closest<HTMLAnchorElement>(
+        ".app-navigation a, .app-brand",
+      );
+      if (
+        !link ||
+        link.hash === "#gearing" ||
+        !vm.hasUnsavedChanges() ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
+      event.preventDefault();
+      event.stopPropagation();
+      setPendingTransition({
+        label: "离开配装页",
+        action: async () => {
+          allowNavigation.current = true;
+          window.location.hash = link.hash;
+        },
+      });
+    };
+    const historyNavigation = (event: PopStateEvent | HashChangeEvent) => {
+      if (
+        allowNavigation.current ||
+        !vm.hasUnsavedChanges() ||
+        location.hash === "#gearing"
+      )
+        return;
+      const hash = location.hash;
+      event.stopImmediatePropagation();
+      history.pushState(
+        null,
+        "",
+        `${location.pathname}${location.search}#gearing`,
+      );
+      setPendingTransition({
+        label: "离开配装页",
+        action: async () => {
+          allowNavigation.current = true;
+          location.hash = hash;
+        },
+      });
+    };
+    window.addEventListener("beforeunload", warn);
+    document.addEventListener("click", navigate, true);
+    window.addEventListener("popstate", historyNavigation, true);
+    window.addEventListener("hashchange", historyNavigation, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", navigate, true);
+      window.removeEventListener("popstate", historyNavigation, true);
+      window.removeEventListener("hashchange", historyNavigation, true);
+    };
+  }, [vm]);
   const run = (action: () => Promise<unknown>) => {
     void action().catch((error) => vm.report(error));
+  };
+  const transition = (label: string, action: () => Promise<unknown>) => {
+    if (vm.hasUnsavedChanges()) setPendingTransition({ label, action });
+    else run(action);
+  };
+  const continueTransition = async (save: boolean) => {
+    if (!pendingTransition) return;
+    if (save && !(await vm.save())) {
+      setPendingTransition(null);
+      return;
+    }
+    const action = pendingTransition.action;
+    setPendingTransition(null);
+    await action();
   };
   const { data, document: doc, evaluation } = state;
   const job = data?.jobs.find((j) => j.id === doc?.job);
@@ -57,6 +161,8 @@ export function Editor() {
         <p role="status">正在打开配装目录…</p>
       </main>
     );
+  if (data && !doc && (state.needsSetup || state.migrationIssue))
+    return <NewGearset vm={vm} state={state} />;
   if (!data || !doc || !job)
     return (
       <main className="gear-editor">
@@ -71,14 +177,22 @@ export function Editor() {
           <p>{state.error}</p>
         </details>
         {data && (
-          <button onClick={() => run(() => vm.create("新配装"))}>
-            创建新方案，保留旧草稿
+          <button onClick={() => run(() => vm.initialize())}>
+            重试打开配装
           </button>
         )}
       </main>
     );
   const selectedName =
     job.slots.find((s) => s.key === state.selection)?.name ?? state.selection;
+  const applyPreview = () => {
+    const item = state.preview;
+    vm.applyPreview();
+    if (item && !vm.getSnapshot().preview)
+      setFeedback(
+        `${selectedName}已装备「${item.name}」。可继续选择下一部位，或撤销。`,
+      );
+  };
   return (
     <main className="gear-editor" aria-label="配装编辑器">
       <header className="gear-commandbar">
@@ -87,27 +201,41 @@ export function Editor() {
           <span className="gear-sr-only">打开方案</span>
           <select
             value={doc.id}
-            onChange={(e) => run(() => vm.load(e.target.value))}
+            onChange={(e) => {
+              setFeedback("");
+              const id = e.target.value;
+              transition("切换方案", () => vm.load(id));
+            }}
           >
             {state.documents.some((d) => d.id === doc.id) ? null : (
-              <option value={doc.id}>{doc.name}</option>
+              <option value={doc.id}>{doc.name}（未保存草稿）</option>
             )}
             {state.documents.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.name}
+                {d.id === doc.id ? doc.name : d.name}
+                {d.id === doc.id && vm.hasUnsavedChanges() ? "（未保存）" : ""}
               </option>
             ))}
           </select>
         </label>
         <label className="gear-job-picker">
-          <span className="gear-sr-only">职业（切换会新建方案）</span>
+          <span>职业</span>
           <GameAssetIcon
             source={jobIconUrl(doc.job)}
             className="gear-job-icon"
           />
           <select
             value={doc.job}
-            onChange={(e) => run(() => vm.changeJob(e.target.value))}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (
+                Object.keys(doc.equipment).length ||
+                doc.foodId ||
+                doc.potionId
+              )
+                transition("为其他职业新建草稿", () => vm.changeJob(next));
+              else run(() => vm.changeJob(next));
+            }}
           >
             {data.jobs.map((j) => (
               <option value={j.id} key={j.id}>
@@ -124,9 +252,19 @@ export function Editor() {
             ? "已保存"
             : state.saving === "saving"
               ? "正在保存…"
-              : "保存失败"}
+              : state.saving === "unsaved"
+                ? "未保存修改"
+                : "保存失败"}
         </span>
         <div className="gear-command-actions">
+          <button
+            className="gear-primary gear-save"
+            disabled={state.saving === "saved" || state.saving === "saving"}
+            onClick={() => run(() => vm.save())}
+          >
+            <FloppyDisk />
+            保存方案
+          </button>
           <div className="gear-history">
             <button
               aria-label="撤销"
@@ -145,12 +283,20 @@ export function Editor() {
               <ArrowClockwise />
             </button>
           </div>
-          <button onClick={() => run(() => vm.duplicate(`${doc.name} 副本`))}>
+          <button
+            onClick={() =>
+              transition("复制方案", () => vm.duplicate(`${doc.name} 副本`))
+            }
+          >
             <Copy />
-            另存
+            复制方案
           </button>
           <button onClick={() => setTransfer((v) => !v)}>导入 / 分享</button>
-          <button onClick={() => run(() => vm.create("新配装"))}>新建</button>
+          <button
+            onClick={() => transition("新建方案", () => vm.create("新配装"))}
+          >
+            新建
+          </button>
         </div>
       </header>
       <details className="gear-context">
@@ -167,13 +313,20 @@ export function Editor() {
             方案名
             <input
               aria-label="方案名"
-              value={doc.name}
+              key={`${doc.id}:${doc.name}`}
+              defaultValue={doc.name}
               maxLength={120}
-              onChange={(e) =>
-                vm.edit((d) => {
-                  d.name = e.target.value;
-                })
-              }
+              onBlur={(e) => {
+                const name = e.target.value.trim();
+                if (name)
+                  vm.edit((d) => {
+                    d.name = name;
+                  });
+                else e.target.value = doc.name;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
             />
           </label>
           <label>
@@ -256,15 +409,16 @@ export function Editor() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              setBusy(true);
-              void vm
-                .import(text)
-                .then(() => {
+              transition("导入新方案", async () => {
+                setBusy(true);
+                try {
+                  await vm.import(text);
                   setText("");
                   setTransfer(false);
-                })
-                .catch((error) => vm.report(error))
-                .finally(() => setBusy(false));
+                } finally {
+                  setBusy(false);
+                }
+              });
             }}
           >
             <label>
@@ -299,16 +453,13 @@ export function Editor() {
       )}
       <nav className="gear-compact-nav" aria-label="配装编辑区域">
         <button
-          aria-pressed={workspace === "equipment"}
-          onClick={() => setWorkspace("equipment")}
+          aria-pressed={workspace !== "inspector" && panel === "stats"}
+          onClick={() => {
+            setWorkspace("equipment");
+            setPanel("stats");
+          }}
         >
-          当前配装
-        </button>
-        <button
-          aria-pressed={workspace === "candidates"}
-          onClick={() => setWorkspace("candidates")}
-        >
-          选择装备
+          配装
         </button>
         <button
           aria-pressed={workspace === "inspector" && panel === "stats"}
@@ -320,7 +471,7 @@ export function Editor() {
           属性 / 比较
         </button>
         <button
-          aria-pressed={workspace === "inspector" && panel === "optimize"}
+          aria-pressed={panel === "optimize"}
           onClick={() => {
             setPanel("optimize");
             setWorkspace("inspector");
@@ -329,6 +480,37 @@ export function Editor() {
           最优配装
         </button>
       </nav>
+      {state.running && workspace !== "inspector" && (
+        <div className="gear-feedback" role="status">
+          <span>正在计算最优配装…</span>
+          <button
+            onClick={() => {
+              setPanel("optimize");
+              setWorkspace("inspector");
+            }}
+          >
+            查看计算
+          </button>
+          <button onClick={() => vm.cancel(true)}>取消计算</button>
+        </div>
+      )}
+      {feedback && (
+        <div className="gear-feedback" role="status">
+          <span>{feedback}</span>
+          <button
+            disabled={!state.canUndo}
+            onClick={() => {
+              vm.undo();
+              setFeedback("已撤销上一步修改。");
+            }}
+          >
+            撤销
+          </button>
+          <button aria-label="关闭操作提示" onClick={() => setFeedback("")}>
+            <X />
+          </button>
+        </div>
+      )}
       <div className="gear-columns" data-compact={workspace}>
         <section className="gear-equipped" aria-label="当前配装">
           <div className="gear-section-heading">
@@ -338,107 +520,157 @@ export function Editor() {
             </span>
           </div>
           <div className="gear-equipped-list">
-            {job.slots.map((slot) => {
-              const equipped = evaluation?.slots[slot.key];
-              const config = doc.equipment[slot.key as Slot];
-              const id =
-                config?.itemId ??
-                (slot.key === "food"
-                  ? doc.foodId
-                  : slot.key === "potion"
-                    ? doc.potionId
-                    : null);
-              return (
-                <div
-                  className={`gear-equipped-row ${state.selection === slot.key ? "is-active" : ""}`}
-                  key={slot.key}
-                >
-                  <button
-                    className="gear-equipped-select"
-                    aria-pressed={state.selection === slot.key}
-                    onClick={() => {
-                      vm.select(slot.key);
-                      setWorkspace("candidates");
-                      setPanel("stats");
-                    }}
-                  >
-                    <span className="gear-equipped-visual" aria-hidden="true">
-                      {equipped ? (
-                        <ItemIcon item={equipped.item} />
-                      ) : (
-                        <ItemIcon item={{ name: slot.name }} />
-                      )}
-                    </span>
-                    <span className="gear-equipped-copy">
-                      <span className="gear-equipped-name">
-                        {equipped?.item.name ??
-                          (id ? `未解析装备 #${id}` : "选择装备")}
-                      </span>
-                      <span className="gear-equipped-meta">
-                        {slot.name}
-                        {equipped && (
-                          <>
-                            <span aria-hidden="true">·</span>i
-                            {equipped.item.level}
-                            {equipped.item.hq && <small>HQ</small>}
-                            {equipped.synced && <small>已同步</small>}
-                          </>
-                        )}
-                      </span>
-                    </span>
-                    {config && (
-                      <span className="gear-meld-track">
-                        {Array.from({ length: 5 }, (_, index) => {
-                          const count = equipped?.item.materiaAdvanced
-                            ? 5
-                            : (equipped?.item.materiaSlot ?? 0);
-                          const meld = config.materias[index];
-                          return (
-                            <span
-                              key={index}
-                              className={`${index >= count ? "is-absent" : ""} ${index >= (equipped?.item.materiaSlot ?? 0) ? "is-advanced" : ""}`}
-                              title={
-                                meld?.stat
-                                  ? `${data.statNames[meld.stat]} ${meld.grade}`
-                                  : index < count
-                                    ? "空魔晶石孔"
-                                    : ""
-                              }
-                            >
-                              {index < count
-                                ? meld?.stat
-                                  ? data.statNames[meld.stat].slice(0, 1)
-                                  : "·"
-                                : ""}
-                            </span>
-                          );
-                        })}
-                      </span>
-                    )}
-                  </button>
-                  {config && (
-                    <button
-                      className="gear-lock"
-                      aria-label={`${slot.name}装备锁定`}
-                      aria-pressed={config.equipmentLocked}
-                      title="装备锁定：优化时保留这件装备"
-                      onClick={() =>
-                        vm.configure(slot.key as Slot, (g) => {
-                          g.equipmentLocked = !g.equipmentLocked;
-                        })
-                      }
+            {equipmentGroups.map((group) => (
+              <div
+                className={`gear-equipped-group gear-equipped-${group.id}`}
+                key={group.id}
+              >
+                {group.slots.flatMap((key) => {
+                  const slot = job.slots.find(
+                    (candidate) => candidate.key === key,
+                  );
+                  if (!slot) return [];
+                  const equipped = evaluation?.slots[slot.key];
+                  const config = doc.equipment[slot.key as Slot];
+                  const id =
+                    config?.itemId ??
+                    (slot.key === "food"
+                      ? doc.foodId
+                      : slot.key === "potion"
+                        ? doc.potionId
+                        : null);
+                  return (
+                    <div
+                      className={`gear-equipped-row ${state.selection === slot.key ? "is-active" : ""}`}
+                      key={slot.key}
+                      data-slot={slot.key}
                     >
-                      <LockSimple
-                        weight={config.equipmentLocked ? "fill" : "regular"}
-                      />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+                      <button
+                        className="gear-equipped-select"
+                        aria-pressed={state.selection === slot.key}
+                        onClick={() => {
+                          vm.select(slot.key);
+                          setWorkspace("candidates");
+                          setFeedback("");
+                        }}
+                      >
+                        <span
+                          className="gear-equipped-visual"
+                          aria-hidden="true"
+                        >
+                          {equipped ? (
+                            <ItemIcon item={equipped.item} />
+                          ) : (
+                            <ItemIcon item={{ name: slot.name }} />
+                          )}
+                        </span>
+                        <span className="gear-equipped-copy">
+                          <span className="gear-equipped-name">
+                            {equipped ? (
+                              <ItemName
+                                item={equipped.item}
+                                sources={data.sources}
+                              />
+                            ) : id ? (
+                              `未解析装备 #${id}`
+                            ) : (
+                              "选择装备"
+                            )}
+                          </span>
+                          <span className="gear-equipped-meta">
+                            {slot.name}
+                            {equipped && (
+                              <>
+                                <span aria-hidden="true">·</span>i
+                                {equipped.item.level}
+                                {equipped.item.hq && <small>HQ</small>}
+                                {equipped.synced && <small>已同步</small>}
+                              </>
+                            )}
+                          </span>
+                        </span>
+                        {config && (
+                          <span className="gear-meld-track">
+                            {Array.from({ length: 5 }, (_, index) => {
+                              const count = equipped?.item.materiaAdvanced
+                                ? 5
+                                : (equipped?.item.materiaSlot ?? 0);
+                              const meld = config.materias[index];
+                              return (
+                                <span
+                                  key={index}
+                                  className={`${index >= count ? "is-absent" : ""} ${index >= (equipped?.item.materiaSlot ?? 0) ? "is-advanced" : ""}`}
+                                  title={
+                                    meld?.stat
+                                      ? `${data.statNames[meld.stat]} ${meld.grade}`
+                                      : index < count
+                                        ? "空魔晶石孔"
+                                        : ""
+                                  }
+                                >
+                                  {index < count
+                                    ? meld?.stat
+                                      ? data.statNames[meld.stat].slice(0, 1)
+                                      : "·"
+                                    : ""}
+                                </span>
+                              );
+                            })}
+                          </span>
+                        )}
+                        <ItemStats
+                          item={equipped}
+                          data={data}
+                          busy={state.evaluating}
+                          label={slot.name}
+                          inline
+                        />
+                      </button>
+                      {config && (
+                        <button
+                          className="gear-row-meld"
+                          aria-label={`编辑${slot.name}镶嵌与属性`}
+                          disabled={state.evaluating || !equipped}
+                          onClick={() => {
+                            vm.select(slot.key);
+                            editMelds();
+                          }}
+                        >
+                          镶嵌
+                        </button>
+                      )}
+                      {config && (
+                        <button
+                          className="gear-lock"
+                          aria-label={`${slot.name}装备锁定`}
+                          aria-pressed={config.equipmentLocked}
+                          title="装备锁定：优化时保留这件装备"
+                          onClick={() =>
+                            vm.configure(slot.key as Slot, (g) => {
+                              g.equipmentLocked = !g.equipmentLocked;
+                            })
+                          }
+                        >
+                          <LockSimple
+                            weight={config.equipmentLocked ? "fill" : "regular"}
+                          />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
           <button
             className="gear-clear-melds"
+            disabled={
+              !Object.values(doc.equipment).some(
+                (gear) =>
+                  !gear.materiaLocked &&
+                  gear.materias.some((meld) => meld.stat),
+              )
+            }
             onClick={() => vm.clearMateria()}
           >
             清除未锁定魔晶石
@@ -450,42 +682,54 @@ export function Editor() {
           title={selectedName}
           optimizeScope={panel === "optimize"}
           onEditMelds={editMelds}
+          onBack={() =>
+            setWorkspace(panel === "optimize" ? "inspector" : "equipment")
+          }
+          onApply={applyPreview}
         />
         <aside className="gear-inspector" aria-label="属性与优化">
+          {panel === "optimize" && (
+            <div className="gear-current-item">
+              <span>逐件排除不想使用的装备，浏览筛选不影响计算范围。</span>
+              <button onClick={() => setWorkspace("candidates")}>
+                选择参与优化的装备
+              </button>
+            </div>
+          )}
           <Inspector vm={vm} state={state} panel={panel} />
-          {panel === "optimize" && <OptimizerActions vm={vm} state={state} />}
+          {panel === "stats" && (
+            <PreviewActions vm={vm} state={state} onApply={applyPreview} />
+          )}
+          {panel === "optimize" && (
+            <OptimizerActions
+              vm={vm}
+              state={state}
+              onSaveProposal={() =>
+                transition("另存优化方案", () =>
+                  vm.saveProposal(`${doc.name} 优化`),
+                )
+              }
+            />
+          )}
         </aside>
       </div>
       {meldOpen && <MeldDialog vm={vm} state={state} onClose={closeMelds} />}
-      {state.preview && (
-        <div className="gear-preview-action">
-          <span>
-            预览：<strong>{state.preview.name}</strong>
-          </span>
-          <span>{state.previewing ? "正在计算差异…" : "应用后可撤销"}</span>
-          <button
-            onClick={() => {
-              setPanel("stats");
-              setWorkspace("inspector");
-            }}
-          >
-            查看差异
-          </button>
-          <button
-            className="gear-primary"
-            disabled={
-              !state.previewEvaluation ||
-              !!state.previewEvaluation.issues.length
-            }
-            onClick={() => vm.applyPreview()}
-          >
-            替换装备
-            <ArrowRight />
-          </button>
-        </div>
+      {pendingTransition && (
+        <UnsavedDialog
+          name={doc.name}
+          action={pendingTransition.label}
+          busy={state.saving === "saving"}
+          onCancel={() => setPendingTransition(null)}
+          onDiscard={() => run(() => continueTransition(false))}
+          onSave={() => run(() => continueTransition(true))}
+        />
       )}
       <footer className="gear-footer">
-        <span>计算值为每威力伤害期望，不代表实战 DPS。</span>
+        <span>
+          {job.combat
+            ? "计算值为每威力伤害期望，不代表实战 DPS。"
+            : "属性包含已选食品与药品，品级同步时不计魔晶石。"}
+        </span>
         <a
           href="https://github.com/Asvel/ffxiv-gearing"
           target="_blank"
