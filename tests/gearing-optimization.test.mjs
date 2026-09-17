@@ -135,6 +135,7 @@ test("hard seeded combat scopes finish with exact valid plans", () => {
     ["WAR", "4a2a7df5bdba969c", 4, "1ab375ac", 55.90690263834694],
     ["BRD", "8abced29", 64, "b7352779", 123.93222657074288],
     ["BLU", "20260916", 4, "248e9a03", 22.63197486552473],
+    ["BLU", "20260916", 16, "6b1285aa", 24.102662734638262],
   ]) {
     const variant = generateBenchmarkDataset(catalog, {
       job,
