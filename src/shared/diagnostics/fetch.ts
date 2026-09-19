@@ -9,13 +9,18 @@ export function installFetchCapture() {
   const originalFetch = globalThis.fetch.bind(globalThis);
   globalThis.fetch = async (input, init) => {
     const requestedUrl = input instanceof Request ? input.url : String(input);
-    let protocol: string;
+    let url: URL;
     try {
-      protocol = new URL(requestedUrl, location.href).protocol;
+      url = new URL(requestedUrl, location.href);
     } catch {
       return originalFetch(input, init);
     }
-    if (protocol !== "http:" && protocol !== "https:") {
+    // Windows transports Tauri IPC over HTTP(S), including captureRecord itself.
+    // Exclude that host before reading bodies to prevent recursive log capture.
+    if (
+      (url.protocol !== "http:" && url.protocol !== "https:") ||
+      url.hostname === "ipc.localhost"
+    ) {
       return originalFetch(input, init);
     }
     const started = performance.now();
