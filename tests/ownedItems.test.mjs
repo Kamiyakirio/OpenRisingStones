@@ -89,3 +89,86 @@ test("does not report an unverified negative while metadata is loading", () => {
     kind: "checking",
   });
 });
+
+test("matches HQ dresser equipment using the base item ID", () => {
+  const index = buildOwnedItemIndex(
+    {
+      items: [
+        { itemId: 1044432, sources: ["glamour_dresser"] },
+        { itemId: 44432, sources: ["armoury_chest"] },
+      ],
+      armoire: { cabinetItemIds: [] },
+    },
+    new Map(),
+  );
+  assert.deepEqual(index.get(44432), ["glamour_dresser", "armoury_chest"]);
+  assert.equal(index.has(1044432), false);
+  assert.equal(
+    matchOwnedItem(44432, index, new Map(), new Map(), false).kind,
+    "exact",
+  );
+});
+
+test("expands only stored outfit pieces without shifting empty columns", () => {
+  const sets = new Map([
+    [47704, [0, 0, 47202, 47203, 47204, 47205, 47206, 0, 0, 0, 0]],
+  ]);
+  const index = buildOwnedItemIndex(
+    {
+      items: [{ itemId: 47704, sources: ["glamour_dresser"] }],
+      dresserItems: [{ itemId: 47704, setUnlockBits: 0x7ff ^ (1 << 4) }],
+      armoire: { cabinetItemIds: [] },
+    },
+    new Map(),
+    sets,
+  );
+  assert.deepEqual([...index], [[47204, ["glamour_dresser"]]]);
+});
+
+test("HQ outfit IDs normalize and absent entries or all missing bits grant no pieces", () => {
+  const sets = new Map([
+    [47704, [0, 0, 47202, 47203, 47204, 47205, 47206, 0, 0, 0, 0]],
+  ]);
+  for (const dresserItems of [
+    undefined,
+    [{ itemId: 1047704, setUnlockBits: 0x7ff }],
+  ]) {
+    const index = buildOwnedItemIndex(
+      {
+        items: [{ itemId: 1047704, sources: ["glamour_dresser"] }],
+        dresserItems,
+        armoire: { cabinetItemIds: [] },
+      },
+      new Map(),
+      sets,
+    );
+    assert.equal(index.size, 0);
+  }
+  const index = buildOwnedItemIndex(
+    {
+      items: [],
+      dresserItems: [{ itemId: 1047704, setUnlockBits: 0x7ff ^ (1 << 4) }],
+      armoire: { cabinetItemIds: [] },
+    },
+    new Map(),
+    sets,
+  );
+  assert.deepEqual(index.get(47204), ["glamour_dresser"]);
+});
+
+test("zero missing bits grant the full Yang armor outfit including boots 43373", () => {
+  const index = buildOwnedItemIndex(
+    {
+      items: [{ itemId: 50705, sources: ["glamour_dresser"] }],
+      dresserItems: [{ itemId: 50705, setUnlockBits: 0 }],
+      armoire: { cabinetItemIds: [] },
+    },
+    new Map(),
+    new Map([[50705, [0, 0, 43369, 43370, 43371, 43372, 43373, 0, 0, 0, 0]]]),
+  );
+  assert.deepEqual([...index.keys()], [43369, 43370, 43371, 43372, 43373]);
+  assert.equal(
+    matchOwnedItem(43373, index, new Map(), new Map(), false).kind,
+    "exact",
+  );
+});

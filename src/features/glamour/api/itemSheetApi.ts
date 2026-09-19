@@ -2,6 +2,8 @@
 import type { ItemSheetInfo } from "../item.types";
 import {
   buildCabinetSheetUrl,
+  buildDresserSetSheetUrl,
+  parseDresserSetSheetResponse,
   buildItemSheetUrl,
   parseCabinetSheetResponse,
   parseItemSheetResponse,
@@ -12,7 +14,7 @@ import {
 type NetworkResponse = { status: number; body: string };
 
 const ITEM_BATCH_SIZE = 100;
-const MAX_ITEM_IDS = 6_000;
+const MAX_ITEM_IDS = 12_000;
 const itemCache = new Map<number, ItemSheetInfo>();
 const missingItemCache = new Set<number>();
 const cabinetItemCache = new Map<number, number>();
@@ -55,8 +57,8 @@ export async function fetchCabinetItemIds(cabinetIds: readonly number[]) {
   const requestedIds = [
     ...new Set(cabinetIds.filter((id) => Number.isSafeInteger(id) && id > 0)),
   ];
-  if (requestedIds.length > 4_000) {
-    throw new Error("An armoire lookup cannot exceed 4000 Cabinet row IDs.");
+  if (requestedIds.length > 5_120) {
+    throw new Error("An armoire lookup cannot exceed 5120 Cabinet row IDs.");
   }
 
   const uncachedIds = requestedIds.filter(
@@ -142,4 +144,35 @@ async function fetchSheetResponse(url: URL): Promise<NetworkResponse> {
   } finally {
     globalThis.clearTimeout(timeout);
   }
+}
+
+let dresserSetsRequest: Promise<Map<number, readonly number[]>> | undefined;
+
+/** Fetch the compact public outfit catalogue once; failed requests may be retried. */
+export function fetchDresserSets() {
+  dresserSetsRequest ??= fetchDresserSetCatalogue().catch((error: unknown) => {
+    dresserSetsRequest = undefined;
+    throw error;
+  });
+  return dresserSetsRequest;
+}
+
+async function fetchDresserSetCatalogue() {
+  const result = new Map<number, readonly number[]>();
+  let after = 0;
+  for (let page = 0; page < 20; page += 1) {
+    const url = buildDresserSetSheetUrl(after);
+    const response = await fetchSheetResponse(url);
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(`The outfit sheet returned HTTP ${response.status}.`);
+    }
+    const rows = parseDresserSetSheetResponse(JSON.parse(response.body));
+    for (const row of rows) result.set(row.setId, row.itemIds);
+    if (rows.length < 500) return result;
+    const next = rows.at(-1)!.setId;
+    if (next <= after)
+      throw new Error("The outfit sheet pagination did not advance.");
+    after = next;
+  }
+  throw new Error("The outfit catalogue exceeds the page limit.");
 }

@@ -86,6 +86,14 @@ pub struct OwnedArmoireCache {
   cabinet_item_ids: Vec<u16>,
 }
 
+/// Preserve outfit membership bits so the frontend can expand only stored pieces.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OwnedDresserItem {
+  item_id: u32,
+  set_unlock_bits: u16,
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OwnedItemsSnapshot {
@@ -96,6 +104,8 @@ pub struct OwnedItemsSnapshot {
   inventory: CacheCoverage,
   armoury_chest: CacheCoverage,
   glamour_dresser: CacheCoverage,
+  #[serde(default)]
+  dresser_items: Vec<OwnedDresserItem>,
   armoire: OwnedArmoireCache,
 }
 
@@ -193,6 +203,15 @@ pub(crate) fn build_owned_items_snapshot(
       loaded: inventory.glamour_dresser.cached,
       may_be_stale: inventory.glamour_dresser.may_be_stale,
     },
+    dresser_items: inventory
+      .glamour_dresser
+      .items
+      .iter()
+      .map(|item| OwnedDresserItem {
+        item_id: item.item_id,
+        set_unlock_bits: item.set_unlock_bits,
+      })
+      .collect(),
     armoire: OwnedArmoireCache {
       cached: inventory.armoire.cached,
       may_be_stale: inventory.armoire.may_be_stale,
@@ -447,6 +466,7 @@ mod tests {
         loaded: true,
         may_be_stale: true,
       },
+      dresser_items: vec![],
       armoire: OwnedArmoireCache {
         cached: true,
         may_be_stale: true,

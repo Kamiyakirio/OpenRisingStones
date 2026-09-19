@@ -22,6 +22,9 @@ export type OwnedItemsSnapshot = {
   inventory: OwnedCacheCoverage;
   armouryChest: OwnedCacheCoverage;
   glamourDresser: OwnedCacheCoverage;
+  /** Absent in legacy caches; scan again to recover partial outfit membership. */
+  /** Native setUnlockBits marks missing pieces (1 = missing, 0 = present). */
+  dresserItems?: { itemId: number; setUnlockBits: number }[];
   armoire: {
     cached: boolean;
     mayBeStale: boolean;

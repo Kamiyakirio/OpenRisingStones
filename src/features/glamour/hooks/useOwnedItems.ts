@@ -1,7 +1,11 @@
 /** Coordinates consent, encrypted cache hydration, item metadata, and ownership matching. */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { normalizeGameBridgeError } from "../../../shared/game-bridge/api";
-import { fetchCabinetItemIds, fetchItemSheetInfo } from "../api/itemSheetApi";
+import {
+  fetchCabinetItemIds,
+  fetchItemSheetInfo,
+  fetchDresserSets,
+} from "../api/itemSheetApi";
 import { loadOwnedItemsCache, syncOwnedItemsFromGame } from "../api/ownedItems";
 import type { ItemSheetInfo } from "../item.types";
 import type {
@@ -13,6 +17,7 @@ import {
   buildOwnedItemIndex,
   buildOwnedModelIndex,
   matchOwnedItem,
+  normalizeOwnedItemId,
 } from "../utils/ownedItems";
 
 export type OwnedItemsStatus =
@@ -59,14 +64,46 @@ export function useOwnedItems(enabled: boolean) {
       setArmoireMappingFailed(true);
     }
     if (requestVersion.current !== version) return;
-    const nextOwnedItems = buildOwnedItemIndex(nextSnapshot, cabinetItems);
+    let dresserSets = new Map<number, readonly number[]>();
+    let dresserMappingFailed = false;
+    if (nextSnapshot.glamourDresser.loaded) {
+      try {
+        dresserSets = await fetchDresserSets();
+        // Old snapshots discarded unlock bits; do not infer that every set piece is owned.
+        dresserMappingFailed =
+          !nextSnapshot.dresserItems &&
+          nextSnapshot.items.some(
+            (item) =>
+              item.sources.includes("glamour_dresser") &&
+              dresserSets.has(normalizeOwnedItemId(item.itemId)),
+          );
+        if (
+          (nextSnapshot.dresserItems ?? []).some(
+            (item) =>
+              item.setUnlockBits !== 0 &&
+              !dresserSets.has(normalizeOwnedItemId(item.itemId)),
+          )
+        ) {
+          dresserMappingFailed = true;
+        }
+      } catch {
+        dresserMappingFailed = true;
+      }
+    }
+    if (requestVersion.current !== version) return;
+    const nextOwnedItems = buildOwnedItemIndex(
+      nextSnapshot,
+      cabinetItems,
+      dresserSets,
+    );
     setOwnedItems(nextOwnedItems);
     setStatus("ready");
     try {
       const resolved = await fetchItemSheetInfo([...nextOwnedItems.keys()]);
       if (requestVersion.current !== version) return;
       setItemInfo((current) => new Map([...current, ...resolved]));
-      setMetadataReady(true);
+      setMetadataReady(!dresserMappingFailed);
+      setMetadataFailed(dresserMappingFailed);
     } catch {
       if (requestVersion.current !== version) return;
       setMetadataFailed(true);

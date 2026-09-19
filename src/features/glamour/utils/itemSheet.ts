@@ -159,3 +159,52 @@ function readNumber(record: UnknownRecord, key: string) {
   const value = record[key];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
+
+/** Column order is the game's 11-bit outfit membership order, including empty slots. */
+export const DRESSER_SET_SLOTS = [
+  "MainHand",
+  "OffHand",
+  "Head",
+  "Body",
+  "Hands",
+  "Legs",
+  "Feet",
+  "Earrings",
+  "Necklace",
+  "Bracelets",
+  "Ring",
+] as const;
+
+export function buildDresserSetSheetUrl(after: number, limit = 500) {
+  const url = new URL("/api/sheet/MirageStoreSetItem", XIVAPI_ORIGIN);
+  url.search = new URLSearchParams({
+    after: String(after),
+    limit: String(limit),
+    fields: DRESSER_SET_SLOTS.map((slot) => `${slot}@as(raw)`).join(","),
+  }).toString();
+  return url;
+}
+
+/** Keep zero entries so a missing equipment slot never shifts later unlock bits. */
+export function parseDresserSetSheetResponse(payload: unknown) {
+  const root = asRecord(payload);
+  if (!Array.isArray(root.rows))
+    throw new Error("The outfit sheet response does not contain rows.");
+  return root.rows.map((value) => {
+    const row = asRecord(value);
+    const fields = asRecord(row.fields);
+    const setId = readNumber(row, "row_id");
+    const itemIds = DRESSER_SET_SLOTS.map((slot) =>
+      readNumber(fields, `${slot}@as(raw)`),
+    );
+    if (
+      setId === null ||
+      !Number.isSafeInteger(setId) ||
+      setId < 0 ||
+      itemIds.some((id) => id === null || !Number.isSafeInteger(id) || id < 0)
+    ) {
+      throw new Error("The outfit sheet contains an invalid row.");
+    }
+    return { setId, itemIds: itemIds as number[] };
+  });
+}

@@ -117,3 +117,26 @@ test("collects unique concrete item and glamour IDs", () => {
 
   assert.deepEqual(collectInventoryItemIds(inventory), [42, 84, 126]);
 });
+
+test("outfit sheet preserves membership bit order and rejects missing columns", async () => {
+  const {
+    buildDresserSetSheetUrl,
+    parseDresserSetSheetResponse,
+    DRESSER_SET_SLOTS,
+  } = await import("../src/features/glamour/utils/itemSheet.ts");
+  const url = buildDresserSetSheetUrl(47704);
+  assert.equal(url.searchParams.get("after"), "47704");
+  const fields = Object.fromEntries(
+    DRESSER_SET_SLOTS.map((slot) => [`${slot}@as(raw)`, 0]),
+  );
+  fields["Hands@as(raw)"] = 47204;
+  const parsed = parseDresserSetSheetResponse({
+    rows: [{ row_id: 47704, fields }],
+  });
+  assert.equal(parsed[0].itemIds.length, 11);
+  assert.equal(parsed[0].itemIds[4], 47204);
+  delete fields["Head@as(raw)"];
+  assert.throws(() =>
+    parseDresserSetSheetResponse({ rows: [{ row_id: 47704, fields }] }),
+  );
+});

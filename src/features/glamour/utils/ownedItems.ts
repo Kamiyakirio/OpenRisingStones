@@ -11,14 +11,30 @@ export type OwnedItemIndex = Map<number, OwnedItemSource[]>;
 export function buildOwnedItemIndex(
   snapshot: OwnedItemsSnapshot,
   cabinetItems: ReadonlyMap<number, number>,
+  dresserSets: ReadonlyMap<number, readonly number[]> = new Map(),
 ) {
   const index: OwnedItemIndex = new Map();
   for (const item of snapshot.items) {
-    mergeSources(index, item.itemId, item.sources);
+    const itemId = normalizeOwnedItemId(item.itemId);
+    // Outfit row IDs identify containers, not individual owned equipment.
+    const sources = dresserSets.has(itemId)
+      ? item.sources.filter((source) => source !== "glamour_dresser")
+      : item.sources;
+    if (sources.length) mergeSources(index, itemId, sources);
   }
   for (const cabinetId of snapshot.armoire.cabinetItemIds) {
     const itemId = cabinetItems.get(cabinetId);
     if (itemId) mergeSources(index, itemId, ["armoire"]);
+  }
+  for (const entry of snapshot.dresserItems ?? []) {
+    const pieces = dresserSets.get(normalizeOwnedItemId(entry.itemId));
+    if (!pieces) continue;
+    pieces.forEach((itemId, slot) => {
+      // Despite the upstream field name, a set bit means this piece is missing.
+      if ((entry.setUnlockBits & (1 << slot)) === 0) {
+        mergeSources(index, itemId, ["glamour_dresser"]);
+      }
+    });
   }
   return index;
 }
@@ -69,6 +85,13 @@ export function matchOwnedItem(
 function modelKey(item: ItemSheetInfo) {
   if (item.modelMain <= 0 || item.equipSlotCategory <= 0) return null;
   return `${item.equipSlotCategory}:${item.modelMain}:${item.modelSub}`;
+}
+
+/** ItemFinder encodes HQ as base ID + 1,000,000; quality does not change glamour ownership. */
+export function normalizeOwnedItemId(itemId: number) {
+  return itemId >= 1_000_000 && itemId < 2_000_000
+    ? itemId - 1_000_000
+    : itemId;
 }
 
 function mergeSources(
