@@ -4,8 +4,6 @@ import {
   validateEquipmentSearchFilters,
 } from "../utils/equipmentFilters.ts";
 
-import { invoke } from "@tauri-apps/api/core";
-import { isTauriRuntime } from "../../../shared/utils/runtime";
 import {
   EQUIPMENT_PAGE_SIZES,
   type EquipmentPageSize,
@@ -53,17 +51,7 @@ export async function fetchEquipmentCandidates(
     limit: String(limit),
   }).toString();
 
-  const response = isTauriRuntime()
-    ? await invoke<NetworkResponse>("send_network_request", {
-        request: {
-          url: url.toString(),
-          method: "GET",
-          headers: { Accept: "application/json" },
-          body: null,
-          timeoutMs: 15_000,
-        },
-      })
-    : await fetchInBrowser(url);
+  const response = await fetchEquipmentResponse(url);
 
   if (response.status < 200 || response.status >= 300) {
     throw new Error(`装备资料接口返回 HTTP ${response.status}`);
@@ -88,7 +76,8 @@ export async function fetchEquipmentCandidates(
   };
 }
 
-async function fetchInBrowser(url: URL): Promise<NetworkResponse> {
+/** Fetch equipment data through the same browser transport in every build. */
+async function fetchEquipmentResponse(url: URL): Promise<NetworkResponse> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 15_000);
   try {

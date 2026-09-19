@@ -32,7 +32,6 @@ serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 tauri = { version = "2.11.3", features = [] }
 tauri-plugin-log = "2"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 tokio = { version = "1", features = ["net", "time", "sync"] }
 gearing-engine = { path = "crates/gearing-engine" }
 url = "2"

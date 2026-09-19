@@ -1,6 +1,4 @@
 /** Batched, cached access to the Chinese XIVAPI Item sheet. */
-import { invoke } from "@tauri-apps/api/core";
-import { isTauriRuntime } from "../../../shared/utils/runtime";
 import type { ItemSheetInfo } from "../item.types";
 import {
   buildCabinetSheetUrl,
@@ -88,17 +86,7 @@ async function fetchItemBatch(itemIds: number[]) {
   if (!itemIds.length) return [];
   const url = buildItemSheetUrl(itemIds);
 
-  const response = isTauriRuntime()
-    ? await invoke<NetworkResponse>("send_network_request", {
-        request: {
-          url: url.toString(),
-          method: "GET",
-          headers: { Accept: "application/json" },
-          body: null,
-          timeoutMs: 15_000,
-        },
-      })
-    : await fetchInBrowser(url);
+  const response = await fetchSheetResponse(url);
   if (response.status === 404) {
     const missingItemId = readMissingItemId(response.body);
     if (missingItemId !== null && itemIds.includes(missingItemId)) {
@@ -120,17 +108,7 @@ async function fetchItemBatch(itemIds: number[]) {
 async function fetchCabinetBatch(cabinetIds: number[]) {
   if (!cabinetIds.length) return [];
   const url = buildCabinetSheetUrl(cabinetIds);
-  const response = isTauriRuntime()
-    ? await invoke<NetworkResponse>("send_network_request", {
-        request: {
-          url: url.toString(),
-          method: "GET",
-          headers: { Accept: "application/json" },
-          body: null,
-          timeoutMs: 15_000,
-        },
-      })
-    : await fetchInBrowser(url);
+  const response = await fetchSheetResponse(url);
   if (response.status === 404) {
     const missingCabinetId = readMissingSheetRowId(response.body, "Cabinet");
     if (missingCabinetId !== null && cabinetIds.includes(missingCabinetId)) {
@@ -151,7 +129,8 @@ async function fetchCabinetBatch(cabinetIds: number[]) {
   }
 }
 
-async function fetchInBrowser(url: URL): Promise<NetworkResponse> {
+/** Fetch public sheet data through the WebView in desktop and browser builds. */
+async function fetchSheetResponse(url: URL): Promise<NetworkResponse> {
   const controller = new AbortController();
   const timeout = globalThis.setTimeout(() => controller.abort(), 15_000);
   try {

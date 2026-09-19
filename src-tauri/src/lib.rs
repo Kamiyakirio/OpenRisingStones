@@ -11,7 +11,6 @@ mod gearing;
 mod gearing_storage;
 mod glamour;
 mod glamour_verification;
-mod network;
 mod owned_items;
 mod process_memory;
 mod python_sidecar;
@@ -131,7 +130,6 @@ pub fn run() {
       game_bridge::game_bridge_apply_teleport_region,
       game_bridge::game_bridge_trigger_login,
       game_bridge::game_bridge_disconnect,
-      network::send_network_request,
       owned_items::load_owned_items_cache,
       recruit::fetch_recruit_config,
       recruit::fetch_recruit_detail,
