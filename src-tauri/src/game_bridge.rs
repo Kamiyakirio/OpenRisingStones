@@ -505,7 +505,7 @@ pub async fn game_bridge_capture_inventory(
   run_bridge_task(move || manager.capture_inventory().map_err(Into::into)).await
 }
 
-/// Reads one character's owned items, encrypts the normalized index, then unloads a bridge opened
+/// Reads one character's owned items, persists the normalized index, then unloads a bridge opened
 /// only for this request.
 #[tauri::command]
 pub async fn game_bridge_sync_owned_items(

@@ -83,7 +83,7 @@ const inventory = await invoke("game_bridge_capture_inventory");
 
 Local containers are enumerated from `InventoryManager`; the Glamour Dresser and Armoire use the persistent `ItemFinderModule` cache used by item search. Both cached stores expose `cached` and `mayBeStale`, and an unloaded all-zero cache is never interpreted as empty. Armoire bits identify `Cabinet` sheet rows, which the Rust/UI layer maps to Item IDs through a separate item catalog.
 
-The glamour workspace normalizes these reads into a character-scoped item index. The index is encrypted with AES-256-GCM before local persistence. HKDF-SHA256 derives the encryption key from the authenticated game-login TGT and GUID with a random per-file salt. Logout removes the in-memory key material but preserves ciphertext; clearing all local data removes the cache file.
+The glamour workspace normalizes these reads into a character-scoped item index. Debug builds store the index as readable JSON in `owned-items.debug.dat` in the working directory and require only the authenticated account profile, not game-login secrets. Old encrypted Debug caches are treated as cache misses and replaced on the next scan. Release builds encrypt the index with AES-256-GCM before local persistence. HKDF-SHA256 derives the encryption key from the authenticated game-login TGT and GUID with a random per-file salt. Logout removes the in-memory key material but preserves ciphertext; clearing all local data removes the cache file.
 
 ## Shared-memory transport
 

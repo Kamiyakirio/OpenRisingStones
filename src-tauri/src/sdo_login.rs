@@ -537,7 +537,7 @@ pub(crate) fn current_session(state: &LoginState) -> Result<Option<SessionSnapsh
   load_stored_session(state)
 }
 
-/// Derive deterministic cache input from the authenticated game-login context.
+/// Keep account isolation in all builds; only Release requires game-login key material.
 pub(crate) fn current_cache_context(state: &LoginState) -> Result<LoginCacheContext, String> {
   let active = state
     .active
@@ -546,18 +546,24 @@ pub(crate) fn current_cache_context(state: &LoginState) -> Result<LoginCacheCont
   let login = active
     .as_ref()
     .ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
-  let game_auth = login
-    .session
-    .game_auth
-    .as_ref()
-    .ok_or_else(|| "GAME_AUTHENTICATION_REQUIRED".to_owned())?;
-  if game_auth.tgt.is_empty() || game_auth.guid.is_empty() {
-    return Err("GAME_AUTHENTICATION_REQUIRED".to_owned());
-  }
+  #[cfg(debug_assertions)]
+  let key_material = Vec::new();
+  #[cfg(not(debug_assertions))]
+  let key_material = {
+    let game_auth = login
+      .session
+      .game_auth
+      .as_ref()
+      .ok_or_else(|| "GAME_AUTHENTICATION_REQUIRED".to_owned())?;
+    if game_auth.tgt.is_empty() || game_auth.guid.is_empty() {
+      return Err("GAME_AUTHENTICATION_REQUIRED".to_owned());
+    }
 
-  let mut key_material = Vec::with_capacity(game_auth.tgt.len() + game_auth.guid.len() + 8);
-  append_cache_key_part(&mut key_material, game_auth.tgt.as_bytes())?;
-  append_cache_key_part(&mut key_material, game_auth.guid.as_bytes())?;
+    let mut key_material = Vec::with_capacity(game_auth.tgt.len() + game_auth.guid.len() + 8);
+    append_cache_key_part(&mut key_material, game_auth.tgt.as_bytes())?;
+    append_cache_key_part(&mut key_material, game_auth.guid.as_bytes())?;
+    key_material
+  };
   Ok(LoginCacheContext {
     key_material,
     account_scope: [
@@ -571,6 +577,7 @@ pub(crate) fn current_cache_context(state: &LoginState) -> Result<LoginCacheCont
   })
 }
 
+#[cfg(not(debug_assertions))]
 fn append_cache_key_part(output: &mut Vec<u8>, value: &[u8]) -> Result<(), String> {
   let length = u32::try_from(value.len())
     .map_err(|_| "The login cache key material is too large.".to_owned())?;
@@ -750,6 +757,30 @@ mod tests {
       user_agent: None,
       game_auth: None,
     }
+  }
+
+  #[test]
+  fn cache_context_without_game_credentials_matches_build_policy() {
+    let state = LoginState::default();
+    assert!(current_cache_context(&state).is_err());
+    *state.active.lock().unwrap() = Some(ActiveLogin {
+      session: empty_session(),
+      profile: LoginProfile {
+        display_account: "test-account".to_owned(),
+        character_name: "test-character".to_owned(),
+        area_name: "test-area".to_owned(),
+        group_name: "test-group".to_owned(),
+      },
+    });
+    let result = current_cache_context(&state);
+    #[cfg(debug_assertions)]
+    {
+      let context = result.unwrap();
+      assert!(context.key_material.is_empty());
+      assert_eq!(context.character_name, "test-character");
+    }
+    #[cfg(not(debug_assertions))]
+    assert!(matches!(result, Err(message) if message == "GAME_AUTHENTICATION_REQUIRED"));
   }
 
   #[test]

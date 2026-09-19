@@ -1,4 +1,4 @@
-//! Login-bound encrypted persistence for the active character's owned item index.
+//! Character-scoped item persistence: plaintext JSON in Debug, login-bound encryption in Release.
 
 #[cfg(all(test, not(windows)))]
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -9,29 +9,39 @@ use std::{
 };
 use std::{fs, path::Path};
 
+#[cfg(not(debug_assertions))]
 use aes_gcm::{
   aead::{Aead, KeyInit, Payload},
   Aes256Gcm, Nonce,
 };
 #[cfg(windows)]
 use game_bridge_host::{ActiveCharacterSnapshot, PlayerInventorySnapshot};
+#[cfg(not(debug_assertions))]
 use hkdf::Hkdf;
-#[cfg(any(windows, test))]
+#[cfg(all(not(debug_assertions), any(windows, test)))]
 use rand::{rngs::OsRng, RngCore};
 use serde::{Deserialize, Serialize};
+#[cfg(not(debug_assertions))]
 use sha2::Sha256;
 use tauri::State;
+#[cfg(not(debug_assertions))]
 use zeroize::Zeroizing;
 
 use crate::sdo_login::{self, LoginCacheContext, LoginState};
 
+#[cfg(not(debug_assertions))]
 const CACHE_MAGIC: &[u8; 8] = b"ORSINV01";
 const CACHE_SCHEMA_VERSION: u32 = 1;
+#[cfg(not(debug_assertions))]
 const CACHE_SALT_BYTES: usize = 16;
+#[cfg(not(debug_assertions))]
 const CACHE_NONCE_BYTES: usize = 12;
+#[cfg(not(debug_assertions))]
 const CACHE_KEY_BYTES: usize = 32;
+#[cfg(not(debug_assertions))]
 const CACHE_HEADER_BYTES: usize = CACHE_MAGIC.len() + CACHE_SALT_BYTES + CACHE_NONCE_BYTES;
 const MAX_CACHE_BYTES: u64 = 2 * 1024 * 1024;
+#[cfg(not(debug_assertions))]
 const CACHE_KDF_INFO: &[u8] = b"OpenRisingStones.OwnedItems.v1";
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -109,7 +119,7 @@ pub fn load_owned_items_cache(
   }
   let context = sdo_login::current_cache_context(&login_state)?;
   // Authentication failures are indistinguishable from obsolete or corrupt cache files.
-  Ok(load_encrypted_cache(path, &context).ok().flatten())
+  Ok(load_cache(path, &context).ok().flatten())
 }
 
 #[cfg(windows)]
@@ -200,7 +210,7 @@ pub(crate) fn save_owned_items_snapshot(
   let Some(path) = login_state.owned_items_path() else {
     return Ok(());
   };
-  save_encrypted_cache(path, context, snapshot)
+  save_cache(path, context, snapshot)
 }
 
 #[cfg(windows)]
@@ -222,8 +232,8 @@ fn container_loaded(inventory: &PlayerInventorySnapshot, name: &str) -> bool {
     .any(|container| container.name == name && container.loaded)
 }
 
-#[cfg(any(windows, test))]
-fn save_encrypted_cache(
+#[cfg(all(not(debug_assertions), any(windows, test)))]
+fn save_cache(
   path: &Path,
   context: &LoginCacheContext,
   snapshot: &OwnedItemsSnapshot,
@@ -267,7 +277,8 @@ fn save_encrypted_cache(
   fs::write(path, output).map_err(|_| "Unable to save the owned-item cache.".to_owned())
 }
 
-fn load_encrypted_cache(
+#[cfg(not(debug_assertions))]
+fn load_cache(
   path: &Path,
   context: &LoginCacheContext,
 ) -> Result<Option<OwnedItemsSnapshot>, String> {
@@ -312,6 +323,7 @@ fn load_encrypted_cache(
   Ok(Some(persisted.snapshot))
 }
 
+#[cfg(not(debug_assertions))]
 fn derive_cache_key(key_material: &[u8], salt: &[u8]) -> Result<[u8; CACHE_KEY_BYTES], String> {
   let hkdf = Hkdf::<Sha256>::new(Some(salt), key_material);
   let mut key = [0_u8; CACHE_KEY_BYTES];
@@ -319,6 +331,52 @@ fn derive_cache_key(key_material: &[u8], salt: &[u8]) -> Result<[u8; CACHE_KEY_B
     .expand(CACHE_KDF_INFO, &mut key)
     .map_err(|_| "Unable to derive the owned-item cache key.".to_owned())?;
   Ok(key)
+}
+
+/// Debug caches remain inspectable without requiring game-session secrets.
+#[cfg(all(debug_assertions, any(windows, test)))]
+fn save_cache(
+  path: &Path,
+  context: &LoginCacheContext,
+  snapshot: &OwnedItemsSnapshot,
+) -> Result<(), String> {
+  let persisted = PersistedOwnedItems {
+    account_scope: context.account_scope.clone(),
+    snapshot: snapshot.clone(),
+  };
+  let plaintext = serde_json::to_vec_pretty(&persisted)
+    .map_err(|_| "Unable to serialize the owned-item cache.".to_owned())?;
+  let parent = path
+    .parent()
+    .ok_or_else(|| "The owned-item cache path is invalid.".to_owned())?;
+  fs::create_dir_all(parent)
+    .map_err(|_| "Unable to prepare owned-item cache storage.".to_owned())?;
+  fs::write(path, plaintext).map_err(|_| "Unable to save the owned-item cache.".to_owned())
+}
+
+#[cfg(debug_assertions)]
+fn load_cache(
+  path: &Path,
+  context: &LoginCacheContext,
+) -> Result<Option<OwnedItemsSnapshot>, String> {
+  let metadata = match fs::metadata(path) {
+    Ok(metadata) => metadata,
+    Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+    Err(_) => return Err("Unable to inspect the owned-item cache.".to_owned()),
+  };
+  if metadata.len() > MAX_CACHE_BYTES {
+    return Err("The owned-item cache size is invalid.".to_owned());
+  }
+  let plaintext = fs::read(path).map_err(|_| "Unable to read the owned-item cache.".to_owned())?;
+  let persisted: PersistedOwnedItems = serde_json::from_slice(&plaintext)
+    .map_err(|_| "The owned-item cache payload is invalid.".to_owned())?;
+  // Plaintext storage still isolates accounts and validates the cache schema.
+  if persisted.account_scope != context.account_scope
+    || persisted.snapshot.schema_version != CACHE_SCHEMA_VERSION
+  {
+    return Err("The owned-item cache belongs to another login scope.".to_owned());
+  }
+  Ok(Some(persisted.snapshot))
 }
 
 #[cfg(test)]
@@ -331,6 +389,34 @@ mod tests {
       account_scope: scope.to_owned(),
       character_name: "Test Character".to_owned(),
     }
+  }
+
+  #[test]
+  #[cfg(debug_assertions)]
+  fn debug_cache_is_plaintext_and_survives_changed_secrets_but_rejects_other_accounts() {
+    let path = std::env::temp_dir().join(format!(
+      "open-rising-stones-debug-items-{}-{}.json",
+      std::process::id(),
+      SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos()
+    ));
+    let expected = snapshot();
+    save_cache(&path, &context(b"", "scope"), &expected).unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    assert_eq!(
+      json["snapshot"]["character"]["characterName"],
+      "Test Character"
+    );
+    assert_eq!(
+      load_cache(&path, &context(b"new-secret", "scope")).unwrap(),
+      Some(expected)
+    );
+    assert!(load_cache(&path, &context(b"", "another-account")).is_err());
+    fs::write(&path, b"ORSINV01obsolete-encrypted-cache").unwrap();
+    assert!(load_cache(&path, &context(b"", "scope")).is_err());
+    fs::remove_file(path).unwrap();
   }
 
   fn snapshot() -> OwnedItemsSnapshot {
@@ -370,6 +456,7 @@ mod tests {
   }
 
   #[test]
+  #[cfg(not(debug_assertions))]
   fn encrypted_cache_round_trips_without_plaintext_identifiers() {
     let path = std::env::temp_dir().join(format!(
       "open-rising-stones-owned-items-{}-{}.dat",
@@ -382,28 +469,26 @@ mod tests {
     let context = context(b"authenticated-game-login", "account-scope");
     let expected = snapshot();
 
-    save_encrypted_cache(&path, &context, &expected).unwrap();
+    save_cache(&path, &context, &expected).unwrap();
     let bytes = fs::read(&path).unwrap();
     assert!(!bytes
       .windows(b"Test Character".len())
       .any(|value| value == b"Test Character"));
     assert!(!bytes.windows(b"3220".len()).any(|value| value == b"3220"));
-    assert_eq!(
-      load_encrypted_cache(&path, &context).unwrap(),
-      Some(expected)
-    );
+    assert_eq!(load_cache(&path, &context).unwrap(), Some(expected));
     fs::remove_file(path).unwrap();
   }
 
   #[test]
+  #[cfg(not(debug_assertions))]
   fn encrypted_cache_rejects_a_different_login() {
     let path = std::env::temp_dir().join(format!(
       "open-rising-stones-owned-items-wrong-key-{}.dat",
       std::process::id()
     ));
-    save_encrypted_cache(&path, &context(b"first-login", "scope"), &snapshot()).unwrap();
+    save_cache(&path, &context(b"first-login", "scope"), &snapshot()).unwrap();
 
-    assert!(load_encrypted_cache(&path, &context(b"second-login", "scope")).is_err());
+    assert!(load_cache(&path, &context(b"second-login", "scope")).is_err());
     fs::remove_file(path).unwrap();
   }
 }

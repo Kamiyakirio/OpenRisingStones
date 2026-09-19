@@ -48,8 +48,9 @@ Game-process bridging supports Windows only. Preserve explicit user consent for
 process injection and the existing version-validation gates. A desktop build on
 another operating system does not imply support for these bridge capabilities.
 
-The current implementation encrypts the local owned-item index using keys derived
-from an authenticated game-login session. Preserve the distinction between cached,
+Release builds encrypt the local owned-item index using keys derived from an
+authenticated game-login session. Debug builds store readable JSON without
+requiring game-login secrets, while retaining account and character checks. Preserve the distinction between cached,
 potentially stale, unavailable, and empty inventory data.
 
 ## Brand Commitments
