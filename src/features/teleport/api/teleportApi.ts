@@ -2,7 +2,7 @@
  * Official Regional Teleport adapter.
  * Authentication stays inside the Tauri backend; this module normalizes public data only.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../shared/diagnostics/invoke";
 import type {
   TeleportArea,
   TeleportCreateOrderRequest,

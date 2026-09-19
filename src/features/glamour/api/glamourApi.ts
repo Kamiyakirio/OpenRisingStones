@@ -2,7 +2,7 @@
  * 石之家幻化列表适配器。
  * 网络请求由 Tauri Rust 层发送，前端只接收经过大小限制的 JSON 文本。
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../shared/diagnostics/invoke";
 import {
   authenticationRequired,
   isSdoAuthenticationFailure,

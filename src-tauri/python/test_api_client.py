@@ -11,7 +11,7 @@ from api_client import (
     ApiClientError,
     BASE_HEADERS,
     GLAMOUR_SEARCH_URL,
-    NETWORK_CONSOLE_PREFIX,
+    DIAGNOSTICS_PREFIX,
     RECRUIT_LIST_URL,
     TELEPORT_ENDPOINTS,
     TELEPORT_ORIGIN,
@@ -99,31 +99,57 @@ def client_with(
 
 
 class ApiClientTests(unittest.TestCase):
-    def test_network_console_logs_complete_url_and_bodies(self) -> None:
+    def test_debug_network_record_contains_request_and_response(self) -> None:
         response_url = "https://example.invalid/path?existing=1&token=request-token"
         client, _ = client_with(
             FakeResponse(content=b'{"token":"response-token"}', url=response_url)
         )
         stderr = StringIO()
 
-        with patch.dict(os.environ, {"OPEN_RISING_STONES_NETWORK_CONSOLE": "1"}):
+        with patch.dict(os.environ, {"OPEN_RISING_STONES_DIAGNOSTICS": "1"}):
             with redirect_stderr(stderr):
                 client.request(
                     "POST",
                     "https://example.invalid/path?existing=1",
                     params={"token": "request-token"},
                     json={"token": "request-body-token"},
-                    headers={"Authorization": "not-logged"},
+                    headers={"Authorization": "debug-only-value"},
                 )
 
         entries = [
-            json.loads(line.removeprefix(NETWORK_CONSOLE_PREFIX))
+            json.loads(line.removeprefix(DIAGNOSTICS_PREFIX))
             for line in stderr.getvalue().splitlines()
         ]
-        self.assertEqual(entries[0]["url"], response_url)
-        self.assertEqual(entries[0]["body"], {"token": "request-body-token"})
-        self.assertNotIn("headers", entries[0])
-        self.assertEqual(entries[1]["body"], '{"token":"response-token"}')
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["request"]["url"], response_url)
+        self.assertEqual(entries[0]["request"]["body"], {"token": "request-body-token"})
+        self.assertIn(
+            ["Authorization", "debug-only-value"], entries[0]["request"]["headers"]
+        )
+        self.assertEqual(entries[0]["response"]["body"], '{"token":"response-token"}')
+
+    def test_network_diagnostics_are_disabled_without_debug_environment(self) -> None:
+        client, _ = client_with(FakeResponse())
+        stderr = StringIO()
+        with patch.dict(os.environ, {"OPEN_RISING_STONES_DIAGNOSTICS": "0"}):
+            with redirect_stderr(stderr):
+                client.request("GET", "https://example.invalid/path")
+        self.assertEqual(stderr.getvalue(), "")
+
+    def test_debug_network_record_preserves_binary_response(self) -> None:
+        client, _ = client_with(
+            FakeResponse(
+                content=b"\x89PNG\x00\xff",
+                headers={"content-type": "image/png"},
+            )
+        )
+        stderr = StringIO()
+        with patch.dict(os.environ, {"OPEN_RISING_STONES_DIAGNOSTICS": "1"}):
+            with redirect_stderr(stderr):
+                client.request("GET", "https://example.invalid/image.png")
+        entry = json.loads(stderr.getvalue().removeprefix(DIAGNOSTICS_PREFIX))
+        self.assertEqual(entry["response"]["body"]["encoding"], "base64")
+        self.assertEqual(entry["response"]["body"]["byteLength"], 6)
 
     def test_custom_user_agent_is_validated_and_persisted(self) -> None:
         user_agent = (

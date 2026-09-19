@@ -18,5 +18,23 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@tauri-apps/api/core",
+              importNames: ["invoke"],
+              message: "Use the shared diagnostics invoke adapter.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/shared/diagnostics/{capture,invoke}.ts"],
+    rules: { "no-restricted-imports": "off" },
   },
 ]);

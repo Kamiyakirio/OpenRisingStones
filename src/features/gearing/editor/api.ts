@@ -1,5 +1,5 @@
 /** TS owns item loading/filtering. Native calls carry complete calculation snapshots or user documents. */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../shared/diagnostics/invoke";
 import { isTauriRuntime } from "../../../shared/utils/runtime";
 import { evaluate } from "./evaluation";
 import { prepareOptimization } from "./optimization";

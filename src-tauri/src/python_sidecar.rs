@@ -6,7 +6,7 @@
 //! so every caller gets the same cross-platform and security behavior.
 
 use std::{
-  io::{self, Read, Write},
+  io::{self, BufRead, BufReader, Read, Write},
   process::{Child, Command, ExitStatus, Stdio},
   sync::mpsc,
   thread,
@@ -42,11 +42,9 @@ static BUNDLED_CLIENT_PATH: OnceLock<PathBuf> = OnceLock::new();
 #[cfg(all(feature = "bundled-python-sidecar", windows))]
 static BUNDLED_CLIENT_MATERIALIZE_LOCK: Mutex<()> = Mutex::new(());
 const MAX_ERROR_BYTES: usize = 8 * 1024;
-const MAX_DEBUG_STDERR_BYTES: usize = 16 * 1024 * 1024;
 const MAX_ERROR_CHARACTERS: usize = 240;
-#[cfg(debug_assertions)]
-const NETWORK_CONSOLE_ENV: &str = "OPEN_RISING_STONES_NETWORK_CONSOLE";
-const NETWORK_CONSOLE_PREFIX: &str = "ORS_NETWORK_CONSOLE ";
+const DIAGNOSTICS_ENV: &str = "OPEN_RISING_STONES_DIAGNOSTICS";
+const DIAGNOSTICS_PREFIX: &[u8] = b"ORS_DIAG_V1 ";
 const PROCESS_TIMEOUT: Duration = Duration::from_secs(180);
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(10);
 
@@ -299,7 +297,9 @@ fn execute_with_command(
     .stderr(Stdio::piped());
 
   #[cfg(debug_assertions)]
-  command.env(NETWORK_CONSOLE_ENV, "1");
+  command.env(DIAGNOSTICS_ENV, "1");
+  #[cfg(not(debug_assertions))]
+  command.env_remove(DIAGNOSTICS_ENV);
 
   #[cfg(windows)]
   {
@@ -322,7 +322,7 @@ fn execute_with_command(
   let (sender, receiver) = mpsc::channel();
   let stdout_sender = sender.clone();
   // Read both pipes concurrently so a noisy child cannot block while Rust waits for it.
-  // Stdout stops at the protocol limit; stderr is drained but only retains a safe prefix.
+  // Stdout stays a bounded business protocol; stderr diagnostics stream separately.
   let stdout_thread = thread::spawn(move || {
     let _ = stdout_sender.send(CapturedStream::Stdout(read_bounded(
       stdout,
@@ -330,14 +330,7 @@ fn execute_with_command(
     )));
   });
   let stderr_thread = thread::spawn(move || {
-    let _ = sender.send(CapturedStream::Stderr(read_truncated(
-      stderr,
-      if cfg!(debug_assertions) {
-        MAX_DEBUG_STDERR_BYTES
-      } else {
-        MAX_ERROR_BYTES
-      },
-    )));
+    let _ = sender.send(CapturedStream::Stderr(read_sidecar_stderr(stderr)));
   });
 
   if stdin.write_all(input).is_err() {
@@ -396,8 +389,7 @@ fn execute_with_command(
   if stdout.exceeded_limit {
     return Err(ProcessError::ResponseTooLarge);
   }
-  let error_output = forward_network_console(&stderr.bytes);
-  validate_status(status, &error_output)?;
+  validate_status(status, &stderr.bytes)?;
   Ok(stdout.bytes)
 }
 
@@ -422,18 +414,26 @@ fn read_bounded(reader: impl Read, limit: usize) -> io::Result<BoundedOutput> {
   })
 }
 
-fn read_truncated(mut reader: impl Read, limit: usize) -> io::Result<BoundedOutput> {
-  let mut bytes = Vec::with_capacity(limit.min(8 * 1024));
-  let mut buffer = [0; 8 * 1024];
+fn read_sidecar_stderr(reader: impl Read) -> io::Result<BoundedOutput> {
+  let mut reader = BufReader::new(reader);
+  let mut bytes = Vec::new();
+  let mut line = Vec::new();
   let mut exceeded_limit = false;
   loop {
-    let count = reader.read(&mut buffer)?;
-    if count == 0 {
+    line.clear();
+    if reader.read_until(b'\n', &mut line)? == 0 {
       break;
     }
-    let retained = count.min(limit.saturating_sub(bytes.len()));
-    bytes.extend_from_slice(&buffer[..retained]);
-    exceeded_limit |= retained < count;
+    if let Some(_payload) = line.strip_prefix(DIAGNOSTICS_PREFIX) {
+      #[cfg(debug_assertions)]
+      if let Ok(entry) = serde_json::from_slice::<crate::diagnostics::LogInput>(_payload) {
+        crate::diagnostics::record_native(entry);
+      }
+      continue;
+    }
+    let retained = line.len().min(MAX_ERROR_BYTES.saturating_sub(bytes.len()));
+    bytes.extend_from_slice(&line[..retained]);
+    exceeded_limit |= retained < line.len();
   }
   Ok(BoundedOutput {
     bytes,
@@ -467,23 +467,6 @@ fn capture_result(
       ProcessError::Message(format!("Unable to read the Python client {description}."))
     })?
     .map_err(|_| ProcessError::Message(format!("Unable to read the Python client {description}.")))
-}
-
-fn forward_network_console(stderr: &[u8]) -> Vec<u8> {
-  let mut error_lines = Vec::new();
-  let stderr = String::from_utf8_lossy(stderr);
-  for line in stderr.lines() {
-    let Some(payload) = line.strip_prefix(NETWORK_CONSOLE_PREFIX) else {
-      if !line.trim().is_empty() {
-        error_lines.push(line);
-      }
-      continue;
-    };
-    if let Ok(value) = serde_json::from_str::<serde_json::Value>(payload) {
-      log::info!(target: "network_console", "{value}");
-    }
-  }
-  error_lines.join("\n").into_bytes()
 }
 
 fn validate_status(status: ExitStatus, stderr: &[u8]) -> Result<(), ProcessError> {
@@ -531,20 +514,10 @@ mod tests {
   }
 
   #[test]
-  fn truncated_reader_drains_but_only_retains_the_limit() {
-    let output = read_truncated(Cursor::new(b"12345678"), 4).unwrap();
-
-    assert_eq!(output.bytes, b"1234");
-    assert!(output.exceeded_limit);
-  }
-
-  #[test]
-  fn network_console_records_do_not_leak_into_user_facing_errors() {
-    let stderr = b"ORS_NETWORK_CONSOLE {\"phase\":\"request\",\"body\":\"secret\"}\nSafe error";
-
-    let error_output = forward_network_console(stderr);
-
-    assert_eq!(error_output, b"Safe error");
+  fn diagnostic_records_do_not_leak_into_user_facing_errors() {
+    let stderr = b"ORS_DIAG_V1 {\"kind\":\"network\",\"source\":\"python\",\"name\":\"request\",\"outcome\":\"success\"}\nSafe error";
+    let output = read_sidecar_stderr(Cursor::new(stderr)).unwrap();
+    assert_eq!(output.bytes, b"Safe error");
   }
 
   #[cfg(all(feature = "bundled-python-sidecar", windows))]

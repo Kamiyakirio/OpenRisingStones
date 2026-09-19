@@ -1,5 +1,5 @@
 /** Opens an isolated entrypoint without mounting the main application or its polling hooks. */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../shared/diagnostics/invoke";
 import { isTauriRuntime } from "../../../shared/utils/runtime";
 export async function openFishingTimer() {
   if (isTauriRuntime()) return invoke<void>("open_fishing_timer");

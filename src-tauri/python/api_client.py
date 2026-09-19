@@ -1,8 +1,7 @@
 """Constrained Rising Stones API and SDO login client.
 
-All HTTP traffic goes through :class:`ApiClient`, which owns the Chrome TLS fingerprint,
-headers, cookies, response limits, and safe error translation. Rust controls encrypted
-cookie persistence and never returns credentials to the webview.
+All Python HTTP traffic goes through :class:`ApiClient.request`, including the public
+Wiki request's separate Safari session. Rust controls encrypted cookie persistence.
 """
 
 import base64
@@ -14,7 +13,7 @@ import time
 import uuid
 import random
 from typing import Any, Collection
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import parse_qsl, quote, urlencode, urlparse
 
 try:
     from curl_cffi import requests
@@ -111,8 +110,8 @@ MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 MAX_USER_AGENT_BYTES = 512
 MAX_AVATAR_BYTES = 2 * 1024 * 1024
 AVATAR_PATH_PREFIXES = ("/avatar/", "/default/")
-NETWORK_CONSOLE_ENV = "OPEN_RISING_STONES_NETWORK_CONSOLE"
-NETWORK_CONSOLE_PREFIX = "ORS_NETWORK_CONSOLE "
+DIAGNOSTICS_ENV = "OPEN_RISING_STONES_DIAGNOSTICS"
+DIAGNOSTICS_PREFIX = "ORS_DIAG_V1 "
 
 BASE_HEADERS = {
     "Accept": "application/json, text/plain, */*",
@@ -128,24 +127,48 @@ BASE_HEADERS = {
 }
 
 
-def emit_network_console(phase: str, **fields: Any) -> None:
-    """Emit one machine-readable line for the debug-only WebView console bridge."""
-    if os.environ.get(NETWORK_CONSOLE_ENV) != "1":
+def diagnostics_enabled() -> bool:
+    return os.environ.get(DIAGNOSTICS_ENV) == "1"
+
+
+def emit_network_diagnostic(
+    name: str,
+    request: dict[str, Any],
+    duration_ms: float,
+    response: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> None:
+    """Write one complete debug operation outside the stdout business protocol."""
+    if not diagnostics_enabled():
         return
     try:
         payload = json.dumps(
-            {"phase": phase, **fields},
+            {
+                "kind": "network",
+                "source": "python",
+                "name": name,
+                "outcome": (
+                    "error"
+                    if error or (response and int(response.get("status", 0)) >= 400)
+                    else "success"
+                ),
+                "durationMs": duration_ms,
+                "request": request,
+                "response": response,
+                "error": {"message": error} if error else None,
+            },
             ensure_ascii=False,
             separators=(",", ":"),
+            default=str,
         )
-        print(f"{NETWORK_CONSOLE_PREFIX}{payload}", file=sys.stderr, flush=True)
+        print(f"{DIAGNOSTICS_PREFIX}{payload}", file=sys.stderr, flush=True)
     except Exception:
-        # Logging must never change request behavior, even for unusual body objects.
+        # Diagnostics must not change request behavior.
         return
 
 
-def request_console_url(url: str, kwargs: dict[str, Any]) -> str:
-    """Build the complete request URL, including params, for preflight logging."""
+def request_log_url(url: str, kwargs: dict[str, Any]) -> str:
+    """Build the configured request URL, including repeated query parameters."""
     params = kwargs.get("params")
     if not params:
         return url
@@ -157,28 +180,49 @@ def request_console_url(url: str, kwargs: dict[str, Any]) -> str:
     return f"{url}{separator}{query}"
 
 
-def request_console_body(kwargs: dict[str, Any]) -> Any:
+def request_log_body(kwargs: dict[str, Any]) -> Any:
     """Return the complete configured request body without including headers."""
     if "json" in kwargs:
         return kwargs["json"]
     if "data" in kwargs:
-        return console_body(kwargs["data"])
+        return log_body(kwargs["data"])
     if "content" in kwargs:
-        return console_body(kwargs["content"])
+        return log_body(kwargs["content"])
     return None
 
 
-def console_body(value: Any) -> Any:
-    """Preserve text bodies and encode binary bodies without truncation."""
+def log_body(value: Any, content_type: str = "") -> Any:
+    """Preserve text bodies and encode binary bodies for the detail view."""
     if isinstance(value, bytes):
+        if content_type and not re.search(r"json|text|xml|javascript|svg", content_type, re.I):
+            try:
+                decoded = value.decode("utf-8")
+                json.loads(decoded)
+                return decoded
+            except (UnicodeDecodeError, ValueError):
+                pass
+            return {
+                "encoding": "base64",
+                "value": base64.b64encode(value).decode("ascii"),
+                "byteLength": len(value),
+                "contentType": content_type,
+            }
         try:
             return value.decode("utf-8")
         except UnicodeDecodeError:
             return {
                 "encoding": "base64",
                 "value": base64.b64encode(value).decode("ascii"),
+                "byteLength": len(value),
+                "contentType": content_type or "application/octet-stream",
             }
     return value
+
+
+def header_pairs(headers: Any) -> list[tuple[str, str]]:
+    """Keep repeated HTTP fields in the order exposed by the client."""
+    multi_items = getattr(headers, "multi_items", None)
+    return list(multi_items() if callable(multi_items) else headers.items())
 
 
 class ApiClientError(RuntimeError):
@@ -303,6 +347,14 @@ class ApiClient:
             snapshot["gameAuth"] = self.game_auth
         return snapshot
 
+    @classmethod
+    def with_session(cls, session: Any) -> "ApiClient":
+        """Reuse the same request policy with an independently configured session."""
+        client = cls.__new__(cls)
+        client.session = session
+        client.base_headers = {}
+        return client
+
     def request(
         self,
         method: str,
@@ -312,17 +364,24 @@ class ApiClient:
         accepted_statuses: Collection[int] = range(200, 300),
         max_bytes: int = MAX_RESPONSE_BYTES,
         error_message: str = "The remote service request failed.",
-        log_response_body: bool = True,
+        size_error_message: str = "The remote service response exceeded the size limit.",
         **kwargs: Any,
     ) -> Any:
         merged_headers = {**self.base_headers, **(headers or {})}
-        request_url = request_console_url(url, kwargs)
         method_name = method.upper()
-        emit_network_console(
-            "request",
-            method=method_name,
-            url=request_url,
-            body=request_console_body(kwargs),
+        request_url = request_log_url(url, kwargs) if diagnostics_enabled() else url
+        request_detail = (
+            {
+                "method": method_name,
+                "url": request_url,
+                "headers": header_pairs(merged_headers),
+                "params": list(
+                    parse_qsl(urlparse(request_url).query, keep_blank_values=True)
+                ),
+                "body": request_log_body(kwargs),
+            }
+            if diagnostics_enabled()
+            else None
         )
         started_at = time.perf_counter()
         try:
@@ -334,31 +393,38 @@ class ApiClient:
                 **kwargs,
             )
         except Exception as error:
-            emit_network_console(
-                "error",
-                method=method_name,
-                url=request_url,
-                durationMs=round((time.perf_counter() - started_at) * 1000, 1),
-                errorType=type(error).__name__,
-                message=str(error),
-            )
+            if request_detail is not None:
+                emit_network_diagnostic(
+                    f"{method_name} {urlparse(request_url).path}",
+                    request_detail,
+                    round((time.perf_counter() - started_at) * 1000, 1),
+                    error=f"{type(error).__name__}: {error}",
+                )
             raise ApiClientError(error_message) from error
-        emit_network_console(
-            "response",
-            method=method_name,
-            url=str(getattr(response, "url", request_url)),
-            status=response.status_code,
-            durationMs=round((time.perf_counter() - started_at) * 1000, 1),
-            body=(
-                console_body(response.content)
-                if log_response_body
-                else {"binaryBytes": len(response.content)}
-            ),
-        )
+        if request_detail is not None:
+            prepared_request = getattr(response, "request", None)
+            if prepared_request is not None:
+                request_detail["headers"] = header_pairs(
+                    getattr(prepared_request, "headers", merged_headers)
+                )
+                request_detail["url"] = str(getattr(prepared_request, "url", request_url))
+            response_headers = response.headers
+            content_type = str(response_headers.get("content-type") or "")
+            emit_network_diagnostic(
+                f"{method_name} {urlparse(request_url).path}",
+                request_detail,
+                round((time.perf_counter() - started_at) * 1000, 1),
+                response={
+                    "status": response.status_code,
+                    "url": str(getattr(response, "url", request_url)),
+                    "headers": header_pairs(response_headers),
+                    "body": log_body(response.content, content_type),
+                },
+            )
         if response.status_code not in accepted_statuses:
             raise ApiClientError(f"{error_message} (HTTP {response.status_code})")
         if len(response.content) > max_bytes:
-            raise ApiClientError("The remote service response exceeded the size limit.")
+            raise ApiClientError(size_error_message)
         return response
 
     @staticmethod
@@ -1364,7 +1430,6 @@ def fetch_avatar(client: ApiClient, request: dict[str, Any]) -> dict[str, Any]:
         allow_redirects=False,
         max_bytes=MAX_AVATAR_BYTES,
         error_message="The Rising Stones avatar request failed.",
-        log_response_body=False,
     )
     mime_type = str(response.headers.get("content-type") or "").split(";", 1)[0]
     if mime_type not in {
@@ -1394,31 +1459,31 @@ def fetch_wiki_page(
     referer = f"{WIKI_ORIGIN}/wiki/ItemSearch?name={quote(item_name, safe='')}"
     owns_session = session is None
     wiki_session = session or requests.Session(impersonate=WIKI_IMPERSONATE)
+    wiki_client = ApiClient.with_session(wiki_session)
+    request_headers = {
+        "Accept": (
+            "text/html,application/xhtml+xml,application/xml;q=0.9,"
+            "image/avif,image/webp,image/apng,*/*;q=0.8"
+        ),
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.7",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Referer": referer,
+    }
     try:
-        response = wiki_session.request(
+        response = wiki_client.request(
             "GET",
             url,
-            headers={
-                "Accept": (
-                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
-                    "image/avif,image/webp,image/apng,*/*;q=0.8"
-                ),
-                "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.7",
-                "Cache-Control": "no-cache",
-                "Pragma": "no-cache",
-                "Referer": referer,
-            },
-            timeout=20,
+            headers=request_headers,
+            accepted_statuses=range(100, 600),
+            max_bytes=MAX_RESPONSE_BYTES,
+            error_message="The FFXIV wiki request failed.",
+            size_error_message="The wiki response exceeded the size limit.",
             allow_redirects=True,
         )
-    except Exception as error:
-        raise ApiClientError("The FFXIV wiki request failed.") from error
     finally:
         if owns_session:
             wiki_session.close()
-
-    if len(response.content) > MAX_RESPONSE_BYTES:
-        raise ApiClientError("The wiki response exceeded the size limit.")
     try:
         body = response.content.decode("utf-8")
     except UnicodeDecodeError as error:

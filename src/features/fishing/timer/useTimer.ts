@@ -1,5 +1,5 @@
 /** Joins native monotonic telemetry with a manual stopwatch and stale-event cleanup. */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../shared/diagnostics/invoke";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useReducer, useState } from "react";
 import { isTauriRuntime } from "../../../shared/utils/runtime";

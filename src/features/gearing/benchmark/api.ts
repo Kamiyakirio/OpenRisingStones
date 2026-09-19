@@ -1,5 +1,5 @@
 /** Native benchmark calls keep catalog preparation outside measured solver time. */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../shared/diagnostics/invoke";
 import type { NativeResult } from "../editor/calculation.types";
 import type {
   BenchmarkAlgorithm,

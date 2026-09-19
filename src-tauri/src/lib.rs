@@ -1,9 +1,11 @@
 //! OpenRisingStones 桌面端后端入口及对前端开放的受控命令。
 
 mod avatar;
+#[cfg(debug_assertions)]
+mod diagnostics;
 mod elevation;
-mod fishing_timer;
 mod fishing_monitor;
+mod fishing_timer;
 #[cfg_attr(windows, path = "game_bridge.rs")]
 #[cfg_attr(not(windows), path = "game_bridge_unsupported.rs")]
 mod game_bridge;
@@ -23,8 +25,6 @@ mod wiki;
 use std::fs;
 use std::path::PathBuf;
 use tauri::Manager;
-#[cfg(debug_assertions)]
-use tauri_plugin_log::{Target, TargetKind};
 
 /// Returns whether the main window should take focus when it is created.
 ///
@@ -49,6 +49,10 @@ pub fn run() {
   let should_focus = should_focus_main_window();
   let mut app = tauri::Builder::default()
     .setup(move |app| {
+      #[cfg(debug_assertions)]
+      if let Err(error) = diagnostics::initialize(app.handle()) {
+        eprintln!("Debug logging is unavailable: {error}");
+      }
       let main_window_config = app.config().app.windows.first().ok_or_else(|| {
         std::io::Error::new(
           std::io::ErrorKind::NotFound,
@@ -80,25 +84,6 @@ pub fn run() {
       app.manage(wiki::WikiVerificationState::default());
       app.manage(fishing_monitor::FishingMonitorState::default());
       app.manage(game_bridge::GameBridgeState::new(app.handle().clone())?);
-      #[cfg(debug_assertions)]
-      {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .targets([
-              Target::new(TargetKind::Stdout)
-                .filter(|metadata| metadata.target() != "network_console"),
-              Target::new(TargetKind::LogDir { file_name: None })
-                .filter(|metadata| metadata.target() != "network_console"),
-              Target::new(TargetKind::Webview)
-                .filter(|metadata| metadata.target() == "network_console")
-                .format(|callback, message, _record| {
-                  callback.finish(format_args!("{message}"));
-                }),
-            ])
-            .build(),
-        )?;
-      }
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
@@ -149,6 +134,20 @@ pub fn run() {
       wiki::fetch_wiki_item_page,
       wiki::show_wiki_verification,
       wiki::cancel_wiki_verification,
+      #[cfg(debug_assertions)]
+      diagnostics::debug_log_record,
+      #[cfg(debug_assertions)]
+      diagnostics::debug_log_failure_count,
+      #[cfg(debug_assertions)]
+      diagnostics::debug_log_list,
+      #[cfg(debug_assertions)]
+      diagnostics::debug_log_get,
+      #[cfg(debug_assertions)]
+      diagnostics::debug_log_clear,
+      #[cfg(debug_assertions)]
+      diagnostics::debug_log_export,
+      #[cfg(debug_assertions)]
+      diagnostics::debug_log_save_attachment,
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application");
@@ -162,10 +161,16 @@ pub fn run() {
 
   app.run(move |app_handle, event| {
     if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
-      app_handle.state::<fishing_monitor::FishingMonitorState>().stop();
+      app_handle
+        .state::<fishing_monitor::FishingMonitorState>()
+        .stop();
       if let Some(state) = app_handle.try_state::<game_bridge::GameBridgeState>() {
         state.shutdown();
       }
+    }
+    #[cfg(debug_assertions)]
+    if matches!(event, tauri::RunEvent::Exit) {
+      diagnostics::shutdown();
     }
 
     // Restore normal Dock and user-initiated focus behavior after launch finishes.

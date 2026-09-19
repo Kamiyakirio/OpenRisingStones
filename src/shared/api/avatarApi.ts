@@ -1,5 +1,5 @@
 /** Shared avatar transport with request deduplication and bounded concurrency. */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../diagnostics/invoke";
 import { isSupportedRisingStonesAvatar } from "../utils/risingStonesAvatar";
 import { isTauriRuntime } from "../utils/runtime";
 

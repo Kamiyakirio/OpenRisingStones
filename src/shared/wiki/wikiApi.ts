@@ -1,5 +1,5 @@
 /** Retrieves Wiki HTML through Tauri and normalizes acquisition and shared-model data. */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../diagnostics/invoke";
 import type {
   WikiAcquisition,
   WikiAcquisitionType,

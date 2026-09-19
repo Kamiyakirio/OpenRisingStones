@@ -320,7 +320,10 @@ pub fn clear_all_local_data(
   gearing: State<'_, crate::gearing::GearingState>,
 ) -> Result<(), String> {
   gearing.clear_documents()?;
-  clear_all_local_data_inner(&state)
+  clear_all_local_data_inner(&state)?;
+  #[cfg(debug_assertions)]
+  let _ = crate::diagnostics::clear_session();
+  Ok(())
 }
 
 fn store_pending(

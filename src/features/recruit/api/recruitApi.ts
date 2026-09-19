@@ -1,5 +1,5 @@
 /** Reads and normalizes the public Rising Stones recruitment endpoints. */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../shared/diagnostics/invoke";
 import { isTauriRuntime } from "../../../shared/utils/runtime";
 import type {
   RecruitArea,

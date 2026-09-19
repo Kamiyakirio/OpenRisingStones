@@ -7,6 +7,8 @@ use game_bridge_protocol::{
     PlayerInventorySnapshot, RegionTarget,
 };
 use serde::{Deserialize, Serialize};
+#[cfg(debug_assertions)]
+use serde_json::Value;
 use std::path::PathBuf;
 #[cfg(windows)]
 use std::sync::Weak;
@@ -18,6 +20,8 @@ use crate::injector::{BootstrapArgs, InjectedPayload};
 use crate::shared_memory::{SessionEvent, SharedSession};
 
 type Observer = Arc<dyn Fn(BridgeStatus) + Send + Sync + 'static>;
+#[cfg(debug_assertions)]
+type CommandObserver = Arc<dyn Fn(u64, Value, Result<Value, String>, u128) + Send + Sync + 'static>;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -95,6 +99,8 @@ impl Default for Inner {
 pub struct BridgeManager {
     inner: Mutex<Inner>,
     observers: RwLock<Vec<Observer>>,
+    #[cfg(debug_assertions)]
+    command_observers: RwLock<Vec<CommandObserver>>,
 }
 
 impl Default for BridgeManager {
@@ -102,6 +108,8 @@ impl Default for BridgeManager {
         Self {
             inner: Mutex::new(Inner::default()),
             observers: RwLock::new(Vec::new()),
+            #[cfg(debug_assertions)]
+            command_observers: RwLock::new(Vec::new()),
         }
     }
 }
@@ -133,6 +141,15 @@ impl BridgeManager {
         self.observers
             .write()
             .expect("observer lock poisoned")
+            .push(observer);
+    }
+
+    /// Observe actual host-to-payload commands only in debug builds.
+    #[cfg(debug_assertions)]
+    pub fn observe_commands(&self, observer: CommandObserver) {
+        self.command_observers
+            .write()
+            .expect("command observer lock poisoned")
             .push(observer);
     }
 
@@ -346,6 +363,10 @@ impl BridgeManager {
 
     #[cfg(windows)]
     fn send_command(&self, command: Command) -> BridgeResult<CommandResult> {
+        #[cfg(debug_assertions)]
+        let started = std::time::Instant::now();
+        #[cfg(debug_assertions)]
+        let request = serde_json::to_value(&command).unwrap_or(Value::Null);
         let mut inner = self.inner.lock().expect("bridge lock poisoned");
         if !matches!(
             inner.status.phase,
@@ -356,7 +377,29 @@ impl BridgeManager {
         let request_id = inner.next_request_id;
         inner.next_request_id = inner.next_request_id.wrapping_add(1).max(1);
         let session = inner.session.as_ref().ok_or(BridgeError::NotConnected)?;
-        session.send(request_id, command)
+        let result = session.send(request_id, command);
+        drop(inner);
+        #[cfg(debug_assertions)]
+        {
+            let response = result
+                .as_ref()
+                .map(|value| serde_json::to_value(value).unwrap_or(Value::Null))
+                .map_err(ToString::to_string);
+            for observer in self
+                .command_observers
+                .read()
+                .expect("command observer lock poisoned")
+                .iter()
+            {
+                observer(
+                    request_id,
+                    request.clone(),
+                    response.clone(),
+                    started.elapsed().as_millis(),
+                );
+            }
+        }
+        result
     }
 
     #[cfg(not(windows))]

@@ -137,6 +137,32 @@ pub struct GameBridgeState {
 impl GameBridgeState {
   pub fn new(app_handle: AppHandle) -> Result<Self, std::io::Error> {
     let manager = BridgeManager::new();
+    #[cfg(debug_assertions)]
+    manager.observe_commands(Arc::new(|request_id, request, result, duration_ms| {
+      let name = request
+        .get("type")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("unknown")
+        .to_owned();
+      let (outcome, response, error) = match result {
+        Ok(response) => ("success", Some(response), None),
+        Err(message) => (
+          "error",
+          None,
+          Some(serde_json::json!({ "message": message })),
+        ),
+      };
+      crate::diagnostics::record_native(crate::diagnostics::LogInput {
+        kind: "bridge".to_owned(),
+        source: "game-bridge".to_owned(),
+        name,
+        outcome: outcome.to_owned(),
+        duration_ms: Some(duration_ms as f64),
+        request: Some(serde_json::json!({ "requestId": request_id, "command": request })),
+        response,
+        error,
+      });
+    }));
     let event_handle = app_handle.clone();
     manager.observe(Arc::new(move |status| {
       let _ = event_handle.emit(STATUS_EVENT, status);

@@ -1,5 +1,5 @@
 /** Clears backend credentials and browser-managed state for this application. */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../shared/diagnostics/invoke";
 import { isTauriRuntime } from "../../../shared/utils/runtime";
 
 export async function clearAllLocalData() {
