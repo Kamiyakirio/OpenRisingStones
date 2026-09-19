@@ -135,6 +135,10 @@
   border-radius: var(--ors-radius-control);
   background: var(--ors-color-canvas);
 }
+.settings-debug-tools {
+  display: grid;
+  gap: 8px;
+}
 .settings-debug-action strong {
   font-size: 0.875rem;
 }

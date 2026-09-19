@@ -1,14 +1,12 @@
 /** Composes feature authentication with application navigation, theme, and settings. */
 import { useCallback, useEffect, useState } from "react";
 import { useAuthSession } from "../../features/auth/hooks/useAuthSession";
-import { useNetworkLog } from "./useNetworkLog";
 
 import { featureFromHash, type ActiveFeature } from "../navigation";
 export type { ActiveFeature } from "../navigation";
 
 export function useAppController() {
   const auth = useAuthSession();
-  useNetworkLog();
   const [dark, setDark] = useState(() => {
     try {
       return localStorage.getItem("ors.theme") === "dark";
@@ -48,6 +46,10 @@ export function useAppController() {
     () => navigateToFeature(setActiveFeature, "gearing-benchmark"),
     [],
   );
+  const openLogs = useCallback(
+    () => navigateToFeature(setActiveFeature, "logs"),
+    [],
+  );
   useEffect(() => {
     try {
       localStorage.setItem("ors.theme", dark ? "dark" : "light");
@@ -84,6 +86,7 @@ export function useAppController() {
     openTeleport,
     openGearing,
     openGearingBenchmark,
+    openLogs,
     openFishing,
     goHome,
     toggleTheme,

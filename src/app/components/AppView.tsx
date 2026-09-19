@@ -26,6 +26,13 @@ const GearingBenchmarkPage = __DEBUG_BUILD__
       })),
     )
   : null;
+const LogManagerPage = __DEBUG_BUILD__
+  ? lazy(() =>
+      import("../../pages/LogManagerPage").then((module) => ({
+        default: module.LogManagerPage,
+      })),
+    )
+  : null;
 
 type AppViewProps = {
   viewModel: AppController;
@@ -75,6 +82,10 @@ export function AppView({ viewModel }: AppViewProps) {
               <GearingBenchmarkPage onBack={viewModel.openGearing} />
             </Suspense>
           </GearingErrorBoundary>
+        ) : viewModel.activeFeature === "logs" && LogManagerPage ? (
+          <Suspense fallback={<p role="status">正在加载日志…</p>}>
+            <LogManagerPage onBack={viewModel.goHome} />
+          </Suspense>
         ) : viewModel.activeFeature === "glamour" ? (
           <GlamourPage
             dark={viewModel.dark}
@@ -132,6 +143,7 @@ export function AppView({ viewModel }: AppViewProps) {
         <SettingsDialog
           onClose={viewModel.closeSettings}
           onOpenGearingBenchmark={viewModel.openGearingBenchmark}
+          onOpenLogs={viewModel.openLogs}
         />
       )}
     </div>

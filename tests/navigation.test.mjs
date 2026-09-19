@@ -28,12 +28,14 @@ test("explicit feature links select their destination", () => {
   }
 });
 
-test("debug-only benchmark hash requires an explicit debug build", () => {
+test("debug-only tool hashes require an explicit debug build", () => {
   assert.equal(
     featureFromHash("#gearing-benchmark", "home", true),
     "gearing-benchmark",
   );
   assert.equal(featureFromHash("#gearing-benchmark", "home", false), "home");
+  assert.equal(featureFromHash("#logs", "home", true), "logs");
+  assert.equal(featureFromHash("#logs", "home", false), "home");
 });
 
 test("known section links restore their owning feature", () => {

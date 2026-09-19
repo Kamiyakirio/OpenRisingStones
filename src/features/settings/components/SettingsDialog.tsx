@@ -5,6 +5,7 @@ import {
   Database,
   GearSix,
   Gauge,
+  ListMagnifyingGlass,
   SpinnerGap,
   Trash,
   WarningCircle,
@@ -16,11 +17,13 @@ import { useSettingsDialog } from "../hooks/useSettingsDialog";
 type SettingsDialogProps = {
   onClose: () => void;
   onOpenGearingBenchmark: () => void;
+  onOpenLogs: () => void;
 };
 
 export function SettingsDialog({
   onClose,
   onOpenGearingBenchmark,
+  onOpenLogs,
 }: SettingsDialogProps) {
   const viewModel = useSettingsDialog(onClose);
   const closeDialog = viewModel.close;
@@ -97,27 +100,50 @@ export function SettingsDialog({
                 <DataScopeItem
                   icon={<Database />}
                   title="应用数据"
-                  description="本地设置、配装草稿、物品缓存与确认记录"
+                  description={
+                    __DEBUG_BUILD__
+                      ? "本地设置、配装草稿、物品缓存、确认记录与本次调试日志"
+                      : "本地设置、配装草稿、物品缓存与确认记录"
+                  }
                 />
               </div>
 
               {__DEBUG_BUILD__ && (
-                <div className="settings-debug-action">
-                  <div>
-                    <strong>配装 Benchmark</strong>
-                    <p>使用真实装备测量当前配装算法。</p>
+                <div className="settings-debug-tools">
+                  <div className="settings-debug-action">
+                    <div>
+                      <strong>日志管理</strong>
+                      <p>查看本次运行的网络、命令和游戏桥接记录。</p>
+                    </div>
+                    <button
+                      className="settings-debug-button"
+                      type="button"
+                      onClick={() => {
+                        closeDialog();
+                        onOpenLogs();
+                      }}
+                    >
+                      <ListMagnifyingGlass />
+                      打开日志
+                    </button>
                   </div>
-                  <button
-                    className="settings-debug-button"
-                    type="button"
-                    onClick={() => {
-                      closeDialog();
-                      onOpenGearingBenchmark();
-                    }}
-                  >
-                    <Gauge />
-                    打开工具
-                  </button>
+                  <div className="settings-debug-action">
+                    <div>
+                      <strong>配装 Benchmark</strong>
+                      <p>使用真实装备测量当前配装算法。</p>
+                    </div>
+                    <button
+                      className="settings-debug-button"
+                      type="button"
+                      onClick={() => {
+                        closeDialog();
+                        onOpenGearingBenchmark();
+                      }}
+                    >
+                      <Gauge />
+                      打开工具
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -164,7 +190,9 @@ function ConfirmationPanel({
       <WarningCircle weight="fill" />
       <h3 id="clear-data-title">确定清除所有本地数据？</h3>
       <p>
-        已保存的登录凭据、本地设置、配装草稿、物品缓存和确认记录都会被删除。此操作无法撤销。
+        已保存的登录凭据、本地设置、配装草稿、物品缓存和确认记录
+        {__DEBUG_BUILD__ ? "，以及本次调试日志" : ""}
+        都会被删除。此操作无法撤销。
       </p>
       <div className="settings-confirmation-actions">
         <button
