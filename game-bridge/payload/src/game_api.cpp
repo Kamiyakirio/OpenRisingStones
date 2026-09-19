@@ -49,6 +49,7 @@ ResolvedAddresses resolve_addresses(const SharedGameApi& api) {
       pointer<std::byte*>(api.handle_logout),
       pointer<std::byte*>(api.get_addon_by_name),
       pointer<std::byte*>(api.get_component_button_by_id),
+      pointer<std::byte*>(api.cabinet_instance),
   };
 }
 

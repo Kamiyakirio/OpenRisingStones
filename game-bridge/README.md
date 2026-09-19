@@ -9,7 +9,7 @@ This directory contains the Windows-only bridge between the desktop application 
 - `payload` owns only resolved-address validation, pointer access, Framework-thread commands, native calls, and hook lifecycle.
 - `src-tauri/src/game_bridge.rs` owns the typed desktop API, resource selection, lifecycle preparation, and versioned read batching. It does not contain process or game-memory implementation logic.
 
-The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed command IDs defined by shared-memory ABI version 3.
+The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed command IDs defined by shared-memory ABI version 4.
 
 The Tauri API accepts only a process ID, an optional manifest filename, and fixed semantic read resources. DLL and data paths are resolved from the packaged `game-bridge` resource directory, so webview input cannot select an arbitrary DLL. When no manifest is supplied, the adapter selects the newest packaged manifest. Debug builds may override the resource directory with `ORS_GAME_BRIDGE_DIR`.
 
@@ -27,7 +27,7 @@ The Rust host validates all of the following before loading the payload:
 4. Exactly one match for every required signature.
 5. All resolved addresses remain inside the main module.
 
-Manifest schema 6 defines `textSha256` as the SHA-256 of the executable's raw `.text` section and includes the definitions used by typed reads, logout, title-screen switching, and the cached Armoire unlock bitset. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
+Manifest schema 7 defines `textSha256` as the SHA-256 of the executable's raw `.text` section and includes the definitions used by typed reads, logout, title-screen switching, and the server-loaded Cabinet instance. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
 
 The template also sets `privateLayoutVerified` to `false`. The collector intentionally preserves that value. Snapshot collection remains available, but region switching is rejected until the private Lobby context fields have been verified against the exact target version.
 
@@ -81,7 +81,11 @@ Use one read-only Tauri command for equipped items, four player inventory pages,
 const inventory = await invoke("game_bridge_capture_inventory");
 ```
 
-Local containers are enumerated from `InventoryManager`; the Glamour Dresser and Armoire use the persistent `ItemFinderModule` cache used by item search. Both cached stores expose `cached` and `mayBeStale`, and an unloaded all-zero cache is never interpreted as empty. Armoire bits identify `Cabinet` sheet rows, which the Rust/UI layer maps to Item IDs through a separate item catalog.
+Local containers are enumerated from `InventoryManager`. The Glamour Dresser uses the persistent `ItemFinderModule` cache; its outfit bits mark missing pieces (1 = absent, 0 = present), despite the upstream `setUnlockBits` name. Resolve outfit rows through `MirageStoreSetItem` before matching individual equipment.
+
+Armoire reads use the signature-resolved `Cabinet` instance only when its state is `Loaded` (2), then decode its bounded byte vector with absolute Cabinet row indexes. The current game uses the ItemFinder armoire bitset for rows starting at 1048, while the ItemFinder state tracks search requests; neither is a complete loaded-armoire indicator. Enter the armoire deposit/withdraw list and wait for it to populate before scanning. No item transfer is necessary. Unloaded storage is not interpreted as empty.
+
+The Cabinet signature and vector layout were checked against game version `2026.09.15.0000.0000`, raw `.text` SHA-256 `8d145203ba3015da0ddbc7e6170b21ad14438499f1b6db98f9e4c1580b98cf96`. The matched ItemFinder update reads the Cabinet instance, checks state 2, and calls the Cabinet membership routine with row index + 1048. The membership routine reads the byte vector at offsets 8/16 and tests one bit per absolute row. Future versions still require manifest verification.
 
 The glamour workspace normalizes these reads into a character-scoped item index. Debug builds store the index as readable JSON in `owned-items.debug.dat` in the working directory and require only the authenticated account profile, not game-login secrets. Old encrypted Debug caches are treated as cache misses and replaced on the next scan. Release builds encrypt the index with AES-256-GCM before local persistence. HKDF-SHA256 derives the encryption key from the authenticated game-login TGT and GUID with a random per-file salt. Logout removes the in-memory key material but preserves ciphertext; clearing all local data removes the cache file.
 

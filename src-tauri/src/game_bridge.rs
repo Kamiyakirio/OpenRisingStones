@@ -57,7 +57,9 @@ impl From<BridgeError> for GameBridgeApiError {
       BridgeError::UnexpectedProcess => "unexpected_process",
       BridgeError::InvalidPath(_) => "invalid_path",
       BridgeError::InitializationRejected(2) => "payload_already_initialized",
-      BridgeError::InitializationRejected(_) => "initialization_rejected",
+      BridgeError::InitializationRejected(_) | BridgeError::InitializationFailed { .. } => {
+        "initialization_rejected"
+      }
       BridgeError::ProtocolMismatch { .. } => "protocol_mismatch",
       BridgeError::Timeout(_) => "bridge_timeout",
       BridgeError::ConnectionClosed => "connection_closed",

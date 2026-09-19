@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "privateLayoutVerified": false,
   "gameVersion": "REPLACE_WITH_EXACT_GAME_VERSION",
   "module": {
@@ -84,6 +84,12 @@
       "resolve": "relative32",
       "offset": 1,
       "nextInstruction": 5
+    },
+    "cabinetInstance": {
+      "pattern": "55 48 83 EC 20 48 8B E9 48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 83 F8 02",
+      "resolve": "rip_relative",
+      "offset": 11,
+      "nextInstruction": 15
     }
   },
   "layout": {
@@ -161,8 +167,8 @@
     "itemFinderGlamourItemIds": "0x0418",
     "itemFinderGlamourUnlockBits": "0x1098",
     "itemFinderGlamourCapacity": 800,
-    "itemFinderArmoireState": "0x00A9",
-    "itemFinderArmoireUnlockBits": "0x16D8",
-    "itemFinderArmoireCapacity": 4000
+    "cabinetState": "0x0000",
+    "cabinetItemsVector": "0x0008",
+    "cabinetCapacity": 5120
   }
 }

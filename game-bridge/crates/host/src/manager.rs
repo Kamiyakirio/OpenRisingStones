@@ -221,15 +221,19 @@ impl BridgeManager {
         let payload = match InjectedPayload::inject(process_id, &options.payload_path, &bootstrap) {
             Ok(payload) => payload,
             Err(error) => {
-                if let Some(session) = self
+                let error = if let Some(session) = self
                     .inner
                     .lock()
                     .expect("bridge lock poisoned")
                     .session
                     .take()
                 {
+                    let error = session.initialization_error(error);
                     session.close();
-                }
+                    error
+                } else {
+                    error
+                };
                 self.set_fault("injection_failed", error.to_string());
                 return Err(error);
             }

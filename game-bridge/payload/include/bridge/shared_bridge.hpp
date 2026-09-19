@@ -8,11 +8,11 @@
 namespace bridge {
 
 inline constexpr std::uint32_t kSharedMagic = 0x4742524F;
-inline constexpr std::uint32_t kSharedAbiVersion = 3;
+inline constexpr std::uint32_t kSharedAbiVersion = 4;
 inline constexpr std::size_t kMaximumSharedContainers = 18;
 inline constexpr std::size_t kMaximumSharedItems = 1024;
 inline constexpr std::size_t kMaximumSharedDresserItems = 800;
-inline constexpr std::size_t kArmoireUnlockWordCount = 125;
+inline constexpr std::size_t kArmoireUnlockWordCount = 160;
 
 enum class SharedPayloadState : std::uint32_t {
   Initializing = 0,
@@ -115,9 +115,9 @@ struct SharedGameLayout final {
   std::uint32_t item_finder_glamour_item_ids{};
   std::uint32_t item_finder_glamour_unlock_bits{};
   std::uint32_t item_finder_glamour_capacity{};
-  std::uint32_t item_finder_armoire_state{};
-  std::uint32_t item_finder_armoire_unlock_bits{};
-  std::uint32_t item_finder_armoire_capacity{};
+  std::uint32_t cabinet_state{};
+  std::uint32_t cabinet_items_vector{};
+  std::uint32_t cabinet_capacity{};
 };
 
 struct SharedGameApi final {
@@ -136,6 +136,7 @@ struct SharedGameApi final {
   std::uint64_t handle_logout{};
   std::uint64_t get_addon_by_name{};
   std::uint64_t get_component_button_by_id{};
+  std::uint64_t cabinet_instance{};
   SharedGameLayout layout;
 };
 
@@ -283,15 +284,15 @@ struct SharedBridge final {
 
 static_assert(sizeof(SharedSwitchRegion) == 4948);
 static_assert(sizeof(SharedGameLayout) == 308);
-static_assert(sizeof(SharedGameApi) == 424);
+static_assert(sizeof(SharedGameApi) == 432);
 static_assert(sizeof(SharedCommand) == 4968);
 static_assert(sizeof(SharedGameSnapshot) == 88);
 static_assert(sizeof(SharedActiveCharacter) == 128);
 static_assert(sizeof(SharedGameState) == 12);
 static_assert(sizeof(SharedInventoryItem) == 48);
 static_assert(sizeof(SharedInventoryContainer) == 52);
-static_assert(sizeof(SharedInventorySnapshot) == 57004);
-static_assert(sizeof(SharedResponse) == 57568);
-static_assert(sizeof(SharedBridge) == 63416);
+static_assert(sizeof(SharedInventorySnapshot) == 57144);
+static_assert(sizeof(SharedResponse) == 57712);
+static_assert(sizeof(SharedBridge) == 63568);
 
 }  // namespace bridge

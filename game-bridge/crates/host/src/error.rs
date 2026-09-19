@@ -22,6 +22,12 @@ pub enum BridgeError {
     InvalidPath(String),
     #[error("the payload rejected initialization with code {0}")]
     InitializationRejected(u32),
+    #[error("the payload rejected initialization with code {exit_code}: {code}: {message}")]
+    InitializationFailed {
+        exit_code: u32,
+        code: String,
+        message: String,
+    },
     #[error("the bridge protocol is incompatible: host={host}, payload={payload}")]
     ProtocolMismatch { host: u32, payload: u32 },
     #[error("the bridge operation timed out: {0}")]

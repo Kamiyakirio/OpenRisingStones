@@ -23,7 +23,7 @@ constexpr std::uint32_t kSnapshotIntervalTicks = 30;
 constexpr std::uint8_t kButtonClickEvent = 25;
 constexpr std::int32_t kMaximumInventorySlots = 200;
 constexpr std::size_t kMaximumGlamourDresserSlots = 800;
-constexpr std::size_t kMaximumArmoireCabinetItems = 4000;
+constexpr std::size_t kMaximumArmoireCabinetItems = 5120;
 constexpr std::size_t kUnlockWordBits = std::numeric_limits<std::uint32_t>::digits;
 constexpr std::uint8_t kArmoireLoadedState = 2;
 
@@ -130,8 +130,8 @@ std::string bounded_cstring(const char* value, std::size_t maximum) {
 }
 
 CommandOutcome failure(std::string code, std::string message) {
-  return {false, std::move(code), std::move(message), std::nullopt, std::nullopt, std::nullopt,
-          std::nullopt, {}};
+  return {false,        std::move(code), std::move(message), std::nullopt,
+          std::nullopt, std::nullopt,    std::nullopt,       {}};
 }
 
 CommandOutcome acknowledgement() {
@@ -508,32 +508,34 @@ CommandOutcome GameRuntime::capture_inventory(void* framework) {
               {static_cast<std::uint16_t>(index), item_id, unlock_bits});
         }
       }
+    }
+  }
 
-      const auto armoire_state =
-          read_value<std::uint8_t>(item_finder, layout_.item_finder_armoire_state);
-      snapshot.armoire.cached = armoire_state == kArmoireLoadedState;
-      snapshot.armoire.may_be_stale = snapshot.armoire.cached;
-      if (snapshot.armoire.cached) {
-        const auto capacity = layout_.item_finder_armoire_capacity;
-        if (capacity == 0 || capacity > kMaximumArmoireCabinetItems) {
-          return failure("armoire_cache_invalid", "The armoire cache has an invalid capacity.");
-        }
-        snapshot.armoire.cabinet_item_ids.reserve(capacity);
-        const auto word_count =
-            (static_cast<std::size_t>(capacity) + kUnlockWordBits - 1) / kUnlockWordBits;
-        for (std::size_t word_index = 0; word_index < word_count; ++word_index) {
-          const auto word = read_value<std::uint32_t>(
-              item_finder,
-              layout_.item_finder_armoire_unlock_bits + word_index * sizeof(std::uint32_t));
-          for (std::size_t bit_index = 0; bit_index < kUnlockWordBits; ++bit_index) {
-            const auto cabinet_id = word_index * kUnlockWordBits + bit_index;
-            if (cabinet_id == 0 || cabinet_id >= capacity) continue;
-            if ((word & (std::uint32_t{1} << bit_index)) != 0) {
-              snapshot.armoire.cabinet_item_ids.push_back(
-                  static_cast<std::uint16_t>(cabinet_id));
-            }
-          }
-        }
+  // Cabinet owns the complete server-loaded bit vector. ItemFinder's CabinetState
+  // tracks searches, and its persisted bits cover only a subset of Cabinet rows.
+  const auto* cabinet = addresses_.cabinet_instance;
+  snapshot.armoire.cached =
+      read_value<std::uint32_t>(cabinet, layout_.cabinet_state) == kArmoireLoadedState;
+  snapshot.armoire.may_be_stale = false;
+  if (snapshot.armoire.cached) {
+    const auto capacity = layout_.cabinet_capacity;
+    if (capacity == 0 || capacity > kMaximumArmoireCabinetItems) {
+      return failure("armoire_cache_invalid", "The armoire capacity is invalid.");
+    }
+    const auto begin = read_value<std::uintptr_t>(cabinet, layout_.cabinet_items_vector);
+    const auto end =
+        read_value<std::uintptr_t>(cabinet, layout_.cabinet_items_vector + sizeof(void*));
+    const auto allocation_end =
+        read_value<std::uintptr_t>(cabinet, layout_.cabinet_items_vector + 2 * sizeof(void*));
+    const auto maximum_bytes = (static_cast<std::size_t>(capacity) + 7) / 8;
+    if (end < begin || allocation_end < end || end - begin > maximum_bytes ||
+        (end != begin && !is_readable(reinterpret_cast<const void*>(begin), end - begin))) {
+      return failure("armoire_cache_invalid", "The armoire item vector is invalid.");
+    }
+    const auto* bits = reinterpret_cast<const std::uint8_t*>(begin);
+    for (std::size_t id = 0; id < capacity && id / 8 < end - begin; ++id) {
+      if ((bits[id / 8] & (1U << (id % 8))) != 0) {
+        snapshot.armoire.cabinet_item_ids.push_back(static_cast<std::uint16_t>(id));
       }
     }
   }
@@ -545,8 +547,7 @@ CommandOutcome GameRuntime::capture_game_state(void* framework) {
   GameStateSnapshot snapshot;
   snapshot.region_switch_supported = private_layout_verified_;
   const auto* game_main = addresses_.game_main_instance;
-  snapshot.connected_to_zone =
-      read_value<bool>(game_main, layout_.game_main_connected_to_zone);
+  snapshot.connected_to_zone = read_value<bool>(game_main, layout_.game_main_connected_to_zone);
   snapshot.territory_load_state =
       read_value<std::uint32_t>(game_main, layout_.game_main_territory_load_state);
 
@@ -561,8 +562,7 @@ CommandOutcome GameRuntime::capture_game_state(void* framework) {
     snapshot.screen = GameScreen::InWorld;
   } else if (get_title_menu(framework)) {
     snapshot.screen = GameScreen::Title;
-  } else if (agent &&
-             read_value<std::uint32_t>(agent, layout_.agent_chara_select_addon_id) != 0) {
+  } else if (agent && read_value<std::uint32_t>(agent, layout_.agent_chara_select_addon_id) != 0) {
     snapshot.screen = GameScreen::CharacterSelect;
   } else if (snapshot.logged_in || snapshot.logged_into_zone) {
     snapshot.screen = GameScreen::LoggingOut;
@@ -809,8 +809,7 @@ CommandOutcome GameRuntime::switch_region(void* framework, RegionTarget& target)
   reinterpret_cast<ReleaseLobbyContext>(addresses_.release_lobby_context)(network);
   *context = nullptr;
   *state = 0;
-  return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, std::nullopt,
-          target.region_name};
+  return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, std::nullopt, target.region_name};
 }
 
 CommandOutcome GameRuntime::trigger_login(void* framework) {

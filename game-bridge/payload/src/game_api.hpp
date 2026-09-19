@@ -23,6 +23,7 @@ struct ResolvedAddresses final {
   std::byte* handle_logout{};
   std::byte* get_addon_by_name{};
   std::byte* get_component_button_by_id{};
+  std::byte* cabinet_instance{};
 };
 
 [[nodiscard]] ResolvedAddresses resolve_addresses(const SharedGameApi& api);

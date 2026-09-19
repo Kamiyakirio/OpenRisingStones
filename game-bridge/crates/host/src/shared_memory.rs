@@ -24,15 +24,16 @@ use windows_sys::Win32::Foundation::{
 };
 use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcess, PROCESS_DUP_HANDLE};
 
-const SHARED_MAGIC: u32 = 0x4752_424F;
-const SHARED_ABI_VERSION: u32 = 3;
+// Must match kSharedMagic in the native shared_bridge.hpp contract.
+const SHARED_MAGIC: u32 = 0x4742_524F;
+const SHARED_ABI_VERSION: u32 = 4;
 const PAYLOAD_STATE_READY: u32 = 1;
 const PAYLOAD_STATE_FAULTED: u32 = 2;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
 const MAXIMUM_CONTAINERS: usize = 18;
 const MAXIMUM_ITEMS: usize = 1024;
 const MAXIMUM_DRESSER_ITEMS: usize = 800;
-const ARMOIRE_UNLOCK_WORD_COUNT: usize = 125;
+const ARMOIRE_UNLOCK_WORD_COUNT: usize = 160;
 const PAGE_READWRITE: u32 = 0x04;
 const FILE_MAP_ALL_ACCESS: u32 = 0x000F_001F;
 
@@ -145,9 +146,9 @@ struct SharedGameLayout {
     item_finder_glamour_item_ids: u32,
     item_finder_glamour_unlock_bits: u32,
     item_finder_glamour_capacity: u32,
-    item_finder_armoire_state: u32,
-    item_finder_armoire_unlock_bits: u32,
-    item_finder_armoire_capacity: u32,
+    cabinet_state: u32,
+    cabinet_items_vector: u32,
+    cabinet_capacity: u32,
 }
 
 #[repr(C)]
@@ -167,6 +168,7 @@ struct SharedGameApi {
     handle_logout: u64,
     get_addon_by_name: u64,
     get_component_button_by_id: u64,
+    cabinet_instance: u64,
     layout: SharedGameLayout,
 }
 
@@ -333,15 +335,15 @@ struct SharedBridge {
 
 const _: [(); 4948] = [(); size_of::<SharedSwitchRegion>()];
 const _: [(); 308] = [(); size_of::<SharedGameLayout>()];
-const _: [(); 424] = [(); size_of::<SharedGameApi>()];
+const _: [(); 432] = [(); size_of::<SharedGameApi>()];
 const _: [(); 4968] = [(); size_of::<SharedCommand>()];
 const _: [(); 88] = [(); size_of::<SharedGameSnapshot>()];
 const _: [(); 128] = [(); size_of::<SharedActiveCharacter>()];
 const _: [(); 48] = [(); size_of::<SharedInventoryItem>()];
 const _: [(); 52] = [(); size_of::<SharedInventoryContainer>()];
-const _: [(); 57004] = [(); size_of::<SharedInventorySnapshot>()];
-const _: [(); 57568] = [(); size_of::<SharedResponse>()];
-const _: [(); 63416] = [(); size_of::<SharedBridge>()];
+const _: [(); 57144] = [(); size_of::<SharedInventorySnapshot>()];
+const _: [(); 57712] = [(); size_of::<SharedResponse>()];
+const _: [(); 63568] = [(); size_of::<SharedBridge>()];
 
 pub(crate) enum SessionEvent {
     Ready {
@@ -523,6 +525,28 @@ impl SharedSession {
                 return Err(BridgeError::Timeout("shared-memory command"));
             }
             thread::sleep(Duration::from_millis(5));
+        }
+    }
+
+    /// Read the published startup fault before the mapping is closed. The acquire load
+    /// pairs with the payload's release store after it writes both diagnostic fields.
+    pub(crate) fn initialization_error(&self, error: BridgeError) -> BridgeError {
+        let BridgeError::InitializationRejected(exit_code) = error else {
+            return error;
+        };
+        let shared = unsafe { &*self.mapping.view };
+        if shared.payload_state.load(Ordering::Acquire) != PAYLOAD_STATE_FAULTED {
+            return BridgeError::InitializationRejected(exit_code);
+        }
+        let code = read_string(&shared.fatal_code);
+        let message = read_string(&shared.fatal_message);
+        if message.is_empty() {
+            return BridgeError::InitializationRejected(exit_code);
+        }
+        BridgeError::InitializationFailed {
+            exit_code,
+            code,
+            message,
         }
     }
 
@@ -931,7 +955,7 @@ pub(crate) fn resolve_fishing_signatures(
 
 fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<SharedGameApi> {
     let manifest: RuntimeManifest = serde_json::from_slice(&fs::read(manifest_path)?)?;
-    if manifest.schema_version != 6 {
+    if manifest.schema_version != 7 {
         return Err(BridgeError::InvalidData(format!(
             "unsupported manifest schema: {}",
             manifest.schema_version
@@ -997,6 +1021,7 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     api.handle_logout = resolve("handleLogout")?;
     api.get_addon_by_name = resolve("getAddonByName")?;
     api.get_component_button_by_id = resolve("getComponentButtonById")?;
+    api.cabinet_instance = resolve("cabinetInstance")?;
 
     macro_rules! layout {
         ($field:ident, $name:literal) => {
@@ -1098,12 +1123,9 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
         "itemFinderGlamourUnlockBits"
     );
     layout!(item_finder_glamour_capacity, "itemFinderGlamourCapacity");
-    layout!(item_finder_armoire_state, "itemFinderArmoireState");
-    layout!(
-        item_finder_armoire_unlock_bits,
-        "itemFinderArmoireUnlockBits"
-    );
-    layout!(item_finder_armoire_capacity, "itemFinderArmoireCapacity");
+    layout!(cabinet_state, "cabinetState");
+    layout!(cabinet_items_vector, "cabinetItemsVector");
+    layout!(cabinet_capacity, "cabinetCapacity");
     Ok(api)
 }
 
@@ -1288,4 +1310,70 @@ fn read_i32(bytes: &[u8], offset: usize, label: &str) -> BridgeResult<i32> {
     Ok(i32::from_le_bytes(
         bytes[offset..offset + 4].try_into().expect("fixed slice"),
     ))
+}
+
+#[cfg(test)]
+mod initialization_tests {
+    use super::*;
+
+    #[test]
+    fn cabinet_rows_remain_absolute_across_the_old_finder_boundary() {
+        let mut inventory: SharedInventorySnapshot = unsafe { std::mem::zeroed() };
+        inventory.armoire_cached = 1;
+        for id in [1_usize, 1047, 1048, 4000, 5047] {
+            inventory.armoire_unlock_bits[id / 32] |= 1 << (id % 32);
+        }
+        let result = decode_inventory(&inventory).unwrap();
+        assert!(result.armoire.cached);
+        assert!(!result.armoire.may_be_stale);
+        assert_eq!(
+            result.armoire.cabinet_item_ids,
+            vec![1, 1047, 1048, 4000, 5047]
+        );
+    }
+
+    #[test]
+    fn shared_header_matches_native_abi_contract() {
+        let header = include_str!("../../../payload/include/bridge/shared_bridge.hpp");
+        assert!(header.contains(&format!("kSharedMagic = 0x{SHARED_MAGIC:08X};")));
+        assert!(header.contains(&format!("kSharedAbiVersion = {SHARED_ABI_VERSION};")));
+        assert!(header.contains(&format!(
+            "static_assert(sizeof(SharedBridge) == {});",
+            size_of::<SharedBridge>()
+        )));
+    }
+
+    #[test]
+    fn startup_failure_preserves_published_diagnostics_and_fallback_errors() {
+        let (tx, _rx) = std::sync::mpsc::channel();
+        let session = SharedSession::create(tx).unwrap();
+        assert!(matches!(
+            session.initialization_error(BridgeError::InitializationRejected(3)),
+            BridgeError::InitializationRejected(3)
+        ));
+        // Publish the fields exactly as Runtime::start does on startup failure.
+        unsafe {
+            let shared = &mut *session.mapping.view;
+            let code = b"initialization_failed";
+            let message = b"inventory manager is unreadable";
+            shared.fatal_code[..code.len()].copy_from_slice(code);
+            shared.fatal_message[..message.len()].copy_from_slice(message);
+            shared
+                .payload_state
+                .store(PAYLOAD_STATE_FAULTED, Ordering::Release);
+        }
+        let error = session.initialization_error(BridgeError::InitializationRejected(3));
+        assert!(
+            matches!(&error, BridgeError::InitializationFailed { exit_code: 3, code, message }
+            if code == "initialization_failed" && message == "inventory manager is unreadable")
+        );
+        assert!(error
+            .to_string()
+            .contains("inventory manager is unreadable"));
+        assert!(matches!(
+            session.initialization_error(BridgeError::Timeout("remote function")),
+            BridgeError::Timeout("remote function")
+        ));
+        session.close();
+    }
 }
