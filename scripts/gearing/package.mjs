@@ -119,6 +119,11 @@ export function createCatalog(bundle, manifest) {
     lodestoneIds: _links,
     ...tables
   } = bundle.data;
+  // Source definitions are maintained from oldest to newest in sources.json.
+  // Preserve that chronology instead of exposing hash-derived source IDs as UI order.
+  const sourceOrder = new Map(
+    Object.keys(bundle.sources).map((id, index) => [id, index]),
+  );
   const sourceIds = new Map();
   const records = [];
   for (const item of items) {
@@ -164,8 +169,14 @@ export function createCatalog(bundle, manifest) {
     rules,
     tables,
     sources: [...sourceIds]
-      .map(([label, id]) => ({ id, label }))
-      .sort((a, b) => a.id.localeCompare(b.id)),
+      .map(([label, id]) => ({
+        id,
+        label,
+        order: sourceOrder.get(id.replace(/-(?:craft|gather)$/, "")) ?? -1,
+      }))
+      .sort(
+        (a, b) => b.order - a.order || a.label.localeCompare(b.label, "zh-CN"),
+      ),
   };
 }
 

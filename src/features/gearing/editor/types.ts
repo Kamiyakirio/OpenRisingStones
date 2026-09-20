@@ -100,7 +100,7 @@ export interface Bootstrap {
     parameterVersion: string;
   };
   jobs: Job[];
-  sources: { id: string; label: string }[];
+  sources: { id: string; label: string; order?: number }[];
   statNames: Record<Stat, string>;
   materiaNames: Partial<Record<Stat, string>>;
   materiaGradeNames: string[];

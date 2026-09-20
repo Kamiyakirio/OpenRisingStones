@@ -10,7 +10,7 @@ import {
   statColumns,
 } from "../scripts/gearing/csv.mjs";
 import { downloadInputs, downloadText } from "../scripts/gearing/download.mjs";
-import { buildBundle } from "../scripts/gearing/package.mjs";
+import { buildBundle, createCatalog } from "../scripts/gearing/package.mjs";
 import { expandCustomWeaponRules } from "../scripts/gearing/rules.mjs";
 import { validate } from "../scripts/gearing/validate.mjs";
 import { convert } from "../scripts/gearing/convert.mjs";
@@ -114,6 +114,35 @@ test("synthetic rows produce HQ stats, consumables, custom weapons and correct r
     [103],
   );
   assert.ok(!("sourceFormulas" in bundle.rules));
+});
+
+test("catalog sources preserve newest-first configuration order", () => {
+  const bundle = buildBundle(fixture());
+  const sourcedItem = bundle.data.items[0];
+  bundle.data.items.push(
+    {
+      ...sourcedItem,
+      id: 900_001,
+      source: "Older source",
+      sourceId: "older-source",
+    },
+    {
+      ...sourcedItem,
+      id: 900_002,
+      source: "Newer source",
+      sourceId: "newer-source",
+    },
+  );
+  bundle.sources = {
+    "older-source": { label: "Older source" },
+    "newer-source": { label: "Newer source" },
+  };
+  const catalog = createCatalog(bundle, {});
+  assert.ok(catalog.sources.every((source) => Number.isInteger(source.order)));
+  assert.deepEqual(
+    catalog.sources.slice(0, 2).map((source) => source.id),
+    ["newer-source", "older-source"],
+  );
 });
 
 test("missing source annotations are reported while valid equipment stays available", () => {
