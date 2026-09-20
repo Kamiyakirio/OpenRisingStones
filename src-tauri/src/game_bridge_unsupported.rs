@@ -4,9 +4,11 @@
 #![allow(dead_code)]
 
 use game_bridge_host::{
-  ActiveCharacterSnapshot, BridgeStatus, GameSnapshot, GameStateSnapshot, PlayerInventorySnapshot,
+  ActiveCharacterSnapshot, BridgeManager, BridgeStatus, GameSnapshot, GameStateSnapshot,
+  PlayerInventorySnapshot,
 };
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tauri::AppHandle;
 
 use crate::{owned_items::OwnedItemsSnapshot, sdo_login::LoginState};
@@ -82,14 +84,22 @@ pub struct SwitchRegionRequest {
 }
 
 /// Stateless placeholder registered on platforms that cannot host the bridge.
-pub struct GameBridgeState;
+pub struct GameBridgeState {
+  manager: Arc<BridgeManager>,
+}
 
 impl GameBridgeState {
   pub fn new(_app_handle: AppHandle) -> Result<Self, std::io::Error> {
-    Ok(Self)
+    Ok(Self {
+      manager: BridgeManager::new(),
+    })
   }
 
   pub fn shutdown(&self) {}
+
+  pub(crate) fn manager(&self) -> Arc<BridgeManager> {
+    Arc::clone(&self.manager)
+  }
 }
 
 fn unsupported<T>() -> ApiResult<T> {

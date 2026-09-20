@@ -32,7 +32,13 @@ serde = { version = "1.0", features = ["derive"] }
 base64 = "0.22"
 log = "0.4"
 tauri = { version = "2.11.3", features = [] }
-tokio = { version = "1", features = ["net", "time", "sync"] }
+tokio = { version = "1", features = ["net", "rt", "time", "sync"] }
+axum = { version = "=0.7.9", features = ["json"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+qrcode = "0.14"
+local-ip-address = "=0.6.5"
+rust-embed = "=8.7.2"
+mime_guess = "2.0"
 gearing-engine = { path = "crates/gearing-engine" }
 url = "2"
 game-bridge-host = { path = "../game-bridge/crates/host" }

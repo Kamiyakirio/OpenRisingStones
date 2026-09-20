@@ -1,6 +1,7 @@
 //! OpenRisingStones 桌面端后端入口及对前端开放的受控命令。
 
 mod avatar;
+mod chat_bridge;
 #[cfg(debug_assertions)]
 mod diagnostics;
 mod elevation;
@@ -47,7 +48,7 @@ fn should_focus_main_window() -> bool {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let should_focus = should_focus_main_window();
-  let mut app = tauri::Builder::default()
+  let app = tauri::Builder::default()
     .setup(move |app| {
       #[cfg(debug_assertions)]
       if let Err(error) = diagnostics::initialize(app.handle()) {
@@ -83,7 +84,10 @@ pub fn run() {
       app.manage(recruit::RecruitSessionState::default());
       app.manage(wiki::WikiVerificationState::default());
       app.manage(fishing_monitor::FishingMonitorState::default());
-      app.manage(game_bridge::GameBridgeState::new(app.handle().clone())?);
+      let game_bridge = game_bridge::GameBridgeState::new(app.handle().clone())?;
+      let chat_bridge = chat_bridge::ChatBridgeState::new(game_bridge.manager());
+      app.manage(game_bridge);
+      app.manage(chat_bridge);
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
@@ -115,6 +119,11 @@ pub fn run() {
       game_bridge::game_bridge_apply_teleport_region,
       game_bridge::game_bridge_trigger_login,
       game_bridge::game_bridge_disconnect,
+      #[cfg(debug_assertions)]
+      game_bridge::game_bridge_debug_unload_payload,
+      chat_bridge::chat_bridge_status,
+      chat_bridge::chat_bridge_start,
+      chat_bridge::chat_bridge_stop,
       owned_items::load_owned_items_cache,
       recruit::fetch_recruit_config,
       recruit::fetch_recruit_detail,
@@ -165,6 +174,9 @@ pub fn run() {
         .state::<fishing_monitor::FishingMonitorState>()
         .stop();
       if let Some(state) = app_handle.try_state::<game_bridge::GameBridgeState>() {
+        if let Some(chat_state) = app_handle.try_state::<chat_bridge::ChatBridgeState>() {
+          chat_state.shutdown();
+        }
         state.shutdown();
       }
     }

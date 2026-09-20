@@ -136,6 +136,15 @@ pub struct GameBridgeState {
   asset_root: PathBuf,
 }
 
+#[cfg(debug_assertions)]
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DebugPayloadUnloadResult {
+  unloaded: bool,
+  process_id: u32,
+  status: BridgeStatus,
+}
+
 impl GameBridgeState {
   pub fn new(app_handle: AppHandle) -> Result<Self, std::io::Error> {
     let manager = BridgeManager::new();
@@ -146,6 +155,11 @@ impl GameBridgeState {
         .and_then(serde_json::Value::as_str)
         .unwrap_or("unknown")
         .to_owned();
+      let request = if name == "send_chat" {
+        serde_json::json!({ "type": "send_chat", "message": "[redacted]" })
+      } else {
+        request
+      };
       let (outcome, response, error) = match result {
         Ok(response) => ("success", Some(response), None),
         Err(message) => (
@@ -197,6 +211,10 @@ impl GameBridgeState {
     if !matches!(self.manager.status().phase, BridgePhase::Disconnected) {
       let _ = self.manager.disconnect();
     }
+  }
+
+  pub(crate) fn manager(&self) -> Arc<BridgeManager> {
+    Arc::clone(&self.manager)
   }
 }
 
@@ -610,6 +628,31 @@ pub async fn game_bridge_disconnect(
 ) -> ApiResult<BridgeStatus> {
   let manager = Arc::clone(&state.manager);
   run_bridge_task(move || manager.disconnect().map_err(Into::into)).await
+}
+
+/// Stops phone forwarding, removes payload hooks, and releases an owned or orphaned Debug DLL.
+#[cfg(debug_assertions)]
+#[tauri::command]
+pub async fn game_bridge_debug_unload_payload(
+  state: tauri::State<'_, GameBridgeState>,
+  chat_state: tauri::State<'_, crate::chat_bridge::ChatBridgeState>,
+) -> ApiResult<DebugPayloadUnloadResult> {
+  chat_state.stop().await;
+  let manager = Arc::clone(&state.manager);
+  let process_id = manager.status().process_id;
+  let payload_path = state.asset_root.join("game_bridge_payload.dll");
+  ensure_file(&payload_path, "payload")?;
+  run_bridge_task(move || {
+    let (unloaded, process_id, status) = manager
+      .debug_unload_payload(process_id, &payload_path)
+      .map_err(GameBridgeApiError::from)?;
+    Ok(DebugPayloadUnloadResult {
+      unloaded,
+      process_id,
+      status,
+    })
+  })
+  .await
 }
 
 #[cfg(test)]
