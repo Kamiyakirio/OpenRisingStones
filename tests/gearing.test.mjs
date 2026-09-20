@@ -28,6 +28,8 @@ const {
   importShare,
 } = await import("../src/features/gearing/editor/compatibility.ts");
 const codec = await import("../src/features/gearing/utils/share.ts");
+const { findQuickSourceFilterId, sourceIdsForQuickFilter } =
+  await import("../src/features/gearing/editor/sourceOrder.ts");
 const contract = JSON.parse(readFileSync("scripts/gearing/contract.json"));
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 const deferred = () => {
@@ -99,6 +101,31 @@ function api() {
     optimize: async () => ({ status: "ok" }),
   };
 }
+
+test("common source shortcuts include their upgraded and base variants", () => {
+  const sources = [
+    { id: "ultimate", label: "绝境战/妖星乱舞", order: 9 },
+    { id: "savage", label: "零式/重量级", order: 8 },
+    { id: "augmented", label: "点数强化/记忆", order: 7 },
+    { id: "tomestone", label: "点数/记忆", order: 6 },
+    { id: "dungeon", label: "迷宫挑战/雾之迹", order: 5 },
+    { id: "crafted", label: "生产制作", order: 4 },
+    { id: "augmented-crafted", label: "制作装强化", order: 3 },
+    { id: "trial-crafted", label: "生产制作/海德林武器", order: 2 },
+  ];
+  assert.deepEqual(sourceIdsForQuickFilter(sources, "tomestone"), [
+    "augmented",
+    "tomestone",
+  ]);
+  assert.deepEqual(sourceIdsForQuickFilter(sources, "crafted"), [
+    "crafted",
+    "augmented-crafted",
+  ]);
+  assert.equal(
+    findQuickSourceFilterId(sources, ["tomestone", "augmented"]),
+    "tomestone",
+  );
+});
 
 test("consumables and specialist stones use independent browsing ranges", async () => {
   storage();

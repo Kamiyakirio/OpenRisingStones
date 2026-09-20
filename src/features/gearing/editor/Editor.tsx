@@ -55,7 +55,8 @@ export function Editor() {
   const meldTrigger = useRef<HTMLElement | null>(null);
   const allowNavigation = useRef(false);
   const restoreMeldFocus = useRef(false);
-  const editMelds = () => {
+  const editMelds = (slot?: Slot) => {
+    if (slot) vm.select(slot);
     meldTrigger.current = document.activeElement as HTMLElement;
     setMeldOpen(true);
   };
@@ -185,13 +186,15 @@ export function Editor() {
     );
   const selectedName =
     job.slots.find((s) => s.key === state.selection)?.name ?? state.selection;
+  const meldableSlots = job.slots.filter(
+    (slot) =>
+      doc.equipment[slot.key as Slot] && evaluation?.slots[slot.key] != null,
+  );
   const applyPreview = () => {
     const item = state.preview;
     vm.applyPreview();
     if (item && !vm.getSnapshot().preview)
-      setFeedback(
-        `${selectedName}已装备「${item.name}」。可继续选择下一部位，或撤销。`,
-      );
+      setFeedback(`${selectedName}已装备「${item.name}」。`);
   };
   return (
     <main className="gear-editor" aria-label="配装编辑器">
@@ -441,7 +444,7 @@ export function Editor() {
                 if (!code) throw new Error("Select equipment before sharing.");
                 await copyGearingText(code);
                 setNotice(
-                  "分享码已复制。将它添加到任意部署了 ffxiv-gearing 的网址后，用 ? 分隔即可分享。方案名和锁定设置不会包含在分享码中。",
+                  "分享码已复制。粘贴到任意 ffxiv-gearing 地址的 ? 后即可打开配装。方案名和锁定设置不会包含在分享码中。",
                 );
               })
             }
@@ -518,6 +521,18 @@ export function Editor() {
             <span>
               平均品级 {state.evaluating ? "…" : (evaluation?.itemLevel ?? "—")}
             </span>
+            <button
+              className="gear-open-melds"
+              disabled={state.evaluating || meldableSlots.length === 0}
+              onClick={() => {
+                const current = meldableSlots.find(
+                  (slot) => slot.key === state.selection,
+                );
+                editMelds((current ?? meldableSlots[0])?.key as Slot);
+              }}
+            >
+              魔晶石镶嵌
+            </button>
           </div>
           <div className="gear-equipped-list">
             {equipmentGroups.map((group) => (
@@ -628,19 +643,6 @@ export function Editor() {
                       </button>
                       {config && (
                         <button
-                          className="gear-row-meld"
-                          aria-label={`编辑${slot.name}镶嵌与属性`}
-                          disabled={state.evaluating || !equipped}
-                          onClick={() => {
-                            vm.select(slot.key);
-                            editMelds();
-                          }}
-                        >
-                          镶嵌
-                        </button>
-                      )}
-                      {config && (
-                        <button
                           className="gear-lock"
                           aria-label={`${slot.name}装备锁定`}
                           aria-pressed={config.equipmentLocked}
@@ -681,7 +683,6 @@ export function Editor() {
           state={state}
           title={selectedName}
           optimizeScope={panel === "optimize"}
-          onEditMelds={editMelds}
           onBack={() =>
             setWorkspace(panel === "optimize" ? "inspector" : "equipment")
           }

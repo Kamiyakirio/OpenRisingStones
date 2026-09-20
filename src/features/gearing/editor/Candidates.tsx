@@ -10,6 +10,13 @@ import type { Stat, Slot } from "./types";
 import { ItemIcon } from "./ItemIcon";
 import { ItemStats } from "./ItemStats";
 import { ItemName } from "./ItemName";
+import {
+  findQuickSourceFilterId,
+  QUICK_SOURCE_FILTERS,
+  sortGearSources,
+  sourceIdsForQuickFilter,
+  type QuickSourceFilterId,
+} from "./sourceOrder";
 import { foodUsage } from "./foodUsage";
 import { candidateStats } from "./candidateStats";
 import { PreviewActions } from "./PreviewActions";
@@ -19,7 +26,6 @@ export function Candidates({
   state,
   title,
   optimizeScope,
-  onEditMelds,
   onBack,
   onApply,
 }: {
@@ -27,7 +33,6 @@ export function Candidates({
   state: EditorState;
   title: string;
   optimizeScope: boolean;
-  onEditMelds: () => void;
   onBack: () => void;
   onApply: () => void;
 }) {
@@ -46,6 +51,25 @@ export function Candidates({
       ] as Stat[])
     : candidateStats(job.stats);
   const sourceMap = new Map(data.sources.map((s) => [s.id, s.label]));
+  const orderedAvailableSources = sortGearSources(
+    data.sources.filter((source) =>
+      state.availableSourceIds.includes(source.id),
+    ),
+  );
+  const activeQuickSource = findQuickSourceFilterId(
+    data.sources,
+    query.sourceIds,
+  );
+  const activeQuickSourceLabel = QUICK_SOURCE_FILTERS.find(
+    (filter) => filter.id === activeQuickSource,
+  )?.label;
+  const sourceSelectValue = activeQuickSource
+    ? `quick:${activeQuickSource}`
+    : query.sourceIds.length === 1
+      ? query.sourceIds[0]
+      : query.sourceIds.length
+        ? "custom"
+        : "";
   const equipped =
     doc.equipment[state.selection as Slot]?.itemId ??
     (state.selection === "food"
@@ -76,17 +100,6 @@ export function Candidates({
           </select>
         </label>
         <h2 className="gear-sr-only">{title}</h2>
-        {doc.equipment[state.selection as Slot] && (
-          <button
-            id="gearing-edit-melds"
-            disabled={
-              state.evaluating || !state.evaluation?.slots[state.selection]
-            }
-            onClick={onEditMelds}
-          >
-            编辑镶嵌 / 属性
-          </button>
-        )}
         <span>{state.querying ? "正在查询…" : `${state.total} 件`}</span>
       </div>
       <div className="gear-current-item">
@@ -170,30 +183,58 @@ export function Candidates({
             <label className="gear-candidate-source">
               <span className="gear-sr-only">浏览获取途径</span>
               <select
-                value={query.sourceIds[0] ?? ""}
-                onChange={(e) =>
+                value={sourceSelectValue}
+                onChange={(event) => {
+                  const value = event.target.value;
                   vm.filter({
-                    sourceIds: e.target.value ? [e.target.value] : [],
-                  })
-                }
+                    sourceIds: value.startsWith("quick:")
+                      ? sourceIdsForQuickFilter(
+                          data.sources,
+                          value.slice("quick:".length) as QuickSourceFilterId,
+                        )
+                      : value && value !== "custom"
+                        ? [value]
+                        : [],
+                  });
+                }}
               >
                 <option value="">全部获取途径</option>
-                {query.sourceIds
-                  .filter((id) => !state.availableSourceIds.includes(id))
-                  .map((id) => (
-                    <option key={id} value={id} disabled>
-                      {sourceMap.get(id)}（无匹配）
+                {query.sourceIds.length > 1 && !activeQuickSource && (
+                  <option value="custom" disabled>
+                    已选择多个获取途径
+                  </option>
+                )}
+                <optgroup label="常用获取途径">
+                  {QUICK_SOURCE_FILTERS.map((filter) => (
+                    <option
+                      key={filter.id}
+                      value={`quick:${filter.id}`}
+                      disabled={
+                        sourceIdsForQuickFilter(
+                          orderedAvailableSources,
+                          filter.id,
+                        ).length === 0
+                      }
+                    >
+                      {filter.label}
                     </option>
                   ))}
-                {data.sources
-                  .filter((source) =>
-                    state.availableSourceIds.includes(source.id),
-                  )
-                  .map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.label}
+                </optgroup>
+                <optgroup label="全部来源">
+                  {!activeQuickSource &&
+                    query.sourceIds
+                      .filter((id) => !state.availableSourceIds.includes(id))
+                      .map((id) => (
+                        <option key={id} value={id} disabled>
+                          {sourceMap.get(id)}（无匹配）
+                        </option>
+                      ))}
+                  {orderedAvailableSources.map((source) => (
+                    <option key={source.id} value={source.id}>
+                      {source.label}
                     </option>
                   ))}
+                </optgroup>
               </select>
             </label>
             <label>
@@ -250,7 +291,7 @@ export function Candidates({
           {query.hideObsolete ? " · 隐藏过时装备" : ""}
           {` · ${query.sortStat ? data.statNames[query.sortStat] : "品级"}${query.sortDirection === "asc" ? "升序" : "降序"}`}
           {query.sourceIds.length
-            ? ` · ${query.sourceIds.map((id) => sourceMap.get(id)).join("、")}`
+            ? ` · ${activeQuickSourceLabel ?? query.sourceIds.map((id) => sourceMap.get(id)).join("、")}`
             : ""}
         </span>
         <button onClick={() => vm.resetFilters()}>清除搜索和筛选</button>
@@ -415,7 +456,7 @@ export function Candidates({
           <p className="gear-empty">
             {query.minLevel > query.maxLevel
               ? "最低品级不能高于最高品级。"
-              : "没有匹配的装备。试试其他名称，或清除搜索和筛选。"}
+              : "没有匹配的装备。修改名称或筛选条件。"}
           </p>
         )}
       </div>
