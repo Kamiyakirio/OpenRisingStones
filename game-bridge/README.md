@@ -9,7 +9,7 @@ This directory contains the Windows-only bridge between the desktop application 
 - `payload` owns only resolved-address validation, pointer access, Framework-thread commands, native calls, and hook lifecycle.
 - `src-tauri/src/game_bridge.rs` owns the typed desktop API, resource selection, lifecycle preparation, and versioned read batching. It does not contain process or game-memory implementation logic.
 
-The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed command IDs defined by shared-memory ABI version 4.
+The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed command IDs defined by shared-memory ABI version 5.
 
 The Tauri API accepts only a process ID, an optional manifest filename, and fixed semantic read resources. DLL and data paths are resolved from the packaged `game-bridge` resource directory, so webview input cannot select an arbitrary DLL. When no manifest is supplied, the adapter selects the newest packaged manifest. Debug builds may override the resource directory with `ORS_GAME_BRIDGE_DIR`.
 
@@ -26,6 +26,14 @@ The Rust host validates all of the following before loading the payload:
 3. SHA-256 of the executable's raw `.text` section.
 4. Exactly one match for every required signature.
 5. All resolved addresses remain inside the main module.
+
+## Phone chat bridge
+
+Shared-memory ABI 5 adds an optional bounded chat ring and the fixed `SendChat` semantic command. Chat reading hooks `RaptureLogModule::PrintMessage`; chat sending constructs a native `Utf8String` and calls `UIModule::ProcessChatBoxEntry` only from the Framework tick. The call uses a null context with history saving disabled. Enabling history with a null context makes the game dereference that context as a native string. The public path rejects slash commands and never exposes arbitrary calls, memory writes, or packet construction.
+
+The four chat signatures in `version-manifest.template.json` are optional so existing verified manifests retain all earlier capabilities. A manifest advertises `chat_read` after the read hook installs successfully and advertises `chat_send` only when all required native string and chat addresses are present. Regenerate and verify the manifest against the exact game executable before enabling the phone chat workspace; do not copy unverified addresses into an existing manifest.
+
+Chat text remains in bounded process memory. Debug command diagnostics redact `SendChat` content, and the phone-chat frontend deliberately bypasses the generic Debug IPC response recorder so captured conversations are not written to diagnostic storage.
 
 Manifest schema 7 defines `textSha256` as the SHA-256 of the executable's raw `.text` section and includes the definitions used by typed reads, logout, title-screen switching, and the server-loaded Cabinet instance. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
 
@@ -94,6 +102,8 @@ The glamour workspace normalizes these reads into a character-scoped item index.
 The Rust host creates an anonymous Windows file mapping and duplicates only its kernel handle into the target process. There is no global object name, token, socket, Named Pipe, or JSON parser in the command path.
 
 Rust owns command encoding, result decoding, timeouts, monitoring, and all user-facing serialization. The payload checks an atomic request sequence during Framework Tick, performs one fixed semantic command, writes POD output, and publishes the response sequence with release ordering.
+
+The bootstrap records the desktop host process ID. If a debug restart or crash leaves the payload loaded, a later initialization reclaims it only after Windows confirms that the previous host process exited. A live owner still receives initialization code 2, preventing a second desktop instance from taking over its hooks.
 
 Rust also parses the Manifest, hashes the executable, performs unique AOB scans, resolves RVAs, and writes a verified `SharedGameApi` POD. The payload contains no JSON dependency or signature scanner.
 

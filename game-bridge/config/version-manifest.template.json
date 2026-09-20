@@ -55,6 +55,30 @@
       "offset": 1,
       "nextInstruction": 5
     },
+    "utf8Ctor": {
+      "pattern": "E8 ?? ?? ?? ?? 0F 5A D6",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "utf8Dtor": {
+      "pattern": "E8 ?? ?? ?? ?? C7 44 F5",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "raptureLogPrintMessage": {
+      "pattern": "E8 ?? ?? ?? ?? 44 39 AE ?? ?? ?? ?? 7E",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "processChatBoxEntry": {
+      "pattern": "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 48 8B F2 48 8B F9 45 84 C9",
+      "resolve": "direct",
+      "offset": 0,
+      "nextInstruction": 0
+    },
     "releaseLobbyContext": {
       "pattern": "E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 48 8B 85 ?? ?? ?? ?? 48 85 C0",
       "resolve": "relative32",

@@ -3,8 +3,8 @@
 use crate::error::{BridgeError, BridgeResult};
 use crate::world_map::WorldMap;
 use game_bridge_protocol::{
-    ActiveCharacterSnapshot, Command, CommandResult, GameSnapshot, GameStateSnapshot,
-    PlayerInventorySnapshot, RegionTarget,
+    ActiveCharacterSnapshot, ChatMessageSnapshot, Command, CommandResult, GameSnapshot,
+    GameStateSnapshot, PlayerInventorySnapshot, RegionTarget,
 };
 use serde::{Deserialize, Serialize};
 #[cfg(debug_assertions)]
@@ -159,6 +159,35 @@ impl BridgeManager {
             .expect("bridge lock poisoned")
             .status
             .clone()
+    }
+
+    /// Performs an explicitly confirmed Debug-only cleanup of an owned or orphaned payload.
+    #[cfg(all(windows, debug_assertions))]
+    pub fn debug_unload_payload(
+        &self,
+        process_id: Option<u32>,
+        payload_path: &std::path::Path,
+    ) -> BridgeResult<(bool, u32, BridgeStatus)> {
+        let owns_payload = {
+            let inner = self.inner.lock().expect("bridge lock poisoned");
+            inner.session.is_some() || inner.payload.is_some()
+        };
+        let process_id = match process_id.or_else(|| self.status().process_id) {
+            Some(process_id) => process_id,
+            None => crate::process::resolve_process_id(None)?,
+        };
+        if owns_payload {
+            return self.disconnect().map(|status| (true, process_id, status));
+        }
+
+        let unloaded = InjectedPayload::unload_existing(process_id, payload_path)?;
+        let status = {
+            let mut inner = self.inner.lock().expect("bridge lock poisoned");
+            inner.status = BridgeStatus::default();
+            inner.status.clone()
+        };
+        self.notify();
+        Ok((unloaded, process_id, status))
     }
 
     #[cfg(windows)]
@@ -326,6 +355,53 @@ impl BridgeManager {
 
     pub fn trigger_login(&self) -> BridgeResult<()> {
         expect_ack(self.send_command(Command::TriggerLogin)?)
+    }
+
+    pub fn send_chat(&self, message: String) -> BridgeResult<()> {
+        if message.is_empty() || message.len() > 500 {
+            return Err(BridgeError::InvalidData(
+                "chat message must contain between 1 and 500 UTF-8 bytes".to_owned(),
+            ));
+        }
+        if message.starts_with('/') {
+            return Err(BridgeError::InvalidData(
+                "slash commands are not allowed through the chat bridge".to_owned(),
+            ));
+        }
+        expect_ack(self.send_command(Command::SendChat { message })?)
+    }
+
+    #[cfg(windows)]
+    pub fn poll_chat_messages(&self) -> BridgeResult<Vec<ChatMessageSnapshot>> {
+        let inner = self.inner.lock().expect("bridge lock poisoned");
+        if !matches!(inner.status.phase, BridgePhase::Ready) {
+            return Err(BridgeError::NotConnected);
+        }
+        inner
+            .session
+            .as_ref()
+            .ok_or(BridgeError::NotConnected)?
+            .poll_chat_messages()
+    }
+
+    #[cfg(not(windows))]
+    pub fn poll_chat_messages(&self) -> BridgeResult<Vec<ChatMessageSnapshot>> {
+        Err(BridgeError::UnsupportedPlatform)
+    }
+
+    #[cfg(windows)]
+    pub fn chat_dropped_count(&self) -> u64 {
+        self.inner
+            .lock()
+            .expect("bridge lock poisoned")
+            .session
+            .as_ref()
+            .map_or(0, SharedSession::chat_dropped_count)
+    }
+
+    #[cfg(not(windows))]
+    pub fn chat_dropped_count(&self) -> u64 {
+        0
     }
 
     #[cfg(windows)]

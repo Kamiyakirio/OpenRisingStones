@@ -18,6 +18,10 @@ struct ResolvedAddresses final {
   std::byte* get_ui_module{};
   std::byte* get_agent_by_internal_id{};
   std::byte* utf8_set_string{};
+  std::byte* utf8_ctor{};
+  std::byte* utf8_dtor{};
+  std::byte* rapture_log_print_message{};
+  std::byte* process_chat_box_entry{};
   std::byte* release_lobby_context{};
   std::byte* return_to_title{};
   std::byte* handle_logout{};

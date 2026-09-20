@@ -24,6 +24,7 @@ constexpr std::uint8_t kButtonClickEvent = 25;
 constexpr std::int32_t kMaximumInventorySlots = 200;
 constexpr std::size_t kMaximumGlamourDresserSlots = 800;
 constexpr std::size_t kMaximumArmoireCabinetItems = 5120;
+constexpr std::size_t kMaximumChatInputBytes = 500;
 constexpr std::size_t kUnlockWordBits = std::numeric_limits<std::uint32_t>::digits;
 constexpr std::uint8_t kArmoireLoadedState = 2;
 
@@ -58,6 +59,10 @@ using GetAgentByInternalId = void*(__fastcall*)(void* agent_module, std::uint32_
 using GetInventoryContainer = void*(__fastcall*)(void* inventory_manager,
                                                  std::uint32_t inventory_type);
 using Utf8SetString = void(__fastcall*)(void* value, const char* text);
+using Utf8Ctor = void*(__fastcall*)(void* value);
+using Utf8Dtor = void(__fastcall*)(void* value);
+using ProcessChatBoxEntry = void(__fastcall*)(void* ui_module, void* message, std::intptr_t context,
+                                              bool save_to_history);
 using ReleaseLobbyContext = void(__fastcall*)(void* network_module);
 using ReturnToTitle = void(__fastcall*)(void* agent_lobby);
 using HandleLogout = void(__fastcall*)(void* agent_lobby, bool is_exiting, std::uint8_t countdown);
@@ -199,21 +204,101 @@ void GameRuntime::start() {
     MH_Uninitialize();
     throw std::runtime_error("unable to install Framework hook");
   }
+
+  std::uint32_t chat_capabilities = 0;
+  if (addresses_.utf8_ctor && addresses_.utf8_dtor && addresses_.process_chat_box_entry) {
+    chat_capabilities |= kChatCapabilitySend;
+  }
+  if (addresses_.rapture_log_print_message) {
+    auto* target = addresses_.rapture_log_print_message;
+    if (MH_CreateHook(target, reinterpret_cast<void*>(&chat_detour),
+                      reinterpret_cast<void**>(&original_chat_)) == MH_OK &&
+        MH_EnableHook(target) == MH_OK) {
+      chat_hook_target_ = target;
+      chat_capabilities |= kChatCapabilityRead;
+    } else {
+      MH_RemoveHook(target);
+      original_chat_ = nullptr;
+    }
+  }
+  std::atomic_ref(shared_->chat_capabilities).store(chat_capabilities, std::memory_order_release);
 }
 
 void GameRuntime::stop() {
   if (stopped_.exchange(true, std::memory_order_acq_rel)) return;
   stopping_.store(true, std::memory_order_release);
+  std::atomic_ref(shared_->chat_capabilities).store(0, std::memory_order_release);
+  if (chat_hook_target_) MH_DisableHook(chat_hook_target_);
   if (hook_target_) {
     MH_DisableHook(hook_target_);
     while (active_callbacks_.load(std::memory_order_acquire) != 0) {
       std::this_thread::yield();
     }
     MH_RemoveHook(hook_target_);
+    if (chat_hook_target_) {
+      MH_RemoveHook(chat_hook_target_);
+      chat_hook_target_ = nullptr;
+    }
     MH_Uninitialize();
     hook_target_ = nullptr;
   }
   active_ = nullptr;
+}
+
+std::uint32_t __fastcall GameRuntime::chat_detour(void* manager, std::uint16_t log_info,
+                                                  void* sender, void* message,
+                                                  std::int32_t timestamp, bool silent) {
+  auto* runtime = active_;
+  if (!runtime || !runtime->original_chat_) return 0;
+  runtime->active_callbacks_.fetch_add(1, std::memory_order_acq_rel);
+  if (!runtime->stopping_.load(std::memory_order_acquire)) {
+    runtime->publish_chat_message(log_info, sender, message, timestamp);
+  }
+  const auto result =
+      runtime->original_chat_(manager, log_info, sender, message, timestamp, silent);
+  runtime->active_callbacks_.fetch_sub(1, std::memory_order_acq_rel);
+  return result;
+}
+
+void GameRuntime::publish_chat_message(std::uint16_t log_info, const void* sender,
+                                       const void* message, std::int32_t timestamp) noexcept {
+  try {
+    const auto copy_native_string = [](const void* source, char* output, std::size_t capacity) {
+      if (!source || capacity == 0 || !is_readable(source, 0x20)) return std::size_t{0};
+      const auto* bytes = static_cast<const std::byte*>(source);
+      const auto* text = read_value<const char*>(bytes, 0);
+      const auto length = read_value<std::int64_t>(bytes, 0x18);
+      if (!text || length <= 0 || static_cast<std::uint64_t>(length) >= capacity ||
+          !is_readable(text, static_cast<std::size_t>(length))) {
+        return std::size_t{0};
+      }
+      std::memcpy(output, text, static_cast<std::size_t>(length));
+      return static_cast<std::size_t>(length);
+    };
+
+    const auto sequence = next_chat_sequence_.fetch_add(1, std::memory_order_relaxed);
+    auto& target = shared_->chat_events[(sequence - 1) % kMaximumSharedChatEvents];
+    std::atomic_ref(target.sequence).store(0, std::memory_order_relaxed);
+    SecureZeroMemory(reinterpret_cast<std::byte*>(&target) + sizeof(target.sequence),
+                     sizeof(target) - sizeof(target.sequence));
+    target.timestamp = timestamp;
+    target.log_kind = log_info & 0x7f;
+    target.target_kind = static_cast<std::uint8_t>((log_info >> 7) & 0x0f);
+    target.source_kind = static_cast<std::uint8_t>((log_info >> 11) & 0x0f);
+    target.sender_length = static_cast<std::uint32_t>(
+        copy_native_string(sender, target.sender.data(), target.sender.size()));
+    target.message_length = static_cast<std::uint32_t>(
+        copy_native_string(message, target.message.data(), target.message.size()));
+    const auto read_sequence =
+        std::atomic_ref(shared_->chat_read_sequence).load(std::memory_order_acquire);
+    if (sequence > read_sequence + kMaximumSharedChatEvents) {
+      std::atomic_ref(shared_->chat_dropped_count).fetch_add(1, std::memory_order_relaxed);
+    }
+    std::atomic_ref(target.sequence).store(sequence, std::memory_order_release);
+    std::atomic_ref(shared_->chat_write_sequence).store(sequence, std::memory_order_release);
+  } catch (...) {
+    // Chat capture is best-effort and must never interrupt the game's log pipeline.
+  }
 }
 
 bool __fastcall GameRuntime::tick_detour(void* framework) {
@@ -297,6 +382,11 @@ void GameRuntime::process_shared_command(void* framework) {
       case SharedCommandKind::TriggerLogin:
         outcome = trigger_login(framework);
         break;
+      case SharedCommandKind::SendChat: {
+        const auto& source = shared_->command.send_chat;
+        outcome = send_chat(framework, read_shared_string(source.message, source.message_length));
+        break;
+      }
       case SharedCommandKind::Shutdown:
         outcome = acknowledgement();
         break;
@@ -310,6 +400,35 @@ void GameRuntime::process_shared_command(void* framework) {
     outcome = failure("game_access_failed", "Unknown game access failure.");
   }
   write_response(sequence, kind, outcome);
+}
+
+CommandOutcome GameRuntime::send_chat(void* framework, const std::string& message) {
+  const auto capabilities =
+      std::atomic_ref(shared_->chat_capabilities).load(std::memory_order_acquire);
+  if ((capabilities & kChatCapabilitySend) == 0) {
+    return failure("chat_send_unsupported", "Chat sending is unavailable for this game version.");
+  }
+  if (message.empty() || message.size() > kMaximumChatInputBytes || message.front() == '/') {
+    return failure("invalid_chat_message", "The chat message is empty, too long, or disallowed.");
+  }
+  const auto state = capture_game_state(framework);
+  if (!state.success || !state.game_state || state.game_state->screen != GameScreen::InWorld ||
+      !state.game_state->connected_to_zone) {
+    return failure("chat_not_ready", "Enter the game world before sending a chat message.");
+  }
+  auto* ui_module = reinterpret_cast<GetUiModule>(addresses_.get_ui_module)(framework);
+  if (!ui_module) return failure("ui_unavailable", "The game UI module is unavailable.");
+
+  alignas(8) std::array<std::byte, 0x68> native_message{};
+  reinterpret_cast<Utf8Ctor>(addresses_.utf8_ctor)(native_message.data());
+  reinterpret_cast<Utf8SetString>(addresses_.utf8_set_string)(native_message.data(),
+                                                              message.c_str());
+  // A null context is valid only when history saving is disabled. With save_to_history=true,
+  // the game treats the context as another native string and dereferences it while copying.
+  reinterpret_cast<ProcessChatBoxEntry>(addresses_.process_chat_box_entry)(
+      ui_module, native_message.data(), 0, false);
+  reinterpret_cast<Utf8Dtor>(addresses_.utf8_dtor)(native_message.data());
+  return acknowledgement();
 }
 
 CommandOutcome GameRuntime::capture_snapshot(void* framework) {

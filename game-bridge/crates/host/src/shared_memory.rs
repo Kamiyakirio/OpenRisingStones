@@ -2,9 +2,10 @@
 
 use crate::error::{last_windows_error, BridgeError, BridgeResult};
 use game_bridge_protocol::{
-    ActiveCharacterSnapshot, ArmoireSnapshot, Command, CommandResult, GameScreen, GameSnapshot,
-    GameStateSnapshot, GlamourDresserItemSnapshot, GlamourDresserSnapshot,
-    InventoryContainerSnapshot, InventoryItemSnapshot, PlayerInventorySnapshot, Position3,
+    ActiveCharacterSnapshot, ArmoireSnapshot, ChatMessageSnapshot, Command, CommandResult,
+    GameScreen, GameSnapshot, GameStateSnapshot, GlamourDresserItemSnapshot,
+    GlamourDresserSnapshot, InventoryContainerSnapshot, InventoryItemSnapshot,
+    PlayerInventorySnapshot, Position3,
 };
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -26,13 +27,16 @@ use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcess, PROC
 
 // Must match kSharedMagic in the native shared_bridge.hpp contract.
 const SHARED_MAGIC: u32 = 0x4742_524F;
-const SHARED_ABI_VERSION: u32 = 4;
+const SHARED_ABI_VERSION: u32 = 5;
 const PAYLOAD_STATE_READY: u32 = 1;
 const PAYLOAD_STATE_FAULTED: u32 = 2;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
 const MAXIMUM_CONTAINERS: usize = 18;
 const MAXIMUM_ITEMS: usize = 1024;
 const MAXIMUM_DRESSER_ITEMS: usize = 800;
+const MAXIMUM_CHAT_EVENTS: usize = 128;
+const MAXIMUM_CHAT_SENDER_BYTES: usize = 256;
+const MAXIMUM_CHAT_MESSAGE_BYTES: usize = 1024;
 const ARMOIRE_UNLOCK_WORD_COUNT: usize = 160;
 const PAGE_READWRITE: u32 = 0x04;
 const FILE_MAP_ALL_ACCESS: u32 = 0x000F_001F;
@@ -46,6 +50,10 @@ const COMMAND_TRIGGER_LOGIN: u32 = 6;
 const COMMAND_SHUTDOWN: u32 = 7;
 const COMMAND_CAPTURE_GAME_STATE: u32 = 8;
 const COMMAND_LOGOUT_TO_TITLE: u32 = 9;
+const COMMAND_SEND_CHAT: u32 = 10;
+
+const CHAT_CAPABILITY_READ: u32 = 1 << 0;
+const CHAT_CAPABILITY_SEND: u32 = 1 << 1;
 
 const RESPONSE_SUCCESS: u32 = 1;
 const RESPONSE_ERROR: u32 = 2;
@@ -163,6 +171,10 @@ struct SharedGameApi {
     get_ui_module: u64,
     get_agent_by_internal_id: u64,
     utf8_set_string: u64,
+    utf8_ctor: u64,
+    utf8_dtor: u64,
+    rapture_log_print_message: u64,
+    process_chat_box_entry: u64,
     release_lobby_context: u64,
     return_to_title: u64,
     handle_logout: u64,
@@ -170,6 +182,12 @@ struct SharedGameApi {
     get_component_button_by_id: u64,
     cabinet_instance: u64,
     layout: SharedGameLayout,
+}
+
+#[repr(C)]
+struct SharedSendChat {
+    message_length: u32,
+    message: [u8; MAXIMUM_CHAT_MESSAGE_BYTES],
 }
 
 #[repr(C)]
@@ -192,6 +210,20 @@ struct SharedCommand {
     kind: u32,
     reserved: u32,
     switch_region: SharedSwitchRegion,
+    send_chat: SharedSendChat,
+}
+
+#[repr(C)]
+struct SharedChatEvent {
+    sequence: AtomicU64,
+    timestamp: i32,
+    log_kind: u16,
+    source_kind: u8,
+    target_kind: u8,
+    sender_length: u32,
+    message_length: u32,
+    sender: [u8; MAXIMUM_CHAT_SENDER_BYTES],
+    message: [u8; MAXIMUM_CHAT_MESSAGE_BYTES],
 }
 
 #[repr(C)]
@@ -321,29 +353,37 @@ struct SharedBridge {
     abi_version: u32,
     struct_size: u32,
     payload_state: AtomicU32,
+    chat_capabilities: AtomicU32,
+    header_reserved: u32,
     heartbeat: AtomicU64,
     request_sequence: AtomicU64,
     response_sequence: AtomicU64,
     snapshot_sequence: AtomicU64,
+    chat_write_sequence: AtomicU64,
+    chat_read_sequence: AtomicU64,
+    chat_dropped_count: AtomicU64,
     fatal_code: [u8; 64],
     fatal_message: [u8; 256],
     game_api: SharedGameApi,
     command: SharedCommand,
     response: SharedResponse,
     latest_snapshot: SharedGameSnapshot,
+    chat_events: [SharedChatEvent; MAXIMUM_CHAT_EVENTS],
 }
 
 const _: [(); 4948] = [(); size_of::<SharedSwitchRegion>()];
 const _: [(); 308] = [(); size_of::<SharedGameLayout>()];
-const _: [(); 432] = [(); size_of::<SharedGameApi>()];
-const _: [(); 4968] = [(); size_of::<SharedCommand>()];
+const _: [(); 464] = [(); size_of::<SharedGameApi>()];
+const _: [(); 1028] = [(); size_of::<SharedSendChat>()];
+const _: [(); 5992] = [(); size_of::<SharedCommand>()];
+const _: [(); 1304] = [(); size_of::<SharedChatEvent>()];
 const _: [(); 88] = [(); size_of::<SharedGameSnapshot>()];
 const _: [(); 128] = [(); size_of::<SharedActiveCharacter>()];
 const _: [(); 48] = [(); size_of::<SharedInventoryItem>()];
 const _: [(); 52] = [(); size_of::<SharedInventoryContainer>()];
 const _: [(); 57144] = [(); size_of::<SharedInventorySnapshot>()];
 const _: [(); 57712] = [(); size_of::<SharedResponse>()];
-const _: [(); 63568] = [(); size_of::<SharedBridge>()];
+const _: [(); 231568] = [(); size_of::<SharedBridge>()];
 
 pub(crate) enum SessionEvent {
     Ready {
@@ -381,6 +421,7 @@ pub(crate) struct SharedSession {
     mapping: Arc<SharedMapping>,
     stopping: Arc<AtomicBool>,
     monitor: Option<JoinHandle<()>>,
+    chat_cursor: AtomicU64,
 }
 
 unsafe impl Send for SharedSession {}
@@ -425,6 +466,7 @@ impl SharedSession {
             mapping,
             stopping,
             monitor: Some(monitor),
+            chat_cursor: AtomicU64::new(0),
         })
     }
 
@@ -494,6 +536,11 @@ impl SharedSession {
                     COMMAND_SWITCH_REGION
                 }
                 Command::TriggerLogin => COMMAND_TRIGGER_LOGIN,
+                Command::SendChat { message } => {
+                    target.send_chat.message_length =
+                        copy_string(&message, &mut target.send_chat.message)?;
+                    COMMAND_SEND_CHAT
+                }
                 Command::Shutdown => COMMAND_SHUTDOWN,
             };
         }
@@ -526,6 +573,71 @@ impl SharedSession {
             }
             thread::sleep(Duration::from_millis(5));
         }
+    }
+
+    /// Drain the lock-free native chat ring without blocking the game's framework thread.
+    pub(crate) fn poll_chat_messages(&self) -> BridgeResult<Vec<ChatMessageSnapshot>> {
+        let shared = unsafe { &*self.mapping.view };
+        if shared.payload_state.load(Ordering::Acquire) != PAYLOAD_STATE_READY {
+            return Err(BridgeError::NotConnected);
+        }
+        if shared.chat_capabilities.load(Ordering::Acquire) & CHAT_CAPABILITY_READ == 0 {
+            return Err(BridgeError::InvalidData(
+                "chat reading is not supported by the active runtime manifest".to_owned(),
+            ));
+        }
+
+        let write_sequence = shared.chat_write_sequence.load(Ordering::Acquire);
+        let previous = self.chat_cursor.load(Ordering::Acquire);
+        if write_sequence <= previous {
+            return Ok(Vec::new());
+        }
+        let first_available = write_sequence
+            .saturating_sub(MAXIMUM_CHAT_EVENTS as u64)
+            .saturating_add(1);
+        let start = previous.saturating_add(1).max(first_available);
+        let mut messages = Vec::with_capacity((write_sequence - start + 1) as usize);
+
+        for sequence in start..=write_sequence {
+            let index = ((sequence - 1) % MAXIMUM_CHAT_EVENTS as u64) as usize;
+            let event = &shared.chat_events[index];
+            if event.sequence.load(Ordering::Acquire) != sequence {
+                continue;
+            }
+            let sender_length = event.sender_length as usize;
+            let message_length = event.message_length as usize;
+            if sender_length > MAXIMUM_CHAT_SENDER_BYTES
+                || message_length > MAXIMUM_CHAT_MESSAGE_BYTES
+            {
+                continue;
+            }
+            let sender = plain_se_string(&event.sender[..sender_length]);
+            let message = plain_se_string(&event.message[..message_length]);
+            if event.sequence.load(Ordering::Acquire) != sequence {
+                continue;
+            }
+            messages.push(ChatMessageSnapshot {
+                sequence,
+                timestamp: event.timestamp,
+                log_kind: event.log_kind,
+                source_kind: event.source_kind,
+                target_kind: event.target_kind,
+                sender,
+                message,
+            });
+        }
+
+        self.chat_cursor.store(write_sequence, Ordering::Release);
+        shared
+            .chat_read_sequence
+            .store(write_sequence, Ordering::Release);
+        Ok(messages)
+    }
+
+    pub(crate) fn chat_dropped_count(&self) -> u64 {
+        unsafe { &*self.mapping.view }
+            .chat_dropped_count
+            .load(Ordering::Acquire)
     }
 
     /// Read the published startup fault before the mapping is closed. The acquire load
@@ -584,18 +696,26 @@ fn monitor_shared_memory(
         let state = shared.payload_state.load(Ordering::Acquire);
         if state == PAYLOAD_STATE_READY && !ready_sent {
             ready_sent = true;
+            let mut capabilities = vec![
+                "capture_snapshot".to_owned(),
+                "capture_active_character".to_owned(),
+                "capture_inventory".to_owned(),
+                "capture_game_state".to_owned(),
+                "logout_to_title".to_owned(),
+                "return_to_title".to_owned(),
+                "switch_region".to_owned(),
+                "trigger_login".to_owned(),
+            ];
+            let chat_capabilities = shared.chat_capabilities.load(Ordering::Acquire);
+            if chat_capabilities & CHAT_CAPABILITY_READ != 0 {
+                capabilities.push("chat_read".to_owned());
+            }
+            if chat_capabilities & CHAT_CAPABILITY_SEND != 0 {
+                capabilities.push("chat_send".to_owned());
+            }
             let _ = event_tx.send(SessionEvent::Ready {
                 payload_version: "0.1.0".to_owned(),
-                capabilities: vec![
-                    "capture_snapshot".to_owned(),
-                    "capture_active_character".to_owned(),
-                    "capture_inventory".to_owned(),
-                    "capture_game_state".to_owned(),
-                    "logout_to_title".to_owned(),
-                    "return_to_title".to_owned(),
-                    "switch_region".to_owned(),
-                    "trigger_login".to_owned(),
-                ],
+                capabilities,
             });
         }
         if state == PAYLOAD_STATE_FAULTED && !fault_sent {
@@ -691,9 +811,10 @@ fn decode_response(
             })?,
         }),
         COMMAND_SHUTDOWN => Ok(CommandResult::ShutdownReady),
-        COMMAND_RETURN_TO_TITLE | COMMAND_LOGOUT_TO_TITLE | COMMAND_TRIGGER_LOGIN => {
-            Ok(CommandResult::Ack)
-        }
+        COMMAND_RETURN_TO_TITLE
+        | COMMAND_LOGOUT_TO_TITLE
+        | COMMAND_TRIGGER_LOGIN
+        | COMMAND_SEND_CHAT => Ok(CommandResult::Ack),
         _ => Err(BridgeError::InvalidData(
             "shared response has invalid command kind".to_owned(),
         )),
@@ -858,6 +979,57 @@ fn read_string(bytes: &[u8]) -> String {
     String::from_utf8_lossy(&bytes[..length]).into_owned()
 }
 
+/// Convert the game's SeString into display-only text. Embedded payloads are removed so
+/// links, formatting commands, and control bytes never reach the browser as executable data.
+fn plain_se_string(bytes: &[u8]) -> String {
+    fn expression_integer(bytes: &[u8], cursor: &mut usize) -> Option<usize> {
+        let marker = *bytes.get(*cursor)?;
+        *cursor += 1;
+        if (1..0xd0).contains(&marker) {
+            return Some(usize::from(marker - 1));
+        }
+        if marker < 0xf0 {
+            return None;
+        }
+        let mask = marker.wrapping_add(1) & 0xf;
+        let mut value = 0usize;
+        for bit in (0..4).rev() {
+            if mask & (1 << bit) != 0 {
+                value |= usize::from(*bytes.get(*cursor)?) << (bit * 8);
+                *cursor += 1;
+            }
+        }
+        Some(value)
+    }
+
+    let mut output = Vec::with_capacity(bytes.len());
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        if bytes[cursor] == 2 {
+            let mut length_cursor = cursor.saturating_add(2);
+            let Some(payload_length) = expression_integer(bytes, &mut length_cursor) else {
+                cursor += 1;
+                continue;
+            };
+            let Some(end) = length_cursor.checked_add(payload_length) else {
+                break;
+            };
+            if end < bytes.len() && bytes[end] == 3 {
+                cursor = end + 1;
+                continue;
+            }
+            cursor += 1;
+            continue;
+        }
+        let byte = bytes[cursor];
+        if byte >= 0x20 || matches!(byte, b'\n' | b'\t') {
+            output.push(byte);
+        }
+        cursor += 1;
+    }
+    String::from_utf8_lossy(&output).into_owned()
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RuntimeManifest {
@@ -1005,6 +1177,17 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
             .map(|value| value as u64)
             .ok_or_else(|| BridgeError::InvalidData("resolved address overflow".to_owned()))
     };
+    let resolve_optional = |name: &str| -> BridgeResult<u64> {
+        let Some(spec) = manifest.functions.get(name) else {
+            return Ok(0);
+        };
+        let rva = resolve_function_rva(&image, spec)?;
+        module
+            .base_address
+            .checked_add(rva)
+            .map(|value| value as u64)
+            .ok_or_else(|| BridgeError::InvalidData("resolved address overflow".to_owned()))
+    };
 
     let mut api: SharedGameApi = unsafe { std::mem::zeroed() };
     api.private_layout_verified = manifest.private_layout_verified as u32;
@@ -1016,6 +1199,10 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     api.get_ui_module = resolve("getUiModule")?;
     api.get_agent_by_internal_id = resolve("getAgentByInternalId")?;
     api.utf8_set_string = resolve("utf8SetString")?;
+    api.utf8_ctor = resolve_optional("utf8Ctor")?;
+    api.utf8_dtor = resolve_optional("utf8Dtor")?;
+    api.rapture_log_print_message = resolve_optional("raptureLogPrintMessage")?;
+    api.process_chat_box_entry = resolve_optional("processChatBoxEntry")?;
     api.release_lobby_context = resolve("releaseLobbyContext")?;
     api.return_to_title = resolve("returnToTitle")?;
     api.handle_logout = resolve("handleLogout")?;
@@ -1330,6 +1517,44 @@ mod initialization_tests {
             result.armoire.cabinet_item_ids,
             vec![1, 1047, 1048, 4000, 5047]
         );
+    }
+
+    #[test]
+    fn chat_text_removes_sestring_payloads_and_control_bytes() {
+        let bytes = [b'A', 2, 0x13, 2, 7, 3, b'B', 0, b'\n', b'C'];
+        assert_eq!(plain_se_string(&bytes), "AB\nC");
+        assert_eq!(plain_se_string(&[2, 0x13]), "");
+    }
+
+    #[test]
+    fn chat_ring_publishes_bounded_plain_text_messages() {
+        let (tx, _rx) = std::sync::mpsc::channel();
+        let session = SharedSession::create(tx).unwrap();
+        unsafe {
+            let shared = &mut *session.mapping.view;
+            shared
+                .chat_capabilities
+                .store(CHAT_CAPABILITY_READ, Ordering::Release);
+            shared
+                .payload_state
+                .store(PAYLOAD_STATE_READY, Ordering::Release);
+            let event = &mut shared.chat_events[0];
+            event.timestamp = 123;
+            event.log_kind = 10;
+            event.sender[..3].copy_from_slice(b"Ada");
+            event.sender_length = 3;
+            event.message[..8].copy_from_slice(&[b'H', b'i', 2, 0x13, 2, 7, 3, b'!']);
+            event.message_length = 8;
+            event.sequence.store(1, Ordering::Release);
+            shared.chat_write_sequence.store(1, Ordering::Release);
+        }
+        let messages = session.poll_chat_messages().unwrap();
+        assert_eq!(messages.len(), 1);
+        assert_eq!(messages[0].sender, "Ada");
+        assert_eq!(messages[0].message, "Hi!");
+        assert_eq!(messages[0].log_kind, 10);
+        assert!(session.poll_chat_messages().unwrap().is_empty());
+        session.close();
     }
 
     #[test]

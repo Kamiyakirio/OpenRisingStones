@@ -4,8 +4,8 @@
 #include "bridge/shared_bridge.hpp"
 #include "game_api.hpp"
 
-#include <atomic>
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -155,9 +155,16 @@ class GameRuntime final {
 
  private:
   using FrameworkTick = bool(__fastcall*)(void* framework);
+  using PrintChatMessage = std::uint32_t(__fastcall*)(void* manager, std::uint16_t log_info,
+                                                      void* sender, void* message,
+                                                      std::int32_t timestamp, bool silent);
 
   static bool __fastcall tick_detour(void* framework);
+  static std::uint32_t __fastcall chat_detour(void* manager, std::uint16_t log_info, void* sender,
+                                              void* message, std::int32_t timestamp, bool silent);
   bool on_tick(void* framework) noexcept;
+  void publish_chat_message(std::uint16_t log_info, const void* sender, const void* message,
+                            std::int32_t timestamp) noexcept;
   void process_shared_command(void* framework);
   void write_response(std::uint64_t sequence, SharedCommandKind kind,
                       const CommandOutcome& outcome);
@@ -170,6 +177,7 @@ class GameRuntime final {
   [[nodiscard]] CommandOutcome return_to_title(void* framework);
   [[nodiscard]] CommandOutcome switch_region(void* framework, RegionTarget& target);
   [[nodiscard]] CommandOutcome trigger_login(void* framework);
+  [[nodiscard]] CommandOutcome send_chat(void* framework, const std::string& message);
   [[nodiscard]] void* get_agent_lobby(void* framework) const;
   [[nodiscard]] void* get_title_menu(void* framework) const;
 
@@ -179,12 +187,15 @@ class GameRuntime final {
   ResolvedAddresses addresses_;
   SharedBridge* shared_{};
   void* hook_target_{};
+  void* chat_hook_target_{};
   FrameworkTick original_tick_{};
+  PrintChatMessage original_chat_{};
   std::atomic<bool> stopping_{false};
   std::atomic<bool> stopped_{false};
   std::atomic<std::uint32_t> active_callbacks_{0};
   std::uint64_t last_request_sequence_{};
   std::uint64_t next_snapshot_sequence_{1};
+  std::atomic<std::uint64_t> next_chat_sequence_{1};
   std::uint32_t sampling_counter_{};
 };
 

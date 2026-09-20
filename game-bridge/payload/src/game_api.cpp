@@ -15,6 +15,11 @@ T pointer(std::uint64_t value) {
   return reinterpret_cast<T>(static_cast<std::uintptr_t>(value));
 }
 
+template <typename T>
+T optional_pointer(std::uint64_t value) {
+  return reinterpret_cast<T>(static_cast<std::uintptr_t>(value));
+}
+
 bool has_access(const void* address, std::size_t length, bool require_write) {
   if (!address || length == 0) return false;
   MEMORY_BASIC_INFORMATION information{};
@@ -44,6 +49,10 @@ ResolvedAddresses resolve_addresses(const SharedGameApi& api) {
       pointer<std::byte*>(api.get_ui_module),
       pointer<std::byte*>(api.get_agent_by_internal_id),
       pointer<std::byte*>(api.utf8_set_string),
+      optional_pointer<std::byte*>(api.utf8_ctor),
+      optional_pointer<std::byte*>(api.utf8_dtor),
+      optional_pointer<std::byte*>(api.rapture_log_print_message),
+      optional_pointer<std::byte*>(api.process_chat_box_entry),
       pointer<std::byte*>(api.release_lobby_context),
       pointer<std::byte*>(api.return_to_title),
       pointer<std::byte*>(api.handle_logout),

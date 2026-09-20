@@ -37,7 +37,7 @@ pub(crate) struct BootstrapArgs {
     pub struct_size: u32,
     pub abi_version: u32,
     pub flags: u32,
-    pub reserved: u32,
+    pub owner_process_id: u32,
     pub shared_memory_handle: usize,
 }
 
@@ -47,11 +47,13 @@ impl BootstrapArgs {
             struct_size: size_of::<Self>() as u32,
             abi_version: 1,
             flags: 0,
-            reserved: 0,
+            owner_process_id: std::process::id(),
             shared_memory_handle,
         }
     }
 }
+
+const _: [(); 24] = [(); size_of::<BootstrapArgs>()];
 
 /// Owns the target process handle and the loaded remote module.
 pub(crate) struct InjectedPayload {
@@ -97,6 +99,34 @@ impl InjectedPayload {
         if result.is_err() {
             unsafe { CloseHandle(process) };
         }
+        result
+    }
+
+    /// Stops and unloads a payload that is no longer owned by this host instance.
+    /// The caller must require an explicit Debug-only confirmation before using it.
+    #[cfg(debug_assertions)]
+    pub(crate) fn unload_existing(process_id: u32, payload_path: &Path) -> BridgeResult<bool> {
+        let payload_path = payload_path
+            .canonicalize()
+            .map_err(|_| BridgeError::InvalidPath(payload_path.display().to_string()))?;
+        let process = unsafe {
+            OpenProcess(
+                PROCESS_CREATE_THREAD
+                    | PROCESS_QUERY_INFORMATION
+                    | PROCESS_VM_OPERATION
+                    | PROCESS_VM_READ
+                    | PROCESS_VM_WRITE
+                    | SYNCHRONIZE,
+                0,
+                process_id,
+            )
+        };
+        if process.is_null() {
+            return Err(last_windows_error("OpenProcess"));
+        }
+
+        let result = unsafe { unload_existing_open_process(process, process_id, &payload_path) };
+        unsafe { CloseHandle(process) };
         result
     }
 
@@ -197,6 +227,42 @@ impl InjectedPayload {
         self.process = null_mut();
         Ok(())
     }
+}
+
+#[cfg(debug_assertions)]
+unsafe fn unload_existing_open_process(
+    process: HANDLE,
+    process_id: u32,
+    payload_path: &Path,
+) -> BridgeResult<bool> {
+    let Some(remote_module) = find_remote_module_by_path(process_id, payload_path)? else {
+        return Ok(false);
+    };
+    let shutdown_offset = local_export_offset(payload_path, "bridge_shutdown")?;
+    let shutdown_code = call_remote(
+        process,
+        remote_module + shutdown_offset,
+        0,
+        REMOTE_CALL_TIMEOUT_MS,
+    )?;
+    if shutdown_code != 0 {
+        return Err(BridgeError::CommandRejected {
+            code: "payload_shutdown_failed".to_owned(),
+            message: format!("The payload rejected shutdown with code {shutdown_code}."),
+        });
+    }
+    let unload_code = call_remote(
+        process,
+        remote_system_function(process_id, "kernel32.dll", "FreeLibrary")?,
+        remote_module,
+        REMOTE_CALL_TIMEOUT_MS,
+    )?;
+    if unload_code == 0 {
+        return Err(BridgeError::InvalidData(
+            "FreeLibrary rejected the payload module".to_owned(),
+        ));
+    }
+    Ok(true)
 }
 
 impl Drop for InjectedPayload {
@@ -383,10 +449,64 @@ unsafe fn find_remote_module(process_id: u32, module_name: &str) -> BridgeResult
     )))
 }
 
+#[cfg(debug_assertions)]
+unsafe fn find_remote_module_by_path(
+    process_id: u32,
+    module_path: &Path,
+) -> BridgeResult<Option<usize>> {
+    let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, process_id);
+    if snapshot == INVALID_HANDLE_VALUE {
+        return Err(last_windows_error("CreateToolhelp32Snapshot(module path)"));
+    }
+    let expected = normalize_windows_path(&module_path.to_string_lossy());
+    let mut entry = MODULEENTRY32W {
+        dwSize: size_of::<MODULEENTRY32W>() as u32,
+        ..std::mem::zeroed()
+    };
+    let mut has_entry = Module32FirstW(snapshot, &mut entry) != 0;
+    while has_entry {
+        let length = entry
+            .szExePath
+            .iter()
+            .position(|value| *value == 0)
+            .unwrap_or(entry.szExePath.len());
+        let current_path =
+            normalize_windows_path(&String::from_utf16_lossy(&entry.szExePath[..length]));
+        if current_path == expected {
+            CloseHandle(snapshot);
+            return Ok(Some(entry.modBaseAddr as usize));
+        }
+        has_entry = Module32NextW(snapshot, &mut entry) != 0;
+    }
+    CloseHandle(snapshot);
+    Ok(None)
+}
+
+#[cfg(debug_assertions)]
+fn normalize_windows_path(path: &str) -> String {
+    path.strip_prefix(r"\\?\")
+        .unwrap_or(path)
+        .replace('/', "\\")
+        .to_ascii_lowercase()
+}
+
 fn wide_null(value: &OsStr) -> Vec<u16> {
     value.encode_wide().chain(std::iter::once(0)).collect()
 }
 
 unsafe fn as_bytes<T>(values: &[T]) -> &[u8] {
     std::slice::from_raw_parts(values.as_ptr().cast(), std::mem::size_of_val(values))
+}
+
+#[cfg(all(test, debug_assertions))]
+mod tests {
+    use super::normalize_windows_path;
+
+    #[test]
+    fn normalizes_extended_windows_paths_for_module_matching() {
+        assert_eq!(
+            normalize_windows_path(r"\\?\D:\Tools\GAME_BRIDGE_PAYLOAD.dll"),
+            normalize_windows_path(r"d:/tools/game_bridge_payload.dll")
+        );
+    }
 }

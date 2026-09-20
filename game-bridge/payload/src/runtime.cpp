@@ -85,6 +85,17 @@ void Runtime::stop() {
   }
 }
 
-bool Runtime::is_restartable() const noexcept { return stopped_; }
+bool Runtime::is_restartable() const noexcept {
+  if (stopped_) return true;
+
+  // A crashed or hot-restarted desktop host cannot call bridge_shutdown. Only
+  // reclaim its runtime after Windows confirms that the recorded owner exited.
+  if (args_.owner_process_id == 0) return false;
+  const auto owner = OpenProcess(SYNCHRONIZE, FALSE, args_.owner_process_id);
+  if (!owner) return GetLastError() == ERROR_INVALID_PARAMETER;
+  const auto wait_result = WaitForSingleObject(owner, 0);
+  CloseHandle(owner);
+  return wait_result == WAIT_OBJECT_0;
+}
 
 }  // namespace bridge

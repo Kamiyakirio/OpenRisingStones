@@ -158,6 +158,19 @@ pub struct PlayerInventorySnapshot {
     pub armoire: ArmoireSnapshot,
 }
 
+/// One bounded chat event copied from the game's native log pipeline.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatMessageSnapshot {
+    pub sequence: u64,
+    pub timestamp: i32,
+    pub log_kind: u16,
+    pub source_kind: u8,
+    pub target_kind: u8,
+    pub sender: String,
+    pub message: String,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RegionTarget {
@@ -179,6 +192,7 @@ pub enum Command {
     ReturnToTitle,
     SwitchRegion { target: RegionTarget },
     TriggerLogin,
+    SendChat { message: String },
     Shutdown,
 }
 

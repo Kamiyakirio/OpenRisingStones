@@ -8,11 +8,16 @@
 namespace bridge {
 
 inline constexpr std::uint32_t kSharedMagic = 0x4742524F;
-inline constexpr std::uint32_t kSharedAbiVersion = 4;
+inline constexpr std::uint32_t kSharedAbiVersion = 5;
 inline constexpr std::size_t kMaximumSharedContainers = 18;
 inline constexpr std::size_t kMaximumSharedItems = 1024;
 inline constexpr std::size_t kMaximumSharedDresserItems = 800;
 inline constexpr std::size_t kArmoireUnlockWordCount = 160;
+inline constexpr std::size_t kMaximumSharedChatEvents = 128;
+inline constexpr std::size_t kMaximumSharedChatSenderBytes = 256;
+inline constexpr std::size_t kMaximumSharedChatMessageBytes = 1024;
+inline constexpr std::uint32_t kChatCapabilityRead = 1U << 0;
+inline constexpr std::uint32_t kChatCapabilitySend = 1U << 1;
 
 enum class SharedPayloadState : std::uint32_t {
   Initializing = 0,
@@ -32,6 +37,7 @@ enum class SharedCommandKind : std::uint32_t {
   Shutdown = 7,
   CaptureGameState = 8,
   LogoutToTitle = 9,
+  SendChat = 10,
 };
 
 enum class SharedResponseStatus : std::uint32_t {
@@ -131,6 +137,10 @@ struct SharedGameApi final {
   std::uint64_t get_ui_module{};
   std::uint64_t get_agent_by_internal_id{};
   std::uint64_t utf8_set_string{};
+  std::uint64_t utf8_ctor{};
+  std::uint64_t utf8_dtor{};
+  std::uint64_t rapture_log_print_message{};
+  std::uint64_t process_chat_box_entry{};
   std::uint64_t release_lobby_context{};
   std::uint64_t return_to_title{};
   std::uint64_t handle_logout{};
@@ -138,6 +148,11 @@ struct SharedGameApi final {
   std::uint64_t get_component_button_by_id{};
   std::uint64_t cabinet_instance{};
   SharedGameLayout layout;
+};
+
+struct SharedSendChat final {
+  std::uint32_t message_length{};
+  std::array<char, kMaximumSharedChatMessageBytes> message{};
 };
 
 struct SharedSwitchRegion final {
@@ -158,6 +173,19 @@ struct SharedCommand final {
   SharedCommandKind kind{SharedCommandKind::None};
   std::uint32_t reserved{};
   SharedSwitchRegion switch_region;
+  SharedSendChat send_chat;
+};
+
+struct SharedChatEvent final {
+  alignas(8) std::uint64_t sequence{};
+  std::int32_t timestamp{};
+  std::uint16_t log_kind{};
+  std::uint8_t source_kind{};
+  std::uint8_t target_kind{};
+  std::uint32_t sender_length{};
+  std::uint32_t message_length{};
+  std::array<char, kMaximumSharedChatSenderBytes> sender{};
+  std::array<char, kMaximumSharedChatMessageBytes> message{};
 };
 
 struct SharedGameSnapshot final {
@@ -270,22 +298,30 @@ struct SharedBridge final {
   std::uint32_t abi_version{};
   std::uint32_t struct_size{};
   std::uint32_t payload_state{};
+  std::uint32_t chat_capabilities{};
+  std::uint32_t header_reserved{};
   alignas(8) std::uint64_t heartbeat{};
   alignas(8) std::uint64_t request_sequence{};
   alignas(8) std::uint64_t response_sequence{};
   alignas(8) std::uint64_t snapshot_sequence{};
+  alignas(8) std::uint64_t chat_write_sequence{};
+  alignas(8) std::uint64_t chat_read_sequence{};
+  alignas(8) std::uint64_t chat_dropped_count{};
   std::array<char, 64> fatal_code{};
   std::array<char, 256> fatal_message{};
   SharedGameApi game_api;
   SharedCommand command;
   SharedResponse response;
   SharedGameSnapshot latest_snapshot;
+  std::array<SharedChatEvent, kMaximumSharedChatEvents> chat_events{};
 };
 
 static_assert(sizeof(SharedSwitchRegion) == 4948);
 static_assert(sizeof(SharedGameLayout) == 308);
-static_assert(sizeof(SharedGameApi) == 432);
-static_assert(sizeof(SharedCommand) == 4968);
+static_assert(sizeof(SharedGameApi) == 464);
+static_assert(sizeof(SharedSendChat) == 1028);
+static_assert(sizeof(SharedCommand) == 5992);
+static_assert(sizeof(SharedChatEvent) == 1304);
 static_assert(sizeof(SharedGameSnapshot) == 88);
 static_assert(sizeof(SharedActiveCharacter) == 128);
 static_assert(sizeof(SharedGameState) == 12);
@@ -293,6 +329,6 @@ static_assert(sizeof(SharedInventoryItem) == 48);
 static_assert(sizeof(SharedInventoryContainer) == 52);
 static_assert(sizeof(SharedInventorySnapshot) == 57144);
 static_assert(sizeof(SharedResponse) == 57712);
-static_assert(sizeof(SharedBridge) == 63568);
+static_assert(sizeof(SharedBridge) == 231568);
 
 }  // namespace bridge
