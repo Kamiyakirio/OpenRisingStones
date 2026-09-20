@@ -6,6 +6,7 @@ import { GlamourPage } from "../../pages/GlamourPage";
 import { HomePage } from "../../pages/HomePage";
 import { RecruitPage } from "../../pages/RecruitPage";
 import { TeleportPage } from "../../pages/TeleportPage";
+import { ChatPage } from "../../pages/ChatPage";
 import type { AppController } from "../hooks/useAppController";
 import { lazy, Suspense } from "react";
 import { GearingErrorBoundary } from "../../features/gearing/components/GearingErrorBoundary";
@@ -26,10 +27,10 @@ const GearingBenchmarkPage = __DEBUG_BUILD__
       })),
     )
   : null;
-const LogManagerPage = __DEBUG_BUILD__
+const DebugPage = __DEBUG_BUILD__
   ? lazy(() =>
-      import("../../pages/LogManagerPage").then((module) => ({
-        default: module.LogManagerPage,
+      import("../../pages/DebugPage").then((module) => ({
+        default: module.DebugPage,
       })),
     )
   : null;
@@ -64,6 +65,7 @@ export function AppView({ viewModel }: AppViewProps) {
             onOpenTeleport={viewModel.openTeleport}
             onOpenGearing={viewModel.openGearing}
             onOpenFishing={viewModel.openFishing}
+            onOpenChat={viewModel.openChat}
           />
         ) : viewModel.activeFeature === "fishing" ? (
           <Suspense fallback={<p role="status">正在加载钓鱼数据库…</p>}>
@@ -82,10 +84,12 @@ export function AppView({ viewModel }: AppViewProps) {
               <GearingBenchmarkPage onBack={viewModel.openGearing} />
             </Suspense>
           </GearingErrorBoundary>
-        ) : viewModel.activeFeature === "logs" && LogManagerPage ? (
-          <Suspense fallback={<p role="status">正在加载日志…</p>}>
-            <LogManagerPage onBack={viewModel.goHome} />
+        ) : viewModel.activeFeature === "debug" && DebugPage ? (
+          <Suspense fallback={<p role="status">正在加载调试工具…</p>}>
+            <DebugPage />
           </Suspense>
+        ) : viewModel.activeFeature === "chat" ? (
+          <ChatPage />
         ) : viewModel.activeFeature === "glamour" ? (
           <GlamourPage
             dark={viewModel.dark}
@@ -132,7 +136,8 @@ export function AppView({ viewModel }: AppViewProps) {
       </div>
       {(viewModel.activeFeature === "home" ||
         viewModel.activeFeature === "gearing" ||
-        viewModel.activeFeature === "fishing") &&
+        viewModel.activeFeature === "fishing" ||
+        viewModel.activeFeature === "chat") &&
         viewModel.loginOpen && (
           <LoginDialog
             onClose={viewModel.closeLogin}
@@ -143,7 +148,6 @@ export function AppView({ viewModel }: AppViewProps) {
         <SettingsDialog
           onClose={viewModel.closeSettings}
           onOpenGearingBenchmark={viewModel.openGearingBenchmark}
-          onOpenLogs={viewModel.openLogs}
         />
       )}
     </div>

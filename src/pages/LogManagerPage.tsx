@@ -1,7 +1,6 @@
 /** Debug-only session log browser with operation details and native export. */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   CaretDown,
   CaretRight,
   DownloadSimple,
@@ -31,7 +30,7 @@ import "./LogManagerPage.css";
 type DetailTab =
   "headers" | "params" | "request" | "response" | "input" | "output";
 
-export function LogManagerPage({ onBack }: { onBack: () => void }) {
+export function LogManagerPage() {
   const [logs, setLogs] = useState<LogSummary[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<LogEntry | null>(null);
@@ -217,13 +216,10 @@ export function LogManagerPage({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <main className="log-manager">
+    <section className="log-manager" aria-labelledby="debug-log-title">
       <header className="log-manager-heading">
         <div>
-          <button className="log-back" type="button" onClick={onBack}>
-            <ArrowLeft aria-hidden="true" /> 返回首页
-          </button>
-          <h1>日志管理</h1>
+          <h2 id="debug-log-title">运行日志</h2>
           <p>
             仅记录本次 Debug 运行；退出后自动删除。原始内容可能含有账号凭据。
           </p>
@@ -396,7 +392,7 @@ export function LogManagerPage({ onBack }: { onBack: () => void }) {
           )}
         </section>
       </div>
-    </main>
+    </section>
   );
 }
 

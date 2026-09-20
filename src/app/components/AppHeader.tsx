@@ -1,5 +1,7 @@
 /** Shared application identity, navigation, theme, and account controls. */
 import {
+  ChatCircleDots,
+  Bug,
   CoatHanger,
   FishSimple,
   GearSix,
@@ -46,14 +48,16 @@ export function AppHeader({
       ?.querySelector('[aria-current="page"]')
       ?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [feature]);
-  const destinations = [
+  const destinations: Array<[ActiveFeature, string, typeof House]> = [
     ["home", "首页", House],
     ["recruit", "招募", UsersThree],
     ["glamour", "幻化", CoatHanger],
     ["teleport", "超域传送", MapTrifold],
     ["gearing", "配装", Sword],
     ["fishing", "钓鱼数据库", FishSimple],
-  ] satisfies Array<[ActiveFeature, string, typeof House]>;
+    ["chat", "手机聊天", ChatCircleDots],
+  ];
+  if (__DEBUG_BUILD__) destinations.push(["debug", "调试", Bug]);
   return (
     <header className="app-header">
       <div className="app-header-bar">

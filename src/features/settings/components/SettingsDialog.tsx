@@ -5,7 +5,6 @@ import {
   Database,
   GearSix,
   Gauge,
-  ListMagnifyingGlass,
   SpinnerGap,
   Trash,
   WarningCircle,
@@ -17,13 +16,11 @@ import { useSettingsDialog } from "../hooks/useSettingsDialog";
 type SettingsDialogProps = {
   onClose: () => void;
   onOpenGearingBenchmark: () => void;
-  onOpenLogs: () => void;
 };
 
 export function SettingsDialog({
   onClose,
   onOpenGearingBenchmark,
-  onOpenLogs,
 }: SettingsDialogProps) {
   const viewModel = useSettingsDialog(onClose);
   const closeDialog = viewModel.close;
@@ -110,23 +107,6 @@ export function SettingsDialog({
 
               {__DEBUG_BUILD__ && (
                 <div className="settings-debug-tools">
-                  <div className="settings-debug-action">
-                    <div>
-                      <strong>日志管理</strong>
-                      <p>查看本次运行的网络、命令和游戏桥接记录。</p>
-                    </div>
-                    <button
-                      className="settings-debug-button"
-                      type="button"
-                      onClick={() => {
-                        closeDialog();
-                        onOpenLogs();
-                      }}
-                    >
-                      <ListMagnifyingGlass />
-                      打开日志
-                    </button>
-                  </div>
                   <div className="settings-debug-action">
                     <div>
                       <strong>配装 Benchmark</strong>

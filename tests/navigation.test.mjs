@@ -10,6 +10,7 @@ test("browser history returning to the initial URL selects home", () => {
     "teleport",
     "gearing",
     "fishing",
+    "chat",
   ]) {
     assert.equal(featureFromHash("", previous), "home");
     assert.equal(featureFromHash("#home", previous), "home");
@@ -23,6 +24,7 @@ test("explicit feature links select their destination", () => {
     "teleport",
     "gearing",
     "fishing",
+    "chat",
   ]) {
     assert.equal(featureFromHash(`#${feature}`, "home"), feature);
   }
@@ -34,7 +36,9 @@ test("debug-only tool hashes require an explicit debug build", () => {
     "gearing-benchmark",
   );
   assert.equal(featureFromHash("#gearing-benchmark", "home", false), "home");
-  assert.equal(featureFromHash("#logs", "home", true), "logs");
+  assert.equal(featureFromHash("#debug", "home", true), "debug");
+  assert.equal(featureFromHash("#logs", "home", true), "debug");
+  assert.equal(featureFromHash("#debug", "home", false), "home");
   assert.equal(featureFromHash("#logs", "home", false), "home");
 });
 

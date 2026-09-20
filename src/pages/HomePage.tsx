@@ -1,6 +1,7 @@
 /** Compact feature directory inside the shared application frame. */
 import {
   ArrowRight,
+  ChatCircleDots,
   CoatHanger,
   FishSimple,
   MapTrifold,
@@ -15,6 +16,7 @@ type HomePageProps = {
   onOpenTeleport: () => void;
   onOpenGearing: () => void;
   onOpenFishing: () => void;
+  onOpenChat: () => void;
 };
 
 export function HomePage({
@@ -23,6 +25,7 @@ export function HomePage({
   onOpenTeleport,
   onOpenGearing,
   onOpenFishing,
+  onOpenChat,
 }: HomePageProps) {
   const features = [
     {
@@ -54,6 +57,12 @@ export function HomePage({
       description: "查询鱼类、钓获条件，记录钓鱼进度",
       icon: FishSimple,
       open: onOpenFishing,
+    },
+    {
+      name: "手机聊天",
+      description: "在手机查看游戏对话并发送普通聊天文字",
+      icon: ChatCircleDots,
+      open: onOpenChat,
     },
   ];
   return (

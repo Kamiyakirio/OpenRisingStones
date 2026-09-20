@@ -15,26 +15,14 @@
   padding-bottom: 18px;
 }
 
-.log-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: 0;
-  padding: 0;
-  color: var(--ors-color-accent);
-  background: none;
-  font-size: 13px;
-}
-
-.log-back svg,
 .log-actions svg,
 .log-binary-download svg {
   width: 16px;
   height: 16px;
 }
 
-.log-manager-heading h1 {
-  margin: 10px 0 2px;
+.log-manager-heading h2 {
+  margin: 0 0 2px;
 }
 
 .log-manager-heading p,

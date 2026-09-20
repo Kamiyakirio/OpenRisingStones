@@ -34,6 +34,10 @@ export function useAppController() {
     () => navigateToFeature(setActiveFeature, "fishing"),
     [],
   );
+  const openChat = useCallback(
+    () => navigateToFeature(setActiveFeature, "chat"),
+    [],
+  );
   const goHome = useCallback(
     () => navigateToFeature(setActiveFeature, "home"),
     [],
@@ -46,8 +50,8 @@ export function useAppController() {
     () => navigateToFeature(setActiveFeature, "gearing-benchmark"),
     [],
   );
-  const openLogs = useCallback(
-    () => navigateToFeature(setActiveFeature, "logs"),
+  const openDebug = useCallback(
+    () => navigateToFeature(setActiveFeature, "debug"),
     [],
   );
   useEffect(() => {
@@ -86,8 +90,9 @@ export function useAppController() {
     openTeleport,
     openGearing,
     openGearingBenchmark,
-    openLogs,
+    openDebug,
     openFishing,
+    openChat,
     goHome,
     toggleTheme,
     openSettings,
