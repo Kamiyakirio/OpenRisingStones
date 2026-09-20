@@ -20,6 +20,10 @@ what an adventurer is, celebrate routine clicks, or add a story around navigatio
 - Keep implementation vocabulary in diagnostic details, not primary UI messages.
 - Give buttons an object where context does not already supply it. Do not repeat
   a feature title, description, and identical action label inside every small row.
+- Risk copy names the action, the concrete consequence, and the available
+  alternative. Never ask users to accept unspecified or “all possible” risks.
+- Empty states name the unmatched condition and the next useful action. Avoid
+  filler such as “try again” when the control already says what can be changed.
 
 ## Home
 

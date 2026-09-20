@@ -65,7 +65,7 @@ export function EquivalentEquipmentSelector({
             disabled={!eligibleCount}
             onClick={onSelectAll}
           >
-            一键查询所有同模装备幻化
+            查询全部同模装备的幻化
           </button>
           {selectedIds.length > 0 && (
             <button
@@ -126,9 +126,7 @@ export function EquivalentEquipmentSelector({
                 onToggle={onToggle}
               />
             )}
-            <p>
-              勾选变化会自动更新幻化展示。列表超过上限时可选择其中任意 10 件。
-            </p>
+            <p>选择后立即更新幻化投稿，最多选择 10 件。</p>
           </div>
         </details>
       ) : status === "ready" ? (

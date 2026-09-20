@@ -70,7 +70,7 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
           <RecruitStatus
             icon={<WarningCircle weight="duotone" />}
             title="招募列表暂时无法读取"
-            description="请检查网络连接后重新加载。"
+            description="请重新加载。"
             technicalDetails={viewModel.error}
             action="重新加载"
             onAction={viewModel.retry}
@@ -79,7 +79,7 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
           <RecruitStatus
             icon={<MagnifyingGlass weight="duotone" />}
             title="没有找到符合条件的招募"
-            description="调整副本或招募大区后再试。"
+            description="调整副本或招募大区。"
             action="清除筛选"
             onAction={viewModel.clearFilters}
           />

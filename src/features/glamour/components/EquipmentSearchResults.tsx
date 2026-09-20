@@ -156,7 +156,7 @@ export function EquipmentSearchResults({
             <div className="equipment-page-state" role="status">
               <MagnifyingGlass />
               <h2>没有找到可装备物品</h2>
-              <p>返回后换一个装备名称再试。</p>
+              <p>返回后修改装备名称。</p>
               <button type="button" onClick={onBack}>
                 修改搜索
               </button>

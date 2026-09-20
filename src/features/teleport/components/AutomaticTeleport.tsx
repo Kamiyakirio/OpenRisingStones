@@ -58,7 +58,7 @@ export function AutomaticProgress({
   stage: TeleportWorkspaceState["automaticStage"];
 }) {
   const copy = {
-    idle: "正在准备自动流程",
+    idle: "正在准备",
     connecting: "正在连接游戏进程",
     reading_character: "正在读取并核对当前角色",
     awaiting_logout_confirmation: "正在等待退出确认",
@@ -67,7 +67,7 @@ export function AutomaticProgress({
     waiting_order: "正在等待官方订单完成",
     switching_region: "正在准备目标大区连接",
     ready: "目标大区已经准备完成",
-    failed: "自动流程已经停止",
+    failed: "自动操作已停止",
   } satisfies Record<TeleportWorkspaceState["automaticStage"], string>;
   return (
     <div className="teleport-progress-overlay" role="status">
@@ -75,7 +75,7 @@ export function AutomaticProgress({
         <SpinnerGap className="spin" />
         <span>自动模式</span>
         <h2>{copy[stage]}</h2>
-        <p>所有提示均显示在当前外部窗口中。</p>
+        <p>进度和确认都在当前窗口显示。</p>
       </div>
     </div>
   );

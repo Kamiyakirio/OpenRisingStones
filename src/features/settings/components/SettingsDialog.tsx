@@ -87,7 +87,7 @@ export function SettingsDialog({
                 </span>
                 <div>
                   <h3 id="local-data-title">本地数据</h3>
-                  <p>管理保存在这台设备上的账号凭据与应用偏好。</p>
+                  <p>查看或清除这台设备上的登录凭据和应用数据。</p>
                 </div>
               </div>
 

@@ -284,7 +284,7 @@ export function FishingPage() {
                       ? "还没有符合条件的收藏"
                       : "没有符合条件的鱼类"}
                   </h2>
-                  <p>试试其他鱼名、放宽条件，或清除筛选后浏览图鉴。</p>
+                  <p>修改鱼名或筛选条件。</p>
                   <button onClick={() => vm.changeFilters(initialFilters)}>
                     清除筛选
                   </button>

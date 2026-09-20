@@ -28,9 +28,7 @@ export function NewGearset({
   return (
     <main className="gear-editor gear-start">
       <h1>新建配装</h1>
-      <p className="gear-muted">
-        选择要配装的职业，也可以导入已有方案。完成后点击“保存方案”。
-      </p>
+      <p className="gear-muted">选择职业开始配装，或导入已有方案。</p>
       {state.migrationIssue && (
         <p role="alert">
           旧配装暂时无法恢复，原始草稿已保留。可以选择职业创建新方案。

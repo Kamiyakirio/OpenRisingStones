@@ -14,13 +14,13 @@ export function AdvancedRecruitRiskDialog({
 }: AdvancedRecruitRiskDialogProps) {
   return (
     <RiskDialog
-      title="使用高级筛选前请确认风险"
+      title="高级筛选会发起较多请求"
       items={[
-        "本功能将涉及对石之家 API 的高频率自动化请求。",
-        "虽然已在代码中加入频控，但仍然可能有无法预见的后果。",
-        "使用该功能默认已知晓一切可能后果。",
+        "高级筛选会自动读取多页招募列表与详情，请求量高于普通招募列表。",
+        "应用会限制请求频率，但石之家仍可能触发访问限制。",
+        "出现访问限制后，应用会暂停请求并等待自动重试。",
       ]}
-      confirmLabel="同意并初始化"
+      confirmLabel="确认并加载"
       storageError={storageError}
       onConfirm={onAgree}
       onCancel={onCancel}

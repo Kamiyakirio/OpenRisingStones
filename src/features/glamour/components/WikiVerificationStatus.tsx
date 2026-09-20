@@ -53,7 +53,7 @@ export function WikiVerificationStatus({
         <small>
           {needsInteraction
             ? `显示验证面板以继续读取“${itemName}”`
-            : "验证在后台标签中运行，不会打断当前操作"}
+            : "验证标签页已在后台打开"}
         </small>
       </span>
       <div>

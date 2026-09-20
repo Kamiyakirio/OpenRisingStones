@@ -102,8 +102,8 @@ export function TeleportWorkspace({
               </strong>
               <small>
                 {viewModel.mode === "manual"
-                  ? "保持官方网页操作链路，不连接游戏进程。"
-                  : "由桌面端读取角色、返回标题并准备目标大区连接。"}
+                  ? "通过官方接口提交，不读取游戏进程。"
+                  : "读取当前角色，完成后准备目标大区连接。"}
               </small>
             </div>
             <div role="group" aria-label="选择操作模式">
@@ -254,7 +254,7 @@ export function TeleportWorkspace({
                     <SelectField
                       label="目标服务器（可选）"
                       value={viewModel.selectedTargetGroupId}
-                      placeholder="由系统在该大区内选择"
+                      placeholder="自动选择大区内服务器"
                       disabled={!viewModel.selectedTargetArea}
                       options={(viewModel.selectedTargetArea?.groups ?? []).map(
                         (group) => ({
@@ -381,17 +381,13 @@ export function TeleportWorkspace({
 
       {viewModel.automaticRiskOpen && (
         <RiskDialog
-          title="使用自动模式前请确认风险"
+          title="自动模式会操作游戏客户端"
           items={[
-            "本功能需要进行对游戏程序的注入。",
-            "在大多数语境下，该行为被视同开挂/使用外部辅助程序。",
-            "进行下一步前，您需要确认是否确实要使用该功能。",
+            "自动模式会向当前 FF14 进程注入组件，用于读取角色状态、退出当前角色并准备目标大区连接。",
+            "进程注入可能被视为使用外部辅助程序，使用后果由你自行承担。",
+            "提交前会显示角色和目标大区，退出游戏前还会再次确认。",
           ]}
-          description={
-            <p>
-              我们不建议任何对外部辅助程序抱有无法接受的态度的使用者使用该功能。
-            </p>
-          }
+          description={<p>不接受上述风险时，请使用手动模式。</p>}
           confirmLabel="确认使用自动模式"
           onConfirm={viewModel.confirmAutomaticRisk}
           onCancel={viewModel.cancelAutomaticRisk}

@@ -301,15 +301,15 @@ function CookieRiskGate({
         <ShieldWarning weight="fill" />
         <div>
           <span>高级登录方式</span>
-          <h3>使用 Cookie 前请确认风险</h3>
+          <h3>Cookie 登录的影响</h3>
         </div>
       </div>
       <div className="cookie-warning" role="note">
         <ShieldWarning weight="fill" />
         <div>
-          <strong>此功能仅面向了解 Cookie 的用户</strong>
-          <p>这是为知道如何使用此功能的用户准备的，默认已知晓所有安全风险。</p>
-          <p>如不了解此方面，请勿使用此种方法登录。</p>
+          <strong>请先确认以下影响</strong>
+          <p>此方式需要你自行获取 Cookie 和 User-Agent。</p>
+          <p>登录后，原浏览器中的石之家登录状态会失效。</p>
         </div>
       </div>
       <label className="risk-checkbox risk-checkbox-panel">
@@ -318,7 +318,7 @@ function CookieRiskGate({
           checked={accepted}
           onChange={(event) => onAcceptedChange(event.target.checked)}
         />
-        <span>我已知晓安全风险</span>
+        <span>我已了解上述影响</span>
       </label>
       <button
         className="login-primary"
@@ -326,7 +326,7 @@ function CookieRiskGate({
         disabled={!accepted}
         onClick={onContinue}
       >
-        我已了解，继续使用
+        继续使用 Cookie 登录
       </button>
     </div>
   );
@@ -360,10 +360,10 @@ function CookieLoginForm({
       <div className="cookie-form-heading">
         <div>
           <h3>粘贴已有 Cookie</h3>
-          <p>验证成功后，会话会由系统安全存储加密保留在本机。</p>
+          <p>登录信息会加密保存在系统安全存储中。</p>
         </div>
         <button type="button" onClick={onReviewRisk}>
-          查看风险说明
+          查看影响说明
         </button>
       </div>
       <div className="curl-import">
@@ -530,12 +530,12 @@ function LoginSuccess({
   return (
     <div className="login-success" role="status">
       <CheckCircle weight="fill" />
-      <span>登录状态已验证</span>
+      <span>登录成功</span>
       <h3>{profile.characterName || profile.displayAccount}</h3>
       {location && <p>{location}</p>}
       <div className="verified-label">
         <UserCircleCheck />
-        石之家已返回有效登录信息
+        已获取石之家账号与角色信息
       </div>
       <button className="login-primary" type="button" onClick={onDone}>
         完成
