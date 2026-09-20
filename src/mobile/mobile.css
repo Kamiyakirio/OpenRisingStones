@@ -1,0 +1,330 @@
+:root {
+  color: #302d28;
+  background: #e8e1d6;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#mobile-root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: #e8e1d6;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #7a5816;
+  outline-offset: 2px;
+}
+
+::selection {
+  color: #302d28;
+  background: #dfc98f;
+}
+
+.mobile-chat-shell {
+  display: grid;
+  grid-template-rows: auto auto minmax(16rem, 1fr) auto;
+  width: min(100%, 46rem);
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: #fcfaf6;
+  border-inline: 1px solid #d5cdc1;
+}
+
+.mobile-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(1rem + env(safe-area-inset-top)) 1.1rem 0.9rem;
+  border-bottom: 1px solid #ddd6ca;
+}
+
+.mobile-chat-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.mobile-chat-header p {
+  margin: 0.1rem 0 0;
+  color: #686158;
+  font-size: 0.72rem;
+}
+
+.mobile-chat-connection {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  color: #686158;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.mobile-chat-connection::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  content: "";
+  background: #795400;
+  border-radius: 50%;
+}
+
+.mobile-chat-connection[data-state="online"]::before {
+  background: #246b4c;
+}
+
+.mobile-chat-connection[data-state="error"]::before,
+.mobile-chat-connection[data-state="disconnected"]::before {
+  background: #aa3937;
+}
+
+.mobile-chat-notice {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0.8rem 1rem 0;
+  padding: 0.7rem 0.8rem;
+  color: #654900;
+  background: #f4ead2;
+  border: 1px solid #d6c28c;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.mobile-chat-notice[data-state="online"] {
+  color: #245840;
+  background: #e7f0e9;
+  border-color: #adc7b5;
+}
+
+.mobile-chat-notice[data-state="error"],
+.mobile-chat-notice[data-state="disconnected"] {
+  color: #8b302f;
+  background: #f7e8e5;
+  border-color: #ddb5b0;
+}
+
+.mobile-chat-notice svg {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.12rem;
+}
+
+.mobile-chat-ledger {
+  min-height: 0;
+  padding: 0.85rem 1rem 1.4rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #b4aa9d transparent;
+}
+
+.mobile-chat-empty {
+  display: grid;
+  min-height: 15rem;
+  color: #817a70;
+  text-align: center;
+  place-content: center;
+}
+
+.mobile-chat-empty svg {
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto 0.65rem;
+  color: #8a8175;
+}
+
+.mobile-chat-empty strong {
+  color: #4f4942;
+  font-size: 0.95rem;
+}
+
+.mobile-chat-empty span {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.mobile-chat-message {
+  padding: 0.68rem 0;
+  border-bottom: 1px solid #e7e1d8;
+}
+
+.mobile-chat-message > div {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin-bottom: 0.18rem;
+}
+
+.mobile-chat-message strong {
+  color: #6d5014;
+  font-size: 0.8rem;
+}
+
+.mobile-chat-message span,
+.mobile-chat-message time {
+  color: #817a70;
+  font-size: 0.67rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-chat-message p {
+  margin: 0;
+  color: #302d28;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.mobile-chat-composer {
+  position: sticky;
+  bottom: 0;
+  padding: 0.8rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: #f5f2eb;
+  border-top: 1px solid #d5cdc1;
+}
+
+.mobile-chat-composer > label {
+  display: block;
+  margin-bottom: 0.42rem;
+  color: #686158;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.mobile-chat-compose-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.mobile-chat-compose-row textarea {
+  width: 100%;
+  min-height: 3rem;
+  max-height: 7.5rem;
+  padding: 0.68rem 0.75rem;
+  resize: vertical;
+  color: #302d28;
+  background: #fcfaf6;
+  border: 1px solid #8a8175;
+  border-radius: 8px;
+  line-height: 1.45;
+}
+
+.mobile-chat-compose-row textarea::placeholder {
+  color: #777067;
+}
+
+.mobile-chat-compose-row > button {
+  display: grid;
+  min-width: 4rem;
+  padding: 0.4rem 0.75rem;
+  color: #fff;
+  background: #7a5816;
+  border: 1px solid #7a5816;
+  border-radius: 8px;
+  place-content: center;
+}
+
+.mobile-chat-compose-row > button:hover:not(:disabled) {
+  background: #6d5014;
+}
+
+.mobile-chat-compose-row > button:disabled,
+.mobile-chat-compose-row textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.mobile-chat-compose-row > button svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0 auto 0.16rem;
+}
+
+.mobile-chat-compose-row > button span {
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.mobile-chat-input-error {
+  margin: 0.4rem 0 0;
+  color: #aa3937;
+  font-size: 0.72rem;
+}
+
+.mobile-chat-input-note {
+  margin: 0.4rem 0 0;
+  color: #795400;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.mobile-chat-compose-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.45rem;
+  color: #686158;
+  font-size: 0.68rem;
+}
+
+.mobile-chat-compose-meta > span[data-invalid="true"] {
+  color: #aa3937;
+  font-weight: 700;
+}
+
+.mobile-chat-compose-meta button {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0;
+  color: #6d5014;
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.mobile-chat-compose-meta button:disabled {
+  color: #817a70;
+  cursor: not-allowed;
+}
+
+@media (min-width: 46rem) {
+  .mobile-chat-shell {
+    min-height: calc(100dvh - 2rem);
+    margin-block: 1rem;
+    border: 1px solid #d5cdc1;
+    border-radius: 12px;
+    box-shadow: 0 1.5rem 4rem rgba(62, 50, 37, 0.14);
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}

@@ -9,7 +9,7 @@
     "predev": "node scripts/check-gearing-data.mjs && node scripts/check-fishing-data.mjs",
     "dev": "vite",
     "prebuild": "node scripts/check-gearing-data.mjs && node scripts/check-fishing-data.mjs",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && vite build --config vite.mobile.config.ts",
     "lint": "eslint .",
     "pretest": "node scripts/check-gearing-data.mjs && node scripts/check-fishing-data.mjs",
     "test": "node --test tests/*.test.mjs",
