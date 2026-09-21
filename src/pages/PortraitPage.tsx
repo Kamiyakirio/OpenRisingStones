@@ -525,6 +525,10 @@ function PortraitError({ code }: { code: string }) {
       title: "肖像仍在载入",
       message: "请稍候。",
     },
+    portrait_ui_unavailable: {
+      title: "游戏光照控件尚未就绪",
+      message: "请保持游戏内肖像编辑器打开后重新读取。",
+    },
     unsupported_platform: {
       title: "仅支持 Windows",
       message: "请使用 Windows 桌面版。",

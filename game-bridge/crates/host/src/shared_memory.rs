@@ -27,7 +27,7 @@ use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcess, PROC
 
 // Must match kSharedMagic in the native shared_bridge.hpp contract.
 const SHARED_MAGIC: u32 = 0x4742_524F;
-const SHARED_ABI_VERSION: u32 = 6;
+const SHARED_ABI_VERSION: u32 = 7;
 const PAYLOAD_STATE_READY: u32 = 1;
 const PAYLOAD_STATE_FAULTED: u32 = 2;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
@@ -168,6 +168,16 @@ struct SharedGameLayout {
     chara_view_portrait_character_loaded: u32,
     chara_view_directional_lighting: u32,
     chara_view_ambient_lighting: u32,
+    addon_banner_editor_ambient_color_red_slider: u32,
+    addon_banner_editor_ambient_color_green_slider: u32,
+    addon_banner_editor_ambient_color_blue_slider: u32,
+    addon_banner_editor_ambient_brightness_slider: u32,
+    addon_banner_editor_directional_color_red_slider: u32,
+    addon_banner_editor_directional_color_green_slider: u32,
+    addon_banner_editor_directional_color_blue_slider: u32,
+    addon_banner_editor_directional_brightness_slider: u32,
+    addon_banner_editor_directional_vertical_angle_slider: u32,
+    addon_banner_editor_directional_horizontal_angle_slider: u32,
 }
 
 #[repr(C)]
@@ -198,6 +208,7 @@ struct SharedGameApi {
     portrait_set_directional_brightness: u64,
     portrait_set_directional_angle: u64,
     portrait_set_has_changed: u64,
+    portrait_set_slider_value: u64,
     layout: SharedGameLayout,
 }
 
@@ -419,8 +430,8 @@ struct SharedBridge {
 }
 
 const _: [(); 4948] = [(); size_of::<SharedSwitchRegion>()];
-const _: [(); 336] = [(); size_of::<SharedGameLayout>()];
-const _: [(); 536] = [(); size_of::<SharedGameApi>()];
+const _: [(); 376] = [(); size_of::<SharedGameLayout>()];
+const _: [(); 584] = [(); size_of::<SharedGameApi>()];
 const _: [(); 1028] = [(); size_of::<SharedSendChat>()];
 const _: [(); 16] = [(); size_of::<SharedPortraitLighting>()];
 const _: [(); 6008] = [(); size_of::<SharedCommand>()];
@@ -432,7 +443,7 @@ const _: [(); 52] = [(); size_of::<SharedInventoryContainer>()];
 const _: [(); 57144] = [(); size_of::<SharedInventorySnapshot>()];
 const _: [(); 24] = [(); size_of::<SharedPortraitLightingSnapshot>()];
 const _: [(); 57736] = [(); size_of::<SharedResponse>()];
-const _: [(); 231680] = [(); size_of::<SharedBridge>()];
+const _: [(); 231728] = [(); size_of::<SharedBridge>()];
 
 pub(crate) enum SessionEvent {
     Ready {
@@ -1305,6 +1316,7 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     api.portrait_set_directional_brightness = resolve_optional("portraitSetDirectionalBrightness")?;
     api.portrait_set_directional_angle = resolve_optional("portraitSetDirectionalAngle")?;
     api.portrait_set_has_changed = resolve_optional("portraitSetHasChanged")?;
+    api.portrait_set_slider_value = resolve_optional("portraitSetSliderValue")?;
 
     macro_rules! layout {
         ($field:ident, $name:literal) => {
@@ -1427,6 +1439,46 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
         "charaViewDirectionalLighting"
     );
     optional_layout!(chara_view_ambient_lighting, "charaViewAmbientLighting");
+    optional_layout!(
+        addon_banner_editor_ambient_color_red_slider,
+        "addonBannerEditorAmbientColorRedSlider"
+    );
+    optional_layout!(
+        addon_banner_editor_ambient_color_green_slider,
+        "addonBannerEditorAmbientColorGreenSlider"
+    );
+    optional_layout!(
+        addon_banner_editor_ambient_color_blue_slider,
+        "addonBannerEditorAmbientColorBlueSlider"
+    );
+    optional_layout!(
+        addon_banner_editor_ambient_brightness_slider,
+        "addonBannerEditorAmbientBrightnessSlider"
+    );
+    optional_layout!(
+        addon_banner_editor_directional_color_red_slider,
+        "addonBannerEditorDirectionalColorRedSlider"
+    );
+    optional_layout!(
+        addon_banner_editor_directional_color_green_slider,
+        "addonBannerEditorDirectionalColorGreenSlider"
+    );
+    optional_layout!(
+        addon_banner_editor_directional_color_blue_slider,
+        "addonBannerEditorDirectionalColorBlueSlider"
+    );
+    optional_layout!(
+        addon_banner_editor_directional_brightness_slider,
+        "addonBannerEditorDirectionalBrightnessSlider"
+    );
+    optional_layout!(
+        addon_banner_editor_directional_vertical_angle_slider,
+        "addonBannerEditorDirectionalVerticalAngleSlider"
+    );
+    optional_layout!(
+        addon_banner_editor_directional_horizontal_angle_slider,
+        "addonBannerEditorDirectionalHorizontalAngleSlider"
+    );
     Ok(api)
 }
 

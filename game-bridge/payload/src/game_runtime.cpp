@@ -83,6 +83,8 @@ using SetPortraitBrightness = void(__fastcall*)(void* chara_view, std::uint8_t b
 using SetPortraitAngle = void(__fastcall*)(void* chara_view, std::int16_t vertical,
                                            std::int16_t horizontal);
 using SetPortraitChanged = void(__fastcall*)(void* editor_state, bool has_changes);
+using SetPortraitSliderValue = void(__fastcall*)(void* slider, std::int32_t value,
+                                                 bool dispatch_event_29);
 
 template <typename T>
 T read_value(const std::byte* base, std::size_t offset) {
@@ -241,11 +243,23 @@ void GameRuntime::start() {
       layout_.banner_editor_open_type && layout_.banner_editor_has_changes &&
       layout_.chara_view_portrait_character_loaded && layout_.chara_view_directional_lighting &&
       layout_.chara_view_ambient_lighting;
+  const bool portrait_slider_layout_available =
+      layout_.addon_banner_editor_ambient_color_red_slider &&
+      layout_.addon_banner_editor_ambient_color_green_slider &&
+      layout_.addon_banner_editor_ambient_color_blue_slider &&
+      layout_.addon_banner_editor_ambient_brightness_slider &&
+      layout_.addon_banner_editor_directional_color_red_slider &&
+      layout_.addon_banner_editor_directional_color_green_slider &&
+      layout_.addon_banner_editor_directional_color_blue_slider &&
+      layout_.addon_banner_editor_directional_brightness_slider &&
+      layout_.addon_banner_editor_directional_vertical_angle_slider &&
+      layout_.addon_banner_editor_directional_horizontal_angle_slider;
   std::uint32_t portrait_capabilities = portrait_layout_available ? kPortraitCapabilityRead : 0;
-  if (portrait_layout_available && addresses_.portrait_set_ambient_color &&
-      addresses_.portrait_set_ambient_brightness && addresses_.portrait_set_directional_color &&
-      addresses_.portrait_set_directional_brightness && addresses_.portrait_set_directional_angle &&
-      addresses_.portrait_set_has_changed) {
+  if (portrait_layout_available && portrait_slider_layout_available &&
+      addresses_.portrait_set_ambient_color && addresses_.portrait_set_ambient_brightness &&
+      addresses_.portrait_set_directional_color && addresses_.portrait_set_directional_brightness &&
+      addresses_.portrait_set_directional_angle && addresses_.portrait_set_has_changed &&
+      addresses_.portrait_set_slider_value) {
     portrait_capabilities |= kPortraitCapabilityWrite;
   }
   std::atomic_ref(shared_->portrait_capabilities)
@@ -525,29 +539,74 @@ CommandOutcome GameRuntime::update_portrait_lighting(void* framework,
                    "Wait for the portrait character to finish loading.");
   }
 
+  // CharaView setters update the rendered light but not the BannerEditor slider thumbs.
+  auto* ui_module = reinterpret_cast<GetUiModule>(addresses_.get_ui_module)(framework);
+  if (!ui_module) return failure("portrait_ui_unavailable", "The game UI module is unavailable.");
+  auto get_rapture_module = vtable_function<void*(__fastcall*)(void*)>(ui_module, 7);
+  auto* rapture_module = static_cast<std::byte*>(get_rapture_module(ui_module));
+  if (!rapture_module)
+    return failure("portrait_ui_unavailable", "The game UI module is unavailable.");
+  auto* unit_manager = rapture_module + layout_.rapture_atk_unit_manager;
+  auto* addon = static_cast<std::byte*>(reinterpret_cast<GetAddonByName>(
+      addresses_.get_addon_by_name)(unit_manager, "BannerEditor", 1));
+  if (!addon)
+    return failure("portrait_editor_closed",
+                   "The native portrait editor closed during the update.");
+
+  const auto slider = [addon](std::uint32_t offset) -> std::byte* {
+    auto* component = read_pointer<std::byte>(addon, offset);
+    return is_readable(component, sizeof(void*)) ? component : nullptr;
+  };
+  const std::array<std::byte*, 10> sliders{
+      slider(layout_.addon_banner_editor_ambient_color_red_slider),
+      slider(layout_.addon_banner_editor_ambient_color_green_slider),
+      slider(layout_.addon_banner_editor_ambient_color_blue_slider),
+      slider(layout_.addon_banner_editor_ambient_brightness_slider),
+      slider(layout_.addon_banner_editor_directional_color_red_slider),
+      slider(layout_.addon_banner_editor_directional_color_green_slider),
+      slider(layout_.addon_banner_editor_directional_color_blue_slider),
+      slider(layout_.addon_banner_editor_directional_brightness_slider),
+      slider(layout_.addon_banner_editor_directional_vertical_angle_slider),
+      slider(layout_.addon_banner_editor_directional_horizontal_angle_slider),
+  };
+  if (std::ranges::any_of(sliders, [](const auto* value) { return value == nullptr; })) {
+    return failure("portrait_ui_unavailable", "The native portrait sliders are unavailable.");
+  }
+  const auto set_slider =
+      reinterpret_cast<SetPortraitSliderValue>(addresses_.portrait_set_slider_value);
+
   if (update.fields & kPortraitAmbientColor) {
     reinterpret_cast<SetPortraitColor>(addresses_.portrait_set_ambient_color)(
         chara_view, update.ambient_color[0], update.ambient_color[1], update.ambient_color[2]);
+    set_slider(sliders[0], update.ambient_color[0], true);
+    set_slider(sliders[1], update.ambient_color[1], true);
+    set_slider(sliders[2], update.ambient_color[2], true);
   }
   if (update.fields & kPortraitAmbientBrightness) {
     reinterpret_cast<SetPortraitBrightness>(addresses_.portrait_set_ambient_brightness)(
         chara_view, update.ambient_brightness);
+    set_slider(sliders[3], update.ambient_brightness, true);
   }
   if (update.fields & kPortraitDirectionalColor) {
     reinterpret_cast<SetPortraitColor>(addresses_.portrait_set_directional_color)(
         chara_view, update.directional_color[0], update.directional_color[1],
         update.directional_color[2]);
+    set_slider(sliders[4], update.directional_color[0], true);
+    set_slider(sliders[5], update.directional_color[1], true);
+    set_slider(sliders[6], update.directional_color[2], true);
   }
   if (update.fields & kPortraitDirectionalBrightness) {
     reinterpret_cast<SetPortraitBrightness>(addresses_.portrait_set_directional_brightness)(
         chara_view, update.directional_brightness);
+    set_slider(sliders[7], update.directional_brightness, true);
   }
   if (update.fields & kPortraitDirectionalAngles) {
     reinterpret_cast<SetPortraitAngle>(addresses_.portrait_set_directional_angle)(
         chara_view, update.directional_vertical_angle, update.directional_horizontal_angle);
+    set_slider(sliders[8], update.directional_vertical_angle, true);
+    set_slider(sliders[9], update.directional_horizontal_angle, true);
   }
 
-  auto* ui_module = reinterpret_cast<GetUiModule>(addresses_.get_ui_module)(framework);
   auto get_agent_module = vtable_function<void*(__fastcall*)(void*)>(ui_module, 37);
   auto* agent_module = get_agent_module(ui_module);
   auto* agent = static_cast<std::byte*>(reinterpret_cast<GetAgentByInternalId>(

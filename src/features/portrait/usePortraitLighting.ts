@@ -1,4 +1,4 @@
-/** Coordinates consent, bridge preparation, polling, and debounced lighting updates. */
+/** Coordinates consent, bridge preparation, polling, and coalesced lighting updates. */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   normalizeGameBridgeError,
@@ -165,13 +165,13 @@ export function usePortraitLighting() {
         return next;
       });
       pendingFields.current |= fields;
-      if (updateTimer.current !== null) {
-        window.clearTimeout(updateTimer.current);
+      // Keep emitting the latest value while dragging without queueing every pointer event.
+      if (updateTimer.current === null && !writing.current) {
+        updateTimer.current = window.setTimeout(() => {
+          updateTimer.current = null;
+          void flushUpdate();
+        }, UPDATE_DELAY_MS);
       }
-      updateTimer.current = window.setTimeout(() => {
-        updateTimer.current = null;
-        void flushUpdate();
-      }, UPDATE_DELAY_MS);
     },
     [flushUpdate],
   );

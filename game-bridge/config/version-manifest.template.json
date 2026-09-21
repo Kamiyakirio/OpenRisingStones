@@ -150,6 +150,12 @@
       "resolve": "relative32",
       "offset": 1,
       "nextInstruction": 5
+    },
+    "portraitSetSliderValue": {
+      "pattern": "E9 ?? ?? ?? ?? 0F 29 7C 24 ?? E8",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
     }
   },
   "layout": {
@@ -236,6 +242,16 @@
     "bannerEditorHasChanges": "0x03F4",
     "charaViewPortraitCharacterLoaded": "0x0406",
     "charaViewDirectionalLighting": "0x0354",
-    "charaViewAmbientLighting": "0x035C"
+    "charaViewAmbientLighting": "0x035C",
+    "addonBannerEditorAmbientColorRedSlider": "0x0A40",
+    "addonBannerEditorAmbientColorGreenSlider": "0x0A48",
+    "addonBannerEditorAmbientColorBlueSlider": "0x0A50",
+    "addonBannerEditorAmbientBrightnessSlider": "0x0A58",
+    "addonBannerEditorDirectionalColorRedSlider": "0x0A60",
+    "addonBannerEditorDirectionalColorGreenSlider": "0x0A68",
+    "addonBannerEditorDirectionalColorBlueSlider": "0x0A70",
+    "addonBannerEditorDirectionalBrightnessSlider": "0x0A78",
+    "addonBannerEditorDirectionalVerticalAngleSlider": "0x0A80",
+    "addonBannerEditorDirectionalHorizontalAngleSlider": "0x0A88"
   }
 }

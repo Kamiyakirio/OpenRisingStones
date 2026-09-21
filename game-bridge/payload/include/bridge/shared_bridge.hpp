@@ -8,7 +8,7 @@
 namespace bridge {
 
 inline constexpr std::uint32_t kSharedMagic = 0x4742524F;
-inline constexpr std::uint32_t kSharedAbiVersion = 6;
+inline constexpr std::uint32_t kSharedAbiVersion = 7;
 inline constexpr std::size_t kMaximumSharedContainers = 18;
 inline constexpr std::size_t kMaximumSharedItems = 1024;
 inline constexpr std::size_t kMaximumSharedDresserItems = 800;
@@ -135,6 +135,16 @@ struct SharedGameLayout final {
   std::uint32_t chara_view_portrait_character_loaded{};
   std::uint32_t chara_view_directional_lighting{};
   std::uint32_t chara_view_ambient_lighting{};
+  std::uint32_t addon_banner_editor_ambient_color_red_slider{};
+  std::uint32_t addon_banner_editor_ambient_color_green_slider{};
+  std::uint32_t addon_banner_editor_ambient_color_blue_slider{};
+  std::uint32_t addon_banner_editor_ambient_brightness_slider{};
+  std::uint32_t addon_banner_editor_directional_color_red_slider{};
+  std::uint32_t addon_banner_editor_directional_color_green_slider{};
+  std::uint32_t addon_banner_editor_directional_color_blue_slider{};
+  std::uint32_t addon_banner_editor_directional_brightness_slider{};
+  std::uint32_t addon_banner_editor_directional_vertical_angle_slider{};
+  std::uint32_t addon_banner_editor_directional_horizontal_angle_slider{};
 };
 
 struct SharedGameApi final {
@@ -164,6 +174,7 @@ struct SharedGameApi final {
   std::uint64_t portrait_set_directional_brightness{};
   std::uint64_t portrait_set_directional_angle{};
   std::uint64_t portrait_set_has_changed{};
+  std::uint64_t portrait_set_slider_value{};
   SharedGameLayout layout;
 };
 
@@ -360,8 +371,8 @@ struct SharedBridge final {
 };
 
 static_assert(sizeof(SharedSwitchRegion) == 4948);
-static_assert(sizeof(SharedGameLayout) == 336);
-static_assert(sizeof(SharedGameApi) == 536);
+static_assert(sizeof(SharedGameLayout) == 376);
+static_assert(sizeof(SharedGameApi) == 584);
 static_assert(sizeof(SharedSendChat) == 1028);
 static_assert(sizeof(SharedPortraitLighting) == 16);
 static_assert(sizeof(SharedCommand) == 6008);
@@ -374,6 +385,6 @@ static_assert(sizeof(SharedInventoryContainer) == 52);
 static_assert(sizeof(SharedInventorySnapshot) == 57144);
 static_assert(sizeof(SharedPortraitLightingSnapshot) == 24);
 static_assert(sizeof(SharedResponse) == 57736);
-static_assert(sizeof(SharedBridge) == 231680);
+static_assert(sizeof(SharedBridge) == 231728);
 
 }  // namespace bridge

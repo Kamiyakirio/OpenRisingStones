@@ -34,6 +34,7 @@ struct ResolvedAddresses final {
   std::byte* portrait_set_directional_brightness{};
   std::byte* portrait_set_directional_angle{};
   std::byte* portrait_set_has_changed{};
+  std::byte* portrait_set_slider_value{};
 };
 
 [[nodiscard]] ResolvedAddresses resolve_addresses(const SharedGameApi& api);
