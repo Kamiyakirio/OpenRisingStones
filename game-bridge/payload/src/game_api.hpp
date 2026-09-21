@@ -28,6 +28,12 @@ struct ResolvedAddresses final {
   std::byte* get_addon_by_name{};
   std::byte* get_component_button_by_id{};
   std::byte* cabinet_instance{};
+  std::byte* portrait_set_ambient_color{};
+  std::byte* portrait_set_ambient_brightness{};
+  std::byte* portrait_set_directional_color{};
+  std::byte* portrait_set_directional_brightness{};
+  std::byte* portrait_set_directional_angle{};
+  std::byte* portrait_set_has_changed{};
 };
 
 [[nodiscard]] ResolvedAddresses resolve_addresses(const SharedGameApi& api);

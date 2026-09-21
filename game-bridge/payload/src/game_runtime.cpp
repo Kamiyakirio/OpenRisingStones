@@ -27,6 +27,13 @@ constexpr std::size_t kMaximumArmoireCabinetItems = 5120;
 constexpr std::size_t kMaximumChatInputBytes = 500;
 constexpr std::size_t kUnlockWordBits = std::numeric_limits<std::uint32_t>::digits;
 constexpr std::uint8_t kArmoireLoadedState = 2;
+constexpr std::uint32_t kAgentBannerEditor = 408;
+constexpr std::uint32_t kPortraitAmbientColor = 1U << 0;
+constexpr std::uint32_t kPortraitAmbientBrightness = 1U << 1;
+constexpr std::uint32_t kPortraitDirectionalColor = 1U << 2;
+constexpr std::uint32_t kPortraitDirectionalBrightness = 1U << 3;
+constexpr std::uint32_t kPortraitDirectionalAngles = 1U << 4;
+constexpr std::uint32_t kPortraitLightingAll = (1U << 5) - 1;
 
 struct InventoryDefinition final {
   std::uint32_t type;
@@ -70,6 +77,12 @@ using GetAddonByName = void*(__fastcall*)(void* unit_manager, const char* name, 
 using GetComponentButtonById = void*(__fastcall*)(void* addon, std::uint32_t node_id);
 using ReceiveEvent = void(__fastcall*)(void* addon, std::uint8_t event_type, int event_param,
                                        void* event, void* event_data);
+using SetPortraitColor = void(__fastcall*)(void* chara_view, std::uint32_t red, std::uint32_t green,
+                                           std::uint32_t blue);
+using SetPortraitBrightness = void(__fastcall*)(void* chara_view, std::uint8_t brightness);
+using SetPortraitAngle = void(__fastcall*)(void* chara_view, std::int16_t vertical,
+                                           std::int16_t horizontal);
+using SetPortraitChanged = void(__fastcall*)(void* editor_state, bool has_changes);
 
 template <typename T>
 T read_value(const std::byte* base, std::size_t offset) {
@@ -222,12 +235,28 @@ void GameRuntime::start() {
     }
   }
   std::atomic_ref(shared_->chat_capabilities).store(chat_capabilities, std::memory_order_release);
+
+  const bool portrait_layout_available =
+      layout_.agent_banner_editor_state && layout_.banner_editor_chara_view &&
+      layout_.banner_editor_open_type && layout_.banner_editor_has_changes &&
+      layout_.chara_view_portrait_character_loaded && layout_.chara_view_directional_lighting &&
+      layout_.chara_view_ambient_lighting;
+  std::uint32_t portrait_capabilities = portrait_layout_available ? kPortraitCapabilityRead : 0;
+  if (portrait_layout_available && addresses_.portrait_set_ambient_color &&
+      addresses_.portrait_set_ambient_brightness && addresses_.portrait_set_directional_color &&
+      addresses_.portrait_set_directional_brightness && addresses_.portrait_set_directional_angle &&
+      addresses_.portrait_set_has_changed) {
+    portrait_capabilities |= kPortraitCapabilityWrite;
+  }
+  std::atomic_ref(shared_->portrait_capabilities)
+      .store(portrait_capabilities, std::memory_order_release);
 }
 
 void GameRuntime::stop() {
   if (stopped_.exchange(true, std::memory_order_acq_rel)) return;
   stopping_.store(true, std::memory_order_release);
   std::atomic_ref(shared_->chat_capabilities).store(0, std::memory_order_release);
+  std::atomic_ref(shared_->portrait_capabilities).store(0, std::memory_order_release);
   if (chat_hook_target_) MH_DisableHook(chat_hook_target_);
   if (hook_target_) {
     MH_DisableHook(hook_target_);
@@ -387,6 +416,12 @@ void GameRuntime::process_shared_command(void* framework) {
         outcome = send_chat(framework, read_shared_string(source.message, source.message_length));
         break;
       }
+      case SharedCommandKind::CapturePortraitLighting:
+        outcome = capture_portrait_lighting(framework);
+        break;
+      case SharedCommandKind::UpdatePortraitLighting:
+        outcome = update_portrait_lighting(framework, shared_->command.portrait_lighting);
+        break;
       case SharedCommandKind::Shutdown:
         outcome = acknowledgement();
         break;
@@ -429,6 +464,101 @@ CommandOutcome GameRuntime::send_chat(void* framework, const std::string& messag
       ui_module, native_message.data(), 0, false);
   reinterpret_cast<Utf8Dtor>(addresses_.utf8_dtor)(native_message.data());
   return acknowledgement();
+}
+
+CommandOutcome GameRuntime::capture_portrait_lighting(void* framework) {
+  const auto capabilities =
+      std::atomic_ref(shared_->portrait_capabilities).load(std::memory_order_acquire);
+  if ((capabilities & kPortraitCapabilityRead) == 0) {
+    return failure("portrait_lighting_unsupported",
+                   "Portrait lighting is unavailable for this game version.");
+  }
+
+  PortraitLightingSnapshot snapshot;
+  auto* chara_view = get_portrait_chara_view(framework, snapshot);
+  if (!chara_view || !snapshot.character_ready) {
+    return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, std::nullopt, {}, snapshot};
+  }
+
+  const auto directional = layout_.chara_view_directional_lighting;
+  snapshot.directional_color = {
+      read_value<std::uint8_t>(chara_view, directional),
+      read_value<std::uint8_t>(chara_view, directional + 1),
+      read_value<std::uint8_t>(chara_view, directional + 2),
+  };
+  snapshot.directional_brightness = read_value<std::uint8_t>(chara_view, directional + 3);
+  snapshot.directional_vertical_angle = read_value<std::int16_t>(chara_view, directional + 4);
+  snapshot.directional_horizontal_angle = read_value<std::int16_t>(chara_view, directional + 6);
+
+  const auto ambient = layout_.chara_view_ambient_lighting;
+  snapshot.ambient_color = {
+      read_value<std::uint8_t>(chara_view, ambient),
+      read_value<std::uint8_t>(chara_view, ambient + 1),
+      read_value<std::uint8_t>(chara_view, ambient + 2),
+  };
+  snapshot.ambient_brightness = read_value<std::uint8_t>(chara_view, ambient + 3);
+  return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, std::nullopt, {}, snapshot};
+}
+
+CommandOutcome GameRuntime::update_portrait_lighting(void* framework,
+                                                     const SharedPortraitLighting& update) {
+  const auto capabilities =
+      std::atomic_ref(shared_->portrait_capabilities).load(std::memory_order_acquire);
+  if ((capabilities & kPortraitCapabilityWrite) == 0) {
+    return failure("portrait_lighting_read_only",
+                   "Portrait lighting cannot be changed with this game version.");
+  }
+  if (update.fields == 0 || (update.fields & ~kPortraitLightingAll) != 0 ||
+      update.directional_vertical_angle < -180 || update.directional_vertical_angle > 180 ||
+      update.directional_horizontal_angle < -180 || update.directional_horizontal_angle > 180) {
+    return failure("invalid_portrait_lighting", "The portrait lighting values are invalid.");
+  }
+
+  PortraitLightingSnapshot current;
+  auto* chara_view = get_portrait_chara_view(framework, current);
+  if (!current.editor_open) {
+    return failure("portrait_editor_closed",
+                   "Open the native portrait editor before editing lighting.");
+  }
+  if (!chara_view || !current.character_ready) {
+    return failure("portrait_character_loading",
+                   "Wait for the portrait character to finish loading.");
+  }
+
+  if (update.fields & kPortraitAmbientColor) {
+    reinterpret_cast<SetPortraitColor>(addresses_.portrait_set_ambient_color)(
+        chara_view, update.ambient_color[0], update.ambient_color[1], update.ambient_color[2]);
+  }
+  if (update.fields & kPortraitAmbientBrightness) {
+    reinterpret_cast<SetPortraitBrightness>(addresses_.portrait_set_ambient_brightness)(
+        chara_view, update.ambient_brightness);
+  }
+  if (update.fields & kPortraitDirectionalColor) {
+    reinterpret_cast<SetPortraitColor>(addresses_.portrait_set_directional_color)(
+        chara_view, update.directional_color[0], update.directional_color[1],
+        update.directional_color[2]);
+  }
+  if (update.fields & kPortraitDirectionalBrightness) {
+    reinterpret_cast<SetPortraitBrightness>(addresses_.portrait_set_directional_brightness)(
+        chara_view, update.directional_brightness);
+  }
+  if (update.fields & kPortraitDirectionalAngles) {
+    reinterpret_cast<SetPortraitAngle>(addresses_.portrait_set_directional_angle)(
+        chara_view, update.directional_vertical_angle, update.directional_horizontal_angle);
+  }
+
+  auto* ui_module = reinterpret_cast<GetUiModule>(addresses_.get_ui_module)(framework);
+  auto get_agent_module = vtable_function<void*(__fastcall*)(void*)>(ui_module, 37);
+  auto* agent_module = get_agent_module(ui_module);
+  auto* agent = static_cast<std::byte*>(reinterpret_cast<GetAgentByInternalId>(
+      addresses_.get_agent_by_internal_id)(agent_module, kAgentBannerEditor));
+  auto* state = agent ? read_pointer<std::byte>(agent, layout_.agent_banner_editor_state) : nullptr;
+  if (!state)
+    return failure("portrait_editor_closed",
+                   "The native portrait editor closed during the update.");
+  reinterpret_cast<SetPortraitChanged>(addresses_.portrait_set_has_changed)(state, true);
+
+  return capture_portrait_lighting(framework);
 }
 
 CommandOutcome GameRuntime::capture_snapshot(void* framework) {
@@ -763,6 +893,21 @@ void GameRuntime::write_response(std::uint64_t sequence, SharedCommandKind kind,
       response.game_state.region_switch_supported = source.region_switch_supported ? 1 : 0;
       response.game_state.territory_load_state = source.territory_load_state;
     }
+    if (outcome.portrait_lighting) {
+      const auto& source = *outcome.portrait_lighting;
+      auto& target = response.portrait_lighting;
+      target.session_id = source.session_id;
+      target.editor_open = source.editor_open ? 1 : 0;
+      target.character_ready = source.character_ready ? 1 : 0;
+      target.open_type = source.open_type;
+      target.has_changes = source.has_changes ? 1 : 0;
+      target.ambient_color = source.ambient_color;
+      target.ambient_brightness = source.ambient_brightness;
+      target.directional_color = source.directional_color;
+      target.directional_brightness = source.directional_brightness;
+      target.directional_vertical_angle = source.directional_vertical_angle;
+      target.directional_horizontal_angle = source.directional_horizontal_angle;
+    }
     if (outcome.inventory) {
       const auto& source = *outcome.inventory;
       if (source.containers.size() > kMaximumSharedContainers ||
@@ -961,6 +1106,40 @@ void* GameRuntime::get_agent_lobby(void* framework) const {
   if (!agent_module) return nullptr;
   return reinterpret_cast<GetAgentByInternalId>(addresses_.get_agent_by_internal_id)(agent_module,
                                                                                      0);
+}
+
+std::byte* GameRuntime::get_portrait_chara_view(void* framework,
+                                                PortraitLightingSnapshot& snapshot) {
+  auto* ui_module = reinterpret_cast<GetUiModule>(addresses_.get_ui_module)(framework);
+  if (!ui_module) return nullptr;
+  auto get_agent_module = vtable_function<void*(__fastcall*)(void*)>(ui_module, 37);
+  auto* agent_module = get_agent_module(ui_module);
+  if (!agent_module) return nullptr;
+  auto* agent = static_cast<std::byte*>(reinterpret_cast<GetAgentByInternalId>(
+      addresses_.get_agent_by_internal_id)(agent_module, kAgentBannerEditor));
+  if (!agent) return nullptr;
+  auto* state = read_pointer<std::byte>(agent, layout_.agent_banner_editor_state);
+  if (!state) {
+    portrait_editor_state_ = nullptr;
+    portrait_chara_view_ = nullptr;
+    return nullptr;
+  }
+
+  snapshot.editor_open = true;
+  snapshot.open_type = static_cast<std::uint8_t>(
+      std::clamp(read_value<std::int32_t>(state, layout_.banner_editor_open_type), 0, 255));
+  snapshot.has_changes = read_value<bool>(state, layout_.banner_editor_has_changes);
+  auto* chara_view = read_pointer<std::byte>(state, layout_.banner_editor_chara_view);
+  if (!chara_view) return nullptr;
+  if (state != portrait_editor_state_ || chara_view != portrait_chara_view_) {
+    portrait_editor_state_ = state;
+    portrait_chara_view_ = chara_view;
+    ++portrait_session_;
+  }
+  snapshot.session_id = portrait_session_;
+  snapshot.character_ready =
+      read_value<bool>(chara_view, layout_.chara_view_portrait_character_loaded);
+  return chara_view;
 }
 
 void* GameRuntime::get_title_menu(void* framework) const {

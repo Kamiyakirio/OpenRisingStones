@@ -9,7 +9,7 @@ This directory contains the Windows-only bridge between the desktop application 
 - `payload` owns only resolved-address validation, pointer access, Framework-thread commands, native calls, and hook lifecycle.
 - `src-tauri/src/game_bridge.rs` owns the typed desktop API, resource selection, lifecycle preparation, and versioned read batching. It does not contain process or game-memory implementation logic.
 
-The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed command IDs defined by shared-memory ABI version 5.
+The host never accepts or exposes arbitrary memory read, memory write, or function-call commands. The payload accepts only the fixed command IDs defined by shared-memory ABI version 6.
 
 The Tauri API accepts only a process ID, an optional manifest filename, and fixed semantic read resources. DLL and data paths are resolved from the packaged `game-bridge` resource directory, so webview input cannot select an arbitrary DLL. When no manifest is supplied, the adapter selects the newest packaged manifest. Debug builds may override the resource directory with `ORS_GAME_BRIDGE_DIR`.
 
@@ -34,6 +34,12 @@ Shared-memory ABI 5 adds an optional bounded chat ring and the fixed `SendChat` 
 The four chat signatures in `version-manifest.template.json` are optional so existing verified manifests retain all earlier capabilities. A manifest advertises `chat_read` after the read hook installs successfully and advertises `chat_send` only when all required native string and chat addresses are present. Regenerate and verify the manifest against the exact game executable before enabling the phone chat workspace; do not copy unverified addresses into an existing manifest.
 
 Chat text remains in bounded process memory. Debug command diagnostics redact `SendChat` content, and the phone-chat frontend deliberately bypasses the generic Debug IPC response recorder so captured conversations are not written to diagnostic storage.
+
+## Portrait lighting bridge
+
+Shared-memory ABI 6 adds fixed commands for reading and updating lighting in the currently open native portrait editor. The payload resolves `AgentBannerEditor`, requires a loaded `CharaViewPortrait`, and exposes only ambient RGB/brightness plus directional RGB/brightness/vertical angle/horizontal angle. Updates call the game's own lighting setters on the Framework thread and mark the editor state as changed; they do not expose arbitrary portrait memory writes, add game UI, or save the portrait.
+
+Portrait function signatures and layouts are optional manifest capabilities. Existing manifests continue to support their previous bridge features but report portrait lighting as unavailable. Before enabling the editor for a new game version, collect and uniquely verify every portrait signature and confirm the `AgentBannerEditorState` and `CharaViewPortrait` offsets against that exact executable. The implementation is adapted from the AGPL-3.0-licensed HaselTweaks Portrait Helper and the MIT-licensed FFXIVClientStructs definitions.
 
 Manifest schema 7 defines `textSha256` as the SHA-256 of the executable's raw `.text` section and includes the definitions used by typed reads, logout, title-screen switching, and the server-loaded Cabinet instance. The template manifest is deliberately unusable because its version and hash are placeholders. Create one manifest per verified game version. Never replace a failed signature with a guessed address.
 

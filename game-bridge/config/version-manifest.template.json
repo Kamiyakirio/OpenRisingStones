@@ -114,6 +114,42 @@
       "resolve": "rip_relative",
       "offset": 11,
       "nextInstruction": 15
+    },
+    "portraitSetAmbientColor": {
+      "pattern": "E8 ?? ?? ?? ?? 0F B6 96 ?? ?? ?? ?? 48 8B 8E ?? ?? ?? ?? E8 ?? ?? ?? ?? BB",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "portraitSetAmbientBrightness": {
+      "pattern": "E8 ?? ?? ?? ?? BB ?? ?? ?? ?? 48 8D 45 ?? 8B D3 33 C9 0F 1F 44 00",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "portraitSetDirectionalColor": {
+      "pattern": "E8 ?? ?? ?? ?? 48 8B 4B 18 0F B6 47 29 F3 0F 10 35 ?? ?? ?? ?? 48 8B 74 24 ??",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "portraitSetDirectionalBrightness": {
+      "pattern": "E8 ?? ?? ?? ?? 44 0F B7 86 ?? ?? ?? ?? 0F B7 96 ?? ?? ?? ?? 48 8B 8E",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "portraitSetDirectionalAngle": {
+      "pattern": "E8 ?? ?? ?? ?? EB ?? 48 8D 4E ?? E8 ?? ?? ?? ?? 0F B7 97",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "portraitSetHasChanged": {
+      "pattern": "E8 ?? ?? ?? ?? 32 C0 EB 3F",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
     }
   },
   "layout": {
@@ -193,6 +229,13 @@
     "itemFinderGlamourCapacity": 800,
     "cabinetState": "0x0000",
     "cabinetItemsVector": "0x0008",
-    "cabinetCapacity": 5120
+    "cabinetCapacity": 5120,
+    "agentBannerEditorState": "0x0028",
+    "bannerEditorCharaView": "0x03C8",
+    "bannerEditorOpenType": "0x03D8",
+    "bannerEditorHasChanges": "0x03F4",
+    "charaViewPortraitCharacterLoaded": "0x0406",
+    "charaViewDirectionalLighting": "0x0354",
+    "charaViewAmbientLighting": "0x035C"
   }
 }

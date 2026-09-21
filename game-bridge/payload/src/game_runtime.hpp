@@ -65,6 +65,20 @@ struct GameStateSnapshot final {
   std::uint32_t territory_load_state{};
 };
 
+struct PortraitLightingSnapshot final {
+  std::uint64_t session_id{};
+  bool editor_open{};
+  bool character_ready{};
+  std::uint8_t open_type{};
+  bool has_changes{};
+  std::array<std::uint8_t, 3> ambient_color{};
+  std::uint8_t ambient_brightness{};
+  std::array<std::uint8_t, 3> directional_color{};
+  std::uint8_t directional_brightness{};
+  std::int16_t directional_vertical_angle{};
+  std::int16_t directional_horizontal_angle{};
+};
+
 struct InventoryItemSnapshot final {
   std::uint32_t inventory_type{};
   std::int16_t slot{};
@@ -139,6 +153,7 @@ struct CommandOutcome final {
   std::optional<PlayerInventorySnapshot> inventory;
   std::optional<GameStateSnapshot> game_state;
   std::string region_name;
+  std::optional<PortraitLightingSnapshot> portrait_lighting;
 };
 
 class GameRuntime final {
@@ -173,6 +188,9 @@ class GameRuntime final {
   [[nodiscard]] CommandOutcome capture_active_character();
   [[nodiscard]] CommandOutcome capture_inventory(void* framework);
   [[nodiscard]] CommandOutcome capture_game_state(void* framework);
+  [[nodiscard]] CommandOutcome capture_portrait_lighting(void* framework);
+  [[nodiscard]] CommandOutcome update_portrait_lighting(void* framework,
+                                                        const SharedPortraitLighting& update);
   [[nodiscard]] CommandOutcome logout_to_title(void* framework);
   [[nodiscard]] CommandOutcome return_to_title(void* framework);
   [[nodiscard]] CommandOutcome switch_region(void* framework, RegionTarget& target);
@@ -180,6 +198,8 @@ class GameRuntime final {
   [[nodiscard]] CommandOutcome send_chat(void* framework, const std::string& message);
   [[nodiscard]] void* get_agent_lobby(void* framework) const;
   [[nodiscard]] void* get_title_menu(void* framework) const;
+  [[nodiscard]] std::byte* get_portrait_chara_view(void* framework,
+                                                   PortraitLightingSnapshot& snapshot);
 
   static GameRuntime* active_;
   Layout layout_;
@@ -197,6 +217,9 @@ class GameRuntime final {
   std::uint64_t next_snapshot_sequence_{1};
   std::atomic<std::uint64_t> next_chat_sequence_{1};
   std::uint32_t sampling_counter_{};
+  void* portrait_editor_state_{};
+  void* portrait_chara_view_{};
+  std::uint64_t portrait_session_{};
 };
 
 }  // namespace bridge

@@ -5,7 +5,7 @@
 
 use game_bridge_host::{
   ActiveCharacterSnapshot, BridgeManager, BridgeStatus, GameSnapshot, GameStateSnapshot,
-  PlayerInventorySnapshot,
+  PlayerInventorySnapshot, PortraitLightingSnapshot, PortraitLightingUpdate,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -156,6 +156,21 @@ pub async fn game_bridge_capture_active_character(
 pub async fn game_bridge_capture_inventory(
   _state: tauri::State<'_, GameBridgeState>,
 ) -> ApiResult<PlayerInventorySnapshot> {
+  unsupported()
+}
+
+#[tauri::command]
+pub async fn game_bridge_capture_portrait_lighting(
+  _state: tauri::State<'_, GameBridgeState>,
+) -> ApiResult<PortraitLightingSnapshot> {
+  unsupported()
+}
+
+#[tauri::command]
+pub async fn game_bridge_update_portrait_lighting(
+  _state: tauri::State<'_, GameBridgeState>,
+  _update: PortraitLightingUpdate,
+) -> ApiResult<PortraitLightingSnapshot> {
   unsupported()
 }
 

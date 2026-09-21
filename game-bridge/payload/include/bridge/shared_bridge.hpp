@@ -8,7 +8,7 @@
 namespace bridge {
 
 inline constexpr std::uint32_t kSharedMagic = 0x4742524F;
-inline constexpr std::uint32_t kSharedAbiVersion = 5;
+inline constexpr std::uint32_t kSharedAbiVersion = 6;
 inline constexpr std::size_t kMaximumSharedContainers = 18;
 inline constexpr std::size_t kMaximumSharedItems = 1024;
 inline constexpr std::size_t kMaximumSharedDresserItems = 800;
@@ -18,6 +18,8 @@ inline constexpr std::size_t kMaximumSharedChatSenderBytes = 256;
 inline constexpr std::size_t kMaximumSharedChatMessageBytes = 1024;
 inline constexpr std::uint32_t kChatCapabilityRead = 1U << 0;
 inline constexpr std::uint32_t kChatCapabilitySend = 1U << 1;
+inline constexpr std::uint32_t kPortraitCapabilityRead = 1U << 0;
+inline constexpr std::uint32_t kPortraitCapabilityWrite = 1U << 1;
 
 enum class SharedPayloadState : std::uint32_t {
   Initializing = 0,
@@ -38,6 +40,8 @@ enum class SharedCommandKind : std::uint32_t {
   CaptureGameState = 8,
   LogoutToTitle = 9,
   SendChat = 10,
+  CapturePortraitLighting = 11,
+  UpdatePortraitLighting = 12,
 };
 
 enum class SharedResponseStatus : std::uint32_t {
@@ -124,6 +128,13 @@ struct SharedGameLayout final {
   std::uint32_t cabinet_state{};
   std::uint32_t cabinet_items_vector{};
   std::uint32_t cabinet_capacity{};
+  std::uint32_t agent_banner_editor_state{};
+  std::uint32_t banner_editor_chara_view{};
+  std::uint32_t banner_editor_open_type{};
+  std::uint32_t banner_editor_has_changes{};
+  std::uint32_t chara_view_portrait_character_loaded{};
+  std::uint32_t chara_view_directional_lighting{};
+  std::uint32_t chara_view_ambient_lighting{};
 };
 
 struct SharedGameApi final {
@@ -147,12 +158,28 @@ struct SharedGameApi final {
   std::uint64_t get_addon_by_name{};
   std::uint64_t get_component_button_by_id{};
   std::uint64_t cabinet_instance{};
+  std::uint64_t portrait_set_ambient_color{};
+  std::uint64_t portrait_set_ambient_brightness{};
+  std::uint64_t portrait_set_directional_color{};
+  std::uint64_t portrait_set_directional_brightness{};
+  std::uint64_t portrait_set_directional_angle{};
+  std::uint64_t portrait_set_has_changed{};
   SharedGameLayout layout;
 };
 
 struct SharedSendChat final {
   std::uint32_t message_length{};
   std::array<char, kMaximumSharedChatMessageBytes> message{};
+};
+
+struct SharedPortraitLighting final {
+  std::uint32_t fields{};
+  std::array<std::uint8_t, 3> ambient_color{};
+  std::uint8_t ambient_brightness{};
+  std::array<std::uint8_t, 3> directional_color{};
+  std::uint8_t directional_brightness{};
+  std::int16_t directional_vertical_angle{};
+  std::int16_t directional_horizontal_angle{};
 };
 
 struct SharedSwitchRegion final {
@@ -174,6 +201,7 @@ struct SharedCommand final {
   std::uint32_t reserved{};
   SharedSwitchRegion switch_region;
   SharedSendChat send_chat;
+  SharedPortraitLighting portrait_lighting;
 };
 
 struct SharedChatEvent final {
@@ -231,6 +259,20 @@ struct SharedGameState final {
   std::uint8_t connected_to_zone{};
   std::uint8_t region_switch_supported{};
   std::uint32_t territory_load_state{};
+};
+
+struct SharedPortraitLightingSnapshot final {
+  std::uint64_t session_id{};
+  std::uint8_t editor_open{};
+  std::uint8_t character_ready{};
+  std::uint8_t open_type{};
+  std::uint8_t has_changes{};
+  std::array<std::uint8_t, 3> ambient_color{};
+  std::uint8_t ambient_brightness{};
+  std::array<std::uint8_t, 3> directional_color{};
+  std::uint8_t directional_brightness{};
+  std::int16_t directional_vertical_angle{};
+  std::int16_t directional_horizontal_angle{};
 };
 
 struct SharedInventoryItem final {
@@ -291,6 +333,7 @@ struct SharedResponse final {
   SharedActiveCharacter active_character;
   SharedGameState game_state;
   SharedInventorySnapshot inventory;
+  SharedPortraitLightingSnapshot portrait_lighting;
 };
 
 struct SharedBridge final {
@@ -299,7 +342,7 @@ struct SharedBridge final {
   std::uint32_t struct_size{};
   std::uint32_t payload_state{};
   std::uint32_t chat_capabilities{};
-  std::uint32_t header_reserved{};
+  std::uint32_t portrait_capabilities{};
   alignas(8) std::uint64_t heartbeat{};
   alignas(8) std::uint64_t request_sequence{};
   alignas(8) std::uint64_t response_sequence{};
@@ -317,10 +360,11 @@ struct SharedBridge final {
 };
 
 static_assert(sizeof(SharedSwitchRegion) == 4948);
-static_assert(sizeof(SharedGameLayout) == 308);
-static_assert(sizeof(SharedGameApi) == 464);
+static_assert(sizeof(SharedGameLayout) == 336);
+static_assert(sizeof(SharedGameApi) == 536);
 static_assert(sizeof(SharedSendChat) == 1028);
-static_assert(sizeof(SharedCommand) == 5992);
+static_assert(sizeof(SharedPortraitLighting) == 16);
+static_assert(sizeof(SharedCommand) == 6008);
 static_assert(sizeof(SharedChatEvent) == 1304);
 static_assert(sizeof(SharedGameSnapshot) == 88);
 static_assert(sizeof(SharedActiveCharacter) == 128);
@@ -328,7 +372,8 @@ static_assert(sizeof(SharedGameState) == 12);
 static_assert(sizeof(SharedInventoryItem) == 48);
 static_assert(sizeof(SharedInventoryContainer) == 52);
 static_assert(sizeof(SharedInventorySnapshot) == 57144);
-static_assert(sizeof(SharedResponse) == 57712);
-static_assert(sizeof(SharedBridge) == 231568);
+static_assert(sizeof(SharedPortraitLightingSnapshot) == 24);
+static_assert(sizeof(SharedResponse) == 57736);
+static_assert(sizeof(SharedBridge) == 231680);
 
 }  // namespace bridge

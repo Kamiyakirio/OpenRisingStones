@@ -171,6 +171,36 @@ pub struct ChatMessageSnapshot {
     pub message: String,
 }
 
+/// Lighting values owned by the currently open native portrait editor.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PortraitLightingSnapshot {
+    pub session_id: u64,
+    pub editor_open: bool,
+    pub character_ready: bool,
+    pub open_type: u8,
+    pub has_changes: bool,
+    pub ambient_color: [u8; 3],
+    pub ambient_brightness: u8,
+    pub directional_color: [u8; 3],
+    pub directional_brightness: u8,
+    pub directional_vertical_angle: i16,
+    pub directional_horizontal_angle: i16,
+}
+
+/// A masked lighting update that never overwrites unrelated portrait fields.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PortraitLightingUpdate {
+    pub fields: u32,
+    pub ambient_color: [u8; 3],
+    pub ambient_brightness: u8,
+    pub directional_color: [u8; 3],
+    pub directional_brightness: u8,
+    pub directional_vertical_angle: i16,
+    pub directional_horizontal_angle: i16,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RegionTarget {
@@ -193,6 +223,8 @@ pub enum Command {
     SwitchRegion { target: RegionTarget },
     TriggerLogin,
     SendChat { message: String },
+    CapturePortraitLighting,
+    UpdatePortraitLighting { update: PortraitLightingUpdate },
     Shutdown,
 }
 
@@ -211,6 +243,9 @@ pub enum CommandResult {
     },
     GameState {
         state: GameStateSnapshot,
+    },
+    PortraitLighting {
+        lighting: PortraitLightingSnapshot,
     },
     RegionSwitched {
         #[serde(rename = "regionName")]

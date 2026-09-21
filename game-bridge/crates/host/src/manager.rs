@@ -336,6 +336,41 @@ impl BridgeManager {
         }
     }
 
+    pub fn capture_portrait_lighting(
+        &self,
+    ) -> BridgeResult<game_bridge_protocol::PortraitLightingSnapshot> {
+        match self.send_command(Command::CapturePortraitLighting)? {
+            CommandResult::PortraitLighting { lighting } => Ok(lighting),
+            _ => Err(BridgeError::InvalidData(
+                "unexpected portrait-lighting response".to_owned(),
+            )),
+        }
+    }
+
+    pub fn update_portrait_lighting(
+        &self,
+        update: game_bridge_protocol::PortraitLightingUpdate,
+    ) -> BridgeResult<game_bridge_protocol::PortraitLightingSnapshot> {
+        if update.fields == 0 || update.fields & !0x1f != 0 {
+            return Err(BridgeError::InvalidData(
+                "portrait lighting update contains an invalid field mask".to_owned(),
+            ));
+        }
+        if !(-180..=180).contains(&update.directional_vertical_angle)
+            || !(-180..=180).contains(&update.directional_horizontal_angle)
+        {
+            return Err(BridgeError::InvalidData(
+                "portrait lighting angles must be between -180 and 180 degrees".to_owned(),
+            ));
+        }
+        match self.send_command(Command::UpdatePortraitLighting { update })? {
+            CommandResult::PortraitLighting { lighting } => Ok(lighting),
+            _ => Err(BridgeError::InvalidData(
+                "unexpected portrait-lighting update response".to_owned(),
+            )),
+        }
+    }
+
     pub fn logout_to_title(&self) -> BridgeResult<()> {
         expect_ack(self.send_command(Command::LogoutToTitle)?)
     }

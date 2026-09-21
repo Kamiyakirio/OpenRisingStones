@@ -112,6 +112,8 @@ pub fn run() {
       game_bridge::game_bridge_capture_snapshot,
       game_bridge::game_bridge_capture_active_character,
       game_bridge::game_bridge_capture_inventory,
+      game_bridge::game_bridge_capture_portrait_lighting,
+      game_bridge::game_bridge_update_portrait_lighting,
       game_bridge::game_bridge_sync_owned_items,
       game_bridge::game_bridge_return_to_title,
       game_bridge::game_bridge_logout_to_title,

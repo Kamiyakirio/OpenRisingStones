@@ -59,6 +59,12 @@ ResolvedAddresses resolve_addresses(const SharedGameApi& api) {
       pointer<std::byte*>(api.get_addon_by_name),
       pointer<std::byte*>(api.get_component_button_by_id),
       pointer<std::byte*>(api.cabinet_instance),
+      optional_pointer<std::byte*>(api.portrait_set_ambient_color),
+      optional_pointer<std::byte*>(api.portrait_set_ambient_brightness),
+      optional_pointer<std::byte*>(api.portrait_set_directional_color),
+      optional_pointer<std::byte*>(api.portrait_set_directional_brightness),
+      optional_pointer<std::byte*>(api.portrait_set_directional_angle),
+      optional_pointer<std::byte*>(api.portrait_set_has_changed),
   };
 }
 

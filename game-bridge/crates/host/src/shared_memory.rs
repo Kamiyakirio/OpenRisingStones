@@ -5,7 +5,7 @@ use game_bridge_protocol::{
     ActiveCharacterSnapshot, ArmoireSnapshot, ChatMessageSnapshot, Command, CommandResult,
     GameScreen, GameSnapshot, GameStateSnapshot, GlamourDresserItemSnapshot,
     GlamourDresserSnapshot, InventoryContainerSnapshot, InventoryItemSnapshot,
-    PlayerInventorySnapshot, Position3,
+    PlayerInventorySnapshot, PortraitLightingSnapshot, Position3,
 };
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -27,7 +27,7 @@ use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcess, PROC
 
 // Must match kSharedMagic in the native shared_bridge.hpp contract.
 const SHARED_MAGIC: u32 = 0x4742_524F;
-const SHARED_ABI_VERSION: u32 = 5;
+const SHARED_ABI_VERSION: u32 = 6;
 const PAYLOAD_STATE_READY: u32 = 1;
 const PAYLOAD_STATE_FAULTED: u32 = 2;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
@@ -51,9 +51,13 @@ const COMMAND_SHUTDOWN: u32 = 7;
 const COMMAND_CAPTURE_GAME_STATE: u32 = 8;
 const COMMAND_LOGOUT_TO_TITLE: u32 = 9;
 const COMMAND_SEND_CHAT: u32 = 10;
+const COMMAND_CAPTURE_PORTRAIT_LIGHTING: u32 = 11;
+const COMMAND_UPDATE_PORTRAIT_LIGHTING: u32 = 12;
 
 const CHAT_CAPABILITY_READ: u32 = 1 << 0;
 const CHAT_CAPABILITY_SEND: u32 = 1 << 1;
+const PORTRAIT_CAPABILITY_READ: u32 = 1 << 0;
+const PORTRAIT_CAPABILITY_WRITE: u32 = 1 << 1;
 
 const RESPONSE_SUCCESS: u32 = 1;
 const RESPONSE_ERROR: u32 = 2;
@@ -157,6 +161,13 @@ struct SharedGameLayout {
     cabinet_state: u32,
     cabinet_items_vector: u32,
     cabinet_capacity: u32,
+    agent_banner_editor_state: u32,
+    banner_editor_chara_view: u32,
+    banner_editor_open_type: u32,
+    banner_editor_has_changes: u32,
+    chara_view_portrait_character_loaded: u32,
+    chara_view_directional_lighting: u32,
+    chara_view_ambient_lighting: u32,
 }
 
 #[repr(C)]
@@ -181,6 +192,12 @@ struct SharedGameApi {
     get_addon_by_name: u64,
     get_component_button_by_id: u64,
     cabinet_instance: u64,
+    portrait_set_ambient_color: u64,
+    portrait_set_ambient_brightness: u64,
+    portrait_set_directional_color: u64,
+    portrait_set_directional_brightness: u64,
+    portrait_set_directional_angle: u64,
+    portrait_set_has_changed: u64,
     layout: SharedGameLayout,
 }
 
@@ -188,6 +205,18 @@ struct SharedGameApi {
 struct SharedSendChat {
     message_length: u32,
     message: [u8; MAXIMUM_CHAT_MESSAGE_BYTES],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct SharedPortraitLighting {
+    fields: u32,
+    ambient_color: [u8; 3],
+    ambient_brightness: u8,
+    directional_color: [u8; 3],
+    directional_brightness: u8,
+    directional_vertical_angle: i16,
+    directional_horizontal_angle: i16,
 }
 
 #[repr(C)]
@@ -211,6 +240,7 @@ struct SharedCommand {
     reserved: u32,
     switch_region: SharedSwitchRegion,
     send_chat: SharedSendChat,
+    portrait_lighting: SharedPortraitLighting,
 }
 
 #[repr(C)]
@@ -281,6 +311,22 @@ struct SharedGameState {
 
 #[repr(C)]
 #[derive(Clone, Copy)]
+struct SharedPortraitLightingSnapshot {
+    session_id: u64,
+    editor_open: u8,
+    character_ready: u8,
+    open_type: u8,
+    has_changes: u8,
+    ambient_color: [u8; 3],
+    ambient_brightness: u8,
+    directional_color: [u8; 3],
+    directional_brightness: u8,
+    directional_vertical_angle: i16,
+    directional_horizontal_angle: i16,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
 struct SharedInventoryItem {
     inventory_type: u32,
     slot: i16,
@@ -345,6 +391,7 @@ struct SharedResponse {
     active_character: SharedActiveCharacter,
     game_state: SharedGameState,
     inventory: SharedInventorySnapshot,
+    portrait_lighting: SharedPortraitLightingSnapshot,
 }
 
 #[repr(C)]
@@ -354,7 +401,7 @@ struct SharedBridge {
     struct_size: u32,
     payload_state: AtomicU32,
     chat_capabilities: AtomicU32,
-    header_reserved: u32,
+    portrait_capabilities: AtomicU32,
     heartbeat: AtomicU64,
     request_sequence: AtomicU64,
     response_sequence: AtomicU64,
@@ -372,18 +419,20 @@ struct SharedBridge {
 }
 
 const _: [(); 4948] = [(); size_of::<SharedSwitchRegion>()];
-const _: [(); 308] = [(); size_of::<SharedGameLayout>()];
-const _: [(); 464] = [(); size_of::<SharedGameApi>()];
+const _: [(); 336] = [(); size_of::<SharedGameLayout>()];
+const _: [(); 536] = [(); size_of::<SharedGameApi>()];
 const _: [(); 1028] = [(); size_of::<SharedSendChat>()];
-const _: [(); 5992] = [(); size_of::<SharedCommand>()];
+const _: [(); 16] = [(); size_of::<SharedPortraitLighting>()];
+const _: [(); 6008] = [(); size_of::<SharedCommand>()];
 const _: [(); 1304] = [(); size_of::<SharedChatEvent>()];
 const _: [(); 88] = [(); size_of::<SharedGameSnapshot>()];
 const _: [(); 128] = [(); size_of::<SharedActiveCharacter>()];
 const _: [(); 48] = [(); size_of::<SharedInventoryItem>()];
 const _: [(); 52] = [(); size_of::<SharedInventoryContainer>()];
 const _: [(); 57144] = [(); size_of::<SharedInventorySnapshot>()];
-const _: [(); 57712] = [(); size_of::<SharedResponse>()];
-const _: [(); 231568] = [(); size_of::<SharedBridge>()];
+const _: [(); 24] = [(); size_of::<SharedPortraitLightingSnapshot>()];
+const _: [(); 57736] = [(); size_of::<SharedResponse>()];
+const _: [(); 231680] = [(); size_of::<SharedBridge>()];
 
 pub(crate) enum SessionEvent {
     Ready {
@@ -540,6 +589,19 @@ impl SharedSession {
                     target.send_chat.message_length =
                         copy_string(&message, &mut target.send_chat.message)?;
                     COMMAND_SEND_CHAT
+                }
+                Command::CapturePortraitLighting => COMMAND_CAPTURE_PORTRAIT_LIGHTING,
+                Command::UpdatePortraitLighting { update } => {
+                    target.portrait_lighting = SharedPortraitLighting {
+                        fields: update.fields,
+                        ambient_color: update.ambient_color,
+                        ambient_brightness: update.ambient_brightness,
+                        directional_color: update.directional_color,
+                        directional_brightness: update.directional_brightness,
+                        directional_vertical_angle: update.directional_vertical_angle,
+                        directional_horizontal_angle: update.directional_horizontal_angle,
+                    };
+                    COMMAND_UPDATE_PORTRAIT_LIGHTING
                 }
                 Command::Shutdown => COMMAND_SHUTDOWN,
             };
@@ -713,6 +775,13 @@ fn monitor_shared_memory(
             if chat_capabilities & CHAT_CAPABILITY_SEND != 0 {
                 capabilities.push("chat_send".to_owned());
             }
+            let portrait_capabilities = shared.portrait_capabilities.load(Ordering::Acquire);
+            if portrait_capabilities & PORTRAIT_CAPABILITY_READ != 0 {
+                capabilities.push("portrait_lighting_read".to_owned());
+            }
+            if portrait_capabilities & PORTRAIT_CAPABILITY_WRITE != 0 {
+                capabilities.push("portrait_lighting_write".to_owned());
+            }
             let _ = event_tx.send(SessionEvent::Ready {
                 payload_version: "0.1.0".to_owned(),
                 capabilities,
@@ -805,6 +874,11 @@ fn decode_response(
         COMMAND_CAPTURE_GAME_STATE => Ok(CommandResult::GameState {
             state: decode_game_state(&response.game_state)?,
         }),
+        COMMAND_CAPTURE_PORTRAIT_LIGHTING | COMMAND_UPDATE_PORTRAIT_LIGHTING => {
+            Ok(CommandResult::PortraitLighting {
+                lighting: decode_portrait_lighting(&response.portrait_lighting),
+            })
+        }
         COMMAND_SWITCH_REGION => Ok(CommandResult::RegionSwitched {
             region_name: switched_region.ok_or_else(|| {
                 BridgeError::InvalidData("missing switched region name".to_owned())
@@ -818,6 +892,22 @@ fn decode_response(
         _ => Err(BridgeError::InvalidData(
             "shared response has invalid command kind".to_owned(),
         )),
+    }
+}
+
+fn decode_portrait_lighting(value: &SharedPortraitLightingSnapshot) -> PortraitLightingSnapshot {
+    PortraitLightingSnapshot {
+        session_id: value.session_id,
+        editor_open: value.editor_open != 0,
+        character_ready: value.character_ready != 0,
+        open_type: value.open_type,
+        has_changes: value.has_changes != 0,
+        ambient_color: value.ambient_color,
+        ambient_brightness: value.ambient_brightness,
+        directional_color: value.directional_color,
+        directional_brightness: value.directional_brightness,
+        directional_vertical_angle: value.directional_vertical_angle,
+        directional_horizontal_angle: value.directional_horizontal_angle,
     }
 }
 
@@ -1209,10 +1299,21 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     api.get_addon_by_name = resolve("getAddonByName")?;
     api.get_component_button_by_id = resolve("getComponentButtonById")?;
     api.cabinet_instance = resolve("cabinetInstance")?;
+    api.portrait_set_ambient_color = resolve_optional("portraitSetAmbientColor")?;
+    api.portrait_set_ambient_brightness = resolve_optional("portraitSetAmbientBrightness")?;
+    api.portrait_set_directional_color = resolve_optional("portraitSetDirectionalColor")?;
+    api.portrait_set_directional_brightness = resolve_optional("portraitSetDirectionalBrightness")?;
+    api.portrait_set_directional_angle = resolve_optional("portraitSetDirectionalAngle")?;
+    api.portrait_set_has_changed = resolve_optional("portraitSetHasChanged")?;
 
     macro_rules! layout {
         ($field:ident, $name:literal) => {
             api.layout.$field = read_layout(&manifest.layout, $name)?;
+        };
+    }
+    macro_rules! optional_layout {
+        ($field:ident, $name:literal) => {
+            api.layout.$field = read_optional_layout(&manifest.layout, $name)?;
         };
     }
     layout!(framework_tick_vtable_index, "frameworkTickVtableIndex");
@@ -1313,7 +1414,30 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     layout!(cabinet_state, "cabinetState");
     layout!(cabinet_items_vector, "cabinetItemsVector");
     layout!(cabinet_capacity, "cabinetCapacity");
+    optional_layout!(agent_banner_editor_state, "agentBannerEditorState");
+    optional_layout!(banner_editor_chara_view, "bannerEditorCharaView");
+    optional_layout!(banner_editor_open_type, "bannerEditorOpenType");
+    optional_layout!(banner_editor_has_changes, "bannerEditorHasChanges");
+    optional_layout!(
+        chara_view_portrait_character_loaded,
+        "charaViewPortraitCharacterLoaded"
+    );
+    optional_layout!(
+        chara_view_directional_lighting,
+        "charaViewDirectionalLighting"
+    );
+    optional_layout!(chara_view_ambient_lighting, "charaViewAmbientLighting");
     Ok(api)
+}
+
+fn read_optional_layout(
+    layout: &serde_json::Map<String, serde_json::Value>,
+    name: &str,
+) -> BridgeResult<u32> {
+    if !layout.contains_key(name) {
+        return Ok(0);
+    }
+    read_layout(layout, name)
 }
 
 fn read_layout(
