@@ -11,6 +11,7 @@ test("browser history returning to the initial URL selects home", () => {
     "gearing",
     "fishing",
     "chat",
+    "portrait",
   ]) {
     assert.equal(featureFromHash("", previous), "home");
     assert.equal(featureFromHash("#home", previous), "home");
@@ -25,6 +26,7 @@ test("explicit feature links select their destination", () => {
     "gearing",
     "fishing",
     "chat",
+    "portrait",
   ]) {
     assert.equal(featureFromHash(`#${feature}`, "home"), feature);
   }

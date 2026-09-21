@@ -8,7 +8,8 @@ export type ActiveFeature =
   | "gearing-benchmark"
   | "debug"
   | "fishing"
-  | "chat";
+  | "chat"
+  | "portrait";
 
 const debugBuild = typeof __DEBUG_BUILD__ !== "undefined" && __DEBUG_BUILD__;
 
@@ -24,9 +25,15 @@ export function featureFromHash(
   if (destination === "debug" || destination === "logs")
     return allowDebugFeatures ? "debug" : current;
   if (
-    ["glamour", "recruit", "teleport", "gearing", "fishing", "chat"].includes(
-      destination,
-    )
+    [
+      "glamour",
+      "recruit",
+      "teleport",
+      "gearing",
+      "fishing",
+      "chat",
+      "portrait",
+    ].includes(destination)
   )
     return destination as ActiveFeature;
   if (destination.startsWith("teleport-")) return "teleport";

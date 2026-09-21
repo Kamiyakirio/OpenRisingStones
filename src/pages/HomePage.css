@@ -38,6 +38,9 @@
 .feature-entry:nth-child(odd) {
   border-right: 1px solid var(--ors-color-line);
 }
+.feature-entry:last-child:nth-child(odd) {
+  border-right: 0;
+}
 .feature-entry:not(:nth-last-child(-n + 2)),
 .feature-entry:nth-last-child(2):nth-child(even) {
   border-bottom: 1px solid var(--ors-color-line);

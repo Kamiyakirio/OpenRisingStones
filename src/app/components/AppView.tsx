@@ -15,6 +15,11 @@ const FishingPage = lazy(() =>
     default: module.FishingPage,
   })),
 );
+const PortraitPage = lazy(() =>
+  import("../../pages/PortraitPage").then((module) => ({
+    default: module.PortraitPage,
+  })),
+);
 const GearingPage = lazy(() =>
   import("../../pages/GearingPage").then((module) => ({
     default: module.GearingPage,
@@ -66,6 +71,7 @@ export function AppView({ viewModel }: AppViewProps) {
             onOpenGearing={viewModel.openGearing}
             onOpenFishing={viewModel.openFishing}
             onOpenChat={viewModel.openChat}
+            onOpenPortrait={viewModel.openPortrait}
           />
         ) : viewModel.activeFeature === "fishing" ? (
           <Suspense fallback={<p role="status">正在加载钓鱼数据库…</p>}>
@@ -90,6 +96,10 @@ export function AppView({ viewModel }: AppViewProps) {
           </Suspense>
         ) : viewModel.activeFeature === "chat" ? (
           <ChatPage />
+        ) : viewModel.activeFeature === "portrait" ? (
+          <Suspense fallback={<p role="status">正在加载肖像助手…</p>}>
+            <PortraitPage />
+          </Suspense>
         ) : viewModel.activeFeature === "glamour" ? (
           <GlamourPage
             dark={viewModel.dark}
@@ -137,7 +147,8 @@ export function AppView({ viewModel }: AppViewProps) {
       {(viewModel.activeFeature === "home" ||
         viewModel.activeFeature === "gearing" ||
         viewModel.activeFeature === "fishing" ||
-        viewModel.activeFeature === "chat") &&
+        viewModel.activeFeature === "chat" ||
+        viewModel.activeFeature === "portrait") &&
         viewModel.loginOpen && (
           <LoginDialog
             onClose={viewModel.closeLogin}

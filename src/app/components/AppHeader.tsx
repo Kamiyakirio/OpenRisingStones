@@ -1,6 +1,7 @@
 /** Shared application identity, navigation, theme, and account controls. */
 import {
   ChatCircleDots,
+  Aperture,
   Bug,
   CoatHanger,
   FishSimple,
@@ -17,7 +18,7 @@ import {
   UsersThree,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { LoginProfile } from "../../features/auth/types";
 import type { ActiveFeature } from "../hooks/useAppController";
 
@@ -43,7 +44,7 @@ export function AppHeader({
   onLogout,
 }: AppHeaderProps) {
   const navigation = useRef<HTMLElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     navigation.current
       ?.querySelector('[aria-current="page"]')
       ?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -56,6 +57,7 @@ export function AppHeader({
     ["gearing", "配装", Sword],
     ["fishing", "钓鱼数据库", FishSimple],
     ["chat", "手机聊天", ChatCircleDots],
+    ["portrait", "肖像助手", Aperture],
   ];
   if (__DEBUG_BUILD__) destinations.push(["debug", "调试", Bug]);
   return (

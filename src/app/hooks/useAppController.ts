@@ -38,6 +38,10 @@ export function useAppController() {
     () => navigateToFeature(setActiveFeature, "chat"),
     [],
   );
+  const openPortrait = useCallback(
+    () => navigateToFeature(setActiveFeature, "portrait"),
+    [],
+  );
   const goHome = useCallback(
     () => navigateToFeature(setActiveFeature, "home"),
     [],
@@ -93,6 +97,7 @@ export function useAppController() {
     openDebug,
     openFishing,
     openChat,
+    openPortrait,
     goHome,
     toggleTheme,
     openSettings,

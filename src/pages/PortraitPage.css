@@ -1,0 +1,493 @@
+/** Portrait lighting uses a two-lamp control desk inside the shared warm task ledger. */
+.portrait-page {
+  min-height: 100dvh;
+}
+
+.portrait-header {
+  display: flex;
+  gap: var(--ors-space-8);
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: var(--ors-space-6);
+  border-bottom: 1px solid var(--ors-color-line);
+}
+
+.portrait-header h1,
+.portrait-light-panel h2,
+.portrait-introduction h2,
+.portrait-editor-notice h2 {
+  margin: 0;
+}
+
+.portrait-header p {
+  max-width: 65ch;
+  margin: var(--ors-space-2) 0 0;
+  color: var(--ors-color-muted);
+}
+
+.portrait-header-actions,
+.portrait-workspace-bar,
+.portrait-sync-state,
+.portrait-secondary-button,
+.portrait-connect-button {
+  display: flex;
+  align-items: center;
+}
+
+.portrait-header-actions {
+  flex: 0 0 auto;
+  gap: var(--ors-space-3);
+}
+
+.portrait-status {
+  display: inline-flex;
+  gap: var(--ors-space-2);
+  align-items: center;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.portrait-status::before {
+  width: 8px;
+  height: 8px;
+  content: "";
+  background: var(--ors-color-disabled);
+  border-radius: 50%;
+}
+
+.portrait-status[data-state="ready"]::before {
+  background: var(--ors-color-success);
+}
+
+.portrait-status[data-state="connecting"]::before {
+  background: var(--ors-color-warning);
+}
+
+.portrait-status[data-state="unsupported"]::before {
+  background: var(--ors-color-danger);
+}
+
+.portrait-secondary-button,
+.portrait-connect-button {
+  gap: var(--ors-space-2);
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: var(--ors-radius-control);
+  font-weight: 650;
+}
+
+.portrait-secondary-button {
+  color: var(--ors-color-text);
+  background: var(--ors-color-surface);
+  border: 1px solid var(--ors-color-control-line);
+}
+
+.portrait-secondary-button:hover:not(:disabled) {
+  background: var(--ors-color-hover);
+}
+
+.portrait-connect-button {
+  grid-column: 2;
+  justify-self: start;
+  color: var(--ors-color-on-accent);
+  background: var(--ors-color-accent);
+  border: 1px solid var(--ors-color-accent);
+}
+
+.portrait-connect-button:hover:not(:disabled) {
+  background: var(--ors-color-accent-hover);
+}
+
+.portrait-secondary-button svg,
+.portrait-connect-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.portrait-introduction {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: var(--ors-space-5);
+  max-width: 820px;
+  margin-top: var(--ors-space-10);
+}
+
+.portrait-introduction > svg {
+  width: 44px;
+  height: 44px;
+  color: var(--ors-color-accent);
+}
+
+.portrait-introduction p,
+.portrait-editor-notice p,
+.portrait-light-panel header p {
+  margin: var(--ors-space-1) 0 0;
+  color: var(--ors-color-muted);
+}
+
+.portrait-error {
+  display: flex;
+  gap: var(--ors-space-3);
+  align-items: flex-start;
+  margin-top: var(--ors-space-5);
+  padding: var(--ors-space-4);
+  color: var(--ors-color-danger);
+  background: var(--ors-color-surface);
+  border: 1px solid var(--ors-color-danger);
+  border-radius: var(--ors-radius-control);
+}
+
+.portrait-error > svg {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+}
+
+.portrait-error div {
+  display: grid;
+  gap: var(--ors-space-1);
+}
+
+.portrait-error span {
+  color: var(--ors-color-text);
+  font-size: 0.8125rem;
+}
+
+.portrait-editor-notice {
+  display: flex;
+  gap: var(--ors-space-4);
+  align-items: flex-start;
+  max-width: 720px;
+  margin-top: var(--ors-space-8);
+  padding-block: var(--ors-space-5);
+  border-block: 1px solid var(--ors-color-line);
+}
+
+.portrait-editor-notice > svg {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  color: var(--ors-color-accent);
+}
+
+.portrait-workspace {
+  margin-top: var(--ors-space-6);
+}
+
+.portrait-workspace-bar {
+  gap: var(--ors-space-5);
+  min-height: 64px;
+  padding: var(--ors-space-3) var(--ors-space-4);
+  background: var(--ors-color-surface);
+  border-block: 1px solid var(--ors-color-line);
+}
+
+.portrait-workspace-bar > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.portrait-workspace-bar span,
+.portrait-sync-state {
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+
+.portrait-sync-state {
+  gap: var(--ors-space-2);
+  white-space: nowrap;
+}
+
+.portrait-lighting-console {
+  display: grid;
+  grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
+  gap: var(--ors-space-6);
+  margin-top: var(--ors-space-6);
+}
+
+.portrait-light-panel {
+  align-self: start;
+  min-width: 0;
+  padding: var(--ors-space-5);
+  background: var(--ors-color-surface);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-panel);
+}
+
+.portrait-light-panel > header {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: var(--ors-space-3);
+  align-items: start;
+  padding-bottom: var(--ors-space-5);
+  border-bottom: 1px solid var(--ors-color-line);
+}
+
+.portrait-light-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
+  border-radius: var(--ors-radius-control);
+}
+
+.portrait-light-icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.portrait-light-panel header p {
+  max-width: 48ch;
+  font-size: 0.8125rem;
+}
+
+.portrait-light-panel header button {
+  min-height: 36px;
+  padding: 6px 10px;
+  color: var(--ors-color-accent);
+  background: transparent;
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+}
+
+.portrait-light-panel header button:hover:not(:disabled) {
+  background: var(--ors-color-hover);
+}
+
+.portrait-color-control,
+.portrait-range-control {
+  display: grid;
+  grid-template-columns: minmax(84px, 0.34fr) minmax(0, 1fr) 64px;
+  gap: var(--ors-space-3);
+  align-items: center;
+}
+
+.portrait-color-control {
+  grid-template-columns: minmax(84px, 0.34fr) 56px 86px minmax(0, 1fr);
+  margin-top: var(--ors-space-5);
+}
+
+.portrait-color-control label,
+.portrait-range-control label {
+  font-weight: 600;
+}
+
+.portrait-color-control input[type="color"] {
+  width: 56px;
+  height: 40px;
+  padding: 3px;
+  background: var(--ors-color-canvas);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+}
+
+.portrait-color-control output,
+.portrait-range-control output {
+  color: var(--ors-color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.portrait-color-control span {
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.portrait-range-control {
+  margin-top: var(--ors-space-5);
+}
+
+.portrait-range-control input[type="range"] {
+  width: 100%;
+  accent-color: var(--ors-color-accent);
+}
+
+.portrait-range-control output {
+  text-align: right;
+}
+
+.portrait-direction-control {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  gap: var(--ors-space-6);
+  align-items: center;
+  margin-top: var(--ors-space-6);
+  padding-top: var(--ors-space-5);
+  border-top: 1px solid var(--ors-color-line);
+}
+
+.portrait-direction-dial {
+  position: relative;
+  width: 168px;
+  aspect-ratio: 1;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: 50%;
+}
+
+.portrait-direction-dial::before {
+  position: absolute;
+  inset: 25%;
+  content: "";
+  border: 1px solid var(--ors-color-line);
+  border-radius: 50%;
+}
+
+.portrait-direction-axis {
+  position: absolute;
+  background: var(--ors-color-line);
+}
+
+.portrait-direction-axis.horizontal {
+  top: 50%;
+  right: 8px;
+  left: 8px;
+  height: 1px;
+}
+
+.portrait-direction-axis.vertical {
+  top: 8px;
+  bottom: 8px;
+  left: 50%;
+  width: 1px;
+}
+
+.portrait-direction-ray {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 67px;
+  height: 2px;
+  background: var(--portrait-light-color);
+  box-shadow: 0 2px 8px
+    color-mix(in srgb, var(--portrait-light-color) 48%, transparent);
+  transform: rotate(calc(var(--portrait-light-angle) - 90deg));
+  transform-origin: left center;
+}
+
+.portrait-direction-ray i {
+  position: absolute;
+  top: calc(-5px + var(--portrait-light-height));
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--portrait-light-color);
+  border: 2px solid var(--ors-color-surface);
+  border-radius: 50%;
+}
+
+.portrait-direction-dial b {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  padding: 0 var(--ors-space-1);
+  color: var(--ors-color-muted);
+  background: var(--ors-color-surface);
+  font-size: 0.75rem;
+  font-weight: 500;
+  transform: translateX(-50%);
+}
+
+.portrait-angle-controls .portrait-range-control:first-child {
+  margin-top: 0;
+}
+
+.portrait-save-note {
+  max-width: 70ch;
+  margin: var(--ors-space-5) 0 0;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 1050px) {
+  .portrait-lighting-console {
+    grid-template-columns: 1fr;
+  }
+
+  .portrait-direction-control {
+    grid-template-columns: 168px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .portrait-header,
+  .portrait-header-actions,
+  .portrait-workspace-bar {
+    align-items: stretch;
+  }
+
+  .portrait-header,
+  .portrait-workspace-bar {
+    flex-direction: column;
+  }
+
+  .portrait-header-actions {
+    justify-content: space-between;
+  }
+
+  .portrait-light-panel {
+    padding: var(--ors-space-4);
+  }
+
+  .portrait-color-control {
+    grid-template-columns: 72px 52px minmax(0, 1fr);
+  }
+
+  .portrait-color-control span {
+    grid-column: 2 / 4;
+    text-align: left;
+  }
+
+  .portrait-direction-control {
+    grid-template-columns: 1fr;
+  }
+
+  .portrait-direction-dial {
+    justify-self: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .portrait-header-actions {
+    flex-direction: column;
+  }
+
+  .portrait-secondary-button {
+    width: 100%;
+  }
+
+  .portrait-introduction {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .portrait-introduction > svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .portrait-range-control {
+    grid-template-columns: 1fr 56px;
+  }
+
+  .portrait-range-control input {
+    grid-column: 1 / 3;
+    grid-row: 2;
+  }
+
+  .portrait-connect-button {
+    grid-column: 1 / 3;
+    justify-self: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portrait-page * {
+    scroll-behavior: auto;
+  }
+}

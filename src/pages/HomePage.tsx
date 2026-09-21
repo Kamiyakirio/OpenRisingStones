@@ -1,6 +1,7 @@
 /** Compact feature directory inside the shared application frame. */
 import {
   ArrowRight,
+  Aperture,
   ChatCircleDots,
   CoatHanger,
   FishSimple,
@@ -17,6 +18,7 @@ type HomePageProps = {
   onOpenGearing: () => void;
   onOpenFishing: () => void;
   onOpenChat: () => void;
+  onOpenPortrait: () => void;
 };
 
 export function HomePage({
@@ -26,6 +28,7 @@ export function HomePage({
   onOpenGearing,
   onOpenFishing,
   onOpenChat,
+  onOpenPortrait,
 }: HomePageProps) {
   const features = [
     {
@@ -63,6 +66,12 @@ export function HomePage({
       description: "在手机查看游戏对话并发送普通聊天文字",
       icon: ChatCircleDots,
       open: onOpenChat,
+    },
+    {
+      name: "肖像助手",
+      description: "调整肖像环境光和方向光",
+      icon: Aperture,
+      open: onOpenPortrait,
     },
   ];
   return (
