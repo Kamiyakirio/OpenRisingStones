@@ -17,6 +17,18 @@ export default defineConfig(({ command }) => {
     define: {
       __DEBUG_BUILD__: JSON.stringify(debugBuild),
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // Match the stable bundle naming convention used by Webpack builds.
+          entryFileNames: "assets/chunk-[hash].js",
+          chunkFileNames: (chunkInfo) =>
+            `assets/${chunkInfo.name === "vendor" ? "vendor" : "chunk"}-[hash].js`,
+          manualChunks: (id) =>
+            id.includes("node_modules") ? "vendor" : undefined,
+        },
+      },
+    },
     // Keep Vite's development server stable for Tauri's native window.
     clearScreen: false,
     server: {
