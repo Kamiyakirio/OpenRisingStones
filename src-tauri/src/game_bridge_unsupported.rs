@@ -73,6 +73,15 @@ pub struct GameReadFailure {
   error: GameBridgeApiError,
 }
 
+#[cfg(debug_assertions)]
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DebugPayloadUnloadResult {
+  unloaded: bool,
+  process_id: u32,
+  status: BridgeStatus,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SwitchRegionRequest {
@@ -222,6 +231,15 @@ pub async fn game_bridge_trigger_login(_state: tauri::State<'_, GameBridgeState>
 pub async fn game_bridge_disconnect(
   _state: tauri::State<'_, GameBridgeState>,
 ) -> ApiResult<BridgeStatus> {
+  unsupported()
+}
+
+/// Preserves the Debug command surface while rejecting payload operations off Windows.
+#[cfg(debug_assertions)]
+#[tauri::command]
+pub async fn game_bridge_debug_unload_payload(
+  _state: tauri::State<'_, GameBridgeState>,
+) -> ApiResult<DebugPayloadUnloadResult> {
   unsupported()
 }
 

@@ -1,8 +1,7 @@
 //! Publishes cast telemetry to the timer window without depending on frontend polling.
-use game_bridge_host::{
-  fishing::{FishingSample, FishingTracker},
-  BridgeError,
-};
+#[cfg(windows)]
+use game_bridge_host::fishing::FishingTracker;
+use game_bridge_host::{fishing::FishingSample, BridgeError};
 use serde::Serialize;
 use std::sync::{
   atomic::{AtomicBool, Ordering},
@@ -116,7 +115,9 @@ pub fn start_fishing_monitor(
                   catch_sequence += 1;
                 }
               }
-              Err(_) => { catch_available = false; }
+              Err(_) => {
+                catch_available = false;
+              }
             }
           }
           sample.catch_item_id = catch_item_id;

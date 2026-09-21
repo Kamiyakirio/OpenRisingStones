@@ -48,7 +48,8 @@ fn should_focus_main_window() -> bool {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let should_focus = should_focus_main_window();
-  let app = tauri::Builder::default()
+  #[allow(unused_mut)]
+  let mut app = tauri::Builder::default()
     .setup(move |app| {
       #[cfg(debug_assertions)]
       if let Err(error) = diagnostics::initialize(app.handle()) {

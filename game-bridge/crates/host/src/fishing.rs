@@ -1,6 +1,7 @@
 //! Read-only fishing telemetry and a monotonic cast state machine.
 //! Animation IDs follow the MIT Fishers-Intuition implementation; no game actions are sent.
 use serde::Serialize;
+#[cfg(any(windows, test))]
 #[path = "fishing_catch.rs"]
 mod catch;
 #[cfg(windows)]
