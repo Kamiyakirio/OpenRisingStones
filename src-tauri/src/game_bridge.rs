@@ -2,8 +2,8 @@
 
 use game_bridge_host::{
   ActiveCharacterSnapshot, BridgeError, BridgeManager, BridgePhase, BridgeStatus, ConnectOptions,
-  GameScreen, GameSnapshot, GameStateSnapshot, PlayerInventorySnapshot, PortraitLightingSnapshot,
-  PortraitLightingUpdate, RegionTarget, SecretValue,
+  GameScreen, GameSnapshot, GameStateSnapshot, PlayerInventorySnapshot, PortraitAnimationUpdate,
+  PortraitLightingSnapshot, PortraitLightingUpdate, RegionTarget, SecretValue,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -541,6 +541,20 @@ pub async fn game_bridge_update_portrait_lighting(
 ) -> ApiResult<PortraitLightingSnapshot> {
   let manager = Arc::clone(&state.manager);
   run_bridge_task(move || manager.update_portrait_lighting(update).map_err(Into::into)).await
+}
+
+#[tauri::command]
+pub async fn game_bridge_update_portrait_animation(
+  state: tauri::State<'_, GameBridgeState>,
+  update: PortraitAnimationUpdate,
+) -> ApiResult<PortraitLightingSnapshot> {
+  let manager = Arc::clone(&state.manager);
+  run_bridge_task(move || {
+    manager
+      .update_portrait_animation(update)
+      .map_err(Into::into)
+  })
+  .await
 }
 
 /// Reads one character's owned items, persists the normalized index, then unloads a bridge opened

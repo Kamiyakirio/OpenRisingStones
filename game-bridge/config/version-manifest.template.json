@@ -156,6 +156,36 @@
       "resolve": "relative32",
       "offset": 1,
       "nextInstruction": 5
+    },
+    "portraitGetCharacter": {
+      "pattern": "E8 ?? ?? ?? ?? 44 0F B6 C3 40 0F B6 D7 48 8D 88",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "portraitGetAnimationTime": {
+      "pattern": "E8 ?? ?? ?? ?? 0F B7 97 ?? ?? ?? ?? 0F 28 D0",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "portraitSetPoseTimed": {
+      "pattern": "E8 ?? ?? ?? ?? 40 84 ED 74 ?? 48 63 83",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "portraitIsAnimationPaused": {
+      "pattern": "E8 ?? ?? ?? ?? 49 8D 4F 10 88 85",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
+    },
+    "portraitToggleAnimationPlayback": {
+      "pattern": "E8 ?? ?? ?? ?? B2 ?? 48 8B CE E8 ?? ?? ?? ?? 32 C0",
+      "resolve": "relative32",
+      "offset": 1,
+      "nextInstruction": 5
     }
   },
   "layout": {
@@ -243,6 +273,17 @@
     "charaViewPortraitCharacterLoaded": "0x0406",
     "charaViewDirectionalLighting": "0x0354",
     "charaViewAmbientLighting": "0x035C",
+    "gameObjectDrawObject": "0x0100",
+    "characterTimeline": "0x0A30",
+    "timelineBannerTimelineRowId": "0x0318",
+    "characterBaseSkeleton": "0x00A0",
+    "skeletonPartialSkeletonCount": "0x0050",
+    "skeletonPartialSkeletons": "0x0068",
+    "partialSkeletonHavokAnimatedSkeletons": "0x0138",
+    "animatedSkeletonAnimationControls": "0x0020",
+    "animationControlBinding": "0x0038",
+    "animationBindingAnimation": "0x0018",
+    "animationDuration": "0x0014",
     "addonBannerEditorAmbientColorRedSlider": "0x0A40",
     "addonBannerEditorAmbientColorGreenSlider": "0x0A48",
     "addonBannerEditorAmbientColorBlueSlider": "0x0A50",

@@ -186,6 +186,12 @@ pub struct PortraitLightingSnapshot {
     pub directional_brightness: u8,
     pub directional_vertical_angle: i16,
     pub directional_horizontal_angle: i16,
+    pub animation_available: bool,
+    pub animation_paused: bool,
+    pub animation_editable: bool,
+    pub animation_time: f32,
+    pub animation_duration: f32,
+    pub animation_frame_count: u32,
 }
 
 /// A masked lighting update that never overwrites unrelated portrait fields.
@@ -199,6 +205,15 @@ pub struct PortraitLightingUpdate {
     pub directional_brightness: u8,
     pub directional_vertical_angle: i16,
     pub directional_horizontal_angle: i16,
+}
+
+/// A masked animation update that seeks and controls the native portrait pose.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PortraitAnimationUpdate {
+    pub fields: u32,
+    pub time: f32,
+    pub paused: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -225,6 +240,7 @@ pub enum Command {
     SendChat { message: String },
     CapturePortraitLighting,
     UpdatePortraitLighting { update: PortraitLightingUpdate },
+    UpdatePortraitAnimation { update: PortraitAnimationUpdate },
     Shutdown,
 }
 

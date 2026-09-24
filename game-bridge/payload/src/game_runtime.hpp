@@ -77,6 +77,12 @@ struct PortraitLightingSnapshot final {
   std::uint8_t directional_brightness{};
   std::int16_t directional_vertical_angle{};
   std::int16_t directional_horizontal_angle{};
+  bool animation_available{};
+  bool animation_paused{};
+  bool animation_editable{};
+  float animation_time{};
+  float animation_duration{};
+  std::uint32_t animation_frame_count{};
 };
 
 struct InventoryItemSnapshot final {
@@ -191,6 +197,8 @@ class GameRuntime final {
   [[nodiscard]] CommandOutcome capture_portrait_lighting(void* framework);
   [[nodiscard]] CommandOutcome update_portrait_lighting(void* framework,
                                                         const SharedPortraitLighting& update);
+  [[nodiscard]] CommandOutcome update_portrait_animation(void* framework,
+                                                         const SharedPortraitAnimation& update);
   [[nodiscard]] CommandOutcome logout_to_title(void* framework);
   [[nodiscard]] CommandOutcome return_to_title(void* framework);
   [[nodiscard]] CommandOutcome switch_region(void* framework, RegionTarget& target);
@@ -200,6 +208,8 @@ class GameRuntime final {
   [[nodiscard]] void* get_title_menu(void* framework) const;
   [[nodiscard]] std::byte* get_portrait_chara_view(void* framework,
                                                    PortraitLightingSnapshot& snapshot);
+  [[nodiscard]] std::byte* get_portrait_character(std::byte* chara_view) const;
+  [[nodiscard]] float get_portrait_animation_duration(std::byte* character) const noexcept;
 
   static GameRuntime* active_;
   Layout layout_;

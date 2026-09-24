@@ -27,7 +27,7 @@ use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcess, PROC
 
 // Must match kSharedMagic in the native shared_bridge.hpp contract.
 const SHARED_MAGIC: u32 = 0x4742_524F;
-const SHARED_ABI_VERSION: u32 = 7;
+const SHARED_ABI_VERSION: u32 = 8;
 const PAYLOAD_STATE_READY: u32 = 1;
 const PAYLOAD_STATE_FAULTED: u32 = 2;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
@@ -53,11 +53,14 @@ const COMMAND_LOGOUT_TO_TITLE: u32 = 9;
 const COMMAND_SEND_CHAT: u32 = 10;
 const COMMAND_CAPTURE_PORTRAIT_LIGHTING: u32 = 11;
 const COMMAND_UPDATE_PORTRAIT_LIGHTING: u32 = 12;
+const COMMAND_UPDATE_PORTRAIT_ANIMATION: u32 = 13;
 
 const CHAT_CAPABILITY_READ: u32 = 1 << 0;
 const CHAT_CAPABILITY_SEND: u32 = 1 << 1;
 const PORTRAIT_CAPABILITY_READ: u32 = 1 << 0;
 const PORTRAIT_CAPABILITY_WRITE: u32 = 1 << 1;
+const PORTRAIT_CAPABILITY_ANIMATION_READ: u32 = 1 << 2;
+const PORTRAIT_CAPABILITY_ANIMATION_WRITE: u32 = 1 << 3;
 
 const RESPONSE_SUCCESS: u32 = 1;
 const RESPONSE_ERROR: u32 = 2;
@@ -168,6 +171,17 @@ struct SharedGameLayout {
     chara_view_portrait_character_loaded: u32,
     chara_view_directional_lighting: u32,
     chara_view_ambient_lighting: u32,
+    game_object_draw_object: u32,
+    character_timeline: u32,
+    timeline_banner_timeline_row_id: u32,
+    character_base_skeleton: u32,
+    skeleton_partial_skeleton_count: u32,
+    skeleton_partial_skeletons: u32,
+    partial_skeleton_havok_animated_skeletons: u32,
+    animated_skeleton_animation_controls: u32,
+    animation_control_binding: u32,
+    animation_binding_animation: u32,
+    animation_duration: u32,
     addon_banner_editor_ambient_color_red_slider: u32,
     addon_banner_editor_ambient_color_green_slider: u32,
     addon_banner_editor_ambient_color_blue_slider: u32,
@@ -209,6 +223,11 @@ struct SharedGameApi {
     portrait_set_directional_angle: u64,
     portrait_set_has_changed: u64,
     portrait_set_slider_value: u64,
+    portrait_get_character: u64,
+    portrait_get_animation_time: u64,
+    portrait_set_pose_timed: u64,
+    portrait_is_animation_paused: u64,
+    portrait_toggle_animation_playback: u64,
     layout: SharedGameLayout,
 }
 
@@ -228,6 +247,15 @@ struct SharedPortraitLighting {
     directional_brightness: u8,
     directional_vertical_angle: i16,
     directional_horizontal_angle: i16,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct SharedPortraitAnimation {
+    fields: u32,
+    time: f32,
+    paused: u8,
+    reserved: [u8; 3],
 }
 
 #[repr(C)]
@@ -252,6 +280,7 @@ struct SharedCommand {
     switch_region: SharedSwitchRegion,
     send_chat: SharedSendChat,
     portrait_lighting: SharedPortraitLighting,
+    portrait_animation: SharedPortraitAnimation,
 }
 
 #[repr(C)]
@@ -334,6 +363,13 @@ struct SharedPortraitLightingSnapshot {
     directional_brightness: u8,
     directional_vertical_angle: i16,
     directional_horizontal_angle: i16,
+    animation_available: u8,
+    animation_paused: u8,
+    animation_editable: u8,
+    reserved: u8,
+    animation_time: f32,
+    animation_duration: f32,
+    animation_frame_count: u32,
 }
 
 #[repr(C)]
@@ -430,20 +466,21 @@ struct SharedBridge {
 }
 
 const _: [(); 4948] = [(); size_of::<SharedSwitchRegion>()];
-const _: [(); 376] = [(); size_of::<SharedGameLayout>()];
-const _: [(); 584] = [(); size_of::<SharedGameApi>()];
+const _: [(); 420] = [(); size_of::<SharedGameLayout>()];
+const _: [(); 672] = [(); size_of::<SharedGameApi>()];
 const _: [(); 1028] = [(); size_of::<SharedSendChat>()];
 const _: [(); 16] = [(); size_of::<SharedPortraitLighting>()];
-const _: [(); 6008] = [(); size_of::<SharedCommand>()];
+const _: [(); 12] = [(); size_of::<SharedPortraitAnimation>()];
+const _: [(); 6024] = [(); size_of::<SharedCommand>()];
 const _: [(); 1304] = [(); size_of::<SharedChatEvent>()];
 const _: [(); 88] = [(); size_of::<SharedGameSnapshot>()];
 const _: [(); 128] = [(); size_of::<SharedActiveCharacter>()];
 const _: [(); 48] = [(); size_of::<SharedInventoryItem>()];
 const _: [(); 52] = [(); size_of::<SharedInventoryContainer>()];
 const _: [(); 57144] = [(); size_of::<SharedInventorySnapshot>()];
-const _: [(); 24] = [(); size_of::<SharedPortraitLightingSnapshot>()];
-const _: [(); 57736] = [(); size_of::<SharedResponse>()];
-const _: [(); 231728] = [(); size_of::<SharedBridge>()];
+const _: [(); 40] = [(); size_of::<SharedPortraitLightingSnapshot>()];
+const _: [(); 57752] = [(); size_of::<SharedResponse>()];
+const _: [(); 231848] = [(); size_of::<SharedBridge>()];
 
 pub(crate) enum SessionEvent {
     Ready {
@@ -613,6 +650,15 @@ impl SharedSession {
                         directional_horizontal_angle: update.directional_horizontal_angle,
                     };
                     COMMAND_UPDATE_PORTRAIT_LIGHTING
+                }
+                Command::UpdatePortraitAnimation { update } => {
+                    target.portrait_animation = SharedPortraitAnimation {
+                        fields: update.fields,
+                        time: update.time,
+                        paused: u8::from(update.paused),
+                        reserved: [0; 3],
+                    };
+                    COMMAND_UPDATE_PORTRAIT_ANIMATION
                 }
                 Command::Shutdown => COMMAND_SHUTDOWN,
             };
@@ -793,6 +839,12 @@ fn monitor_shared_memory(
             if portrait_capabilities & PORTRAIT_CAPABILITY_WRITE != 0 {
                 capabilities.push("portrait_lighting_write".to_owned());
             }
+            if portrait_capabilities & PORTRAIT_CAPABILITY_ANIMATION_READ != 0 {
+                capabilities.push("portrait_animation_read".to_owned());
+            }
+            if portrait_capabilities & PORTRAIT_CAPABILITY_ANIMATION_WRITE != 0 {
+                capabilities.push("portrait_animation_write".to_owned());
+            }
             let _ = event_tx.send(SessionEvent::Ready {
                 payload_version: "0.1.0".to_owned(),
                 capabilities,
@@ -885,11 +937,11 @@ fn decode_response(
         COMMAND_CAPTURE_GAME_STATE => Ok(CommandResult::GameState {
             state: decode_game_state(&response.game_state)?,
         }),
-        COMMAND_CAPTURE_PORTRAIT_LIGHTING | COMMAND_UPDATE_PORTRAIT_LIGHTING => {
-            Ok(CommandResult::PortraitLighting {
-                lighting: decode_portrait_lighting(&response.portrait_lighting),
-            })
-        }
+        COMMAND_CAPTURE_PORTRAIT_LIGHTING
+        | COMMAND_UPDATE_PORTRAIT_LIGHTING
+        | COMMAND_UPDATE_PORTRAIT_ANIMATION => Ok(CommandResult::PortraitLighting {
+            lighting: decode_portrait_lighting(&response.portrait_lighting),
+        }),
         COMMAND_SWITCH_REGION => Ok(CommandResult::RegionSwitched {
             region_name: switched_region.ok_or_else(|| {
                 BridgeError::InvalidData("missing switched region name".to_owned())
@@ -919,6 +971,12 @@ fn decode_portrait_lighting(value: &SharedPortraitLightingSnapshot) -> PortraitL
         directional_brightness: value.directional_brightness,
         directional_vertical_angle: value.directional_vertical_angle,
         directional_horizontal_angle: value.directional_horizontal_angle,
+        animation_available: value.animation_available != 0,
+        animation_paused: value.animation_paused != 0,
+        animation_editable: value.animation_editable != 0,
+        animation_time: value.animation_time,
+        animation_duration: value.animation_duration,
+        animation_frame_count: value.animation_frame_count,
     }
 }
 
@@ -1317,6 +1375,11 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     api.portrait_set_directional_angle = resolve_optional("portraitSetDirectionalAngle")?;
     api.portrait_set_has_changed = resolve_optional("portraitSetHasChanged")?;
     api.portrait_set_slider_value = resolve_optional("portraitSetSliderValue")?;
+    api.portrait_get_character = resolve_optional("portraitGetCharacter")?;
+    api.portrait_get_animation_time = resolve_optional("portraitGetAnimationTime")?;
+    api.portrait_set_pose_timed = resolve_optional("portraitSetPoseTimed")?;
+    api.portrait_is_animation_paused = resolve_optional("portraitIsAnimationPaused")?;
+    api.portrait_toggle_animation_playback = resolve_optional("portraitToggleAnimationPlayback")?;
 
     macro_rules! layout {
         ($field:ident, $name:literal) => {
@@ -1439,6 +1502,29 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
         "charaViewDirectionalLighting"
     );
     optional_layout!(chara_view_ambient_lighting, "charaViewAmbientLighting");
+    optional_layout!(game_object_draw_object, "gameObjectDrawObject");
+    optional_layout!(character_timeline, "characterTimeline");
+    optional_layout!(
+        timeline_banner_timeline_row_id,
+        "timelineBannerTimelineRowId"
+    );
+    optional_layout!(character_base_skeleton, "characterBaseSkeleton");
+    optional_layout!(
+        skeleton_partial_skeleton_count,
+        "skeletonPartialSkeletonCount"
+    );
+    optional_layout!(skeleton_partial_skeletons, "skeletonPartialSkeletons");
+    optional_layout!(
+        partial_skeleton_havok_animated_skeletons,
+        "partialSkeletonHavokAnimatedSkeletons"
+    );
+    optional_layout!(
+        animated_skeleton_animation_controls,
+        "animatedSkeletonAnimationControls"
+    );
+    optional_layout!(animation_control_binding, "animationControlBinding");
+    optional_layout!(animation_binding_animation, "animationBindingAnimation");
+    optional_layout!(animation_duration, "animationDuration");
     optional_layout!(
         addon_banner_editor_ambient_color_red_slider,
         "addonBannerEditorAmbientColorRedSlider"

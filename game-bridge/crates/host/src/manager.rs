@@ -371,6 +371,23 @@ impl BridgeManager {
         }
     }
 
+    pub fn update_portrait_animation(
+        &self,
+        update: game_bridge_protocol::PortraitAnimationUpdate,
+    ) -> BridgeResult<game_bridge_protocol::PortraitLightingSnapshot> {
+        if update.fields == 0 || update.fields & !0x03 != 0 || !update.time.is_finite() {
+            return Err(BridgeError::InvalidData(
+                "portrait animation update contains invalid values".to_owned(),
+            ));
+        }
+        match self.send_command(Command::UpdatePortraitAnimation { update })? {
+            CommandResult::PortraitLighting { lighting } => Ok(lighting),
+            _ => Err(BridgeError::InvalidData(
+                "unexpected portrait-animation update response".to_owned(),
+            )),
+        }
+    }
+
     pub fn logout_to_title(&self) -> BridgeResult<()> {
         expect_ack(self.send_command(Command::LogoutToTitle)?)
     }

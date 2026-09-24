@@ -34,6 +34,11 @@ constexpr std::uint32_t kPortraitDirectionalColor = 1U << 2;
 constexpr std::uint32_t kPortraitDirectionalBrightness = 1U << 3;
 constexpr std::uint32_t kPortraitDirectionalAngles = 1U << 4;
 constexpr std::uint32_t kPortraitLightingAll = (1U << 5) - 1;
+constexpr std::uint32_t kPortraitAnimationTime = 1U << 0;
+constexpr std::uint32_t kPortraitAnimationPaused = 1U << 1;
+constexpr std::uint32_t kPortraitAnimationAll = (1U << 2) - 1;
+constexpr float kPortraitFramesPerSecond = 30.0F;
+constexpr float kPortraitAnimationTailSeconds = 0.5F;
 
 struct InventoryDefinition final {
   std::uint32_t type;
@@ -85,6 +90,12 @@ using SetPortraitAngle = void(__fastcall*)(void* chara_view, std::int16_t vertic
 using SetPortraitChanged = void(__fastcall*)(void* editor_state, bool has_changes);
 using SetPortraitSliderValue = void(__fastcall*)(void* slider, std::int32_t value,
                                                  bool dispatch_event_29);
+using GetPortraitCharacter = std::byte*(__fastcall*)(void* chara_view);
+using GetPortraitAnimationTime = float(__fastcall*)(void* chara_view);
+using SetPortraitPoseTimed = void(__fastcall*)(void* chara_view, std::uint16_t timeline_id,
+                                               float time);
+using IsPortraitAnimationPaused = bool(__fastcall*)(void* chara_view);
+using TogglePortraitAnimationPlayback = void(__fastcall*)(void* chara_view, bool paused);
 
 template <typename T>
 T read_value(const std::byte* base, std::size_t offset) {
@@ -262,6 +273,22 @@ void GameRuntime::start() {
       addresses_.portrait_set_slider_value) {
     portrait_capabilities |= kPortraitCapabilityWrite;
   }
+  const bool portrait_animation_layout_available =
+      layout_.game_object_draw_object && layout_.character_timeline &&
+      layout_.timeline_banner_timeline_row_id && layout_.character_base_skeleton &&
+      layout_.skeleton_partial_skeleton_count && layout_.skeleton_partial_skeletons &&
+      layout_.partial_skeleton_havok_animated_skeletons &&
+      layout_.animated_skeleton_animation_controls && layout_.animation_control_binding &&
+      layout_.animation_binding_animation && layout_.animation_duration;
+  if (portrait_layout_available && portrait_animation_layout_available &&
+      addresses_.portrait_get_character && addresses_.portrait_get_animation_time &&
+      addresses_.portrait_is_animation_paused) {
+    portrait_capabilities |= kPortraitCapabilityAnimationRead;
+    if (addresses_.portrait_set_pose_timed && addresses_.portrait_toggle_animation_playback &&
+        addresses_.portrait_set_has_changed) {
+      portrait_capabilities |= kPortraitCapabilityAnimationWrite;
+    }
+  }
   std::atomic_ref(shared_->portrait_capabilities)
       .store(portrait_capabilities, std::memory_order_release);
 }
@@ -436,6 +463,9 @@ void GameRuntime::process_shared_command(void* framework) {
       case SharedCommandKind::UpdatePortraitLighting:
         outcome = update_portrait_lighting(framework, shared_->command.portrait_lighting);
         break;
+      case SharedCommandKind::UpdatePortraitAnimation:
+        outcome = update_portrait_animation(framework, shared_->command.portrait_animation);
+        break;
       case SharedCommandKind::Shutdown:
         outcome = acknowledgement();
         break;
@@ -511,6 +541,28 @@ CommandOutcome GameRuntime::capture_portrait_lighting(void* framework) {
       read_value<std::uint8_t>(chara_view, ambient + 2),
   };
   snapshot.ambient_brightness = read_value<std::uint8_t>(chara_view, ambient + 3);
+
+  if ((capabilities & kPortraitCapabilityAnimationRead) != 0) {
+    auto* character = get_portrait_character(chara_view);
+    if (character) {
+      const auto duration = get_portrait_animation_duration(character);
+      const auto timeline_id = read_value<std::uint16_t>(
+          character, layout_.character_timeline + layout_.timeline_banner_timeline_row_id);
+      if (timeline_id != 0 && duration > 0.0F) {
+        snapshot.animation_available = true;
+        snapshot.animation_editable = (capabilities & kPortraitCapabilityAnimationWrite) != 0;
+        snapshot.animation_duration = duration;
+        snapshot.animation_frame_count =
+            static_cast<std::uint32_t>(std::lround(duration * kPortraitFramesPerSecond));
+        snapshot.animation_time =
+            std::clamp(reinterpret_cast<GetPortraitAnimationTime>(
+                           addresses_.portrait_get_animation_time)(chara_view),
+                       0.0F, duration);
+        snapshot.animation_paused = reinterpret_cast<IsPortraitAnimationPaused>(
+            addresses_.portrait_is_animation_paused)(chara_view);
+      }
+    }
+  }
   return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, std::nullopt, {}, snapshot};
 }
 
@@ -617,6 +669,60 @@ CommandOutcome GameRuntime::update_portrait_lighting(void* framework,
                    "The native portrait editor closed during the update.");
   reinterpret_cast<SetPortraitChanged>(addresses_.portrait_set_has_changed)(state, true);
 
+  return capture_portrait_lighting(framework);
+}
+
+CommandOutcome GameRuntime::update_portrait_animation(void* framework,
+                                                      const SharedPortraitAnimation& update) {
+  const auto capabilities =
+      std::atomic_ref(shared_->portrait_capabilities).load(std::memory_order_acquire);
+  if ((capabilities & kPortraitCapabilityAnimationWrite) == 0) {
+    return failure("portrait_animation_read_only",
+                   "Portrait animation cannot be changed with this game version.");
+  }
+  if (update.fields == 0 || (update.fields & ~kPortraitAnimationAll) != 0 ||
+      !std::isfinite(update.time)) {
+    return failure("invalid_portrait_animation", "The portrait animation values are invalid.");
+  }
+
+  PortraitLightingSnapshot current;
+  auto* chara_view = get_portrait_chara_view(framework, current);
+  if (!current.editor_open) {
+    return failure("portrait_editor_closed",
+                   "Open the native portrait editor before editing animation.");
+  }
+  if (!chara_view || !current.character_ready) {
+    return failure("portrait_character_loading",
+                   "Wait for the portrait character to finish loading.");
+  }
+  auto* character = get_portrait_character(chara_view);
+  const auto duration = character ? get_portrait_animation_duration(character) : 0.0F;
+  const auto timeline_id =
+      character ? read_value<std::uint16_t>(character, layout_.character_timeline +
+                                                           layout_.timeline_banner_timeline_row_id)
+                : 0;
+  if (!character || timeline_id == 0 || duration <= 0.0F) {
+    return failure("portrait_animation_unavailable",
+                   "The selected portrait pose has no editable animation timeline.");
+  }
+
+  if ((update.fields & kPortraitAnimationTime) != 0) {
+    const auto time = std::clamp(update.time, 0.0F, duration);
+    reinterpret_cast<SetPortraitPoseTimed>(addresses_.portrait_set_pose_timed)(chara_view,
+                                                                               timeline_id, time);
+    // Seeking always pauses first so the requested frame remains stable.
+    reinterpret_cast<TogglePortraitAnimationPlayback>(
+        addresses_.portrait_toggle_animation_playback)(chara_view, true);
+  }
+  if ((update.fields & kPortraitAnimationPaused) != 0) {
+    reinterpret_cast<TogglePortraitAnimationPlayback>(
+        addresses_.portrait_toggle_animation_playback)(chara_view, update.paused != 0);
+  }
+
+  if (portrait_editor_state_) {
+    reinterpret_cast<SetPortraitChanged>(addresses_.portrait_set_has_changed)(
+        portrait_editor_state_, true);
+  }
   return capture_portrait_lighting(framework);
 }
 
@@ -966,6 +1072,12 @@ void GameRuntime::write_response(std::uint64_t sequence, SharedCommandKind kind,
       target.directional_brightness = source.directional_brightness;
       target.directional_vertical_angle = source.directional_vertical_angle;
       target.directional_horizontal_angle = source.directional_horizontal_angle;
+      target.animation_available = source.animation_available ? 1 : 0;
+      target.animation_paused = source.animation_paused ? 1 : 0;
+      target.animation_editable = source.animation_editable ? 1 : 0;
+      target.animation_time = source.animation_time;
+      target.animation_duration = source.animation_duration;
+      target.animation_frame_count = source.animation_frame_count;
     }
     if (outcome.inventory) {
       const auto& source = *outcome.inventory;
@@ -1199,6 +1311,47 @@ std::byte* GameRuntime::get_portrait_chara_view(void* framework,
   snapshot.character_ready =
       read_value<bool>(chara_view, layout_.chara_view_portrait_character_loaded);
   return chara_view;
+}
+
+std::byte* GameRuntime::get_portrait_character(std::byte* chara_view) const {
+  if (!chara_view || !addresses_.portrait_get_character) return nullptr;
+  auto* character =
+      reinterpret_cast<GetPortraitCharacter>(addresses_.portrait_get_character)(chara_view);
+  return is_readable(character, sizeof(void*)) ? character : nullptr;
+}
+
+float GameRuntime::get_portrait_animation_duration(std::byte* character) const noexcept {
+  try {
+    if (!character) return 0.0F;
+    auto* draw_object = read_pointer<std::byte>(character, layout_.game_object_draw_object);
+    if (!draw_object) return 0.0F;
+    auto* skeleton = read_pointer<std::byte>(draw_object, layout_.character_base_skeleton);
+    if (!skeleton ||
+        read_value<std::uint16_t>(skeleton, layout_.skeleton_partial_skeleton_count) == 0) {
+      return 0.0F;
+    }
+    auto* partial_skeletons = read_pointer<std::byte>(skeleton, layout_.skeleton_partial_skeletons);
+    if (!partial_skeletons) return 0.0F;
+    auto* animated_skeleton = read_pointer<std::byte>(
+        partial_skeletons, layout_.partial_skeleton_havok_animated_skeletons);
+    if (!animated_skeleton) return 0.0F;
+
+    const auto controls_offset = layout_.animated_skeleton_animation_controls;
+    auto* controls = read_pointer<std::byte*>(animated_skeleton, controls_offset);
+    const auto control_count = read_value<std::int32_t>(animated_skeleton, controls_offset + 8);
+    if (!controls || control_count <= 0) return 0.0F;
+    auto* control = read_value<std::byte*>(reinterpret_cast<std::byte*>(controls), 0);
+    if (!control) return 0.0F;
+    auto* binding = read_pointer<std::byte>(control, layout_.animation_control_binding);
+    if (!binding) return 0.0F;
+    auto* animation = read_pointer<std::byte>(binding, layout_.animation_binding_animation);
+    if (!animation) return 0.0F;
+    const auto raw_duration = read_value<float>(animation, layout_.animation_duration);
+    if (!std::isfinite(raw_duration) || raw_duration <= kPortraitAnimationTailSeconds) return 0.0F;
+    return raw_duration - kPortraitAnimationTailSeconds;
+  } catch (...) {
+    return 0.0F;
+  }
 }
 
 void* GameRuntime::get_title_menu(void* framework) const {

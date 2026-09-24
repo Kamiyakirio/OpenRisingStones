@@ -66,6 +66,11 @@ ResolvedAddresses resolve_addresses(const SharedGameApi& api) {
       optional_pointer<std::byte*>(api.portrait_set_directional_angle),
       optional_pointer<std::byte*>(api.portrait_set_has_changed),
       optional_pointer<std::byte*>(api.portrait_set_slider_value),
+      optional_pointer<std::byte*>(api.portrait_get_character),
+      optional_pointer<std::byte*>(api.portrait_get_animation_time),
+      optional_pointer<std::byte*>(api.portrait_set_pose_timed),
+      optional_pointer<std::byte*>(api.portrait_is_animation_paused),
+      optional_pointer<std::byte*>(api.portrait_toggle_animation_playback),
   };
 }
 
