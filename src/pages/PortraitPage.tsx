@@ -2,8 +2,13 @@
 import {
   Aperture,
   ArrowClockwise,
+  CaretLeft,
+  CaretRight,
+  FilmStrip,
   LightbulbFilament,
   MoonStars,
+  Pause,
+  Play,
   PlugsConnected,
   SpinnerGap,
   WarningCircle,
@@ -12,6 +17,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { RiskDialog } from "../shared/components/RiskDialog";
 import { usePortraitLighting } from "../features/portrait/usePortraitLighting";
 import {
+  PORTRAIT_ANIMATION_FIELDS,
   PORTRAIT_LIGHTING_FIELDS,
   type PortraitLighting,
 } from "../features/portrait/types";
@@ -22,10 +28,7 @@ export function PortraitPage() {
   const lighting = editor.lighting;
   const connected = editor.phase === "ready";
   const editable = Boolean(
-    lighting?.editorOpen &&
-    lighting.characterReady &&
-    !editor.updating &&
-    !editor.updateFailed,
+    lighting?.editorOpen && lighting.characterReady && !editor.updateFailed,
   );
 
   return (
@@ -33,7 +36,7 @@ export function PortraitPage() {
       <header className="portrait-header">
         <div>
           <h1>肖像助手</h1>
-          <p>调整肖像的环境光和方向光。</p>
+          <p>调整动作时间和光照。</p>
         </div>
         <div className="portrait-header-actions">
           <PortraitStatus phase={editor.phase} lighting={lighting} />
@@ -77,6 +80,7 @@ export function PortraitPage() {
           updating={editor.updating}
           updateFailed={editor.updateFailed}
           onChange={editor.changeLighting}
+          onAnimationChange={editor.changeAnimation}
         />
       )}
 
@@ -84,9 +88,9 @@ export function PortraitPage() {
         <RiskDialog
           title="连接肖像助手前请确认风险"
           items={[
-            "会向 FF14 游戏进程注入模块，读取并修改当前肖像的光照。",
+            "会向 FF14 游戏进程注入模块，读取并修改当前肖像的动作和光照。",
             "使用第三方程序可能违反用户协议，并导致账号处罚。",
-            "只修改当前编辑器的光照参数。",
+            "只修改当前编辑器的动作时间和光照参数。",
             "肖像仍需在游戏中保存。",
           ]}
           description={<p>不接受以上风险，请取消。</p>}
@@ -139,6 +143,7 @@ function PortraitLightingConsole({
   updating,
   updateFailed,
   onChange,
+  onAnimationChange,
 }: {
   lighting: PortraitLighting;
   initial: PortraitLighting | null;
@@ -149,6 +154,7 @@ function PortraitLightingConsole({
     fields: number,
     change: (current: PortraitLighting) => PortraitLighting,
   ) => void;
+  onAnimationChange: (fields: number, time: number, paused: boolean) => void;
 }) {
   const resetAll = () => {
     if (!initial) return;
@@ -185,6 +191,12 @@ function PortraitLightingConsole({
           重置全部光照
         </button>
       </div>
+
+      <AnimationTimeline
+        lighting={lighting}
+        disabled={!editable}
+        onChange={onAnimationChange}
+      />
 
       <div className="portrait-lighting-console">
         <LightingPanel
@@ -282,6 +294,104 @@ function PortraitLightingConsole({
           : "修改后请在游戏中保存。"}
       </p>
     </div>
+  );
+}
+
+function AnimationTimeline({
+  lighting,
+  disabled,
+  onChange,
+}: {
+  lighting: PortraitLighting;
+  disabled: boolean;
+  onChange: (fields: number, time: number, paused: boolean) => void;
+}) {
+  const totalFrames = lighting.animationFrameCount;
+  const currentFrame = Math.min(
+    totalFrames,
+    Math.max(0, Math.round(lighting.animationTime * 30)),
+  );
+  const unavailable = !lighting.animationAvailable || totalFrames === 0;
+  const controlDisabled =
+    disabled || unavailable || !lighting.animationEditable;
+  const seek = (frame: number) => {
+    const nextFrame = Math.min(totalFrames, Math.max(0, frame));
+    onChange(
+      PORTRAIT_ANIMATION_FIELDS.time | PORTRAIT_ANIMATION_FIELDS.paused,
+      nextFrame / 30,
+      true,
+    );
+  };
+
+  return (
+    <section className="portrait-animation-panel">
+      <header>
+        <span className="portrait-light-icon">
+          <FilmStrip aria-hidden="true" />
+        </span>
+        <div>
+          <h2>动作时间轴</h2>
+          <p>
+            {unavailable
+              ? "当前动作没有可调时间轴。"
+              : !lighting.animationEditable
+                ? "当前版本只能读取动作时间。"
+                : `第 ${currentFrame} 帧，共 ${totalFrames} 帧`}
+          </p>
+        </div>
+        <button
+          className="portrait-play-button"
+          type="button"
+          disabled={controlDisabled}
+          onClick={() =>
+            onChange(
+              PORTRAIT_ANIMATION_FIELDS.paused,
+              lighting.animationTime,
+              !lighting.animationPaused,
+            )
+          }
+        >
+          {lighting.animationPaused ? (
+            <Play aria-hidden="true" />
+          ) : (
+            <Pause aria-hidden="true" />
+          )}
+          {lighting.animationPaused ? "播放" : "暂停"}
+        </button>
+      </header>
+      <div className="portrait-timeline-controls">
+        <button
+          type="button"
+          aria-label="上一帧"
+          disabled={controlDisabled || currentFrame === 0}
+          onClick={() => seek(currentFrame - 1)}
+        >
+          <CaretLeft aria-hidden="true" />
+        </button>
+        <input
+          aria-label="动作帧"
+          type="range"
+          min={0}
+          max={Math.max(1, totalFrames)}
+          step={1}
+          value={currentFrame}
+          disabled={controlDisabled}
+          onChange={(event) => seek(Number(event.target.value))}
+        />
+        <button
+          type="button"
+          aria-label="下一帧"
+          disabled={controlDisabled || currentFrame === totalFrames}
+          onClick={() => seek(currentFrame + 1)}
+        >
+          <CaretRight aria-hidden="true" />
+        </button>
+        <output>
+          {formatAnimationTime(lighting.animationTime)} /{" "}
+          {formatAnimationTime(lighting.animationDuration)}
+        </output>
+      </div>
+    </section>
   );
 }
 
@@ -525,6 +635,14 @@ function PortraitError({ code }: { code: string }) {
       title: "肖像仍在载入",
       message: "请稍候。",
     },
+    portrait_animation_read_only: {
+      title: "当前版本无法修改动作",
+      message: "更新游戏桥接文件后重试。",
+    },
+    portrait_animation_unavailable: {
+      title: "当前动作没有时间轴",
+      message: "在游戏中选择其他动作后重新读取。",
+    },
     portrait_ui_unavailable: {
       title: "游戏光照控件尚未就绪",
       message: "请保持游戏内肖像编辑器打开后重新读取。",
@@ -547,6 +665,11 @@ function PortraitError({ code }: { code: string }) {
 
 function portraitOpenType(value: number) {
   return value === 2 ? "冒险者铭牌" : value === 1 ? "套装肖像" : "肖像编辑";
+}
+
+function formatAnimationTime(value: number) {
+  if (!Number.isFinite(value)) return "0.00 秒";
+  return `${Math.max(0, value).toFixed(2)} 秒`;
 }
 
 function colorToHex(color: [number, number, number]) {

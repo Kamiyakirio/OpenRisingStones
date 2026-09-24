@@ -1,4 +1,4 @@
-/** Frontend contract for the native portrait lighting editor. */
+/** Frontend contract for the native portrait editor controls. */
 export type PortraitLighting = {
   sessionId: number;
   editorOpen: boolean;
@@ -11,11 +11,27 @@ export type PortraitLighting = {
   directionalBrightness: number;
   directionalVerticalAngle: number;
   directionalHorizontalAngle: number;
+  animationAvailable: boolean;
+  animationPaused: boolean;
+  animationEditable: boolean;
+  animationTime: number;
+  animationDuration: number;
+  animationFrameCount: number;
 };
 
 export type PortraitLightingUpdate = Omit<
   PortraitLighting,
-  "sessionId" | "editorOpen" | "characterReady" | "openType" | "hasChanges"
+  | "sessionId"
+  | "editorOpen"
+  | "characterReady"
+  | "openType"
+  | "hasChanges"
+  | "animationAvailable"
+  | "animationPaused"
+  | "animationEditable"
+  | "animationTime"
+  | "animationDuration"
+  | "animationFrameCount"
 > & {
   fields: number;
 };
@@ -27,6 +43,17 @@ export const PORTRAIT_LIGHTING_FIELDS = {
   directionalBrightness: 1 << 3,
   directionalAngles: 1 << 4,
   all: (1 << 5) - 1,
+} as const;
+
+export type PortraitAnimationUpdate = {
+  fields: number;
+  time: number;
+  paused: boolean;
+};
+
+export const PORTRAIT_ANIMATION_FIELDS = {
+  time: 1 << 0,
+  paused: 1 << 1,
 } as const;
 
 export type PortraitConnectionPhase =

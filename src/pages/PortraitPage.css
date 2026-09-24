@@ -1,4 +1,4 @@
-/** Portrait lighting uses a two-lamp control desk inside the shared warm task ledger. */
+/** Portrait controls pair one compact timeline with the two-light editing desk. */
 .portrait-page {
   min-height: 100dvh;
 }
@@ -14,6 +14,7 @@
 
 .portrait-header h1,
 .portrait-light-panel h2,
+.portrait-animation-panel h2,
 .portrait-introduction h2,
 .portrait-editor-notice h2 {
   margin: 0;
@@ -207,6 +208,87 @@
   grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
   gap: var(--ors-space-6);
   margin-top: var(--ors-space-6);
+}
+
+.portrait-animation-panel {
+  margin-top: var(--ors-space-6);
+  padding: var(--ors-space-4) var(--ors-space-5);
+  background: var(--ors-color-surface);
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-panel);
+}
+
+.portrait-animation-panel > header {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: var(--ors-space-3);
+  align-items: center;
+}
+
+.portrait-animation-panel header p {
+  margin: var(--ors-space-1) 0 0;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.portrait-play-button,
+.portrait-timeline-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ors-color-text);
+  background: var(--ors-color-canvas);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+}
+
+.portrait-play-button {
+  gap: var(--ors-space-2);
+  min-width: 88px;
+  min-height: 38px;
+  padding: 7px 12px;
+  font-weight: 650;
+}
+
+.portrait-play-button:hover:not(:disabled),
+.portrait-timeline-controls button:hover:not(:disabled) {
+  background: var(--ors-color-hover);
+}
+
+.portrait-play-button svg,
+.portrait-timeline-controls button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.portrait-timeline-controls {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px 132px;
+  gap: var(--ors-space-3);
+  align-items: center;
+  margin-top: var(--ors-space-4);
+  padding-top: var(--ors-space-4);
+  border-top: 1px solid var(--ors-color-line);
+}
+
+.portrait-timeline-controls button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+.portrait-timeline-controls input[type="range"] {
+  width: 100%;
+  accent-color: var(--ors-color-accent);
+}
+
+.portrait-timeline-controls output {
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .portrait-light-panel {
@@ -435,6 +517,10 @@
     padding: var(--ors-space-4);
   }
 
+  .portrait-animation-panel {
+    padding: var(--ors-space-4);
+  }
+
   .portrait-color-control {
     grid-template-columns: 72px 52px minmax(0, 1fr);
   }
@@ -483,6 +569,24 @@
   .portrait-connect-button {
     grid-column: 1 / 3;
     justify-self: stretch;
+  }
+
+  .portrait-animation-panel > header {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .portrait-play-button {
+    grid-column: 1 / 3;
+    width: 100%;
+  }
+
+  .portrait-timeline-controls {
+    grid-template-columns: 36px minmax(0, 1fr) 36px;
+  }
+
+  .portrait-timeline-controls output {
+    grid-column: 1 / 4;
+    text-align: center;
   }
 }
 

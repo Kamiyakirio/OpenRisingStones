@@ -5,7 +5,11 @@ import {
   prepareGameBridge,
 } from "../../shared/game-bridge/api";
 import type { GameBridgeApiError } from "../../shared/game-bridge/types";
-import { capturePortraitLighting, updatePortraitLighting } from "./api";
+import {
+  capturePortraitLighting,
+  updatePortraitAnimation,
+  updatePortraitLighting,
+} from "./api";
 import {
   grantPortraitRiskConsent,
   hasPortraitRiskConsent,
@@ -31,6 +35,11 @@ export function usePortraitLighting() {
   const [updateFailed, setUpdateFailed] = useState(false);
   const latest = useRef<PortraitLighting | null>(null);
   const pendingFields = useRef(0);
+  const pendingAnimation = useRef<{
+    fields: number;
+    time: number;
+    paused: boolean;
+  } | null>(null);
   const updateTimer = useRef<number | null>(null);
   const writing = useRef(false);
 
@@ -39,7 +48,12 @@ export function usePortraitLighting() {
   }, [lighting]);
 
   const refresh = useCallback(async () => {
-    if (writing.current || pendingFields.current !== 0) return false;
+    if (
+      writing.current ||
+      pendingFields.current !== 0 ||
+      pendingAnimation.current
+    )
+      return false;
     try {
       const next = await capturePortraitLighting();
       setLighting(next);
@@ -102,26 +116,42 @@ export function usePortraitLighting() {
   }, [connect]);
 
   const flushUpdate = useCallback(async () => {
-    if (writing.current || pendingFields.current === 0) return;
+    if (
+      writing.current ||
+      (pendingFields.current === 0 && !pendingAnimation.current)
+    )
+      return;
     writing.current = true;
     setUpdating(true);
     try {
-      while (pendingFields.current !== 0) {
+      while (pendingFields.current !== 0 || pendingAnimation.current) {
         const current = latest.current;
         if (!current) break;
-        const fields = pendingFields.current;
-        pendingFields.current = 0;
-        const update: PortraitLightingUpdate = {
-          fields,
-          ambientColor: current.ambientColor,
-          ambientBrightness: current.ambientBrightness,
-          directionalColor: current.directionalColor,
-          directionalBrightness: current.directionalBrightness,
-          directionalVerticalAngle: current.directionalVerticalAngle,
-          directionalHorizontalAngle: current.directionalHorizontalAngle,
-        };
-        const next = await updatePortraitLighting(update);
-        setLighting(next);
+        let next: PortraitLighting;
+        if (pendingFields.current !== 0) {
+          const fields = pendingFields.current;
+          pendingFields.current = 0;
+          const update: PortraitLightingUpdate = {
+            fields,
+            ambientColor: current.ambientColor,
+            ambientBrightness: current.ambientBrightness,
+            directionalColor: current.directionalColor,
+            directionalBrightness: current.directionalBrightness,
+            directionalVerticalAngle: current.directionalVerticalAngle,
+            directionalHorizontalAngle: current.directionalHorizontalAngle,
+          };
+          next = await updatePortraitLighting(update);
+        } else {
+          const update = pendingAnimation.current;
+          if (!update) break;
+          pendingAnimation.current = null;
+          next = await updatePortraitAnimation(update);
+        }
+        // Keep local slider values visible when another edit arrived during this request.
+        if (pendingFields.current === 0 && !pendingAnimation.current) {
+          latest.current = next;
+          setLighting(next);
+        }
       }
       setUpdateFailed(false);
       setError(null);
@@ -129,6 +159,7 @@ export function usePortraitLighting() {
       setError(normalizeGameBridgeError(reason));
       setUpdateFailed(true);
       pendingFields.current = 0;
+      pendingAnimation.current = null;
       if (updateTimer.current !== null) {
         window.clearTimeout(updateTimer.current);
         updateTimer.current = null;
@@ -153,6 +184,19 @@ export function usePortraitLighting() {
     }
   }, []);
 
+  useEffect(() => {
+    if (
+      updating ||
+      updateTimer.current !== null ||
+      (pendingFields.current === 0 && !pendingAnimation.current)
+    )
+      return;
+    updateTimer.current = window.setTimeout(() => {
+      updateTimer.current = null;
+      void flushUpdate();
+    }, UPDATE_DELAY_MS);
+  }, [flushUpdate, updating]);
+
   const changeLighting = useCallback(
     (
       fields: number,
@@ -166,6 +210,34 @@ export function usePortraitLighting() {
       });
       pendingFields.current |= fields;
       // Keep emitting the latest value while dragging without queueing every pointer event.
+      if (updateTimer.current === null && !writing.current) {
+        updateTimer.current = window.setTimeout(() => {
+          updateTimer.current = null;
+          void flushUpdate();
+        }, UPDATE_DELAY_MS);
+      }
+    },
+    [flushUpdate],
+  );
+
+  const changeAnimation = useCallback(
+    (fields: number, time: number, paused: boolean) => {
+      setLighting((current) => {
+        if (!current) return current;
+        const next = {
+          ...current,
+          animationTime: time,
+          animationPaused: paused,
+        };
+        latest.current = next;
+        return next;
+      });
+      const current = pendingAnimation.current;
+      pendingAnimation.current = {
+        fields: (current?.fields ?? 0) | fields,
+        time,
+        paused,
+      };
       if (updateTimer.current === null && !writing.current) {
         updateTimer.current = window.setTimeout(() => {
           updateTimer.current = null;
@@ -211,5 +283,6 @@ export function usePortraitLighting() {
     cancelRisk: () => setRiskOpen(false),
     refresh: recover,
     changeLighting,
+    changeAnimation,
   };
 }

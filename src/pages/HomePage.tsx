@@ -69,7 +69,7 @@ export function HomePage({
     },
     {
       name: "肖像助手",
-      description: "调整肖像环境光和方向光",
+      description: "调整动作时间和肖像光照",
       icon: Aperture,
       open: onOpenPortrait,
     },
