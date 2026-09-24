@@ -13,7 +13,7 @@ import {
   SpinnerGap,
   WarningCircle,
 } from "@phosphor-icons/react";
-import type { CSSProperties, ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { RiskDialog } from "../shared/components/RiskDialog";
 import { usePortraitLighting } from "../features/portrait/usePortraitLighting";
 import {
@@ -386,10 +386,18 @@ function AnimationTimeline({
         >
           <CaretRight aria-hidden="true" />
         </button>
-        <output>
-          {formatAnimationTime(lighting.animationTime)} /{" "}
-          {formatAnimationTime(lighting.animationDuration)}
-        </output>
+        <NumericInput
+          ariaLabel="当前动作帧"
+          value={currentFrame}
+          min={0}
+          max={totalFrames}
+          disabled={controlDisabled}
+          commitAlways
+          onChange={seek}
+        />
+        <span className="portrait-timeline-duration">
+          / {formatAnimationTime(lighting.animationDuration)}
+        </span>
       </div>
     </section>
   );
@@ -433,20 +441,13 @@ function LightingPanel({
           重置
         </button>
       </header>
-      <div className="portrait-color-control">
-        <label htmlFor={`${className}-color`}>颜色</label>
-        <input
-          id={`${className}-color`}
-          type="color"
-          value={hex}
-          disabled={disabled}
-          onChange={(event) => onColor(hexToColor(event.target.value))}
-        />
-        <output>{hex.toUpperCase()}</output>
-        <span>
-          RGB {color[0]} · {color[1]} · {color[2]}
-        </span>
-      </div>
+      <ColorControl
+        id={`${className}-color`}
+        color={color}
+        hex={hex}
+        disabled={disabled}
+        onChange={onColor}
+      />
       <RangeControl
         id={`${className}-brightness`}
         label="亮度"
@@ -546,11 +547,187 @@ function RangeControl({
         disabled={disabled}
         onChange={(event) => onChange(Number(event.target.value))}
       />
-      <output htmlFor={id}>
-        {value}
-        {unit}
-      </output>
+      <NumericInput
+        ariaLabel={`${label}数值`}
+        value={value}
+        min={min}
+        max={max}
+        unit={unit}
+        disabled={disabled}
+        onChange={onChange}
+      />
     </div>
+  );
+}
+
+function ColorControl({
+  id,
+  color,
+  hex,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  color: [number, number, number];
+  hex: string;
+  disabled: boolean;
+  onChange: (value: [number, number, number]) => void;
+}) {
+  const [hexDraft, setHexDraft] = useState(hex.toUpperCase());
+  const [editingHex, setEditingHex] = useState(false);
+  const cancelHexCommit = useRef(false);
+
+  const commitHex = (draft: string) => {
+    const normalized = draft.startsWith("#") ? draft : `#${draft}`;
+    if (/^#[0-9a-f]{6}$/i.test(normalized)) {
+      if (normalized.toLowerCase() !== hex) onChange(hexToColor(normalized));
+      setHexDraft(normalized.toUpperCase());
+      return;
+    }
+    setHexDraft(hex.toUpperCase());
+  };
+
+  return (
+    <div className="portrait-color-control">
+      <label htmlFor={id}>颜色</label>
+      <div className="portrait-color-editor">
+        <input
+          id={id}
+          type="color"
+          value={hex}
+          disabled={disabled}
+          onChange={(event) => onChange(hexToColor(event.target.value))}
+        />
+        <input
+          className="portrait-hex-input"
+          aria-label="十六进制颜色"
+          value={editingHex ? hexDraft : hex.toUpperCase()}
+          maxLength={7}
+          spellCheck={false}
+          disabled={disabled}
+          onFocus={() => {
+            setHexDraft(hex.toUpperCase());
+            setEditingHex(true);
+          }}
+          onChange={(event) => setHexDraft(event.target.value.toUpperCase())}
+          onBlur={() => {
+            if (cancelHexCommit.current) {
+              cancelHexCommit.current = false;
+              setHexDraft(hex.toUpperCase());
+            } else {
+              commitHex(hexDraft);
+            }
+            setEditingHex(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+            if (event.key === "Escape") {
+              cancelHexCommit.current = true;
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <div className="portrait-rgb-inputs">
+          {(["R", "G", "B"] as const).map((channel, index) => (
+            <NumericInput
+              key={channel}
+              ariaLabel={`${channel} 通道`}
+              prefix={channel}
+              value={color[index]}
+              min={0}
+              max={255}
+              disabled={disabled}
+              onChange={(value) => {
+                const next = [...color] as [number, number, number];
+                next[index] = value;
+                onChange(next);
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NumericInput({
+  ariaLabel,
+  value,
+  min,
+  max,
+  prefix,
+  unit = "",
+  disabled,
+  commitAlways = false,
+  onChange,
+}: {
+  ariaLabel: string;
+  value: number;
+  min: number;
+  max: number;
+  prefix?: string;
+  unit?: string;
+  disabled: boolean;
+  commitAlways?: boolean;
+  onChange: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(value));
+  const [editing, setEditing] = useState(false);
+  const cancelCommit = useRef(false);
+
+  const commit = (nextDraft: string) => {
+    const parsed = nextDraft.trim() === "" ? Number.NaN : Number(nextDraft);
+    const next = Number.isFinite(parsed)
+      ? Math.min(max, Math.max(min, Math.round(parsed)))
+      : value;
+    setDraft(String(next));
+    if (next !== value || commitAlways) onChange(next);
+  };
+
+  return (
+    <label
+      className="portrait-number-field"
+      data-disabled={disabled || undefined}
+    >
+      {prefix && (
+        <span className="portrait-number-prefix" aria-hidden="true">
+          {prefix}
+        </span>
+      )}
+      <input
+        aria-label={ariaLabel}
+        type="number"
+        inputMode="numeric"
+        value={editing ? draft : String(value)}
+        min={min}
+        max={max}
+        step={1}
+        disabled={disabled}
+        onFocus={(event) => {
+          setDraft(String(value));
+          setEditing(true);
+          event.currentTarget.select();
+        }}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          if (cancelCommit.current) {
+            cancelCommit.current = false;
+            setDraft(String(value));
+          } else {
+            commit(draft);
+          }
+          setEditing(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.currentTarget.blur();
+          if (event.key === "Escape") {
+            cancelCommit.current = true;
+            event.currentTarget.blur();
+          }
+        }}
+      />
+      {unit && <span aria-hidden="true">{unit}</span>}
+    </label>
   );
 }
 

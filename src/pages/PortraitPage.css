@@ -264,7 +264,7 @@
 
 .portrait-timeline-controls {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) 36px 132px;
+  grid-template-columns: 36px minmax(0, 1fr) 36px 88px auto;
   gap: var(--ors-space-3);
   align-items: center;
   margin-top: var(--ors-space-4);
@@ -283,11 +283,10 @@
   accent-color: var(--ors-color-accent);
 }
 
-.portrait-timeline-controls output {
+.portrait-timeline-duration {
   color: var(--ors-color-muted);
   font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
-  text-align: right;
   white-space: nowrap;
 }
 
@@ -345,22 +344,30 @@
 .portrait-color-control,
 .portrait-range-control {
   display: grid;
-  grid-template-columns: minmax(84px, 0.34fr) minmax(0, 1fr) 64px;
+  grid-template-columns: minmax(84px, 0.34fr) minmax(0, 1fr) 88px;
   gap: var(--ors-space-3);
   align-items: center;
 }
 
 .portrait-color-control {
-  grid-template-columns: minmax(84px, 0.34fr) 56px 86px minmax(0, 1fr);
+  grid-template-columns: minmax(84px, 0.34fr) minmax(0, 1fr);
   margin-top: var(--ors-space-5);
 }
 
-.portrait-color-control label,
-.portrait-range-control label {
+.portrait-color-control > label,
+.portrait-range-control > label {
   font-weight: 600;
 }
 
-.portrait-color-control input[type="color"] {
+.portrait-color-editor {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--ors-space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.portrait-color-editor input[type="color"] {
   width: 56px;
   height: 40px;
   padding: 3px;
@@ -369,17 +376,81 @@
   border-radius: var(--ors-radius-control);
 }
 
-.portrait-color-control output,
-.portrait-range-control output {
+.portrait-hex-input,
+.portrait-number-field {
+  min-width: 0;
+  height: 38px;
   color: var(--ors-color-text);
+  background: var(--ors-color-canvas);
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+}
+
+.portrait-hex-input {
+  width: 100%;
+  padding: 7px 9px;
+  text-transform: uppercase;
+}
+
+.portrait-rgb-inputs {
+  display: grid;
+  grid-column: 1 / 3;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ors-space-2);
+  min-width: 0;
+}
+
+.portrait-number-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
   font-variant-numeric: tabular-nums;
 }
 
-.portrait-color-control span {
-  color: var(--ors-color-muted);
-  font-size: 0.8125rem;
+.portrait-number-field input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 6px 8px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: inherit;
   font-variant-numeric: tabular-nums;
   text-align: right;
+  appearance: textfield;
+}
+
+.portrait-number-field input::-webkit-inner-spin-button,
+.portrait-number-field input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.portrait-number-field > span {
+  padding-right: 8px;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+
+.portrait-number-field > .portrait-number-prefix {
+  padding-right: 0;
+  padding-left: 8px;
+}
+
+.portrait-hex-input:focus,
+.portrait-number-field:focus-within {
+  border-color: var(--ors-color-accent);
+  outline: 2px solid
+    color-mix(in srgb, var(--ors-color-accent) 24%, transparent);
+  outline-offset: 1px;
+}
+
+.portrait-hex-input:disabled,
+.portrait-number-field[data-disabled="true"] {
+  color: var(--ors-color-disabled);
+  background: var(--ors-color-surface);
 }
 
 .portrait-range-control {
@@ -389,10 +460,6 @@
 .portrait-range-control input[type="range"] {
   width: 100%;
   accent-color: var(--ors-color-accent);
-}
-
-.portrait-range-control output {
-  text-align: right;
 }
 
 .portrait-direction-control {
@@ -522,12 +589,7 @@
   }
 
   .portrait-color-control {
-    grid-template-columns: 72px 52px minmax(0, 1fr);
-  }
-
-  .portrait-color-control span {
-    grid-column: 2 / 4;
-    text-align: left;
+    grid-template-columns: 72px minmax(0, 1fr);
   }
 
   .portrait-direction-control {
@@ -558,10 +620,10 @@
   }
 
   .portrait-range-control {
-    grid-template-columns: 1fr 56px;
+    grid-template-columns: minmax(0, 1fr) 88px;
   }
 
-  .portrait-range-control input {
+  .portrait-range-control > input[type="range"] {
     grid-column: 1 / 3;
     grid-row: 2;
   }
@@ -581,12 +643,32 @@
   }
 
   .portrait-timeline-controls {
+    grid-template-columns: 36px minmax(0, 1fr) 36px 88px;
+  }
+
+  .portrait-timeline-duration {
+    grid-column: 1 / 5;
+    text-align: right;
+  }
+}
+
+@media (max-width: 390px) {
+  .portrait-color-control {
+    grid-template-columns: 1fr;
+  }
+
+  .portrait-timeline-controls {
     grid-template-columns: 36px minmax(0, 1fr) 36px;
   }
 
-  .portrait-timeline-controls output {
+  .portrait-timeline-controls > .portrait-number-field {
     grid-column: 1 / 4;
-    text-align: center;
+    justify-self: end;
+    width: 88px;
+  }
+
+  .portrait-timeline-duration {
+    grid-column: 1 / 4;
   }
 }
 

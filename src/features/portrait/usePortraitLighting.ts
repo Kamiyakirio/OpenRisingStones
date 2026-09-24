@@ -1,4 +1,4 @@
-/** Coordinates consent, bridge preparation, polling, and coalesced lighting updates. */
+/** Coordinates consent, bridge preparation, polling, and coalesced portrait edits. */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   normalizeGameBridgeError,
@@ -42,20 +42,30 @@ export function usePortraitLighting() {
   } | null>(null);
   const updateTimer = useRef<number | null>(null);
   const writing = useRef(false);
-
-  useEffect(() => {
-    latest.current = lighting;
-  }, [lighting]);
+  const refreshing = useRef(false);
+  const editRevision = useRef(0);
 
   const refresh = useCallback(async () => {
     if (
+      refreshing.current ||
       writing.current ||
       pendingFields.current !== 0 ||
       pendingAnimation.current
     )
       return false;
+    refreshing.current = true;
+    const requestRevision = editRevision.current;
     try {
       const next = await capturePortraitLighting();
+      // A poll started before a drag must not replace the latest local position.
+      if (
+        requestRevision !== editRevision.current ||
+        writing.current ||
+        pendingFields.current !== 0 ||
+        pendingAnimation.current
+      )
+        return false;
+      latest.current = next;
       setLighting(next);
       setInitialLighting((current) => {
         if (!next.editorOpen || !next.characterReady) return null;
@@ -64,12 +74,15 @@ export function usePortraitLighting() {
       setError(null);
       return true;
     } catch (reason) {
+      if (requestRevision !== editRevision.current) return false;
       const nextError = normalizeGameBridgeError(reason);
       if (nextError.code === "portrait_lighting_unsupported") {
         setPhase("unsupported");
       }
       setError(nextError);
       return false;
+    } finally {
+      refreshing.current = false;
     }
   }, []);
 
@@ -127,6 +140,7 @@ export function usePortraitLighting() {
       while (pendingFields.current !== 0 || pendingAnimation.current) {
         const current = latest.current;
         if (!current) break;
+        const requestRevision = editRevision.current;
         let next: PortraitLighting;
         if (pendingFields.current !== 0) {
           const fields = pendingFields.current;
@@ -148,7 +162,11 @@ export function usePortraitLighting() {
           next = await updatePortraitAnimation(update);
         }
         // Keep local slider values visible when another edit arrived during this request.
-        if (pendingFields.current === 0 && !pendingAnimation.current) {
+        if (
+          editRevision.current === requestRevision &&
+          pendingFields.current === 0 &&
+          !pendingAnimation.current
+        ) {
           latest.current = next;
           setLighting(next);
         }
@@ -202,12 +220,12 @@ export function usePortraitLighting() {
       fields: number,
       change: (current: PortraitLighting) => PortraitLighting,
     ) => {
-      setLighting((current) => {
-        if (!current) return current;
-        const next = change(current);
-        latest.current = next;
-        return next;
-      });
+      const current = latest.current;
+      if (!current) return;
+      editRevision.current += 1;
+      const next = change(current);
+      latest.current = next;
+      setLighting(next);
       pendingFields.current |= fields;
       // Keep emitting the latest value while dragging without queueing every pointer event.
       if (updateTimer.current === null && !writing.current) {
@@ -222,19 +240,15 @@ export function usePortraitLighting() {
 
   const changeAnimation = useCallback(
     (fields: number, time: number, paused: boolean) => {
-      setLighting((current) => {
-        if (!current) return current;
-        const next = {
-          ...current,
-          animationTime: time,
-          animationPaused: paused,
-        };
-        latest.current = next;
-        return next;
-      });
-      const current = pendingAnimation.current;
+      const current = latest.current;
+      if (!current) return;
+      editRevision.current += 1;
+      const next = { ...current, animationTime: time, animationPaused: paused };
+      latest.current = next;
+      setLighting(next);
+      const pending = pendingAnimation.current;
       pendingAnimation.current = {
-        fields: (current?.fields ?? 0) | fields,
+        fields: (pending?.fields ?? 0) | fields,
         time,
         paused,
       };
