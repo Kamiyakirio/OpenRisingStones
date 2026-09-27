@@ -8,7 +8,7 @@
 namespace bridge {
 
 inline constexpr std::uint32_t kSharedMagic = 0x4742524F;
-inline constexpr std::uint32_t kSharedAbiVersion = 9;
+inline constexpr std::uint32_t kSharedAbiVersion = 10;
 inline constexpr std::size_t kMaximumSharedContainers = 18;
 inline constexpr std::size_t kMaximumSharedItems = 1024;
 inline constexpr std::size_t kMaximumSharedDresserItems = 800;
@@ -238,7 +238,8 @@ struct SharedSwitchRegion final {
 struct SharedCommand final {
   std::uint64_t request_id{};
   SharedCommandKind kind{SharedCommandKind::None};
-  std::uint32_t reserved{};
+  // Fixed channel ID for SendChat; zero for other commands and current-channel sends.
+  std::uint32_t chat_channel{};
   SharedSwitchRegion switch_region;
   SharedSendChat send_chat;
   SharedPortraitLighting portrait_lighting;

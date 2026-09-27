@@ -2,8 +2,8 @@
 
 use crate::error::{last_windows_error, BridgeError, BridgeResult};
 use game_bridge_protocol::{
-    ActiveCharacterSnapshot, ArmoireSnapshot, ChatMessageSnapshot, Command, CommandResult,
-    GameScreen, GameSnapshot, GameStateSnapshot, GlamourDresserItemSnapshot,
+    build_chat_entry, ActiveCharacterSnapshot, ArmoireSnapshot, ChatMessageSnapshot, Command,
+    CommandResult, GameScreen, GameSnapshot, GameStateSnapshot, GlamourDresserItemSnapshot,
     GlamourDresserSnapshot, InventoryContainerSnapshot, InventoryItemSnapshot,
     PlayerInventorySnapshot, PortraitLightingSnapshot, Position3,
 };
@@ -28,7 +28,7 @@ use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcess, PROC
 
 // Must match kSharedMagic in the native shared_bridge.hpp contract.
 const SHARED_MAGIC: u32 = 0x4742_524F;
-const SHARED_ABI_VERSION: u32 = 9;
+const SHARED_ABI_VERSION: u32 = 10;
 const PAYLOAD_STATE_READY: u32 = 1;
 const PAYLOAD_STATE_FAULTED: u32 = 2;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
@@ -282,7 +282,8 @@ struct SharedSwitchRegion {
 struct SharedCommand {
     request_id: u64,
     kind: u32,
-    reserved: u32,
+    // ABI 10 uses the former reserved slot for a fixed send-channel ID.
+    chat_channel: u32,
     switch_region: SharedSwitchRegion,
     send_chat: SharedSendChat,
     portrait_lighting: SharedPortraitLighting,
@@ -639,9 +640,16 @@ impl SharedSession {
                     COMMAND_SWITCH_REGION
                 }
                 Command::TriggerLogin => COMMAND_TRIGGER_LOGIN,
-                Command::SendChat { message } => {
+                Command::SendChat {
+                    message,
+                    channel,
+                    recipient,
+                } => {
+                    let entry = build_chat_entry(channel, &recipient, &message)
+                        .map_err(|error| BridgeError::InvalidData(error.to_owned()))?;
+                    target.chat_channel = channel as u32;
                     target.send_chat.message_length =
-                        copy_string(&message, &mut target.send_chat.message)?;
+                        copy_string(&entry, &mut target.send_chat.message)?;
                     COMMAND_SEND_CHAT
                 }
                 Command::CapturePortraitLighting => COMMAND_CAPTURE_PORTRAIT_LIGHTING,

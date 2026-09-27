@@ -1,5 +1,6 @@
 // Executes every pointer dereference and native call on the game Framework thread.
 #include "game_runtime.hpp"
+#include "chat_input.hpp"
 
 #include <Windows.h>
 
@@ -24,7 +25,6 @@ constexpr std::uint8_t kButtonClickEvent = 25;
 constexpr std::int32_t kMaximumInventorySlots = 200;
 constexpr std::size_t kMaximumGlamourDresserSlots = 800;
 constexpr std::size_t kMaximumArmoireCabinetItems = 5120;
-constexpr std::size_t kMaximumChatInputBytes = 500;
 constexpr std::int32_t kMaximumInitialChatMessages = 100;
 constexpr std::int32_t kMaximumChatMessagesPerTick = 64;
 constexpr std::size_t kUnlockWordBits = std::numeric_limits<std::uint32_t>::digits;
@@ -526,7 +526,8 @@ void GameRuntime::process_shared_command(void* framework) {
         break;
       case SharedCommandKind::SendChat: {
         const auto& source = shared_->command.send_chat;
-        outcome = send_chat(framework, read_shared_string(source.message, source.message_length));
+        outcome = send_chat(framework, read_shared_string(source.message, source.message_length),
+                            shared_->command.chat_channel);
         break;
       }
       case SharedCommandKind::CapturePortraitLighting:
@@ -553,13 +554,14 @@ void GameRuntime::process_shared_command(void* framework) {
   write_response(sequence, kind, outcome);
 }
 
-CommandOutcome GameRuntime::send_chat(void* framework, const std::string& message) {
+CommandOutcome GameRuntime::send_chat(void* framework, const std::string& message,
+                                      std::uint32_t channel) {
   const auto capabilities =
       std::atomic_ref(shared_->chat_capabilities).load(std::memory_order_acquire);
   if ((capabilities & kChatCapabilitySend) == 0) {
     return failure("chat_send_unsupported", "Chat sending is unavailable for this game version.");
   }
-  if (message.empty() || message.size() > kMaximumChatInputBytes || message.front() == '/') {
+  if (!valid_chat_entry(channel, message)) {
     return failure("invalid_chat_message", "The chat message is empty, too long, or disallowed.");
   }
   const auto state = capture_game_state(framework);

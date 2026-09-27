@@ -16,6 +16,12 @@ import type { ChatMessage } from "../features/chat/types";
 import { ChatFilterBar } from "../features/chat/ChatFilterBar";
 import { ChatChannelBadge } from "../features/chat/ChatChannelBadge";
 import { matchesChatFilters, type ChatFilter } from "../features/chat/channels";
+import {
+  chatSendChannels,
+  chatMessageBudget,
+  validTellRecipient,
+  type ChatSendChannel,
+} from "../features/chat/sendChannels";
 
 type ConnectionState =
   "pairing" | "online" | "reconnecting" | "disconnected" | "error";
@@ -70,12 +76,21 @@ export function MobileChatApp() {
   const [filter, setFilter] = useState<ChatFilter[]>([]);
   const [canSend, setCanSend] = useState(false);
   const [draft, setDraft] = useState("");
+  const [sendChannel, setSendChannel] = useState<ChatSendChannel>("current");
+  const [recipient, setRecipient] = useState("");
   const [sending, setSending] = useState(false);
   const ledger = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
   const previousFilter = useRef(filter);
   const eventSource = useRef<EventSource | null>(null);
   const byteCount = encoder.encode(draft).length;
+  const byteBudget = Math.max(0, chatMessageBudget(sendChannel, recipient));
+  const invalidRecipient =
+    sendChannel === "tell" && !validTellRecipient(recipient);
+  const invalidText =
+    draft.trimStart().startsWith("/") || /\p{Cc}/u.test(draft);
+  const invalidDraft =
+    byteCount > byteBudget || invalidText || invalidRecipient || !draft.trim();
   const visibleMessages = messages.filter((message) =>
     matchesChatFilters(message.logKind, filter),
   );
@@ -225,16 +240,22 @@ export function MobileChatApp() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!canSend || !draft || byteCount > 500 || draft.startsWith("/")) return;
+    if (!canSend || connection !== "online" || sending || invalidDraft) return;
     setSending(true);
     try {
       await request("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: draft }),
+        body: JSON.stringify({
+          message: draft,
+          channel: sendChannel,
+          recipient: sendChannel === "tell" ? recipient : "",
+        }),
       });
       setDraft("");
-      setNotice("消息已交给游戏发送。");
+      setNotice(
+        `${chatSendChannels.find((channel) => channel.id === sendChannel)!.label}：消息已交给游戏发送。`,
+      );
     } catch (reason) {
       setNotice(readError(reason, "消息发送失败，请稍后重试。"));
     } finally {
@@ -255,7 +276,6 @@ export function MobileChatApp() {
   }
 
   const online = connection === "online";
-  const invalidDraft = byteCount > 500 || draft.startsWith("/");
 
   return (
     <main className="mobile-chat-shell">
@@ -318,16 +338,71 @@ export function MobileChatApp() {
         className="mobile-chat-composer"
         onSubmit={(event) => void submit(event)}
       >
-        <label htmlFor="chat-message">
-          {canSend ? "发送到当前游戏聊天频道" : "发送暂不可用"}
-        </label>
+        <div className="mobile-chat-send-channel">
+          <label htmlFor="chat-send-channel">发送频道</label>
+          <select
+            id="chat-send-channel"
+            value={sendChannel}
+            disabled={!online || !canSend || sending}
+            onChange={(event) =>
+              setSendChannel(event.target.value as ChatSendChannel)
+            }
+          >
+            <optgroup label="聊天">
+              {chatSendChannels
+                .filter((channel) => !channel.id.includes("linkshell"))
+                .map((channel) => (
+                  <option key={channel.id} value={channel.id}>
+                    {channel.label}
+                  </option>
+                ))}
+            </optgroup>
+            <optgroup label="通讯贝">
+              {chatSendChannels
+                .filter((channel) => channel.id.startsWith("linkshell"))
+                .map((channel) => (
+                  <option key={channel.id} value={channel.id}>
+                    {channel.label}
+                  </option>
+                ))}
+            </optgroup>
+            <optgroup label="跨服通讯贝">
+              {chatSendChannels
+                .filter((channel) => channel.id.startsWith("cross_linkshell"))
+                .map((channel) => (
+                  <option key={channel.id} value={channel.id}>
+                    {channel.label}
+                  </option>
+                ))}
+            </optgroup>
+          </select>
+        </div>
+        {sendChannel === "tell" && (
+          <div className="mobile-chat-recipient">
+            <label htmlFor="chat-recipient">收件人</label>
+            <input
+              id="chat-recipient"
+              value={recipient}
+              maxLength={128}
+              disabled={!online || !canSend || sending}
+              placeholder="角色名@所属服务器"
+              autoComplete="off"
+              onChange={(event) => setRecipient(event.target.value)}
+              aria-invalid={recipient.length > 0 && invalidRecipient}
+            />
+            {recipient.length > 0 && invalidRecipient && (
+              <p role="alert">请输入正确的角色名@服务器，最多 128 字节。</p>
+            )}
+          </div>
+        )}
         <div className="mobile-chat-compose-row">
           <textarea
             id="chat-message"
+            aria-label="聊天消息"
             rows={2}
             maxLength={500}
             value={draft}
-            disabled={!online || !canSend}
+            disabled={!online || !canSend || sending}
             placeholder={canSend ? "输入普通聊天文字" : "当前为只读模式"}
             onChange={(event) => setDraft(event.target.value)}
           />
@@ -342,16 +417,18 @@ export function MobileChatApp() {
         </div>
         {!canSend && (
           <p className="mobile-chat-input-note" role="status">
-            为避免再次导致游戏崩溃，发送入口已在 Payload、服务器和页面三层停用。
+            当前连接暂不支持发送消息。
           </p>
         )}
-        {canSend && draft.startsWith("/") && (
+        {canSend && invalidText && (
           <p className="mobile-chat-input-error" role="alert">
-            为避免远程执行游戏操作，不能发送斜杠指令。
+            请输入单行普通文字，不能发送斜杠指令或控制字符。
           </p>
         )}
         <div className="mobile-chat-compose-meta">
-          <span data-invalid={byteCount > 500}>{byteCount} / 500 字节</span>
+          <span data-invalid={byteCount > byteBudget}>
+            {byteCount} / {byteBudget} 字节
+          </span>
           <button
             type="button"
             disabled={!online}

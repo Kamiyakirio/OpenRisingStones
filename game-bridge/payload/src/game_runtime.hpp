@@ -208,7 +208,8 @@ class GameRuntime final {
   [[nodiscard]] CommandOutcome return_to_title(void* framework);
   [[nodiscard]] CommandOutcome switch_region(void* framework, RegionTarget& target);
   [[nodiscard]] CommandOutcome trigger_login(void* framework);
-  [[nodiscard]] CommandOutcome send_chat(void* framework, const std::string& message);
+  [[nodiscard]] CommandOutcome send_chat(void* framework, const std::string& message,
+                                         std::uint32_t channel);
   [[nodiscard]] void* get_agent_lobby(void* framework) const;
   [[nodiscard]] void* get_title_menu(void* framework) const;
   [[nodiscard]] std::byte* get_portrait_chara_view(void* framework,

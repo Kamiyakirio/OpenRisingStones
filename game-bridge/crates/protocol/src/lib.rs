@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use zeroize::Zeroize;
 
+mod chat;
+pub use chat::{build_chat_entry, ChatSendChannel};
+
 /// A serialized secret that is always redacted from debug output and cleared on drop.
 #[derive(Deserialize, Serialize)]
 #[serde(transparent)]
@@ -235,12 +238,24 @@ pub enum Command {
     CaptureGameState,
     LogoutToTitle,
     ReturnToTitle,
-    SwitchRegion { target: RegionTarget },
+    SwitchRegion {
+        target: RegionTarget,
+    },
     TriggerLogin,
-    SendChat { message: String },
+    SendChat {
+        message: String,
+        #[serde(default)]
+        channel: ChatSendChannel,
+        #[serde(default)]
+        recipient: String,
+    },
     CapturePortraitLighting,
-    UpdatePortraitLighting { update: PortraitLightingUpdate },
-    UpdatePortraitAnimation { update: PortraitAnimationUpdate },
+    UpdatePortraitLighting {
+        update: PortraitLightingUpdate,
+    },
+    UpdatePortraitAnimation {
+        update: PortraitAnimationUpdate,
+    },
     Shutdown,
 }
 

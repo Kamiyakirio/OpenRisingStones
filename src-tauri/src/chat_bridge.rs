@@ -8,7 +8,9 @@ use axum::{
   Json, Router,
 };
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use game_bridge_host::{BridgeManager, BridgePhase, ChatMessageSnapshot};
+use game_bridge_host::{
+  build_chat_entry, BridgeManager, BridgePhase, ChatMessageSnapshot, ChatSendChannel,
+};
 use qrcode::{render::svg, QrCode};
 use rand::{rngs::OsRng, RngCore};
 use serde::{Deserialize, Serialize};
@@ -29,7 +31,6 @@ use axum::{body::Body, extract::Path, http::HeaderName};
 use rust_embed::RustEmbed;
 
 const MAXIMUM_MESSAGES: usize = 500;
-const MAXIMUM_MESSAGE_BYTES: usize = 500;
 const PAIRING_LIFETIME: Duration = Duration::from_secs(5 * 60);
 const SESSION_LIFETIME: Duration = Duration::from_secs(2 * 60 * 60);
 const RATE_MINIMUM_INTERVAL: Duration = Duration::from_secs(1);
@@ -509,6 +510,10 @@ enum MobileEvent {
 #[derive(Deserialize)]
 struct SendMessageRequest {
   message: String,
+  #[serde(default)]
+  channel: ChatSendChannel,
+  #[serde(default)]
+  recipient: String,
 }
 
 #[cfg(not(debug_assertions))]
@@ -747,21 +752,16 @@ async fn send_message(
       "Chat sending is temporarily disabled while the native game call is being verified.",
     ));
   }
-  if request.message.is_empty()
-    || request.message.len() > MAXIMUM_MESSAGE_BYTES
-    || request.message.starts_with('/')
-  {
-    return Err(ChatBridgeApiError::new(
-      "invalid_message",
-      "Messages must contain 1 to 500 UTF-8 bytes and cannot be slash commands.",
-    ));
-  }
+  build_chat_entry(request.channel, &request.recipient, &request.message)
+    .map_err(|message| ChatBridgeApiError::new("invalid_message", message))?;
   enforce_rate_limit(&state)?;
   let bridge = Arc::clone(&state.bridge);
-  tauri::async_runtime::spawn_blocking(move || bridge.send_chat(request.message))
-    .await
-    .map_err(|error| ChatBridgeApiError::new("task_failed", error.to_string()))?
-    .map_err(|error| ChatBridgeApiError::new("send_failed", error.to_string()))?;
+  tauri::async_runtime::spawn_blocking(move || {
+    bridge.send_chat(request.message, request.channel, request.recipient)
+  })
+  .await
+  .map_err(|error| ChatBridgeApiError::new("task_failed", error.to_string()))?
+  .map_err(|error| ChatBridgeApiError::new("send_failed", error.to_string()))?;
   Ok(with_api_headers(StatusCode::NO_CONTENT.into_response()))
 }
 

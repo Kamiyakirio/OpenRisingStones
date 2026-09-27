@@ -47,3 +47,10 @@ set_target_properties(game_bridge_payload PROPERTIES
   OUTPUT_NAME "game_bridge_payload"
   PREFIX ""
 )
+
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(chat_input_test tests/chat_input_test.cpp)
+  target_compile_features(chat_input_test PRIVATE cxx_std_20)
+  add_test(NAME chat_input_validation COMMAND chat_input_test)
+endif()

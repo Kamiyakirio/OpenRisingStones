@@ -11,6 +11,21 @@
 
 html,
 body,
+#mobile-root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: #e8e1d6;
+}
+
+#mobile-root {
+  /* Contain the desktop shell margins so they do not extend the page viewport. */
+  display: flow-root;
+}
+
 button,
 textarea {
   font: inherit;
@@ -221,6 +236,56 @@ textarea:focus-visible {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.55rem;
   align-items: stretch;
+}
+
+/* Keep the send destination beside its label; received-message filters remain separate. */
+.mobile-chat-send-channel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: #686158;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mobile-chat-send-channel select,
+.mobile-chat-recipient input {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  color: #302d28;
+  background: #fcfaf6;
+  border: 1px solid #8a8175;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.mobile-chat-send-channel select {
+  flex: 1;
+  width: 100%;
+}
+
+.mobile-chat-recipient {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+  color: #686158;
+  font-size: 0.75rem;
+}
+
+.mobile-chat-recipient p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #8b302f;
+}
+
+.mobile-chat-send-channel select:focus-visible,
+.mobile-chat-recipient input:focus-visible {
+  outline: 2px solid #7a5816;
+  outline-offset: 2px;
 }
 
 .mobile-chat-compose-row textarea {

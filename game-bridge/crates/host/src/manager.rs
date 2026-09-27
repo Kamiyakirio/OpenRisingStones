@@ -3,8 +3,8 @@
 use crate::error::{BridgeError, BridgeResult};
 use crate::world_map::WorldMap;
 use game_bridge_protocol::{
-    ActiveCharacterSnapshot, ChatMessageSnapshot, Command, CommandResult, GameSnapshot,
-    GameStateSnapshot, PlayerInventorySnapshot, RegionTarget,
+    build_chat_entry, ActiveCharacterSnapshot, ChatMessageSnapshot, ChatSendChannel, Command,
+    CommandResult, GameSnapshot, GameStateSnapshot, PlayerInventorySnapshot, RegionTarget,
 };
 use serde::{Deserialize, Serialize};
 #[cfg(debug_assertions)]
@@ -409,18 +409,19 @@ impl BridgeManager {
         expect_ack(self.send_command(Command::TriggerLogin)?)
     }
 
-    pub fn send_chat(&self, message: String) -> BridgeResult<()> {
-        if message.is_empty() || message.len() > 500 {
-            return Err(BridgeError::InvalidData(
-                "chat message must contain between 1 and 500 UTF-8 bytes".to_owned(),
-            ));
-        }
-        if message.starts_with('/') {
-            return Err(BridgeError::InvalidData(
-                "slash commands are not allowed through the chat bridge".to_owned(),
-            ));
-        }
-        expect_ack(self.send_command(Command::SendChat { message })?)
+    pub fn send_chat(
+        &self,
+        message: String,
+        channel: ChatSendChannel,
+        recipient: String,
+    ) -> BridgeResult<()> {
+        build_chat_entry(channel, &recipient, &message)
+            .map_err(|error| BridgeError::InvalidData(error.to_owned()))?;
+        expect_ack(self.send_command(Command::SendChat {
+            message,
+            channel,
+            recipient,
+        })?)
     }
 
     #[cfg(windows)]
