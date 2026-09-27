@@ -405,6 +405,18 @@ export function MobileChatApp() {
             disabled={!online || !canSend || sending}
             placeholder={canSend ? "输入普通聊天文字" : "当前为只读模式"}
             onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              // IME confirmation must not send; keyboard sends reuse all form guards.
+              if (
+                event.key !== "Enter" ||
+                event.shiftKey ||
+                event.nativeEvent.isComposing ||
+                event.nativeEvent.keyCode === 229
+              )
+                return;
+              event.preventDefault();
+              if (!event.repeat) event.currentTarget.form?.requestSubmit();
+            }}
           />
           <button
             type="submit"
