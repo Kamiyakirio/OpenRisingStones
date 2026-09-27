@@ -76,6 +76,7 @@ export function PortraitPage() {
         <PortraitLightingConsole
           lighting={lighting}
           initial={editor.initialLighting}
+          animationSupported={editor.animationSupported}
           editable={editable}
           updating={editor.updating}
           updateFailed={editor.updateFailed}
@@ -139,6 +140,7 @@ function PortraitIntroduction({
 function PortraitLightingConsole({
   lighting,
   initial,
+  animationSupported,
   editable,
   updating,
   updateFailed,
@@ -147,6 +149,7 @@ function PortraitLightingConsole({
 }: {
   lighting: PortraitLighting;
   initial: PortraitLighting | null;
+  animationSupported: boolean;
   editable: boolean;
   updating: boolean;
   updateFailed: boolean;
@@ -194,6 +197,7 @@ function PortraitLightingConsole({
 
       <AnimationTimeline
         lighting={lighting}
+        supported={animationSupported}
         disabled={!editable}
         onChange={onAnimationChange}
       />
@@ -299,10 +303,12 @@ function PortraitLightingConsole({
 
 function AnimationTimeline({
   lighting,
+  supported,
   disabled,
   onChange,
 }: {
   lighting: PortraitLighting;
+  supported: boolean;
   disabled: boolean;
   onChange: (fields: number, time: number, paused: boolean) => void;
 }) {
@@ -332,11 +338,13 @@ function AnimationTimeline({
         <div>
           <h2>动作时间轴</h2>
           <p>
-            {unavailable
-              ? "当前动作没有可调时间轴。"
-              : !lighting.animationEditable
-                ? "当前版本只能读取动作时间。"
-                : `第 ${currentFrame} 帧，共 ${totalFrames} 帧`}
+            {!supported
+              ? "当前载荷不支持动作时间轴，请更新载荷后重连。"
+              : unavailable
+                ? "当前动作没有可调时间轴。"
+                : !lighting.animationEditable
+                  ? "当前版本只能读取动作时间。"
+                  : `第 ${currentFrame} 帧，共 ${totalFrames} 帧`}
           </p>
         </div>
         <button

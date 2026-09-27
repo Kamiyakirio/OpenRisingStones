@@ -33,6 +33,7 @@ export function usePortraitLighting() {
   const [storageError, setStorageError] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [updateFailed, setUpdateFailed] = useState(false);
+  const [animationSupported, setAnimationSupported] = useState(false);
   const latest = useRef<PortraitLighting | null>(null);
   const pendingFields = useRef(0);
   const pendingAnimation = useRef<{
@@ -108,6 +109,9 @@ export function usePortraitLighting() {
         });
         return;
       }
+      setAnimationSupported(
+        status.capabilities.includes("portrait_animation_read"),
+      );
       setUpdateFailed(false);
       setPhase("ready");
       await refresh();
@@ -292,6 +296,7 @@ export function usePortraitLighting() {
     storageError,
     updating,
     updateFailed,
+    animationSupported,
     requestConnect,
     confirmRisk,
     cancelRisk: () => setRiskOpen(false),
