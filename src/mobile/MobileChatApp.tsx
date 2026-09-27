@@ -64,6 +64,7 @@ const previewMessages: ChatMessage[] = [
 
 export function MobileChatApp() {
   const [connection, setConnection] = useState<ConnectionState>("pairing");
+  const [pairingAttempt, setPairingAttempt] = useState(0);
   const [notice, setNotice] = useState("正在与电脑完成一次性配对…");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [filter, setFilter] = useState<ChatFilter[]>([]);
@@ -79,10 +80,19 @@ export function MobileChatApp() {
     matchesChatFilters(message.logKind, filter),
   );
 
+  // Scanning another code can navigate only the fragment without reloading this page.
+  useEffect(() => {
+    const retry = () => setPairingAttempt((current) => current + 1);
+    window.addEventListener("hashchange", retry);
+    return () => window.removeEventListener("hashchange", retry);
+  }, []);
+
   useEffect(() => {
     let active = true;
     let sendingAvailable = false;
     async function connect() {
+      setConnection("pairing");
+      setCanSend(false);
       if (
         import.meta.env.DEV &&
         new URLSearchParams(window.location.search).has("preview")
@@ -96,20 +106,33 @@ export function MobileChatApp() {
       }
       try {
         const token = window.location.hash.slice(1);
-        if (token) {
+        // Reopening a used QR in the paired browser should reuse its existing session.
+        let state: MobileState;
+        try {
+          state = await request<MobileState>("/api/state");
+        } catch (reason) {
+          if (!active) return;
+          if (
+            !token ||
+            !(reason instanceof MobileApiError) ||
+            reason.code !== "not_paired"
+          )
+            throw reason;
           await request("/api/pair", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token }),
           });
+          state = await request<MobileState>("/api/state");
+        }
+        if (!active) return;
+        if (token) {
           window.history.replaceState(
             null,
             "",
             `${window.location.pathname}${window.location.search}`,
           );
         }
-        const state = await request<MobileState>("/api/state");
-        if (!active) return;
         setMessages(uniqueMessages(state.messages));
         sendingAvailable = state.canSend;
         setCanSend(state.canSend);
@@ -135,10 +158,24 @@ export function MobileChatApp() {
           uniqueMessages([...current, update.message]).slice(-500),
         );
       };
-      source.onerror = () => {
+      source.onerror = async () => {
         if (!active) return;
         setConnection("reconnecting");
         setNotice("实时连接暂时中断，浏览器正在自动重连。");
+        try {
+          await request<MobileState>("/api/state");
+        } catch (reason) {
+          if (!active || eventSource.current !== source) return;
+          if (
+            reason instanceof MobileApiError &&
+            reason.code === "not_paired"
+          ) {
+            source.close();
+            setCanSend(false);
+            setConnection("error");
+            setNotice("配对已失效，请扫描电脑上的新二维码重新连接。");
+          }
+        }
       };
       source.onopen = async () => {
         if (!active) return;
@@ -173,7 +210,7 @@ export function MobileChatApp() {
       active = false;
       eventSource.current?.close();
     };
-  }, []);
+  }, [pairingAttempt]);
 
   useLayoutEffect(() => {
     // Filter changes start at the latest result; incoming messages preserve history browsing.
@@ -211,7 +248,9 @@ export function MobileChatApp() {
     } finally {
       eventSource.current?.close();
       setConnection("disconnected");
-      setNotice("此手机已断开。要重新连接，请在电脑上停止并重新开启手机聊天。");
+      setNotice(
+        "此手机已断开。要重新连接，请在电脑上点击“生成新配对码”后重新扫码。",
+      );
     }
   }
 
@@ -342,6 +381,15 @@ function ConnectionMark({ state }: { state: ConnectionState }) {
   );
 }
 
+/** Preserve API codes so authentication failures do not trigger endless SSE reconnects. */
+class MobileApiError extends Error {
+  readonly code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 async function request<T = undefined>(path: string, options: RequestInit = {}) {
   const response = await fetch(path, {
     credentials: "same-origin",
@@ -350,9 +398,13 @@ async function request<T = undefined>(path: string, options: RequestInit = {}) {
   });
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
+      code?: string;
       message?: string;
     } | null;
-    throw new Error(body?.message || `请求失败 (${response.status})`);
+    throw new MobileApiError(
+      body?.code ?? "request_failed",
+      body?.message || `HTTP request failed (${response.status}).`,
+    );
   }
   return (response.status === 204 ? undefined : await response.json()) as T;
 }
@@ -370,6 +422,12 @@ function uniqueMessages(messages: ChatMessage[]) {
 }
 
 function readError(reason: unknown, fallback: string) {
+  if (reason instanceof MobileApiError) {
+    if (reason.code === "pairing_failed")
+      return "配对码已过期或已使用，请在电脑上点击“生成新配对码”后重新扫码。";
+    if (reason.code === "not_paired")
+      return "配对已失效，请扫描电脑上的新二维码重新连接。";
+  }
   return reason instanceof Error ? reason.message : fallback;
 }
 

@@ -30,6 +30,11 @@ export function stopChatBridge() {
   return invoke<ChatBridgeStatus>("chat_bridge_stop");
 }
 
+export function renewChatPairing() {
+  requireDesktopRuntime();
+  return invoke<ChatBridgeStatus>("chat_bridge_renew_pairing");
+}
+
 export function normalizeChatBridgeError(reason: unknown): ChatBridgeError {
   if (isErrorEnvelope(reason)) return reason;
   if (reason instanceof Error) {

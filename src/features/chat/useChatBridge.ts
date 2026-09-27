@@ -4,6 +4,7 @@ import { prepareGameBridge } from "../../shared/game-bridge/api";
 import {
   getChatBridgeStatus,
   normalizeChatBridgeError,
+  renewChatPairing,
   startChatBridge,
   stopChatBridge,
 } from "./api";
@@ -74,6 +75,18 @@ export function useChatBridge() {
     }
   }, []);
 
+  const renewPairing = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setStatus(await renewChatPairing());
+    } catch (reason) {
+      setError(normalizeChatBridgeError(reason));
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   return {
     status,
     error,
@@ -84,5 +97,6 @@ export function useChatBridge() {
     confirmRisk,
     cancelRisk: () => setRiskOpen(false),
     stop,
+    renewPairing,
   };
 }

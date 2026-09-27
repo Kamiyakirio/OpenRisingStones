@@ -127,6 +127,7 @@ pub fn run() {
       game_bridge::game_bridge_debug_unload_payload,
       chat_bridge::chat_bridge_status,
       chat_bridge::chat_bridge_start,
+      chat_bridge::chat_bridge_renew_pairing,
       chat_bridge::chat_bridge_stop,
       owned_items::load_owned_items_cache,
       recruit::fetch_recruit_config,

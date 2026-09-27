@@ -332,6 +332,43 @@
   height: 100%;
 }
 
+.chat-qr-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ors-space-3);
+  min-height: 232px;
+  margin: var(--ors-space-5) 0;
+  padding: var(--ors-space-4);
+  border: 1px dashed var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  text-align: center;
+}
+
+.chat-qr-placeholder span,
+.chat-pairing-note {
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.chat-renew-button {
+  width: 100%;
+  min-height: 44px;
+  color: var(--ors-color-accent);
+  background: transparent;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-renew-button:hover:not(:disabled) {
+  background: var(--ors-color-hover);
+}
+
 .chat-steps {
   display: grid;
   gap: var(--ors-space-2);

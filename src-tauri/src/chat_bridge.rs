@@ -59,6 +59,7 @@ pub struct ChatBridgeStatus {
   qr_data_url: Option<String>,
   can_send: bool,
   paired: bool,
+  pairing_available: bool,
   message_count: usize,
   dropped_count: u64,
   recent_messages: Vec<ChatMessageSnapshot>,
@@ -129,6 +130,21 @@ struct AuthState {
   paired: bool,
 }
 
+impl AuthState {
+  fn pairing_available(&self) -> bool {
+    self.pairing_hash.is_some() && Instant::now() <= self.pairing_deadline
+  }
+
+  // Rotate only authentication; the server, game polling and retained messages stay alive.
+  fn renew_pairing(&mut self, token: &str) {
+    self.pairing_hash = Some(token_hash(token));
+    self.pairing_deadline = Instant::now() + PAIRING_LIFETIME;
+    self.session_hash = None;
+    self.session_deadline = None;
+    self.paired = false;
+  }
+}
+
 #[derive(Default)]
 struct RateState {
   sends: VecDeque<Instant>,
@@ -160,7 +176,7 @@ impl ChatBridgeState {
 
   fn status(&self) -> ChatBridgeStatus {
     let runtime = self.runtime.lock().expect("chat bridge lock poisoned");
-    let (can_send, paired, message_count, recent_messages) = runtime
+    let (can_send, paired, pairing_available, message_count, recent_messages) = runtime
       .service
       .as_ref()
       .map(|service| {
@@ -176,6 +192,7 @@ impl ChatBridgeState {
         (
           service.can_send,
           paired,
+          auth.pairing_available(),
           messages.len(),
           // Return the retained buffer so filtering cannot hide older player channels behind combat.
           messages.iter().cloned().collect::<Vec<_>>(),
@@ -185,9 +202,12 @@ impl ChatBridgeState {
     ChatBridgeStatus {
       phase: runtime.phase.clone(),
       url: runtime.url.clone(),
-      qr_data_url: runtime.qr_data_url.clone(),
+      qr_data_url: pairing_available
+        .then(|| runtime.qr_data_url.clone())
+        .flatten(),
       can_send,
       paired,
+      pairing_available,
       message_count,
       dropped_count: self.bridge.chat_dropped_count(),
       recent_messages,
@@ -236,6 +256,33 @@ impl ChatBridgeState {
       server_task: Some(server_task),
       poll_task: Some(poll_task),
     };
+    drop(runtime);
+    Ok(self.status())
+  }
+
+  fn renew_pairing(&self) -> Result<ChatBridgeStatus, ChatBridgeApiError> {
+    let mut runtime = self.runtime.lock().expect("chat bridge lock poisoned");
+    let service = runtime.service.as_ref().ok_or_else(|| {
+      ChatBridgeApiError::new(
+        "not_running",
+        "Start chat sharing before generating a pairing code.",
+      )
+    })?;
+    let page = runtime
+      .url
+      .as_deref()
+      .and_then(|url| url.split('#').next())
+      .ok_or_else(|| {
+        ChatBridgeApiError::new("not_running", "The chat sharing address is unavailable.")
+      })?;
+    let (token, url, qr_data_url) = create_pairing_link(page)?;
+    service
+      .auth
+      .lock()
+      .expect("chat auth lock poisoned")
+      .renew_pairing(&token);
+    runtime.url = Some(url);
+    runtime.qr_data_url = Some(qr_data_url);
     drop(runtime);
     Ok(self.status())
   }
@@ -296,14 +343,7 @@ impl ChatBridgeState {
 
     let (listener, public_page, expected_host, allowed_origin) = bind_server(ip).await?;
 
-    let pairing_token = random_token();
-    let url = format!("{public_page}#{pairing_token}");
-    let qr_svg = QrCode::new(url.as_bytes())
-      .map_err(|error| ChatBridgeApiError::new("qr_failed", error.to_string()))?
-      .render::<svg::Color>()
-      .min_dimensions(280, 280)
-      .build();
-    let qr_data_url = format!("data:image/svg+xml;base64,{}", BASE64.encode(qr_svg));
+    let (pairing_token, url, qr_data_url) = create_pairing_link(&public_page)?;
     let (events, _) = tokio::sync::broadcast::channel(128);
     let service = Arc::new(ServiceState {
       bridge: Arc::clone(&self.bridge),
@@ -397,6 +437,14 @@ impl ChatBridgeState {
       runtime.url = None;
       runtime.qr_data_url = None;
       runtime.error = None;
+      // Revoke sessions before graceful shutdown so active SSE streams cannot hold it open.
+      if let Some(service) = &runtime.service {
+        let mut auth = service.auth.lock().expect("chat auth lock poisoned");
+        auth.session_hash = None;
+        auth.session_deadline = None;
+        auth.pairing_hash = None;
+        auth.paired = false;
+      }
       runtime.service = None;
       (
         runtime.shutdown.take(),
@@ -645,9 +693,21 @@ async fn api_events(
   let mut source = state.events.subscribe();
   let (sender, receiver) = tokio::sync::mpsc::channel(32);
   tokio::spawn(async move {
+    // Existing streams must stop after regeneration, disconnect or session expiration.
+    let mut auth_check = tokio::time::interval(Duration::from_secs(1));
     loop {
-      match source.recv().await {
+      let received = tokio::select! {
+        _ = auth_check.tick() => {
+          if authorize(&state, &headers).is_err() || sender.is_closed() { break; }
+          continue;
+        }
+        received = source.recv() => received,
+      };
+      match received {
         Ok(message) => {
+          if authorize(&state, &headers).is_err() {
+            break;
+          }
           let Ok(json) = serde_json::to_string(&message) else {
             continue;
           };
@@ -818,6 +878,19 @@ fn is_private_lan(ip: Ipv4Addr) -> bool {
   ip.is_private() && !ip.is_loopback() && !ip.is_link_local()
 }
 
+/// Build the QR before changing auth so a rendering failure leaves the current code usable.
+fn create_pairing_link(page: &str) -> Result<(String, String, String), ChatBridgeApiError> {
+  let token = random_token();
+  let url = format!("{page}#{token}");
+  let qr_svg = QrCode::new(url.as_bytes())
+    .map_err(|error| ChatBridgeApiError::new("qr_failed", error.to_string()))?
+    .render::<svg::Color>()
+    .min_dimensions(280, 280)
+    .build();
+  let qr_data_url = format!("data:image/svg+xml;base64,{}", BASE64.encode(qr_svg));
+  Ok((token, url, qr_data_url))
+}
+
 fn random_token() -> String {
   let mut bytes = [0u8; 32];
   OsRng.fill_bytes(&mut bytes);
@@ -860,6 +933,13 @@ pub async fn chat_bridge_start(
 }
 
 #[tauri::command]
+pub fn chat_bridge_renew_pairing(
+  state: tauri::State<'_, ChatBridgeState>,
+) -> Result<ChatBridgeStatus, ChatBridgeApiError> {
+  state.renew_pairing()
+}
+
+#[tauri::command]
 pub async fn chat_bridge_stop(
   state: tauri::State<'_, ChatBridgeState>,
 ) -> Result<ChatBridgeStatus, ChatBridgeApiError> {
@@ -869,6 +949,149 @@ pub async fn chat_bridge_stop(
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  fn pairing_fixture() -> (ChatBridgeState, Arc<ServiceState>, HeaderMap) {
+    let bridge = BridgeManager::new();
+    let (events, _) = tokio::sync::broadcast::channel(8);
+    let service = Arc::new(ServiceState {
+      bridge: Arc::clone(&bridge),
+      can_send: false,
+      expected_host: "127.0.0.1:1421".into(),
+      allowed_origin: "http://127.0.0.1:1420".into(),
+      auth: Mutex::new(AuthState {
+        pairing_hash: Some(token_hash("initial-code")),
+        pairing_deadline: Instant::now() + PAIRING_LIFETIME,
+        session_hash: None,
+        session_deadline: None,
+        paired: false,
+      }),
+      rate: Mutex::new(RateState::default()),
+      messages: Mutex::new(VecDeque::from([ChatMessageSnapshot {
+        sequence: 1,
+        timestamp: 1,
+        log_kind: 24,
+        source_kind: 1,
+        target_kind: 0,
+        sender: "Fixture player".into(),
+        message: "Retained message".into(),
+      }])),
+      events,
+    });
+    let state = ChatBridgeState::new(bridge);
+    *state.runtime.lock().unwrap() = Runtime {
+      phase: ChatBridgePhase::Running,
+      url: Some("http://127.0.0.1:1420/mobile.html#initial-code".into()),
+      qr_data_url: Some("initial-qr".into()),
+      service: Some(Arc::clone(&service)),
+      ..Runtime::default()
+    };
+    let mut headers = HeaderMap::new();
+    headers.insert(header::HOST, HeaderValue::from_static("127.0.0.1:1421"));
+    (state, service, headers)
+  }
+
+  async fn pair_code(
+    service: &Arc<ServiceState>,
+    headers: &HeaderMap,
+    token: &str,
+  ) -> Result<Response, ChatBridgeApiError> {
+    pair(
+      State(Arc::clone(service)),
+      headers.clone(),
+      Json(PairRequest {
+        token: token.into(),
+      }),
+    )
+    .await
+  }
+
+  fn session_headers(headers: &HeaderMap, response: &Response) -> HeaderMap {
+    let mut result = headers.clone();
+    let cookie = response.headers()[header::SET_COOKIE]
+      .to_str()
+      .unwrap()
+      .split(';')
+      .next()
+      .unwrap();
+    result.insert(header::COOKIE, HeaderValue::from_str(cookie).unwrap());
+    result
+  }
+
+  #[tokio::test]
+  async fn renews_expired_and_consumed_codes_without_restarting_or_losing_messages() {
+    let (state, service, headers) = pairing_fixture();
+    service.auth.lock().unwrap().pairing_deadline = Instant::now() - Duration::from_secs(1);
+    assert!(!state.status().pairing_available);
+    assert!(state.status().qr_data_url.is_none());
+    assert!(pair_code(&service, &headers, "initial-code").await.is_err());
+    let fresh = state.renew_pairing().unwrap();
+    assert!(fresh.pairing_available);
+    assert!(fresh.qr_data_url.is_some());
+    assert!(pair_code(&service, &headers, "initial-code").await.is_err());
+    let first_token = fresh.url.as_ref().unwrap().split('#').nth(1).unwrap();
+    let first_response = pair_code(&service, &headers, first_token).await.unwrap();
+    let first_session = session_headers(&headers, &first_response);
+    assert!(authorize(&service, &first_session).is_ok());
+    assert!(pair_code(&service, &headers, first_token).await.is_err());
+    assert!(!state.status().pairing_available);
+    let next = state.renew_pairing().unwrap();
+    assert_ne!(next.url, fresh.url);
+    assert_ne!(next.qr_data_url, fresh.qr_data_url);
+    assert!(authorize(&service, &first_session).is_err());
+    assert!(pair_code(&service, &headers, first_token).await.is_err());
+    let second_token = next.url.as_ref().unwrap().split('#').nth(1).unwrap();
+    let second_response = pair_code(&service, &headers, second_token).await.unwrap();
+    assert!(authorize(&service, &session_headers(&headers, &second_response)).is_ok());
+    assert!(Arc::ptr_eq(
+      state.runtime.lock().unwrap().service.as_ref().unwrap(),
+      &service
+    ));
+    assert_eq!(
+      state.status().recent_messages[0].message,
+      "Retained message"
+    );
+  }
+
+  #[tokio::test]
+  async fn regeneration_terminates_the_previous_authenticated_stream() {
+    let (state, service, headers) = pairing_fixture();
+    let response = pair_code(&service, &headers, "initial-code").await.unwrap();
+    let first_session = session_headers(&headers, &response);
+    let stream = api_events(State(service), first_session)
+      .await
+      .unwrap()
+      .into_response();
+    state.renew_pairing().unwrap();
+    let body = tokio::time::timeout(
+      Duration::from_secs(2),
+      axum::body::to_bytes(stream.into_body(), 1024),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(body.is_empty());
+  }
+
+  #[tokio::test]
+  async fn stopping_revokes_sessions_and_terminates_active_streams() {
+    let (state, service, headers) = pairing_fixture();
+    let response = pair_code(&service, &headers, "initial-code").await.unwrap();
+    let session = session_headers(&headers, &response);
+    let stream = api_events(State(Arc::clone(&service)), session.clone())
+      .await
+      .unwrap()
+      .into_response();
+    state.stop().await;
+    assert!(authorize(&service, &session).is_err());
+    let body = tokio::time::timeout(
+      Duration::from_secs(2),
+      axum::body::to_bytes(stream.into_body(), 1024),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(body.is_empty());
+  }
 
   #[test]
   fn accepts_only_private_non_loopback_ipv4_addresses() {

@@ -54,7 +54,7 @@ export function ChatPage() {
               onClick={() => void bridge.stop()}
             >
               <StopCircle aria-hidden="true" />
-              {bridge.busy ? "正在停止" : "停止共享"}
+              {bridge.busy ? "请稍候" : "停止共享"}
             </button>
           ) : (
             <button
@@ -104,18 +104,47 @@ export function ChatPage() {
             <div className="chat-section-heading">
               <div>
                 <h2>连接手机</h2>
-                <p>{bridge.status?.paired ? "一台手机已连接" : "等待扫码"}</p>
+                <p>
+                  {bridge.status?.paired
+                    ? "一台手机已连接"
+                    : bridge.status?.pairingAvailable
+                      ? "等待扫码 · 配对码 5 分钟内有效"
+                      : "配对码已失效，请生成新码"}
+                </p>
               </div>
               <LinkSimple aria-hidden="true" />
             </div>
-            {bridge.status?.qrDataUrl && (
+            {bridge.status?.qrDataUrl ? (
               <div className="chat-qr-frame">
                 <img
                   src={bridge.status.qrDataUrl}
                   alt="手机聊天一次性配对二维码"
                 />
               </div>
+            ) : (
+              <div className="chat-qr-placeholder" role="status">
+                {bridge.status?.paired ? "配对码已使用" : "配对码已失效"}
+                <span>
+                  {bridge.status?.paired
+                    ? "当前手机可继续使用；重新连接时请生成新码。"
+                    : "点击下方按钮生成新的二维码。"}{" "}
+                </span>
+              </div>
             )}
+            <button
+              type="button"
+              className="chat-renew-button"
+              disabled={bridge.busy}
+              onClick={() => {
+                setCopied(false);
+                void bridge.renewPairing();
+              }}
+            >
+              {bridge.busy ? "正在生成…" : "生成新配对码"}
+            </button>
+            <p className="chat-pairing-note">
+              生成新码后，旧链接和旧手机连接失效；消息记录保留。
+            </p>
             <ol className="chat-steps">
               <li>让手机和电脑连接同一个局域网。</li>
               <li>使用手机相机扫描二维码。</li>
@@ -124,7 +153,11 @@ export function ChatPage() {
             <div className="chat-address">
               <span>本地地址</span>
               <code>{address}</code>
-              <button type="button" onClick={() => void copyLink()}>
+              <button
+                type="button"
+                disabled={!bridge.status?.pairingAvailable || bridge.busy}
+                onClick={() => void copyLink()}
+              >
                 <Copy aria-hidden="true" />
                 {copied ? "已复制" : "复制配对链接"}
               </button>

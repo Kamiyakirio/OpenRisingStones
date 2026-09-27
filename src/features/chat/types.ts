@@ -22,6 +22,7 @@ export type ChatBridgeStatus = {
   qrDataUrl: string | null;
   canSend: boolean;
   paired: boolean;
+  pairingAvailable: boolean;
   messageCount: number;
   droppedCount: number;
   recentMessages: ChatMessage[];
