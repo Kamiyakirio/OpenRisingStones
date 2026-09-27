@@ -23,6 +23,16 @@ bundled-game-bridge = []
 [profile.dev.package.gearing-engine]
 opt-level = 3
 
+# Keep game signature verification fast while retaining Debug diagnostics in the application.
+[profile.dev.package.game-bridge-host]
+opt-level = 3
+
+[profile.dev.package.memchr]
+opt-level = 3
+
+[profile.dev.package.sha2]
+opt-level = 3
+
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 

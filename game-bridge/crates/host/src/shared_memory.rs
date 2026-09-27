@@ -7,17 +7,18 @@ use game_bridge_protocol::{
     GlamourDresserSnapshot, InventoryContainerSnapshot, InventoryItemSnapshot,
     PlayerInventorySnapshot, PortraitLightingSnapshot, Position3,
 };
+use memchr::memmem::Finder;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fs;
 use std::mem::size_of;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use windows_sys::Win32::Foundation::{
@@ -86,6 +87,7 @@ extern "system" {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 struct SharedGameLayout {
     framework_tick_vtable_index: u32,
     framework_network_module_proxy: u32,
@@ -197,6 +199,7 @@ struct SharedGameLayout {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 struct SharedGameApi {
     private_layout_verified: u32,
     reserved: u32,
@@ -1228,6 +1231,23 @@ struct PeImage {
     scan_text: Vec<u8>,
 }
 
+#[derive(PartialEq, Eq)]
+struct GameApiCacheKey {
+    process_id: u32,
+    module_path: PathBuf,
+    module_base_address: usize,
+    module_image_size: usize,
+    game_version: String,
+    manifest_hash: [u8; 32],
+}
+
+struct GameApiCacheEntry {
+    key: GameApiCacheKey,
+    api: SharedGameApi,
+}
+
+static GAME_API_CACHE: OnceLock<Mutex<Option<GameApiCacheEntry>>> = OnceLock::new();
+
 /// Resolve only fixed read-only telemetry fields. Each AOB must match exactly once.
 /// This does not load the payload or relax the manifest gates for its writable API.
 pub(crate) fn resolve_fishing_signatures(
@@ -1288,7 +1308,8 @@ pub(crate) fn resolve_fishing_signatures(
 }
 
 fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<SharedGameApi> {
-    let manifest: RuntimeManifest = serde_json::from_slice(&fs::read(manifest_path)?)?;
+    let manifest_bytes = fs::read(manifest_path)?;
+    let manifest: RuntimeManifest = serde_json::from_slice(&manifest_bytes)?;
     if manifest.schema_version != 7 {
         return Err(BridgeError::InvalidData(format!(
             "unsupported manifest schema: {}",
@@ -1313,6 +1334,25 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
             "game version mismatch: expected={}, actual={game_version}",
             manifest.game_version
         )));
+    }
+
+    let cache_key = GameApiCacheKey {
+        process_id,
+        module_path: module.path.clone(),
+        module_base_address: module.base_address,
+        module_image_size: module.image_size,
+        game_version,
+        manifest_hash: Sha256::digest(&manifest_bytes).into(),
+    };
+    let cache = GAME_API_CACHE.get_or_init(|| Mutex::new(None));
+    if let Some(entry) = cache
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .as_ref()
+    {
+        if entry.key == cache_key {
+            return Ok(entry.api);
+        }
     }
 
     let image = parse_pe_image(&fs::read(&module.path)?)?;
@@ -1571,6 +1611,10 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
         addon_banner_editor_directional_horizontal_angle_slider,
         "addonBannerEditorDirectionalHorizontalAngleSlider"
     );
+    *cache.lock().unwrap_or_else(|error| error.into_inner()) = Some(GameApiCacheEntry {
+        key: cache_key,
+        api,
+    });
     Ok(api)
 }
 
@@ -1685,17 +1729,27 @@ fn resolve_function_rva(image: &PeImage, spec: &RuntimeFunction) -> BridgeResult
             "signature is too large".to_owned(),
         ));
     }
+    let (anchor_offset, anchor) = longest_fixed_pattern_run(&pattern)
+        .ok_or_else(|| BridgeError::InvalidData("signature contains no fixed bytes".to_owned()))?;
+    let finder = Finder::new(&anchor);
     let mut match_offset = None;
-    for offset in 0..=image.scan_text.len() - pattern.len() {
-        if pattern.iter().enumerate().all(|(index, value)| {
-            value.is_none() || value == &Some(image.scan_text[offset + index])
-        }) {
-            if match_offset.replace(offset).is_some() {
+    let mut search_offset = 0;
+    while let Some(relative) = finder.find(&image.scan_text[search_offset..]) {
+        let anchor_match = search_offset + relative;
+        if let Some(candidate) = anchor_match.checked_sub(anchor_offset) {
+            let matches = candidate
+                .checked_add(pattern.len())
+                .is_some_and(|end| end <= image.scan_text.len())
+                && pattern.iter().enumerate().all(|(index, value)| {
+                    value.is_none() || value == &Some(image.scan_text[candidate + index])
+                });
+            if matches && match_offset.replace(candidate).is_some() {
                 return Err(BridgeError::InvalidData(
                     "signature matched more than once".to_owned(),
                 ));
             }
         }
+        search_offset = anchor_match + 1;
     }
     let match_offset = match_offset
         .ok_or_else(|| BridgeError::InvalidData("signature did not match".to_owned()))?;
@@ -1730,6 +1784,34 @@ fn resolve_function_rva(image: &PeImage, spec: &RuntimeFunction) -> BridgeResult
         ));
     }
     Ok(resolved)
+}
+
+fn longest_fixed_pattern_run(pattern: &[Option<u8>]) -> Option<(usize, Vec<u8>)> {
+    let mut longest = (0, 0);
+    let mut current_start = 0;
+    let mut current_length = 0;
+    for (index, value) in pattern.iter().enumerate() {
+        if value.is_some() {
+            if current_length == 0 {
+                current_start = index;
+            }
+            current_length += 1;
+            if current_length > longest.1 {
+                longest = (current_start, current_length);
+            }
+        } else {
+            current_length = 0;
+        }
+    }
+    (longest.1 != 0).then(|| {
+        (
+            longest.0,
+            pattern[longest.0..longest.0 + longest.1]
+                .iter()
+                .map(|value| value.expect("fixed pattern run"))
+                .collect(),
+        )
+    })
 }
 
 fn parse_pattern(text: &str) -> BridgeResult<Vec<Option<u8>>> {
@@ -1781,6 +1863,42 @@ fn read_i32(bytes: &[u8], offset: usize, label: &str) -> BridgeResult<i32> {
 #[cfg(test)]
 mod initialization_tests {
     use super::*;
+
+    fn test_image(scan_text: Vec<u8>) -> PeImage {
+        PeImage {
+            image_size: scan_text.len() + 0x1000,
+            text_rva: 0x1000,
+            raw_text: scan_text.clone(),
+            scan_text,
+        }
+    }
+
+    #[test]
+    fn signature_search_uses_fixed_anchor_around_wildcards() {
+        let image = test_image(vec![0x90, 0xAA, 0x11, 0xBB, 0xCC, 0x90]);
+        let spec = RuntimeFunction {
+            pattern: "AA ?? BB CC".to_owned(),
+            resolve: "direct".to_owned(),
+            offset: 0,
+            next_instruction: 0,
+        };
+        assert_eq!(resolve_function_rva(&image, &spec).unwrap(), 0x1001);
+    }
+
+    #[test]
+    fn signature_search_rejects_overlapping_multiple_matches() {
+        let image = test_image(vec![0xAA, 0xAA, 0xAA, 0xBB]);
+        let spec = RuntimeFunction {
+            pattern: "AA AA ??".to_owned(),
+            resolve: "direct".to_owned(),
+            offset: 0,
+            next_instruction: 0,
+        };
+        assert!(resolve_function_rva(&image, &spec)
+            .unwrap_err()
+            .to_string()
+            .contains("more than once"));
+    }
 
     #[test]
     fn cabinet_rows_remain_absolute_across_the_old_finder_boundary() {

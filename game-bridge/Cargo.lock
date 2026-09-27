@@ -51,6 +51,7 @@ name = "game-bridge-host"
 version = "0.1.0"
 dependencies = [
  "game-bridge-protocol",
+ "memchr",
  "serde",
  "serde_json",
  "sha2",
