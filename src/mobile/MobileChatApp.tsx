@@ -5,8 +5,17 @@ import {
   PaperPlaneTilt,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import type { ChatMessage } from "../features/chat/types";
+import { ChatFilterBar } from "../features/chat/ChatFilterBar";
+import { ChatChannelBadge } from "../features/chat/ChatChannelBadge";
+import { matchesChatFilters, type ChatFilter } from "../features/chat/channels";
 
 type ConnectionState =
   "pairing" | "online" | "reconnecting" | "disconnected" | "error";
@@ -57,12 +66,18 @@ export function MobileChatApp() {
   const [connection, setConnection] = useState<ConnectionState>("pairing");
   const [notice, setNotice] = useState("正在与电脑完成一次性配对…");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [filter, setFilter] = useState<ChatFilter[]>([]);
   const [canSend, setCanSend] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const ledger = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
+  const previousFilter = useRef(filter);
   const eventSource = useRef<EventSource | null>(null);
   const byteCount = encoder.encode(draft).length;
+  const visibleMessages = messages.filter((message) =>
+    matchesChatFilters(message.logKind, filter),
+  );
 
   useEffect(() => {
     let active = true;
@@ -160,9 +175,16 @@ export function MobileChatApp() {
     };
   }, []);
 
-  useEffect(() => {
-    ledger.current?.scrollTo({ top: ledger.current.scrollHeight });
-  }, [messages]);
+  useLayoutEffect(() => {
+    // Filter changes start at the latest result; incoming messages preserve history browsing.
+    if (previousFilter.current !== filter) {
+      followLatest.current = true;
+      previousFilter.current = filter;
+    }
+    if (ledger.current && followLatest.current) {
+      ledger.current.scrollTop = ledger.current.scrollHeight;
+    }
+  }, [visibleMessages, filter]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -211,23 +233,40 @@ export function MobileChatApp() {
         <span>{notice}</span>
       </div>
 
+      <ChatFilterBar
+        value={filter}
+        onChange={setFilter}
+        visibleCount={visibleMessages.length}
+        totalCount={messages.length}
+      />
       <section
         className="mobile-chat-ledger"
         ref={ledger}
         aria-label="游戏聊天记录"
+        tabIndex={0}
+        onScroll={(event) => {
+          const { scrollHeight, scrollTop, clientHeight } = event.currentTarget;
+          followLatest.current = scrollHeight - scrollTop - clientHeight <= 24;
+        }}
       >
-        {messages.length === 0 ? (
+        {visibleMessages.length === 0 ? (
           <div className="mobile-chat-empty">
             <ChatCircleDots aria-hidden="true" />
-            <strong>等待新的游戏对话</strong>
-            <span>连接后产生的消息会显示在这里。</span>
+            <strong>
+              {filter.length === 0 ? "等待新的游戏对话" : "暂无此类消息"}
+            </strong>
+            <span>
+              {filter.length === 0
+                ? "连接后产生的消息会显示在这里。"
+                : "可切换到全部消息，或等待新的对话。"}
+            </span>
           </div>
         ) : (
-          messages.map((message) => (
+          visibleMessages.map((message) => (
             <article className="mobile-chat-message" key={message.sequence}>
               <div>
-                <strong>{message.sender || "系统"}</strong>
-                <span>#{message.logKind}</span>
+                <ChatChannelBadge logKind={message.logKind} />
+                {message.sender && <strong>{message.sender}</strong>}
                 <time>{formatTime(message.timestamp)}</time>
               </div>
               <p>{message.message}</p>
@@ -320,11 +359,14 @@ async function request<T = undefined>(path: string, options: RequestInit = {}) {
 
 function uniqueMessages(messages: ChatMessage[]) {
   const seen = new Set<number>();
-  return messages.filter((message) => {
-    if (seen.has(message.sequence)) return false;
-    seen.add(message.sequence);
-    return true;
-  });
+  // Reconnect history can arrive after live events; sequence defines the display order.
+  return messages
+    .filter((message) => {
+      if (seen.has(message.sequence)) return false;
+      seen.add(message.sequence);
+      return true;
+    })
+    .sort((left, right) => left.sequence - right.sequence);
 }
 
 function readError(reason: unknown, fallback: string) {

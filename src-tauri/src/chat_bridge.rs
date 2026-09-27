@@ -177,7 +177,8 @@ impl ChatBridgeState {
           service.can_send,
           paired,
           messages.len(),
-          messages.iter().rev().take(80).cloned().collect::<Vec<_>>(),
+          // Return the retained buffer so filtering cannot hide older player channels behind combat.
+          messages.iter().cloned().collect::<Vec<_>>(),
         )
       })
       .unwrap_or_default();
@@ -189,7 +190,7 @@ impl ChatBridgeState {
       paired,
       message_count,
       dropped_count: self.bridge.chat_dropped_count(),
-      recent_messages: recent_messages.into_iter().rev().collect(),
+      recent_messages,
       error: runtime.error.clone(),
     }
   }

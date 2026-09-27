@@ -7,8 +7,11 @@ import {
   ShieldWarning,
   StopCircle,
 } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useChatBridge } from "../features/chat/useChatBridge";
+import { ChatFilterBar } from "../features/chat/ChatFilterBar";
+import { ChatChannelBadge } from "../features/chat/ChatChannelBadge";
+import { matchesChatFilters, type ChatFilter } from "../features/chat/channels";
 import type { ChatBridgeError, ChatMessage } from "../features/chat/types";
 import { RiskDialog } from "../shared/components/RiskDialog";
 import "./ChatPage.css";
@@ -16,8 +19,13 @@ import "./ChatPage.css";
 export function ChatPage() {
   const bridge = useChatBridge();
   const [copied, setCopied] = useState(false);
+  const [filter, setFilter] = useState<ChatFilter[]>([]);
   const running = bridge.status?.phase === "running";
   const address = bridge.status?.url?.split("#")[0] ?? null;
+  const messages = bridge.status?.recentMessages ?? [];
+  const visibleMessages = messages.filter((message) =>
+    matchesChatFilters(message.logKind, filter),
+  );
 
   async function copyLink() {
     if (!bridge.status?.url) return;
@@ -74,7 +82,17 @@ export function ChatPage() {
               </div>
               <span>{bridge.status?.messageCount ?? 0} 条</span>
             </div>
-            <ChatMessages messages={bridge.status?.recentMessages ?? []} />
+            <ChatFilterBar
+              value={filter}
+              onChange={setFilter}
+              visibleCount={visibleMessages.length}
+              totalCount={messages.length}
+            />
+            <ChatMessages
+              key={filter.join(",")}
+              messages={visibleMessages}
+              filtered={filter.length > 0}
+            />
             {(bridge.status?.droppedCount ?? 0) > 0 && (
               <p className="chat-drop-warning" role="status">
                 游戏消息过快，已有 {bridge.status?.droppedCount} 条未能转发。
@@ -185,23 +203,57 @@ function StatusMark({
   );
 }
 
-function ChatMessages({ messages }: { messages: ChatMessage[] }) {
+function ChatMessages({
+  messages,
+  filtered,
+}: {
+  messages: ChatMessage[];
+  filtered: boolean;
+}) {
+  const list = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
+
+  useLayoutEffect(() => {
+    if (messages.length === 0) {
+      followLatest.current = true;
+      return;
+    }
+    // Follow incoming messages only while the reader is already at the bottom.
+    if (list.current && followLatest.current) {
+      list.current.scrollTop = list.current.scrollHeight;
+    }
+  }, [messages]);
+
   if (messages.length === 0) {
     return (
       <div className="chat-empty-state">
         <ChatCircleDots aria-hidden="true" />
-        <strong>等待新的游戏对话</strong>
-        <span>开启后产生的消息会显示在这里。</span>
+        <strong>{filtered ? "暂无此类消息" : "等待新的游戏对话"}</strong>
+        <span>
+          {filtered
+            ? "可切换到全部消息，或等待新的对话。"
+            : "开启后产生的消息会显示在这里。"}
+        </span>
       </div>
     );
   }
   return (
-    <div className="chat-message-list">
+    <div
+      className="chat-message-list"
+      ref={list}
+      role="region"
+      aria-label="最近消息"
+      tabIndex={0}
+      onScroll={(event) => {
+        const { scrollHeight, scrollTop, clientHeight } = event.currentTarget;
+        followLatest.current = scrollHeight - scrollTop - clientHeight <= 24;
+      }}
+    >
       {messages.map((message) => (
         <article className="chat-message" key={message.sequence}>
           <div className="chat-message-meta">
-            <strong>{message.sender || "系统"}</strong>
-            <span>#{message.logKind}</span>
+            <ChatChannelBadge logKind={message.logKind} />
+            {message.sender && <strong>{message.sender}</strong>}
             <time>{formatChatTime(message.timestamp)}</time>
           </div>
           <p>{message.message}</p>

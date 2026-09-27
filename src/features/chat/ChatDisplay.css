@@ -1,0 +1,181 @@
+/** Exact channel colors belong to labels so light game colors remain readable on paper. */
+.chat-filter-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 20px;
+  color: var(--ors-color-muted, #686158);
+  border-bottom: 1px solid var(--ors-color-line, #ddd6ca);
+  font-size: 0.75rem;
+}
+
+.chat-filter-trigger {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 0;
+  max-width: 18rem;
+  min-height: 44px;
+  padding: 6px 10px;
+  color: var(--ors-color-text, #302d28);
+  background: var(--ors-color-surface, #fcfaf6);
+  border: 1px solid var(--ors-color-control-line, #8a8175);
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  anchor-name: --chat-filter-control;
+}
+
+.chat-filter-trigger:focus-visible,
+.chat-filter-popup :focus-visible {
+  outline: 2px solid var(--ors-color-accent, #7a5816);
+  outline-offset: 2px;
+}
+
+.chat-filter-count {
+  margin-left: auto;
+}
+
+/* Native popovers escape the ledger clipping boundary and close on Escape. */
+.chat-filter-popup {
+  width: min(22rem, calc(100vw - 32px));
+  max-height: min(32rem, 65dvh);
+  box-sizing: border-box;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  color: var(--ors-color-text, #302d28);
+  background: var(--ors-color-surface, #fcfaf6);
+  border: 1px solid var(--ors-color-line, #ddd6ca);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px #302d2826;
+  font-size: 0.8125rem;
+}
+@supports (position-anchor: --chat-filter-control) {
+  .chat-filter-popup {
+    position-anchor: --chat-filter-control;
+    inset: auto;
+    /* Reserve space for the expanded menu even when its trigger is low on screen. */
+    top: clamp(16px, anchor(bottom), calc(100dvh - min(32rem, 65dvh) - 24px));
+    left: anchor(left);
+    margin: 8px 0 0;
+    position-try-fallbacks: flip-block, flip-inline;
+  }
+}
+.chat-filter-popup header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.chat-filter-popup header button {
+  min-height: 44px;
+  padding: 4px 8px;
+  color: var(--ors-color-accent, #7a5816);
+  background: transparent;
+  border: 1px solid var(--ors-color-line, #ddd6ca);
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+.chat-filter-popup p {
+  margin: 8px 0;
+  color: var(--ors-color-muted, #686158);
+  line-height: 1.6;
+}
+.chat-filter-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+.chat-filter-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.chat-filter-options input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ors-color-accent, #7a5816);
+}
+.chat-filter-channels {
+  margin-top: 8px;
+  border-top: 1px solid var(--ors-color-line, #ddd6ca);
+}
+.chat-filter-channels summary {
+  padding: 12px 0;
+  cursor: pointer;
+}
+.chat-filter-channels fieldset {
+  min-width: 0;
+  margin: 8px 0;
+  padding: 0;
+  border: 0;
+}
+.chat-filter-channels legend {
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .chat-filter-popup {
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+}
+
+.chat-filter-bar > span {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chat-channel-badge {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  color: #000000;
+  background: #bab4aa;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.chat-channel-badge[data-tone="say"] {
+  background: #ffffff;
+}
+.chat-channel-badge[data-tone="shout"] {
+  background: #ff4500;
+}
+.chat-channel-badge[data-tone="tell"] {
+  background: #ff69b4;
+}
+.chat-channel-badge[data-tone="party"] {
+  background: #1e90ff;
+}
+.chat-channel-badge[data-tone="linkshell"] {
+  background: #228b22;
+}
+/* User-selected RGB: company (170,119,129), emotes (187,255,240). */
+.chat-channel-badge[data-tone="company"] {
+  background: #aa7781;
+}
+.chat-channel-badge[data-tone="novice"] {
+  background: #8b4513;
+  color: #ffffff;
+}
+.chat-channel-badge[data-tone="emote"] {
+  background: #bbfff0;
+}
+.chat-channel-badge[data-tone="yell"] {
+  background: #ffff00;
+}
+.chat-channel-badge[data-tone="echo"] {
+  background: #808080;
+}

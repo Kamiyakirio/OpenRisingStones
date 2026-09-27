@@ -179,8 +179,9 @@
 
 .chat-ledger {
   display: grid;
-  grid-template-rows: auto minmax(22rem, 1fr) auto;
-  min-height: calc(100dvh - 160px);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  /* Bound the ledger so incoming messages scroll inside it instead of growing the page. */
+  height: max(24rem, calc(100dvh - 160px));
   overflow: hidden;
 }
 
@@ -213,9 +214,11 @@
 }
 
 .chat-section-heading > span {
+  flex: 0 0 auto;
   color: var(--ors-color-muted);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .chat-section-heading > svg {
@@ -225,21 +228,40 @@
 }
 
 .chat-message-list {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   padding-inline: var(--ors-space-5);
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--ors-color-control-line) var(--ors-color-surface);
+}
+
+/* Push a short conversation to the bottom without reversing its reading order. */
+.chat-message-list::before {
+  margin-top: auto;
+  content: "";
+}
+
+.chat-message-list:focus-visible {
+  outline: 2px solid var(--ors-color-accent);
+  outline-offset: -2px;
 }
 
 .chat-message {
-  padding: var(--ors-space-3) 0;
+  flex: 0 0 auto;
+  /* Keep each chat entry compact while allowing long messages to wrap naturally. */
+  padding: var(--ors-space-2) 0;
   border-bottom: 1px solid var(--ors-color-line);
 }
 
 .chat-message-meta {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--ors-space-2);
   align-items: baseline;
+  line-height: 1.4;
 }
 
 .chat-message-meta strong {
@@ -247,7 +269,7 @@
   font-size: 0.8125rem;
 }
 
-.chat-message-meta span,
+.chat-message-meta span:not(.chat-channel-badge),
 .chat-message-meta time {
   color: var(--ors-color-muted);
   font-size: 0.75rem;
@@ -255,15 +277,15 @@
 }
 
 .chat-message p {
-  margin: var(--ors-space-1) 0 0;
-  line-height: 1.6;
+  margin: 0;
+  line-height: 1.4;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
 .chat-empty-state {
   display: grid;
-  min-height: 22rem;
+  min-height: 0;
   color: var(--ors-color-muted);
   text-align: center;
   place-content: center;
@@ -393,7 +415,7 @@
   }
 
   .chat-ledger {
-    min-height: 32rem;
+    height: clamp(24rem, 60dvh, 32rem);
   }
 
   .chat-connection-panel {
