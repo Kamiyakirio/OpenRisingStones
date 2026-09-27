@@ -179,11 +179,16 @@ class GameRuntime final {
   using PrintChatMessage = std::uint32_t(__fastcall*)(void* manager, std::uint16_t log_info,
                                                       void* sender, void* message,
                                                       std::int32_t timestamp, bool silent);
+  using GetLogMessageDetail = bool(__fastcall*)(void* manager, std::int32_t index,
+                                                std::uint16_t* log_info, void* sender,
+                                                void* message, std::int32_t* timestamp);
 
   static bool __fastcall tick_detour(void* framework);
   static std::uint32_t __fastcall chat_detour(void* manager, std::uint16_t log_info, void* sender,
                                               void* message, std::int32_t timestamp, bool silent);
   bool on_tick(void* framework) noexcept;
+  bool initialize_chat_log(void* framework) noexcept;
+  void poll_chat_log(void* framework) noexcept;
   void publish_chat_message(std::uint16_t log_info, const void* sender, const void* message,
                             std::int32_t timestamp) noexcept;
   void process_shared_command(void* framework);
@@ -220,6 +225,10 @@ class GameRuntime final {
   void* chat_hook_target_{};
   FrameworkTick original_tick_{};
   PrintChatMessage original_chat_{};
+  void* chat_log_module_{};
+  std::int32_t next_chat_log_index_{};
+  bool chat_log_supported_{};
+  bool chat_log_initialized_{};
   std::atomic<bool> stopping_{false};
   std::atomic<bool> stopped_{false};
   std::atomic<std::uint32_t> active_callbacks_{0};

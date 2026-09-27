@@ -25,6 +25,8 @@ constexpr std::int32_t kMaximumInventorySlots = 200;
 constexpr std::size_t kMaximumGlamourDresserSlots = 800;
 constexpr std::size_t kMaximumArmoireCabinetItems = 5120;
 constexpr std::size_t kMaximumChatInputBytes = 500;
+constexpr std::int32_t kMaximumInitialChatMessages = 100;
+constexpr std::int32_t kMaximumChatMessagesPerTick = 64;
 constexpr std::size_t kUnlockWordBits = std::numeric_limits<std::uint32_t>::digits;
 constexpr std::uint8_t kArmoireLoadedState = 2;
 constexpr std::uint32_t kAgentBannerEditor = 408;
@@ -235,7 +237,10 @@ void GameRuntime::start() {
   if (addresses_.utf8_ctor && addresses_.utf8_dtor && addresses_.process_chat_box_entry) {
     chat_capabilities |= kChatCapabilitySend;
   }
-  if (addresses_.rapture_log_print_message) {
+  chat_log_supported_ = addresses_.get_log_message_detail && addresses_.utf8_ctor &&
+                        addresses_.utf8_dtor && layout_.rapture_log_module != 0 &&
+                        layout_.log_message_count != 0;
+  if (!chat_log_supported_ && addresses_.rapture_log_print_message) {
     auto* target = addresses_.rapture_log_print_message;
     if (MH_CreateHook(target, reinterpret_cast<void*>(&chat_detour),
                       reinterpret_cast<void**>(&original_chat_)) == MH_OK &&
@@ -247,6 +252,7 @@ void GameRuntime::start() {
       original_chat_ = nullptr;
     }
   }
+  if (chat_log_supported_) chat_capabilities |= kChatCapabilityRead;
   std::atomic_ref(shared_->chat_capabilities).store(chat_capabilities, std::memory_order_release);
 
   const bool portrait_layout_available =
@@ -337,13 +343,18 @@ void GameRuntime::publish_chat_message(std::uint16_t log_info, const void* sende
       if (!source || capacity == 0 || !is_readable(source, 0x20)) return std::size_t{0};
       const auto* bytes = static_cast<const std::byte*>(source);
       const auto* text = read_value<const char*>(bytes, 0);
-      const auto length = read_value<std::int64_t>(bytes, 0x18);
-      if (!text || length <= 0 || static_cast<std::uint64_t>(length) >= capacity ||
-          !is_readable(text, static_cast<std::size_t>(length))) {
+      const auto buffer_size = read_value<std::int64_t>(bytes, 0x08);
+      const auto buffer_used = read_value<std::int64_t>(bytes, 0x10);
+      // BufUsed includes the terminator and counts SeString bytes. StringLength at 0x18 is
+      // a cached character count: GetLogMessageDetail's append path leaves it at zero.
+      if (!text || buffer_used <= 1 || buffer_used > buffer_size) {
         return std::size_t{0};
       }
-      std::memcpy(output, text, static_cast<std::size_t>(length));
-      return static_cast<std::size_t>(length);
+      const auto length = buffer_used - 1;
+      const auto copied = std::min(static_cast<std::uint64_t>(length), capacity - 1);
+      if (!is_readable(text, static_cast<std::size_t>(copied))) return std::size_t{0};
+      std::memcpy(output, text, static_cast<std::size_t>(copied));
+      return static_cast<std::size_t>(copied);
     };
 
     const auto sequence = next_chat_sequence_.fetch_add(1, std::memory_order_relaxed);
@@ -385,6 +396,7 @@ bool GameRuntime::on_tick(void* framework) noexcept {
   try {
     if (!stopping_.load(std::memory_order_acquire)) {
       std::atomic_ref(shared_->heartbeat).fetch_add(1, std::memory_order_relaxed);
+      poll_chat_log(framework);
       process_shared_command(framework);
       if (++sampling_counter_ >= kSnapshotIntervalTicks) {
         sampling_counter_ = 0;
@@ -405,6 +417,66 @@ bool GameRuntime::on_tick(void* framework) noexcept {
         .store(static_cast<std::uint32_t>(SharedPayloadState::Faulted), std::memory_order_release);
     stopping_.store(true, std::memory_order_release);
     return false;
+  }
+}
+
+bool GameRuntime::initialize_chat_log(void* framework) noexcept {
+  // Establish the cursor only from a Framework callback; native UI access is not safe from the
+  // remote initialization thread that installed the hook.
+  try {
+    if (!chat_log_supported_) return false;
+    auto* ui_module =
+        static_cast<std::byte*>(reinterpret_cast<GetUiModule>(addresses_.get_ui_module)(framework));
+    if (!ui_module) return false;
+    auto* log_module = ui_module + layout_.rapture_log_module;
+    const auto count = read_value<std::int32_t>(log_module, layout_.log_message_count);
+    if (count < 0) return false;
+
+    chat_log_module_ = log_module;
+    next_chat_log_index_ = std::max(0, count - kMaximumInitialChatMessages);
+    chat_log_initialized_ = true;
+    return true;
+  } catch (...) {
+    chat_log_module_ = nullptr;
+    chat_log_initialized_ = false;
+    return false;
+  }
+}
+
+void GameRuntime::poll_chat_log(void* framework) noexcept {
+  // The committed log is the canonical source because different chat categories can reach it
+  // through different formatting/printing entry points.
+  if (!chat_log_supported_) return;
+  if (!chat_log_initialized_ && !initialize_chat_log(framework)) return;
+  try {
+    auto* ui_module =
+        static_cast<std::byte*>(reinterpret_cast<GetUiModule>(addresses_.get_ui_module)(framework));
+    if (!ui_module) return;
+    auto* log_module = ui_module + layout_.rapture_log_module;
+    const auto count = read_value<std::int32_t>(log_module, layout_.log_message_count);
+    if (count < 0) return;
+    if (log_module != chat_log_module_ || count < next_chat_log_index_) {
+      chat_log_module_ = log_module;
+      next_chat_log_index_ = std::max(0, count - kMaximumInitialChatMessages);
+    }
+
+    const auto end =
+        next_chat_log_index_ + std::min(count - next_chat_log_index_, kMaximumChatMessagesPerTick);
+    for (; next_chat_log_index_ < end; ++next_chat_log_index_) {
+      alignas(8) std::array<std::byte, 0x68> sender{};
+      alignas(8) std::array<std::byte, 0x68> message{};
+      reinterpret_cast<Utf8Ctor>(addresses_.utf8_ctor)(sender.data());
+      reinterpret_cast<Utf8Ctor>(addresses_.utf8_ctor)(message.data());
+      std::uint16_t log_info = 0;
+      std::int32_t timestamp = 0;
+      const auto found = reinterpret_cast<GetLogMessageDetail>(addresses_.get_log_message_detail)(
+          log_module, next_chat_log_index_, &log_info, sender.data(), message.data(), &timestamp);
+      if (found) publish_chat_message(log_info, sender.data(), message.data(), timestamp);
+      reinterpret_cast<Utf8Dtor>(addresses_.utf8_dtor)(message.data());
+      reinterpret_cast<Utf8Dtor>(addresses_.utf8_dtor)(sender.data());
+    }
+  } catch (...) {
+    // A transient UI rebuild must not interrupt commands or the Framework tick.
   }
 }
 
@@ -591,74 +663,8 @@ CommandOutcome GameRuntime::update_portrait_lighting(void* framework,
                    "Wait for the portrait character to finish loading.");
   }
 
-  // CharaView setters update the rendered light but not the BannerEditor slider thumbs.
   auto* ui_module = reinterpret_cast<GetUiModule>(addresses_.get_ui_module)(framework);
   if (!ui_module) return failure("portrait_ui_unavailable", "The game UI module is unavailable.");
-  auto get_rapture_module = vtable_function<void*(__fastcall*)(void*)>(ui_module, 7);
-  auto* rapture_module = static_cast<std::byte*>(get_rapture_module(ui_module));
-  if (!rapture_module)
-    return failure("portrait_ui_unavailable", "The game UI module is unavailable.");
-  auto* unit_manager = rapture_module + layout_.rapture_atk_unit_manager;
-  auto* addon = static_cast<std::byte*>(reinterpret_cast<GetAddonByName>(
-      addresses_.get_addon_by_name)(unit_manager, "BannerEditor", 1));
-  if (!addon)
-    return failure("portrait_editor_closed",
-                   "The native portrait editor closed during the update.");
-
-  const auto slider = [addon](std::uint32_t offset) -> std::byte* {
-    auto* component = read_pointer<std::byte>(addon, offset);
-    return is_readable(component, sizeof(void*)) ? component : nullptr;
-  };
-  const std::array<std::byte*, 10> sliders{
-      slider(layout_.addon_banner_editor_ambient_color_red_slider),
-      slider(layout_.addon_banner_editor_ambient_color_green_slider),
-      slider(layout_.addon_banner_editor_ambient_color_blue_slider),
-      slider(layout_.addon_banner_editor_ambient_brightness_slider),
-      slider(layout_.addon_banner_editor_directional_color_red_slider),
-      slider(layout_.addon_banner_editor_directional_color_green_slider),
-      slider(layout_.addon_banner_editor_directional_color_blue_slider),
-      slider(layout_.addon_banner_editor_directional_brightness_slider),
-      slider(layout_.addon_banner_editor_directional_vertical_angle_slider),
-      slider(layout_.addon_banner_editor_directional_horizontal_angle_slider),
-  };
-  if (std::ranges::any_of(sliders, [](const auto* value) { return value == nullptr; })) {
-    return failure("portrait_ui_unavailable", "The native portrait sliders are unavailable.");
-  }
-  const auto set_slider =
-      reinterpret_cast<SetPortraitSliderValue>(addresses_.portrait_set_slider_value);
-
-  if (update.fields & kPortraitAmbientColor) {
-    reinterpret_cast<SetPortraitColor>(addresses_.portrait_set_ambient_color)(
-        chara_view, update.ambient_color[0], update.ambient_color[1], update.ambient_color[2]);
-    set_slider(sliders[0], update.ambient_color[0], true);
-    set_slider(sliders[1], update.ambient_color[1], true);
-    set_slider(sliders[2], update.ambient_color[2], true);
-  }
-  if (update.fields & kPortraitAmbientBrightness) {
-    reinterpret_cast<SetPortraitBrightness>(addresses_.portrait_set_ambient_brightness)(
-        chara_view, update.ambient_brightness);
-    set_slider(sliders[3], update.ambient_brightness, true);
-  }
-  if (update.fields & kPortraitDirectionalColor) {
-    reinterpret_cast<SetPortraitColor>(addresses_.portrait_set_directional_color)(
-        chara_view, update.directional_color[0], update.directional_color[1],
-        update.directional_color[2]);
-    set_slider(sliders[4], update.directional_color[0], true);
-    set_slider(sliders[5], update.directional_color[1], true);
-    set_slider(sliders[6], update.directional_color[2], true);
-  }
-  if (update.fields & kPortraitDirectionalBrightness) {
-    reinterpret_cast<SetPortraitBrightness>(addresses_.portrait_set_directional_brightness)(
-        chara_view, update.directional_brightness);
-    set_slider(sliders[7], update.directional_brightness, true);
-  }
-  if (update.fields & kPortraitDirectionalAngles) {
-    reinterpret_cast<SetPortraitAngle>(addresses_.portrait_set_directional_angle)(
-        chara_view, update.directional_vertical_angle, update.directional_horizontal_angle);
-    set_slider(sliders[8], update.directional_vertical_angle, true);
-    set_slider(sliders[9], update.directional_horizontal_angle, true);
-  }
-
   auto get_agent_module = vtable_function<void*(__fastcall*)(void*)>(ui_module, 37);
   auto* agent_module = get_agent_module(ui_module);
   auto* agent = static_cast<std::byte*>(reinterpret_cast<GetAgentByInternalId>(
@@ -667,6 +673,63 @@ CommandOutcome GameRuntime::update_portrait_lighting(void* framework,
   if (!state)
     return failure("portrait_editor_closed",
                    "The native portrait editor closed during the update.");
+
+  // CharaView setters own the rendered lighting update. Slider synchronization is best effort:
+  // the addon can be temporarily unavailable while its editor state remains valid.
+  auto get_rapture_module = vtable_function<void*(__fastcall*)(void*)>(ui_module, 7);
+  auto* rapture_module = static_cast<std::byte*>(get_rapture_module(ui_module));
+  auto* addon =
+      rapture_module
+          ? static_cast<std::byte*>(reinterpret_cast<GetAddonByName>(addresses_.get_addon_by_name)(
+                rapture_module + layout_.rapture_atk_unit_manager, "BannerEditor", 1))
+          : nullptr;
+  const auto sync_slider = [&](std::uint32_t offset, std::int32_t value) {
+    if (!addon) return;
+    auto* component = read_pointer<std::byte>(addon, offset);
+    if (is_readable(component, sizeof(void*))) {
+      reinterpret_cast<SetPortraitSliderValue>(addresses_.portrait_set_slider_value)(component,
+                                                                                     value, true);
+    }
+  };
+
+  if (update.fields & kPortraitAmbientColor) {
+    reinterpret_cast<SetPortraitColor>(addresses_.portrait_set_ambient_color)(
+        chara_view, update.ambient_color[0], update.ambient_color[1], update.ambient_color[2]);
+    sync_slider(layout_.addon_banner_editor_ambient_color_red_slider, update.ambient_color[0]);
+    sync_slider(layout_.addon_banner_editor_ambient_color_green_slider, update.ambient_color[1]);
+    sync_slider(layout_.addon_banner_editor_ambient_color_blue_slider, update.ambient_color[2]);
+  }
+  if (update.fields & kPortraitAmbientBrightness) {
+    reinterpret_cast<SetPortraitBrightness>(addresses_.portrait_set_ambient_brightness)(
+        chara_view, update.ambient_brightness);
+    sync_slider(layout_.addon_banner_editor_ambient_brightness_slider, update.ambient_brightness);
+  }
+  if (update.fields & kPortraitDirectionalColor) {
+    reinterpret_cast<SetPortraitColor>(addresses_.portrait_set_directional_color)(
+        chara_view, update.directional_color[0], update.directional_color[1],
+        update.directional_color[2]);
+    sync_slider(layout_.addon_banner_editor_directional_color_red_slider,
+                update.directional_color[0]);
+    sync_slider(layout_.addon_banner_editor_directional_color_green_slider,
+                update.directional_color[1]);
+    sync_slider(layout_.addon_banner_editor_directional_color_blue_slider,
+                update.directional_color[2]);
+  }
+  if (update.fields & kPortraitDirectionalBrightness) {
+    reinterpret_cast<SetPortraitBrightness>(addresses_.portrait_set_directional_brightness)(
+        chara_view, update.directional_brightness);
+    sync_slider(layout_.addon_banner_editor_directional_brightness_slider,
+                update.directional_brightness);
+  }
+  if (update.fields & kPortraitDirectionalAngles) {
+    reinterpret_cast<SetPortraitAngle>(addresses_.portrait_set_directional_angle)(
+        chara_view, update.directional_vertical_angle, update.directional_horizontal_angle);
+    sync_slider(layout_.addon_banner_editor_directional_vertical_angle_slider,
+                update.directional_vertical_angle);
+    sync_slider(layout_.addon_banner_editor_directional_horizontal_angle_slider,
+                update.directional_horizontal_angle);
+  }
+
   reinterpret_cast<SetPortraitChanged>(addresses_.portrait_set_has_changed)(state, true);
 
   return capture_portrait_lighting(framework);
@@ -700,7 +763,7 @@ CommandOutcome GameRuntime::update_portrait_animation(void* framework,
   const auto timeline_id =
       character ? read_value<std::uint16_t>(character, layout_.character_timeline +
                                                            layout_.timeline_banner_timeline_row_id)
-                : 0;
+                : std::uint16_t{0};
   if (!character || timeline_id == 0 || duration <= 0.0F) {
     return failure("portrait_animation_unavailable",
                    "The selected portrait pose has no editable animation timeline.");

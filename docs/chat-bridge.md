@@ -28,7 +28,8 @@
 
 ### 3.1 读取聊天
 
-Payload Hook `RaptureLogModule::PrintMessage`，在调用原函数前复制以下有界数据：
+Payload 在 Framework Tick 中按 `LogMessageCount` 游标读取 `RaptureLogModule` 已提交的日志，
+并使用 `GetLogMessageDetail` 取得以下有界数据：
 
 - 单调递增序号；
 - `LogKind` 频道编号；
@@ -37,11 +38,14 @@ Payload Hook `RaptureLogModule::PrintMessage`，在调用原函数前复制以�
 - sender 的原始 SeString 字节；
 - message 的原始 SeString 字节。
 
-Hook 不执行 JSON、HTTP、磁盘写入或动态业务逻辑，只把有界消息写入共享内存中的单生产者/单消费者环形缓冲区，然后立即调用原函数。环形缓冲区满时覆盖最旧消息并增加 dropped 计数，绝不阻塞游戏线程。
+读取器只在游戏主线程执行，首次连接最多补采最近 100 条，之后每个 Tick 最多处理 64 条，
+并把结果写入共享内存环形缓冲区。这样不会依赖某一种消息是否经过
+`RaptureLogModule::PrintMessage`，可覆盖玩家频道与系统消息使用不同写入路径的情况。
+旧版 Manifest 缺少日志详情入口时才回退到 `PrintMessage` Hook。环形缓冲区满时覆盖最旧消息并增加 dropped 计数，绝不阻塞游戏线程。
 
 Host 消费消息后解析 SeString。第一版只输出安全纯文本和基础元数据；未知 payload 被忽略，不把控制字节直接插入 HTML。网页始终按文本节点渲染。
 
-“全部聊天”定义为桥接启动后，已经到达并进入客户端 `RaptureLogModule` 的消息。服务端未发送、客户端在更早阶段丢弃、桥接启动前已过期或被其他插件拦截的消息不在保证范围。初次连接可读取客户端现有日志缓存中的最近消息，但读取失败不得阻止后续实时消息。
+“全部聊天”定义为已经提交到客户端 `RaptureLogModule` 日志的消息。服务端未发送、客户端在更早阶段丢弃、缓存中已经过期或被其他插件在提交前拦截的消息不在保证范围。初次连接读取客户端现有日志缓存中的最近 100 条；读取失败不得阻止其他桥接命令执行。
 
 ### 3.2 发送聊天
 

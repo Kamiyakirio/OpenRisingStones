@@ -52,6 +52,7 @@ ResolvedAddresses resolve_addresses(const SharedGameApi& api) {
       optional_pointer<std::byte*>(api.utf8_ctor),
       optional_pointer<std::byte*>(api.utf8_dtor),
       optional_pointer<std::byte*>(api.rapture_log_print_message),
+      optional_pointer<std::byte*>(api.get_log_message_detail),
       optional_pointer<std::byte*>(api.process_chat_box_entry),
       pointer<std::byte*>(api.release_lobby_context),
       pointer<std::byte*>(api.return_to_title),

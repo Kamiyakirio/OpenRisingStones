@@ -21,6 +21,7 @@ struct ResolvedAddresses final {
   std::byte* utf8_ctor{};
   std::byte* utf8_dtor{};
   std::byte* rapture_log_print_message{};
+  std::byte* get_log_message_detail{};
   std::byte* process_chat_box_entry{};
   std::byte* release_lobby_context{};
   std::byte* return_to_title{};

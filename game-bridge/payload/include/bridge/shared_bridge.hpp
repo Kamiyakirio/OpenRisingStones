@@ -8,7 +8,7 @@
 namespace bridge {
 
 inline constexpr std::uint32_t kSharedMagic = 0x4742524F;
-inline constexpr std::uint32_t kSharedAbiVersion = 8;
+inline constexpr std::uint32_t kSharedAbiVersion = 9;
 inline constexpr std::size_t kMaximumSharedContainers = 18;
 inline constexpr std::size_t kMaximumSharedItems = 1024;
 inline constexpr std::size_t kMaximumSharedDresserItems = 800;
@@ -83,6 +83,8 @@ struct SharedGameLayout final {
   std::uint32_t config_entry_size{};
   std::uint32_t config_entry_name{};
   std::uint32_t config_entry_value{};
+  std::uint32_t rapture_log_module{};
+  std::uint32_t log_message_count{};
   std::uint32_t rapture_atk_unit_manager{};
   std::uint32_t component_res_node{};
   std::uint32_t res_node_event{};
@@ -175,6 +177,7 @@ struct SharedGameApi final {
   std::uint64_t utf8_ctor{};
   std::uint64_t utf8_dtor{};
   std::uint64_t rapture_log_print_message{};
+  std::uint64_t get_log_message_detail{};
   std::uint64_t process_chat_box_entry{};
   std::uint64_t release_lobby_context{};
   std::uint64_t return_to_title{};
@@ -405,8 +408,8 @@ struct SharedBridge final {
 };
 
 static_assert(sizeof(SharedSwitchRegion) == 4948);
-static_assert(sizeof(SharedGameLayout) == 420);
-static_assert(sizeof(SharedGameApi) == 672);
+static_assert(sizeof(SharedGameLayout) == 428);
+static_assert(sizeof(SharedGameApi) == 688);
 static_assert(sizeof(SharedSendChat) == 1028);
 static_assert(sizeof(SharedPortraitLighting) == 16);
 static_assert(sizeof(SharedPortraitAnimation) == 12);
@@ -420,6 +423,6 @@ static_assert(sizeof(SharedInventoryContainer) == 52);
 static_assert(sizeof(SharedInventorySnapshot) == 57144);
 static_assert(sizeof(SharedPortraitLightingSnapshot) == 40);
 static_assert(sizeof(SharedResponse) == 57752);
-static_assert(sizeof(SharedBridge) == 231848);
+static_assert(sizeof(SharedBridge) == 231864);
 
 }  // namespace bridge

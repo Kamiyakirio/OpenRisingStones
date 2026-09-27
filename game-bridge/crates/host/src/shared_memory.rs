@@ -27,7 +27,7 @@ use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcess, PROC
 
 // Must match kSharedMagic in the native shared_bridge.hpp contract.
 const SHARED_MAGIC: u32 = 0x4742_524F;
-const SHARED_ABI_VERSION: u32 = 8;
+const SHARED_ABI_VERSION: u32 = 9;
 const PAYLOAD_STATE_READY: u32 = 1;
 const PAYLOAD_STATE_FAULTED: u32 = 2;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
@@ -116,6 +116,8 @@ struct SharedGameLayout {
     config_entry_size: u32,
     config_entry_name: u32,
     config_entry_value: u32,
+    rapture_log_module: u32,
+    log_message_count: u32,
     rapture_atk_unit_manager: u32,
     component_res_node: u32,
     res_node_event: u32,
@@ -209,6 +211,7 @@ struct SharedGameApi {
     utf8_ctor: u64,
     utf8_dtor: u64,
     rapture_log_print_message: u64,
+    get_log_message_detail: u64,
     process_chat_box_entry: u64,
     release_lobby_context: u64,
     return_to_title: u64,
@@ -466,8 +469,8 @@ struct SharedBridge {
 }
 
 const _: [(); 4948] = [(); size_of::<SharedSwitchRegion>()];
-const _: [(); 420] = [(); size_of::<SharedGameLayout>()];
-const _: [(); 672] = [(); size_of::<SharedGameApi>()];
+const _: [(); 428] = [(); size_of::<SharedGameLayout>()];
+const _: [(); 688] = [(); size_of::<SharedGameApi>()];
 const _: [(); 1028] = [(); size_of::<SharedSendChat>()];
 const _: [(); 16] = [(); size_of::<SharedPortraitLighting>()];
 const _: [(); 12] = [(); size_of::<SharedPortraitAnimation>()];
@@ -480,7 +483,7 @@ const _: [(); 52] = [(); size_of::<SharedInventoryContainer>()];
 const _: [(); 57144] = [(); size_of::<SharedInventorySnapshot>()];
 const _: [(); 40] = [(); size_of::<SharedPortraitLightingSnapshot>()];
 const _: [(); 57752] = [(); size_of::<SharedResponse>()];
-const _: [(); 231848] = [(); size_of::<SharedBridge>()];
+const _: [(); 231864] = [(); size_of::<SharedBridge>()];
 
 pub(crate) enum SessionEvent {
     Ready {
@@ -1361,6 +1364,7 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     api.utf8_ctor = resolve_optional("utf8Ctor")?;
     api.utf8_dtor = resolve_optional("utf8Dtor")?;
     api.rapture_log_print_message = resolve_optional("raptureLogPrintMessage")?;
+    api.get_log_message_detail = resolve_optional("getLogMessageDetail")?;
     api.process_chat_box_entry = resolve_optional("processChatBoxEntry")?;
     api.release_lobby_context = resolve("releaseLobbyContext")?;
     api.return_to_title = resolve("returnToTitle")?;
@@ -1429,6 +1433,8 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     layout!(config_entry_size, "configEntrySize");
     layout!(config_entry_name, "configEntryName");
     layout!(config_entry_value, "configEntryValue");
+    api.layout.rapture_log_module = read_layout_optional(&manifest.layout, "raptureLogModule")?;
+    api.layout.log_message_count = read_layout_optional(&manifest.layout, "logMessageCount")?;
     layout!(rapture_atk_unit_manager, "raptureAtkUnitManager");
     layout!(component_res_node, "componentResNode");
     layout!(res_node_event, "resNodeEvent");
@@ -1600,6 +1606,17 @@ fn read_layout(
     .map_err(|_| BridgeError::InvalidData(format!("invalid layout value: {name}")))?;
     u32::try_from(number)
         .map_err(|_| BridgeError::InvalidData(format!("layout field is too large: {name}")))
+}
+
+fn read_layout_optional(
+    layout: &serde_json::Map<String, serde_json::Value>,
+    name: &str,
+) -> BridgeResult<u32> {
+    if layout.contains_key(name) {
+        read_layout(layout, name)
+    } else {
+        Ok(0)
+    }
 }
 
 fn parse_pe_image(bytes: &[u8]) -> BridgeResult<PeImage> {
@@ -1817,6 +1834,20 @@ mod initialization_tests {
         assert_eq!(messages[0].log_kind, 10);
         assert!(session.poll_chat_messages().unwrap().is_empty());
         session.close();
+    }
+
+    #[test]
+    fn optional_committed_log_layout_defaults_to_disabled() {
+        let mut layout = serde_json::Map::new();
+        assert_eq!(
+            read_layout_optional(&layout, "raptureLogModule").unwrap(),
+            0
+        );
+        layout.insert("raptureLogModule".to_owned(), serde_json::json!("0x1AC0"));
+        assert_eq!(
+            read_layout_optional(&layout, "raptureLogModule").unwrap(),
+            0x1AC0
+        );
     }
 
     #[test]
