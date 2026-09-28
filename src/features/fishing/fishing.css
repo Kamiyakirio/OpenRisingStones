@@ -1,214 +1,15 @@
-/** Extend the established task-ledger tokens with comparable fish rows and catch sheets. */
-.fish-heading-tools {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-.fish-timer-launcher {
-  position: relative;
-}
-.fish-timer-launcher button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.fish-timer-launcher svg {
-  width: 19px;
-  height: 19px;
-}
-.fish-timer-launcher small {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  width: 240px;
-  padding: 12px;
-  background: var(--ors-color-surface);
-  color: var(--ors-color-danger);
-  z-index: 10;
-}
-.fish-browser-layout {
-  display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-.fish-list-panel {
+/** Task-based fishing layout built on the shared ivory, charcoal, and gold tokens. */
+.fishing-workspace {
   min-width: 0;
-}
-.fish-filter-panel {
-  background: var(--ors-color-surface);
-  border-radius: var(--ors-radius-panel);
-  padding: 16px;
-}
-.fish-filter-panel > summary {
-  font-weight: 650;
-  cursor: pointer;
-  padding: 4px 0 12px;
-}
-.fish-filter-content {
-  display: grid;
-  gap: 16px;
-}
-.fish-filter-group {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-.fish-filter-group legend {
-  color: var(--ors-color-muted);
-  font-size: 0.8125rem;
-  padding: 0;
-  margin-bottom: 8px;
-}
-.fish-segments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.fishing-workspace .fish-segments button {
-  flex: 1 0 auto;
-  padding: 5px 8px;
-  min-height: 34px;
-  font-size: 0.8125rem;
-}
-.fish-patches {
-  display: grid;
-  gap: 6px;
-}
-.fish-patch-row {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr) 1.15fr;
-  gap: 2px;
-}
-.fishing-workspace .fish-patch-row button {
-  padding: 4px 0;
-  min-height: 32px;
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-  border-radius: 3px;
-}
-.fish-filter-help {
-  font-size: 0.75rem;
-  color: var(--ors-color-muted);
-  margin: -12px 0 0;
-  line-height: 1.6;
-}
-.fish-filter-select {
-  display: grid;
-  gap: 6px;
-  font-size: 0.8125rem;
-  color: var(--ors-color-muted);
-}
-.fish-filter-select select {
-  width: 100%;
-  min-height: 36px;
-  padding: 6px;
-  border: 1px solid var(--ors-color-control-line);
-  border-radius: var(--ors-radius-control);
-  background: var(--ors-color-canvas);
-  color: var(--ors-color-text);
-}
-.fish-bait-area {
-  position: relative;
-}
-.fishing-workspace .fish-bait-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px 4px 4px;
-  margin-top: 5px;
-}
-.fish-bait-source {
-  position: absolute;
-  z-index: 20;
-  top: 100%;
-  left: 0;
-  width: min(430px, 100%);
-  max-height: 380px;
-  overflow: auto;
-  background: var(--ors-color-surface);
-  padding: 16px;
-  border-radius: var(--ors-radius-panel);
-  box-shadow: var(--ors-shadow-popover);
-  font-size: 0.8125rem;
-}
-.fish-bait-source header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.fish-bait-source h4 {
-  margin: 16px 0 6px;
-}
-.fish-bait-source p {
-  margin: 6px 0 12px;
-}
-.fish-bait-source-detail {
-  border-top: 1px solid var(--ors-color-line);
-  padding-top: 8px;
-}
-.fish-windows {
-  max-height: 440px;
-  overflow-y: auto;
-  scrollbar-color: var(--ors-color-control-line) transparent;
-}
-.fishing-workspace input {
-  accent-color: var(--ors-color-accent);
-  caret-color: var(--ors-color-accent);
-}
-.fishing-workspace :focus-visible {
-  outline: 2px solid var(--ors-color-accent);
-  outline-offset: 3px;
-}
-.fishing-workspace ::selection {
-  background: var(--ors-color-selected);
-  color: var(--ors-color-text);
-}
-@media (max-width: 1100px) {
-  .fish-browser-layout {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-  }
-  .fish-filter-content {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
-  }
-  .fish-filter-group:first-child {
-    grid-row: span 3;
-  }
-  .fish-filter-help {
-    margin: 0;
-  }
-}
-@media (max-width: 600px) {
-  .fish-bait-source {
-    position: static;
-    width: auto;
-    margin-top: 12px;
-  }
-  .fish-filter-content {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .fish-filter-panel {
-    padding: 12px;
-  }
-  .fish-filter-panel > summary {
-    padding-bottom: 4px;
-  }
-  .fish-filter-panel[open] > summary {
-    padding-bottom: 16px;
-  }
 }
 .fishing-workspace button {
-  cursor: pointer;
   min-height: 40px;
   padding: 8px 14px;
   border: 1px solid var(--ors-color-control-line);
   border-radius: var(--ors-radius-control);
   background: var(--ors-color-surface);
+  color: var(--ors-color-text);
+  cursor: pointer;
 }
 .fishing-workspace button:hover {
   background: var(--ors-color-hover);
@@ -221,108 +22,910 @@
   background: var(--ors-color-selected);
   color: var(--ors-color-accent);
 }
-.fishing-workspace a {
+.fishing-workspace :focus-visible {
+  outline: 2px solid var(--ors-color-accent);
+  outline-offset: 3px;
+}
+.fishing-workspace ::selection {
+  background: var(--ors-color-selected);
+  color: var(--ors-color-text);
+}
+.fishing-workspace :is(input, select) {
+  accent-color: var(--ors-color-accent);
+  caret-color: var(--ors-color-accent);
+}
+.fishing-workspace :is(a, .fish-text-action) {
   color: var(--ors-color-accent);
   text-underline-offset: 3px;
 }
-.fish-page-heading,
-.fish-results-heading,
-.fish-detail-heading,
-.fish-actions,
-.fish-pagination {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+.fishing-workspace :is(h1, h2, h3) {
+  text-wrap: balance;
+}
+.fish-muted,
+.fish-page-heading p,
+.fish-section-heading p,
+.fish-completion-heading p,
+.fish-lookup-top p,
+.fish-zone-detail p,
+.fish-detail-section header p,
+.fish-location-section header p {
+  color: var(--ors-color-muted);
+}
+.fish-alert {
+  padding: 12px 16px;
+  color: var(--ors-color-danger);
+  background: var(--ors-color-surface);
 }
 .fish-page-heading {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 20px;
 }
-.fish-page-heading h1,
-.fish-detail-heading h1 {
+.fish-page-heading h1 {
   margin: 0;
 }
-.fish-catalog-summary {
-  margin: -12px 0 20px;
+.fish-page-heading p {
+  margin: 2px 0 0;
   font-size: 0.8125rem;
-  color: var(--ors-color-muted);
+}
+.fish-heading-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
 }
 .fish-clock {
-  font-variant-numeric: tabular-nums;
   color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
 }
 .fish-clock strong {
-  margin-left: 8px;
+  margin-left: 7px;
   color: var(--ors-color-text);
+  font-size: 1rem;
 }
-.fish-toolbar {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(160px, 210px);
-  gap: 12px;
-  padding: 0;
-}
-.fish-toolbar label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-  font-weight: 600;
-}
-.fish-toolbar :is(input, select) {
-  min-width: 0;
-  width: 100%;
-  height: 42px;
-  border: 1px solid var(--ors-color-control-line);
-  border-radius: var(--ors-radius-control);
-  padding: 8px 10px;
-  background: var(--ors-color-canvas);
-  font-weight: 400;
-}
-.fish-search-input {
+.fish-timer-launcher {
   position: relative;
 }
-.fish-search-input svg {
+.fish-timer-launcher button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.fish-timer-launcher svg {
+  width: 18px;
+  height: 18px;
+}
+.fish-timer-launcher small {
   position: absolute;
-  left: 12px;
-  top: 13px;
+  z-index: 10;
+  top: 100%;
+  right: 0;
+  width: 230px;
+  padding: 12px;
+  background: var(--ors-color-surface);
+  color: var(--ors-color-danger);
+  box-shadow: var(--ors-shadow-popover);
+}
+.fish-sync {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-block: 1px solid var(--ors-color-line);
+  font-size: 0.8125rem;
+}
+.fish-sync > div {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  min-width: 0;
+}
+.fish-sync > div > span {
   color: var(--ors-color-muted);
 }
-.fish-search-input input {
-  padding-left: 36px;
+.fish-sync-indicator {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--ors-color-muted);
 }
-.fish-results-heading {
-  margin: 12px 0;
+.fish-sync-indicator[data-ready="true"] {
+  background: var(--ors-color-success);
+}
+.fishing-workspace .fish-sync button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 4px 8px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--ors-color-accent);
+  white-space: nowrap;
+}
+.fish-sync svg {
+  width: 16px;
+  height: 16px;
+}
+.fish-mode-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 18px 0 32px;
+  border-bottom: 1px solid var(--ors-color-line);
+}
+.fishing-workspace .fish-mode-nav button {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  min-height: 68px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+.fishing-workspace .fish-mode-nav button:hover {
+  background: var(--ors-color-hover);
+}
+.fishing-workspace .fish-mode-nav button[aria-pressed="true"] {
+  border-bottom-color: var(--ors-color-accent);
+  color: var(--ors-color-accent);
+  background: transparent;
+}
+.fish-mode-nav strong {
+  font-size: 1rem;
+  font-weight: 650;
+}
+.fish-mode-nav span {
+  color: var(--ors-color-muted);
   font-size: 0.8125rem;
+}
+.fish-now-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 290px);
+  gap: 32px;
+  align-items: start;
+}
+.fish-task-section + .fish-task-section {
+  margin-top: 34px;
+}
+.fish-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-bottom: 14px;
+}
+.fish-section-heading h2,
+.fish-completion-heading h2,
+.fish-aside-section h2,
+.fish-detail-section h2,
+.fish-location-section h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+.fish-section-heading p,
+.fish-completion-heading p,
+.fish-aside-section p,
+.fish-detail-section header p,
+.fish-location-section header p {
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.fish-count {
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.fish-entry-list {
+  border-top: 1px solid var(--ors-color-line);
+}
+.fish-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--ors-color-line);
+}
+.fishing-workspace .fish-entry-open {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(130px, auto) 18px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 8px 10px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.fishing-workspace .fish-entry-open:hover {
+  background: var(--ors-color-hover);
+}
+.fish-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.fish-icon img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.fish-icon svg {
+  width: 26px;
+  height: 26px;
+  color: var(--ors-color-muted);
+}
+.fish-entry-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+.fish-entry-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+}
+.fish-entry-meta,
+.fish-entry-type {
+  overflow: hidden;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fish-entry-timing {
+  color: var(--ors-color-text);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fish-entry-timing[data-open="true"] {
+  color: var(--ors-color-success);
+  font-weight: 650;
+}
+.fish-entry-arrow {
+  width: 18px;
+  height: 18px;
+  color: var(--ors-color-muted);
+}
+.fish-entry-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fish-entry-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 50px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.fish-entry-record[data-caught="true"] {
+  color: var(--ors-color-success);
+}
+.fish-entry-record svg {
+  width: 14px;
+  height: 14px;
+}
+.fishing-workspace .fish-entry-save {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 6px;
+  border-color: transparent;
+  background: transparent;
+}
+.fish-entry-save svg {
+  width: 19px;
+  height: 19px;
+}
+.fishing-workspace .fish-text-action {
+  min-height: 36px;
+  margin-top: 12px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  font-weight: 600;
+  text-align: left;
+}
+.fishing-workspace .fish-text-action:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+.fish-inline-empty {
+  margin: 0;
+  padding: 24px 0;
+  color: var(--ors-color-muted);
+  border-block: 1px solid var(--ors-color-line);
+}
+.fish-now-aside {
+  padding-left: 24px;
+  border-left: 1px solid var(--ors-color-line);
+}
+.fish-aside-section + .fish-aside-section {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--ors-color-line);
+}
+.fish-aside-section h2 {
+  margin-bottom: 9px;
+}
+.fish-now-aside .fish-entry {
+  display: block;
+}
+.fish-now-aside .fish-entry-open {
+  grid-template-columns: 40px minmax(0, 1fr) 16px;
+  gap: 6px;
+}
+.fish-now-aside .fish-entry-timing {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 0.75rem;
+}
+.fish-now-aside .fish-entry-arrow {
+  grid-column: 3;
+  grid-row: 1;
+}
+.fish-now-aside .fish-entry-side {
+  justify-content: space-between;
+  padding: 0 0 6px 46px;
+}
+.fish-completion-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 12px 24px;
+  margin-bottom: 26px;
+}
+.fish-completion-total {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fish-completion-total strong {
+  color: var(--ors-color-accent);
+  font-size: 1.25rem;
+}
+.fish-completion-layout {
+  display: grid;
+  grid-template-columns: minmax(210px, 245px) minmax(0, 1fr);
+  gap: 30px;
+}
+.fish-zone-index {
+  min-width: 0;
+}
+.fish-zone-index > label,
+.fish-lookup-search > span:first-child,
+.fish-lookup-controls label {
+  display: block;
+  font-weight: 600;
+}
+.fish-zone-index input,
+.fish-lookup-input input,
+.fish-lookup-controls select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  margin-top: 7px;
+  padding: 8px 10px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
+  color: var(--ors-color-text);
+}
+.fish-zone-list {
+  max-height: 560px;
+  overflow: auto;
+  margin-top: 12px;
+  scrollbar-color: var(--ors-color-control-line) transparent;
+}
+.fishing-workspace .fish-zone-button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--ors-color-line);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+.fishing-workspace .fish-zone-button[aria-pressed="true"] {
+  color: var(--ors-color-accent);
+  background: var(--ors-color-selected);
+}
+.fish-zone-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fish-zone-button small {
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.fish-zone-detail {
+  min-width: 0;
+}
+.fish-lookup-top {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 18px;
+}
+.fish-lookup-search {
+  flex: 1 1 520px;
+  max-width: 700px;
+}
+.fish-lookup-top p {
+  max-width: 210px;
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+}
+.fish-lookup-input {
+  position: relative;
+  display: block;
+}
+.fish-lookup-input svg {
+  position: absolute;
+  left: 12px;
+  top: 18px;
+  width: 18px;
+  height: 18px;
+  color: var(--ors-color-muted);
+}
+.fish-lookup-input input {
+  padding-left: 38px;
+}
+.fish-category-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ors-color-line);
+}
+.fishing-workspace .fish-category-controls button {
+  border-color: var(--ors-color-line);
+}
+.fish-lookup-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  padding: 18px 0 24px;
+}
+.fish-lookup-controls label {
+  flex: 0 1 190px;
+  min-width: 150px;
+  font-size: 0.8125rem;
+}
+.fish-lookup-controls select {
+  margin-top: 5px;
+  font-size: 0.9375rem;
+  font-weight: 400;
+}
+.fish-filter-panel {
+  margin: 0 0 24px;
+  border-block: 1px solid var(--ors-color-line);
+}
+.fish-filter-panel > summary {
+  padding: 12px 0;
+  color: var(--ors-color-text);
+  font-weight: 650;
+  cursor: pointer;
+}
+.fish-filter-content {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px 24px;
+  padding: 10px 0 22px;
+}
+.fish-filter-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.fish-filter-group:first-child {
+  grid-column: span 2;
+}
+.fish-filter-group legend {
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+.fish-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.fishing-workspace .fish-segments button {
+  min-height: 34px;
+  padding: 5px 9px;
+  border-color: var(--ors-color-line);
+  font-size: 0.8125rem;
+}
+.fish-patches {
+  overflow-x: auto;
+  scrollbar-color: var(--ors-color-control-line) transparent;
+}
+.fish-patch-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+  min-width: 390px;
+  margin-bottom: 5px;
+}
+.fishing-workspace .fish-patch-row button {
+  min-height: 34px;
+  padding: 4px 2px;
+  border-color: var(--ors-color-line);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 .fish-checkbox {
   display: flex;
-  gap: 8px;
   align-items: center;
-  min-height: 40px;
-  font-size: 0.9375rem;
+  gap: 8px;
+  min-height: 34px;
+  font-size: 0.8125rem;
 }
 .fish-checkbox input {
   width: 17px;
   height: 17px;
 }
+.fish-filter-help {
+  margin: 0;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+}
+.fish-filter-select {
+  display: grid;
+  gap: 6px;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+.fish-filter-select select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 7px 9px;
+  border: 1px solid var(--ors-color-control-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
+  color: var(--ors-color-text);
+}
 .fishing-workspace .fish-reset {
-  margin-left: auto;
-  background: transparent;
+  justify-self: start;
   border-color: transparent;
+  background: transparent;
   color: var(--ors-color-accent);
 }
-.fish-muted,
-.fish-table small {
+.fishing-workspace .fish-clear-open {
+  min-height: 40px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ors-color-accent);
+}
+.fish-lookup-results {
+  min-width: 0;
+}
+.fish-empty {
+  padding: 32px 0;
+  border-block: 1px solid var(--ors-color-line);
+}
+.fish-empty h3 {
+  margin: 0 0 6px;
+}
+.fish-empty p {
   color: var(--ors-color-muted);
+}
+.fish-source {
+  margin-top: 48px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ors-color-line);
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+.fish-source summary {
+  padding: 8px 0;
+  cursor: pointer;
+}
+.fish-source p {
+  max-width: 80ch;
+}
+.fish-loading {
+  min-height: 220px;
+}
+.fish-loading h1 {
+  margin-top: 0;
+}
+.fishing-workspace .fish-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-left: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ors-color-accent);
+}
+.fish-back svg {
+  width: 19px;
+  height: 19px;
+}
+.fish-detail-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-bottom: 16px;
+}
+.fish-detail-heading > .fish-icon,
+.fish-detail-heading > .fish-icon img {
+  width: 56px;
+  height: 56px;
+}
+.fish-detail-title {
+  flex: 1 1 230px;
+  min-width: 0;
+}
+.fish-detail-title h1 {
+  margin: 0;
+}
+.fish-detail-title p {
+  margin: 3px 0 0;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+.fish-detail-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fish-detail-actions button,
+.fish-detail-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.fish-detail-actions svg,
+.fish-detail-record svg {
+  width: 18px;
+  height: 18px;
+}
+.fish-detail-record {
+  padding: 8px;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+.fish-detail-record[data-caught="true"] {
+  color: var(--ors-color-success);
+}
+.fish-detail-note {
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+.fish-plan {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr;
+  margin-top: 24px;
+  border-block: 1px solid var(--ors-color-line);
+}
+.fish-plan > div {
+  min-width: 0;
+  padding: 20px 18px;
+  border-right: 1px solid var(--ors-color-line);
+}
+.fish-plan > div:first-child {
+  padding-left: 0;
+}
+.fish-plan > div:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+.fish-plan h2 {
+  margin: 0 0 10px;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.fish-plan strong {
+  display: block;
+  font-size: 1.125rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.fish-plan-primary strong {
+  color: var(--ors-color-accent);
+}
+.fish-plan p {
+  margin: 5px 0 0;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+.fish-description {
+  max-width: 75ch;
+  margin: 24px 0;
+  line-height: 1.7;
+}
+.fish-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 30px;
+  margin-top: 34px;
+}
+.fish-detail-section,
+.fish-location-section {
+  min-width: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--ors-color-line);
+}
+.fish-detail-section header,
+.fish-location-section header {
+  margin-bottom: 16px;
+}
+.fish-detail-section h3 {
+  margin: 24px 0 12px;
+  font-size: 1rem;
+}
+.fish-facts {
+  margin: 0;
+}
+.fish-facts > div {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--ors-color-line);
+}
+.fish-facts dt {
+  color: var(--ors-color-muted);
+}
+.fish-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 .fish-open {
   color: var(--ors-color-success);
+  font-weight: 650;
 }
-.fish-time-requirement {
+.fish-detail-subsection {
+  margin-top: 22px;
+}
+.fish-predators {
+  margin: 0;
+  padding-left: 20px;
+}
+.fish-predators li {
+  padding: 3px 0;
+}
+.fish-bait-area {
+  position: relative;
+}
+.fish-bait-chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 0;
+  padding-left: 20px;
+}
+.fish-bait-chain li {
+  padding-left: 3px;
+}
+.fish-bait-chain li > span {
   display: block;
-  font-weight: 600;
+  font-size: 0.8125rem;
+}
+.fishing-workspace .fish-bait-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  padding: 4px 8px 4px 2px;
+}
+.fish-bait-item .fish-icon,
+.fish-bait-item .fish-icon img {
+  width: 32px;
+  height: 32px;
+}
+.fish-bait-source {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  width: min(440px, 100%);
+  max-height: 370px;
+  overflow: auto;
+  padding: 16px;
+  border-radius: var(--ors-radius-panel);
+  background: var(--ors-color-surface);
+  box-shadow: var(--ors-shadow-popover);
+  font-size: 0.8125rem;
+}
+.fish-bait-source header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fish-bait-source h4 {
+  margin: 18px 0 5px;
+}
+.fish-bait-source-detail {
+  padding-top: 8px;
+  border-top: 1px solid var(--ors-color-line);
+}
+.fish-window-caveat,
+.fish-fine-print {
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.fish-eyes-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.fish-eyes-toggle input {
+  width: 17px;
+  height: 17px;
+}
+.fish-windows {
+  margin-top: 0;
+  padding: 0;
+  list-style: none;
   font-variant-numeric: tabular-nums;
+}
+.fish-window-head,
+.fish-windows li {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(120px, 1fr) max-content;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ors-color-line);
+}
+.fish-window-head {
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+}
+.fish-window-head span:last-child {
+  text-align: right;
+}
+.fish-windows span {
+  color: var(--ors-color-muted);
+}
+.fish-window-duration {
+  min-width: 8ch;
+  text-align: right;
+  white-space: nowrap;
 }
 .fish-weather-set,
 .fish-weather-option {
@@ -338,40 +941,29 @@
 .fish-weather-icon {
   display: inline-grid;
   place-items: center;
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 .fish-weather-icon img {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 }
 .fish-weather-icon svg {
-  width: 22px;
-  height: 22px;
-}
-.fish-weather-requirements {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 5px 0;
-  font-size: 0.8125rem;
-}
-.fish-weather-requirements > span {
-  display: block;
+  width: 20px;
+  height: 20px;
 }
 .fish-forecast {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin-top: 12px;
 }
 .fish-forecast > div {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 0;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  padding: 10px 0;
   border-top: 1px solid var(--ors-color-line);
 }
 .fish-forecast > div > .fish-muted {
@@ -382,290 +974,201 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 .fish-forecast-location select {
   min-height: 40px;
   max-width: 100%;
+  padding: 8px;
   border: 1px solid var(--ors-color-control-line);
   border-radius: var(--ors-radius-control);
   background: var(--ors-color-surface);
-  padding: 8px;
+  color: var(--ors-color-text);
 }
-.fish-table-scroll {
-  overflow-x: auto;
-}
-.fish-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-.fish-table th {
-  padding: 12px;
-  font-size: 0.8125rem;
-  color: var(--ors-color-muted);
-  font-weight: 600;
-  border-bottom: 1px solid var(--ors-color-control-line);
-  white-space: nowrap;
-}
-.fish-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--ors-color-line);
-}
-.fish-table th:first-child,
-.fish-table td:first-child {
-  padding-left: 0;
-}
-.fish-table th:last-child,
-.fish-table td:last-child {
-  padding-right: 0;
-}
-.fish-table tbody tr:hover {
-  background: var(--ors-color-hover);
-}
-.fish-table tbody tr {
-  cursor: pointer;
-}
-.fish-table tbody tr:focus-within {
-  background: var(--ors-color-hover);
-}
-.fish-table small {
-  display: block;
-  font-size: 0.8125rem;
-  margin-top: 3px;
-}
-.fishing-workspace .fish-name-button {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 0;
-  background: transparent;
-  padding: 4px;
-  text-align: left;
-  width: 100%;
-  border-radius: 4px;
-}
-.fish-name-button strong {
-  font-weight: 600;
-}
-.fish-name-button:hover strong {
-  color: var(--ors-color-accent);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.fish-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  background: var(--ors-color-surface);
-  border-radius: 6px;
-}
-.fish-icon img {
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-}
-.fish-icon svg {
-  width: 28px;
-  height: 28px;
-  color: var(--ors-color-muted);
-}
-.fish-row-actions {
-  display: flex;
-  gap: 4px;
-}
-.fishing-workspace .fish-row-actions button {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  padding: 8px;
-  border-color: transparent;
-  background: transparent;
-}
-.fish-row-actions svg,
-.fish-actions svg,
-.fish-back svg {
-  width: 20px;
-  height: 20px;
-}
-.fish-pagination {
-  justify-content: center;
-  margin: 24px 0;
-  font-variant-numeric: tabular-nums;
-}
-.fish-source {
-  border-top: 1px solid var(--ors-color-line);
-  margin-top: 24px;
-  padding: 16px 0;
-  color: var(--ors-color-muted);
-  font-size: 0.8125rem;
-}
-.fish-source summary {
-  cursor: pointer;
-  padding: 8px 0;
-}
-.fish-source p {
-  max-width: 80ch;
-}
-.fish-empty {
-  padding: 48px 20px;
-  text-align: center;
-  border-block: 1px solid var(--ors-color-line);
-}
-.fishing-workspace .fish-back {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  background: transparent;
-  padding-left: 0;
-  margin-bottom: 24px;
-  color: var(--ors-color-accent);
-}
-.fish-detail-heading > div:nth-child(2) {
-  flex: 1;
-}
-.fish-detail-heading p {
-  margin: 6px 0 0;
-  font-size: 0.8125rem;
-  overflow-wrap: anywhere;
-}
-.fish-actions {
-  gap: 8px;
-}
-.fish-actions button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.fish-description {
-  max-width: 75ch;
-  margin: 24px 0;
-}
-.fish-detail-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  column-gap: 28px;
-  margin-top: 20px;
-}
-.fish-section {
-  border-top: 1px solid var(--ors-color-line);
-  padding: 16px 0;
-  min-width: 0;
-}
-.fish-section h2 {
-  margin: 0 0 16px;
-}
-.fish-section h3 {
-  margin: 24px 0 12px;
-}
-.fish-facts {
-  margin: 0;
-}
-.fish-facts > div {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 16px;
-  padding: 8px 0;
-}
-.fish-facts dt {
-  color: var(--ors-color-muted);
-}
-.fish-facts dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.fish-bait-chain {
-  display: flex;
-  gap: 12px 24px;
-  flex-wrap: wrap;
-  padding-left: 20px;
-}
-.fish-bait-chain li {
-  padding-left: 4px;
-}
-.fish-bait-chain span,
-.fish-bait-chain strong {
-  display: block;
-}
-.fish-bait-chain span {
-  font-size: 0.8125rem;
+.fish-location-section {
+  margin-top: 34px;
 }
 .fish-locations {
-  list-style: none;
-  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
   margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .fish-locations li {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
+  gap: 4px 12px;
   padding: 12px 0;
   border-bottom: 1px solid var(--ors-color-line);
 }
 .fish-locations strong {
   width: 100%;
 }
-.fish-window-section {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-}
-.fish-windows {
-  padding-left: 20px;
-  font-variant-numeric: tabular-nums;
-}
-.fish-windows li {
-  padding: 8px 0;
-}
-.fish-windows span {
-  display: block;
-  margin: 3px 0 0;
+.fish-locations span {
   color: var(--ors-color-muted);
   font-size: 0.8125rem;
 }
-.fish-window-section > p {
-  font-size: 0.8125rem;
+.fish-fine-print {
+  margin-top: 22px;
 }
 @media (max-width: 1199px) {
-  .fish-toolbar {
+  .fish-now-layout {
     grid-template-columns: minmax(0, 1fr);
   }
-  .fish-toolbar .fish-search {
-    grid-column: 1 / -1;
+  .fish-now-aside {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    padding: 22px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--ors-color-line);
+  }
+  .fish-aside-section + .fish-aside-section {
+    margin: 0;
+    padding: 0;
+    border: 0;
   }
 }
-@media (max-width: 767px) {
-  .fish-forecast {
+@media (max-width: 850px) {
+  .fish-filter-content {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .fish-toolbar {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .fish-toolbar label:last-child {
-    grid-column: 1 / -1;
-  }
-  .fish-table {
-    min-width: 620px;
-  }
+  .fish-now-aside,
   .fish-detail-layout {
     grid-template-columns: minmax(0, 1fr);
   }
-  .fish-window-section {
+  .fish-completion-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fish-zone-list {
+    display: flex;
+    max-height: none;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 8px;
+  }
+  .fishing-workspace .fish-zone-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 44px;
+    border: 1px solid var(--ors-color-line);
+    border-radius: var(--ors-radius-control);
+  }
+  .fish-plan {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fish-plan > div,
+  .fish-plan > div:first-child,
+  .fish-plan > div:last-child {
+    padding: 15px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--ors-color-line);
+  }
+  .fish-plan > div:last-child {
+    border-bottom: 0;
+  }
+}
+@media (max-width: 620px) {
+  .fish-filter-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fish-filter-group:first-child {
     grid-column: auto;
-    grid-row: auto;
   }
-  .fish-actions {
+  .fish-heading-tools {
     width: 100%;
-    margin-top: 8px;
+    justify-content: space-between;
   }
-  .fish-results-heading {
-    gap: 4px 12px;
+  .fish-sync {
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
-  .fish-windows span {
+  .fish-sync > div {
+    flex-basis: calc(100% - 20px);
+  }
+  .fish-sync button {
+    margin-left: 20px;
+  }
+  .fish-mode-nav {
+    margin-bottom: 24px;
+  }
+  .fishing-workspace .fish-mode-nav button {
+    min-height: 52px;
+    padding: 8px 5px;
+    text-align: center;
+  }
+  .fish-mode-nav strong {
+    font-size: 0.875rem;
+  }
+  .fish-mode-nav span {
+    display: none;
+  }
+  .fish-entry {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .fishing-workspace .fish-entry-open {
+    grid-template-columns: 40px minmax(0, 1fr) 18px;
+    min-height: 74px;
+    gap: 8px;
+    padding-bottom: 0;
+  }
+  .fish-entry-timing {
+    grid-column: 2;
+    grid-row: 2;
+    padding-bottom: 5px;
+  }
+  .fish-entry-arrow {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .fish-entry-side {
+    justify-content: space-between;
+    padding: 0 0 5px 48px;
+  }
+  .fish-lookup-top {
     display: block;
-    margin-left: 0;
+  }
+  .fish-lookup-top p {
+    max-width: none;
+    margin-top: 9px;
+  }
+  .fish-category-controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 12px;
+  }
+  .fish-category-controls button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .fish-lookup-controls label {
+    flex: 1 1 140px;
+  }
+  .fish-locations {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fish-forecast {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fish-window-head,
+  .fish-windows li {
+    grid-template-columns: minmax(82px, 1fr) minmax(100px, 1fr) max-content;
+    gap: 6px;
+    font-size: 0.8125rem;
+  }
+  .fish-window-duration {
+    grid-column: 3;
+  }
+  .fish-bait-source {
+    position: static;
+    width: auto;
+    margin-top: 12px;
+  }
+  .fish-detail-actions {
+    width: 100%;
   }
 }
 @media (pointer: coarse) {
