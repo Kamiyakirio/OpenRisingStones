@@ -1,51 +1,83 @@
-/** Owns offline catalog loading, list context, and device-local catch progress. */
-import { useEffect, useMemo, useState } from "react";
-import { filterFish, parseProgress, PROGRESS_KEY, sortFish } from "./model";
+/** Owns the offline catalog, manual marks, and live character catch status. */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { parseProgress, PROGRESS_KEY } from "./model";
 import { useFishingClock } from "./clock";
-import type { FishCatalog, FishFilters, FishProgress } from "./types";
-
-export const initialFilters: FishFilters = {
-  query: "",
-  kind: "all",
-  zone: "",
-  progress: "all",
-  available: false,
-  patches: Array.from({ length: 6 }, (_, i) =>
-    Array.from({ length: 6 }, (_, j) => `${i + 2}.${j}`),
-  )
-    .flat()
-    .concat("unknown"),
-  kinds: [
-    "normal",
-    "big",
-    "legendary",
-    "ocean-rare",
-    "ocean-legendary",
-    "unknown",
-  ],
-  waters: ["world", "ocean"],
-  methods: ["rod", "spear"],
-  restrictions: ["limited", "always"],
-  completion: ["caught", "uncaught"],
-  fishEyes: false,
-  sort: "window",
-};
+import { applyGameFishingLog, type GameFishingLog } from "./gameLog";
+import { captureFishingLog } from "./api";
+import { isTauriRuntime } from "../../shared/utils/runtime";
+import type { FishCatalog, FishProgress } from "./types";
 export function useFishing() {
   const [catalog, setCatalog] = useState<FishCatalog | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [filters, setFilters] = useState(initialFilters);
-  const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const now = useFishingClock();
   const [storageError, setStorageError] = useState(false);
-  const [progress, setProgress] = useState<FishProgress>(() => {
+  const [manualProgress, setManualProgress] = useState<FishProgress>(() => {
     try {
       return parseProgress(localStorage.getItem(PROGRESS_KEY));
     } catch {
       return { saved: [], caught: [] };
     }
   });
+  const desktop = isTauriRuntime();
+  const [gameLog, setGameLog] = useState<GameFishingLog | null>(null);
+  const [gameLogStatus, setGameLogStatus] = useState<
+    "syncing" | "ready" | "waiting" | "error" | "unsupported"
+  >("waiting");
+  const requestVersion = useRef(0);
+  const unsupportedPlatform = useRef(false);
+  const refreshGameLog = useCallback(async () => {
+    if (!desktop || unsupportedPlatform.current) return;
+    const version = ++requestVersion.current;
+    setGameLogStatus("syncing");
+    try {
+      const snapshot = await captureFishingLog();
+      if (version !== requestVersion.current) return;
+      if (
+        !snapshot.contentId ||
+        !Array.isArray(snapshot.caughtFishParameterIds) ||
+        !Array.isArray(snapshot.caughtSpearfishingItemIds)
+      ) {
+        throw new Error("Invalid fishing log snapshot.");
+      }
+      setGameLog(snapshot);
+      setGameLogStatus("ready");
+    } catch (reason) {
+      if (version !== requestVersion.current) return;
+      setGameLog(null);
+      const message = String(reason);
+      if (/requires the Windows desktop app/i.test(message)) {
+        unsupportedPlatform.current = true;
+      }
+      setGameLogStatus(
+        unsupportedPlatform.current
+          ? "unsupported"
+          : /signature|image size mismatch|invalid fishing log snapshot/i.test(
+                message,
+              )
+            ? "error"
+            : "waiting",
+      );
+    }
+  }, [desktop]);
+  useEffect(() => {
+    if (!desktop) return;
+    let disposed = false;
+    const versionRef = requestVersion;
+    queueMicrotask(() => {
+      if (!disposed) void refreshGameLog();
+    });
+    const interval = window.setInterval(() => void refreshGameLog(), 30_000);
+    const onFocus = () => void refreshGameLog();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      disposed = true;
+      versionRef.current++;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [desktop, refreshGameLog]);
   useEffect(() => {
     const controller = new AbortController();
     fetch(`${import.meta.env.BASE_URL}data/fishing/catalog.json`, {
@@ -75,41 +107,29 @@ export function useFishing() {
   useEffect(() => {
     const sync = (event: StorageEvent) => {
       if (event.key === PROGRESS_KEY || event.key === null)
-        setProgress(parseProgress(event.newValue));
+        setManualProgress(parseProgress(event.newValue));
     };
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
   }, []);
-  const results = useMemo(
+  const gameProgress = useMemo(
     () =>
-      catalog
-        ? sortFish(
-            filterFish(catalog, filters, progress, now),
-            catalog,
-            filters.sort,
-            now,
-            filters.fishEyes,
-          )
-        : [],
-    [catalog, filters, progress, now],
+      catalog && gameLog
+        ? applyGameFishingLog(catalog, manualProgress, gameLog)
+        : null,
+    [catalog, gameLog, manualProgress],
   );
+  const progress = gameProgress?.progress ?? manualProgress;
   const selected = catalog?.fish.find((fish) => fish.id === selectedId) ?? null;
-  const currentPage = Math.min(
-    page,
-    Math.max(0, Math.ceil(results.length / 40) - 1),
-  );
-  function changeFilters(change: Partial<FishFilters>) {
-    setFilters((current) => ({ ...current, ...change }));
-    setPage(0);
-  }
   function toggleProgress(id: number, key: keyof FishProgress) {
+    if (key === "caught" && gameProgress?.coveredIds.has(id)) return;
     const next = {
-      ...progress,
-      [key]: progress[key].includes(id)
-        ? progress[key].filter((value) => value !== id)
-        : [...progress[key], id],
+      ...manualProgress,
+      [key]: manualProgress[key].includes(id)
+        ? manualProgress[key].filter((value) => value !== id)
+        : [...manualProgress[key], id],
     };
-    setProgress(next);
+    setManualProgress(next);
     try {
       localStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
       setStorageError(false);
@@ -124,15 +144,15 @@ export function useFishing() {
       setError(false);
       setAttempt((value) => value + 1);
     },
-    filters,
-    changeFilters,
-    page: currentPage,
-    setPage,
-    results,
     selected,
     setSelectedId,
     now,
     progress,
+    gameLog,
+    gameLogStatus,
+    gameCoveredIds: gameProgress?.coveredIds ?? new Set<number>(),
+    desktop,
+    refreshGameLog,
     toggleProgress,
     storageError,
   };

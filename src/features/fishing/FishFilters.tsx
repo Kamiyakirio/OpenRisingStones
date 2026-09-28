@@ -42,11 +42,13 @@ function Choices({
 export function FishFilters({
   catalog,
   filters,
+  gameLogActive,
   onChange,
   onReset,
 }: {
   catalog: FishCatalog;
   filters: Filters;
+  gameLogActive: boolean;
   onChange: (change: Partial<Filters>) => void;
   onReset: () => void;
 }) {
@@ -147,25 +149,25 @@ export function FishFilters({
           )}
         </fieldset>
         <Choices
-          label="鱼类"
+          label="水域"
           options={[
-            ["world", "钓鱼"],
-            ["ocean", "出海垂钓"],
+            ["world", "非海钓"],
+            ["ocean", "海钓航次"],
           ]}
           value={filters.waters}
           onChange={(waters) => onChange({ waters })}
         />
         <Choices
-          label="种类"
+          label="图鉴类别"
           options={Object.entries(kindLabels)}
           value={filters.kinds}
           onChange={(kinds) => onChange({ kinds })}
         />
         <Choices
-          label="限制条件"
+          label="时间要求"
           options={[
-            ["limited", "时间 / 天气"],
-            ["always", "常驻"],
+            ["limited", "非全天 / 未知"],
+            ["always", "全天"],
           ]}
           value={filters.restrictions}
           onChange={(restrictions) => onChange({ restrictions })}
@@ -173,16 +175,16 @@ export function FishFilters({
         <Choices
           label="完成状态"
           options={[
-            ["caught", "已完成"],
-            ["uncaught", "未完成"],
+            ["caught", "已钓获"],
+            ["uncaught", gameLogActive ? "未钓获" : "未标记"],
           ]}
           value={filters.completion}
           onChange={(completion) => onChange({ completion })}
         />
         <Choices
-          label="捕获方式"
+          label="钓法"
           options={[
-            ["rod", "钓鱼"],
+            ["rod", "垂钓"],
             ["spear", "刺鱼"],
           ]}
           value={filters.methods}
