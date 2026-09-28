@@ -70,10 +70,34 @@
   font-size: 0.8125rem;
   font-weight: 500;
 }
+.home-pvp-artwork {
+  display: block;
+  width: 100%;
+  aspect-ratio: 47 / 15;
+  margin: 4px 0;
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-control);
+  background: var(--ors-color-surface);
+  object-fit: cover;
+}
+.home-pvp-artwork-fallback {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
 .home-pvp-rotation strong {
   font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.4;
+}
+.home-pvp-countdown {
+  color: var(--ors-color-text);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 .home-pvp-rotation time,
 .home-pvp-note {

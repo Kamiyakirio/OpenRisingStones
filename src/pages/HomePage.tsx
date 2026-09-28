@@ -14,6 +14,9 @@ import type { AutoSignInStatus, LoginProfile } from "../features/auth/types";
 import {
   getCrystallineConflictRotation,
   getFrontlineRotation,
+  formatPvpCountdown,
+  pvpMapImageUrl,
+  type PvpMap,
   type PvpRotation,
 } from "../shared/utils/pvpMap";
 import "./HomePage.css";
@@ -174,7 +177,6 @@ export function HomePage({
           <PvpMapStatus title="纷争前线" rotation={frontline} />
           <PvpMapStatus title="水晶冲突" rotation={crystallineConflict} />
         </div>
-        <p className="home-pvp-note">按 7.5 版本轮换规则推算</p>
       </section>
 
       <section className="home-tools" aria-labelledby="home-tools-title">
@@ -220,10 +222,72 @@ function PvpMapStatus({
   return (
     <div className="home-pvp-rotation">
       <h3>{title}</h3>
+      <PvpMapArtwork key={rotation.map.imageId} map={rotation.map} />
       <strong>{rotation.map.name}</strong>
+      <PvpCountdown nextRotationAt={rotation.nextRotationAt} />
       <time dateTime={rotation.nextRotationAt.toISOString()}>
-        {nextRotationLabel} 轮换
+        下次轮换 {nextRotationLabel}
       </time>
     </div>
+  );
+}
+
+function PvpCountdown({ nextRotationAt }: { nextRotationAt: Date }) {
+  const [nowMs, setNowMs] = useState(Date.now);
+
+  useEffect(() => {
+    const update = () => setNowMs(Date.now());
+    let timer: number | undefined = document.hidden
+      ? undefined
+      : window.setInterval(update, 1_000);
+    const syncVisibility = () => {
+      window.clearInterval(timer);
+      if (!document.hidden) {
+        update();
+        timer = window.setInterval(update, 1_000);
+      }
+    };
+    document.addEventListener("visibilitychange", syncVisibility);
+    window.addEventListener("focus", update);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", syncVisibility);
+      window.removeEventListener("focus", update);
+    };
+  }, []);
+
+  return (
+    <span className="home-pvp-countdown">
+      距离轮换 {formatPvpCountdown(nextRotationAt.getTime() - nowMs)}
+    </span>
+  );
+}
+
+function PvpMapArtwork({ map }: { map: PvpMap }) {
+  const [source, setSource] = useState<"mirror" | "official" | "unavailable">(
+    "mirror",
+  );
+
+  if (source === "unavailable") {
+    return (
+      <div className="home-pvp-artwork home-pvp-artwork-fallback">
+        地图图片暂不可用
+      </div>
+    );
+  }
+
+  return (
+    <img
+      className="home-pvp-artwork"
+      src={pvpMapImageUrl(map, source)}
+      alt=""
+      loading="eager"
+      decoding="async"
+      onError={() =>
+        setSource((current) =>
+          current === "mirror" ? "official" : "unavailable",
+        )
+      }
+    />
   );
 }
