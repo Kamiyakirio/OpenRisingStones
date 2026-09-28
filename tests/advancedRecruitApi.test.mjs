@@ -11,14 +11,14 @@ import {
 
 const summary = (id) => ({ id, dutyName: `Duty ${id}` });
 
-test("keeps list request intervals inside the declared one-to-five-second range", () => {
+test("keeps list request intervals inside the declared 100-to-500-millisecond range", () => {
   assert.equal(
     recruitListIntervalMs(() => 0),
-    1000,
+    100,
   );
   assert.equal(
     recruitListIntervalMs(() => 1),
-    5000,
+    500,
   );
 });
 
@@ -60,7 +60,7 @@ test("paces list pages and loads details with bounded parallelism", async () => 
     },
   );
 
-  assert.deepEqual(waited, [3000]);
+  assert.deepEqual(waited, [300]);
   assert.equal(dataset.items.length, 60);
   assert.equal(dataset.failedDetailCount, 0);
   assert.equal(maxActiveDetails, ADVANCED_RECRUIT_DETAIL_CONCURRENCY);
