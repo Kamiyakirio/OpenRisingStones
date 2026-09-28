@@ -15,6 +15,7 @@ pub struct FishingReader {
     actors: usize,
     conditions: usize,
     framework: usize,
+    player_state: usize,
 }
 
 impl FishingReader {
@@ -33,6 +34,7 @@ impl FishingReader {
             actors: 0,
             conditions: 0,
             framework: 0,
+            player_state: 0,
         };
         let (addresses, instructions) =
             crate::shared_memory::resolve_fishing_signatures(process_id)?;
@@ -50,8 +52,58 @@ impl FishingReader {
             reader.actors,
             reader.conditions,
             reader.framework,
+            reader.player_state,
         ] = addresses;
         Ok(reader)
+    }
+
+    /// Read the current character's complete rod and spear log from PlayerState.
+    pub fn capture_log(&self) -> BridgeResult<super::FishingLogSnapshot> {
+        if self.player_state == 0 {
+            return Err(BridgeError::InvalidData(
+                "fishing log signature is unavailable for this game version".into(),
+            ));
+        }
+        let mut identity = [0; 0x70];
+        self.read(self.player_state, &mut identity)?;
+        if identity[0] != 1 {
+            return Err(BridgeError::InvalidData("character is not loaded".into()));
+        }
+        let content_id = u64::from_le_bytes(identity[0x68..0x70].try_into().unwrap());
+        if content_id == 0 {
+            return Err(BridgeError::InvalidData(
+                "character identity is unavailable".into(),
+            ));
+        }
+        let name_bytes = &identity[1..65];
+        let name_end = name_bytes
+            .iter()
+            .position(|byte| *byte == 0)
+            .ok_or_else(|| BridgeError::InvalidData("character name is not terminated".into()))?;
+        let character_name = std::str::from_utf8(&name_bytes[..name_end])
+            .map_err(|_| BridgeError::InvalidData("character name is invalid UTF-8".into()))?
+            .to_owned();
+        // Offsets and capacities follow FFXIVClientStructs PlayerState for the current game.
+        let mut fish_bits = [0; 191];
+        let mut spear_bits = [0; 38];
+        self.read(self.player_state + 0x41F, &mut fish_bits)?;
+        self.read(self.player_state + 0x4F1, &mut spear_bits)?;
+        let mut check = [0; 0x70];
+        self.read(self.player_state, &mut check)?;
+        if identity[0] != check[0]
+            || identity[1..65] != check[1..65]
+            || identity[0x68..0x70] != check[0x68..0x70]
+        {
+            return Err(BridgeError::InvalidData(
+                "character changed during fishing log capture".into(),
+            ));
+        }
+        Ok(super::FishingLogSnapshot {
+            content_id: content_id.to_string(),
+            character_name,
+            caught_fish_parameter_ids: super::caught_rows(&fish_bits, 191 * 8, 0),
+            caught_spearfishing_item_ids: super::caught_rows(&spear_bits, 304, 20000),
+        })
     }
 
     pub fn sample(&self) -> BridgeResult<(bool, u16)> {

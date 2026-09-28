@@ -20,7 +20,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread::{self, JoinHandle};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 use windows_sys::Win32::Foundation::{
     CloseHandle, DuplicateHandle, DUPLICATE_SAME_ACCESS, HANDLE, INVALID_HANDLE_VALUE,
 };
@@ -1256,12 +1256,41 @@ struct GameApiCacheEntry {
 
 static GAME_API_CACHE: OnceLock<Mutex<Option<GameApiCacheEntry>>> = OnceLock::new();
 
+struct FishingSignatureCacheEntry {
+    process_id: u32,
+    module_path: PathBuf,
+    module_base_address: usize,
+    module_image_size: usize,
+    modified: SystemTime,
+    addresses: [usize; 5],
+    instructions: Vec<(usize, Vec<u8>)>,
+}
+
+static FISHING_SIGNATURE_CACHE: OnceLock<Mutex<Option<FishingSignatureCacheEntry>>> =
+    OnceLock::new();
+
 /// Resolve only fixed read-only telemetry fields. Each AOB must match exactly once.
 /// This does not load the payload or relax the manifest gates for its writable API.
 pub(crate) fn resolve_fishing_signatures(
     process_id: u32,
-) -> BridgeResult<([usize; 4], Vec<(usize, Vec<u8>)>)> {
+) -> BridgeResult<([usize; 5], Vec<(usize, Vec<u8>)>)> {
     let module = crate::process::target_module_info(process_id)?;
+    let modified = fs::metadata(&module.path)?.modified()?;
+    let cache = FISHING_SIGNATURE_CACHE.get_or_init(|| Mutex::new(None));
+    if let Some(entry) = cache
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .as_ref()
+    {
+        if entry.process_id == process_id
+            && entry.module_path == module.path
+            && entry.module_base_address == module.base_address
+            && entry.module_image_size == module.image_size
+            && entry.modified == modified
+        {
+            return Ok((entry.addresses, entry.instructions.clone()));
+        }
+    }
     let image = parse_pe_image(&fs::read(&module.path)?)?;
     if image.image_size != module.image_size {
         return Err(BridgeError::InvalidData(
@@ -1273,8 +1302,10 @@ pub(crate) fn resolve_fishing_signatures(
         "48 8D 0D ? ? ? ? E8 ? ? ? ? 44 0F B6 83 ? ? ? ? C6 83",
         "48 8D 0D ? ? ? ? 45 33 C0 4C 8B F0",
         "48 8B 1D ?? ?? ?? ?? 8B 7C 24",
+        // FFXIVClientStructs PlayerState.Instance; used only for caught-log bits.
+        "48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 75 06 F6 43 18 02",
     ];
-    let mut addresses = [0; 4];
+    let mut addresses = [0; 5];
     let mut instructions = Vec::new();
     for (index, pattern) in patterns.iter().enumerate() {
         let instruction = RuntimeFunction {
@@ -1285,8 +1316,8 @@ pub(crate) fn resolve_fishing_signatures(
         };
         let rva = match resolve_function_rva(&image, &instruction) {
             Ok(rva) => rva,
-            // A missing optional log address must not disable cast and bite detection.
-            Err(_) if index == 3 => continue,
+            // Optional log readers must not disable cast and bite detection.
+            Err(_) if index >= 3 => continue,
             Err(error) => return Err(error),
         };
         let length = pattern.split_whitespace().count();
@@ -1312,6 +1343,15 @@ pub(crate) fn resolve_fishing_signatures(
             .checked_add(address)
             .ok_or_else(|| BridgeError::InvalidData("fishing field address overflow".into()))?;
     }
+    *cache.lock().unwrap_or_else(|error| error.into_inner()) = Some(FishingSignatureCacheEntry {
+        process_id,
+        module_path: module.path,
+        module_base_address: module.base_address,
+        module_image_size: module.image_size,
+        modified,
+        addresses,
+        instructions: instructions.clone(),
+    });
     Ok((addresses, instructions))
 }
 

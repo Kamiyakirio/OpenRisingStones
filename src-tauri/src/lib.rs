@@ -104,6 +104,7 @@ pub fn run() {
       fishing_timer::control_fishing_timer,
       fishing_monitor::start_fishing_monitor,
       fishing_monitor::stop_fishing_monitor,
+      fishing_monitor::capture_fishing_log,
       glamour::fetch_glamour_detail,
       glamour::fetch_glamour_page,
       game_bridge::game_bridge_status,

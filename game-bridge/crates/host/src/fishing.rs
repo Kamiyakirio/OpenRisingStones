@@ -1,4 +1,4 @@
-//! Read-only fishing telemetry and a monotonic cast state machine.
+//! Read-only fishing telemetry, character catch records, and cast timing.
 //! Animation IDs follow the MIT Fishers-Intuition implementation; no game actions are sent.
 use serde::Serialize;
 #[cfg(any(windows, test))]
@@ -15,6 +15,25 @@ pub use log::FishingCatchReader;
 mod reader;
 #[cfg(windows)]
 pub use reader::FishingReader;
+
+/// Character-scoped game log, keyed by game-sheet rows rather than item IDs.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FishingLogSnapshot {
+    pub content_id: String,
+    pub character_name: String,
+    pub caught_fish_parameter_ids: Vec<u32>,
+    pub caught_spearfishing_item_ids: Vec<u32>,
+}
+
+/// Decode bounded game bit arrays with the same least-significant-bit indexing as PlayerState.
+#[cfg(any(windows, test))]
+fn caught_rows(bits: &[u8], bit_count: usize, first_id: u32) -> Vec<u32> {
+    (0..bit_count)
+        .filter(|index| bits[index / 8] & (1 << (index % 8)) != 0)
+        .map(|index| first_id + index as u32)
+        .collect()
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -111,6 +130,14 @@ impl FishingTracker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn caught_rows_decode_sheet_ids_without_reading_padding_bits() {
+        assert_eq!(
+            caught_rows(&[0b1000_0001, 0b1000_0001], 9, 0),
+            vec![0, 7, 8]
+        );
+        assert_eq!(caught_rows(&[0b0000_0101], 8, 20000), vec![20000, 20002]);
+    }
     #[test]
     fn cast_bite_hold_and_reset_use_monotonic_time() {
         let mut tracker = FishingTracker::default();

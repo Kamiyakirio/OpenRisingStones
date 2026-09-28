@@ -1,4 +1,5 @@
-//! Publishes cast telemetry to the timer window without depending on frontend polling.
+//! Captures character fishing records and publishes cast telemetry to the timer window.
+use game_bridge_host::fishing::FishingLogSnapshot;
 #[cfg(windows)]
 use game_bridge_host::fishing::FishingTracker;
 use game_bridge_host::{fishing::FishingSample, BridgeError};
@@ -49,6 +50,25 @@ fn report_error(window: &WebviewWindow, session_id: &str, error: BridgeError) {
       error_message: Some(error.to_string()),
     },
   );
+}
+
+/// Capture the loaded character's game fishing log without requiring the timer window.
+#[tauri::command]
+pub async fn capture_fishing_log() -> Result<FishingLogSnapshot, String> {
+  #[cfg(windows)]
+  {
+    tauri::async_runtime::spawn_blocking(|| {
+      game_bridge_host::fishing::FishingReader::connect(None)
+        .and_then(|reader| reader.capture_log())
+        .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| format!("Fishing log worker failed: {error}"))?
+  }
+  #[cfg(not(windows))]
+  {
+    Err("Fishing log capture requires the Windows desktop app.".into())
+  }
 }
 #[tauri::command]
 pub fn start_fishing_monitor(
