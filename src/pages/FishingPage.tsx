@@ -582,6 +582,9 @@ export function FishingPage() {
           catalog={catalog}
           now={vm.now}
           progress={progress}
+          gameManaged={vm.gameCoveredIds.has(vm.selected.id)}
+          gameLogActive={Boolean(vm.gameLog)}
+          gameLogNotice={gameLogStatus}
           fishEyes={mode === "lookup" && facets.fishEyes}
           onToggle={vm.toggleProgress}
           onBack={goBack}

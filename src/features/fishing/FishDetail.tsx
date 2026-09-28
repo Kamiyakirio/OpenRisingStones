@@ -1,18 +1,33 @@
-/** A focused catch sheet keeps bait chains, weather transitions, and progress together. */
+/** One fish, one preparation path: window, destination, bait, then full conditions. */
 import { ArrowLeft, BookmarkSimple, Check } from "@phosphor-icons/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   isWindowOpen,
-  nextWindows,
   isUnrestricted,
+  nextWindows,
   upcomingWindow,
 } from "./model";
-import type { Fish, FishCatalog, FishProgress } from "./types";
-import { kindLabels, timeRequirement, durationText } from "./presentation";
+import {
+  durationText,
+  kindLabels,
+  timeRequirement,
+  windowDurationText,
+} from "./presentation";
 import { WeatherForecast, WeatherSet } from "./Weather";
 import { FishBait } from "./FishBait";
 import { FishIcon } from "./FishIcon";
-export { FishIcon } from "./FishIcon";
+import type { Fish, FishCatalog, FishProgress } from "./types";
+
+const localTime = (time: number) =>
+  new Date(time).toLocaleString("zh-CN", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+const methodLabels = { rod: "垂钓", spear: "刺鱼", ocean: "海钓" };
+
 export function WindowStatus({
   fish,
   catalog,
@@ -26,133 +41,194 @@ export function WindowStatus({
 }) {
   const open = isWindowOpen(fish, catalog, now, fishEyes);
   const window = upcomingWindow(fish, catalog, now, fishEyes);
-  return (
-    <span className={open === true ? "fish-open" : "fish-muted"}>
-      {open === null
-        ? fish.method === "ocean"
-          ? "需结合航次判断"
-          : fish.conditions?.startHour == null ||
-              fish.conditions?.endHour == null
-            ? "缺少具体时段"
-            : fish.conditions?.weather == null ||
-                fish.conditions?.previousWeather == null
-              ? "缺少具体天气条件"
-              : "缺少地区天气表"
+  const text =
+    fish.method === "ocean"
+      ? "随海钓航次判断"
+      : open === null
+        ? "窗口条件待补充"
         : isUnrestricted(fish, fishEyes)
-          ? "随时可钓"
-          : window
-            ? open
-              ? `剩余 ${durationText(window.end - now)}`
-              : `还有 ${durationText(window.start - now)}开放`
-            : "未来一年内未找到窗口"}
-    </span>
+          ? "全天可钓"
+          : open && window
+            ? `窗口开放 · 剩余 ${durationText(window.end - now)}`
+            : window
+              ? `${localTime(window.start)} 开放`
+              : "未来一年未找到窗口";
+  return (
+    <span className={open === true ? "fish-open" : "fish-muted"}>{text}</span>
   );
 }
-const localTime = (time: number) =>
-  new Date(time).toLocaleString("zh-CN", {
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
 
 export function FishDetail({
   fish,
   catalog,
   now,
   progress,
+  gameManaged,
+  gameLogActive,
+  gameLogNotice,
+  fishEyes: initialFishEyes = false,
   onToggle,
   onBack,
-  fishEyes,
 }: {
   fish: Fish;
   catalog: FishCatalog;
   now: number;
   progress: FishProgress;
+  gameManaged: boolean;
+  gameLogActive: boolean;
+  gameLogNotice?: ReactNode;
+  fishEyes?: boolean;
   onToggle: (id: number, key: keyof FishProgress) => void;
   onBack: () => void;
-  fishEyes: boolean;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    heading.current?.focus();
-  }, [fish.id]);
-  const condition = fish.conditions;
+  const [fishEyes, setFishEyes] = useState(initialFishEyes);
   const [windowCount, setWindowCount] = useState(10);
   const [horizonDays, setHorizonDays] = useState(365);
+  useEffect(() => heading.current?.focus(), [fish.id]);
+  const caught = progress.caught.includes(fish.id);
+  const saved = progress.saved.includes(fish.id);
+  const condition = fish.conditions;
+  const firstSpot = fish.locations[0];
+  const firstBait = condition?.bait[0];
+  const baitIds =
+    firstBait == null ? [] : Array.isArray(firstBait) ? firstBait : [firstBait];
+  const baitSummary = baitIds.length
+    ? baitIds.map((id) => catalog.items[id] || String(id)).join(" / ")
+    : fish.method === "spear"
+      ? "查看鱼影大小"
+      : "推荐鱼饵待补充";
+  const currentWindow = upcomingWindow(fish, catalog, now, fishEyes);
+  const open = isWindowOpen(fish, catalog, now, fishEyes);
+  const unrestricted = isUnrestricted(fish, fishEyes);
   const windowOrigin =
-    upcomingWindow(fish, catalog, now, fishEyes)?.start ??
-    Math.floor(now / 1400000) * 1400000;
-  const windows = useMemo(
-    () =>
-      nextWindows(
-        fish,
-        catalog,
-        windowOrigin,
-        windowCount,
-        fishEyes,
-        horizonDays,
-      ),
-    [fish, catalog, windowOrigin, windowCount, fishEyes, horizonDays],
+    currentWindow?.start ?? Math.floor(now / 1400000) * 1400000;
+  const windows = nextWindows(
+    fish,
+    catalog,
+    windowOrigin,
+    windowCount,
+    fishEyes,
+    horizonDays,
   );
   const name = (id: number) => catalog.items[id] || String(id);
-  const unrestricted = isUnrestricted(fish, fishEyes);
+  const timingHeadline =
+    fish.method === "ocean"
+      ? "依航次决定"
+      : open === null
+        ? "窗口待补充"
+        : unrestricted
+          ? "全天可钓"
+          : open
+            ? "窗口开放中"
+            : currentWindow
+              ? localTime(currentWindow.start)
+              : "一年内未找到窗口";
   return (
-    <>
-      <button className="fish-back" onClick={onBack}>
-        <ArrowLeft />
-        返回鱼类列表
+    <div className="fish-detail">
+      <button type="button" className="fish-back" onClick={onBack}>
+        <ArrowLeft aria-hidden="true" /> 返回钓鱼任务
       </button>
       <header className="fish-detail-heading">
-        <FishIcon key={fish.id} fish={fish} />
-        <div>
+        <FishIcon fish={fish} />
+        <div className="fish-detail-title">
           <h1 ref={heading} tabIndex={-1}>
             {fish.name}
           </h1>
-          <p className="fish-muted">
-            {fish.nameEn} · {kindLabels[fish.kind]} · 物品 ID {fish.id}
+          <p>
+            {methodLabels[fish.method]} · {fish.zone || "区域未收录"}
+            {fish.kind !== "normal" &&
+              fish.kind !== "unknown" &&
+              ` · ${kindLabels[fish.kind]}`}
           </p>
         </div>
-        <div className="fish-actions">
+        <div className="fish-detail-actions">
           <button
-            aria-pressed={progress.saved.includes(fish.id)}
+            type="button"
+            aria-pressed={saved}
             onClick={() => onToggle(fish.id, "saved")}
           >
             <BookmarkSimple
-              weight={progress.saved.includes(fish.id) ? "fill" : "regular"}
+              aria-hidden="true"
+              weight={saved ? "fill" : "regular"}
             />
-            {progress.saved.includes(fish.id) ? "已收藏" : "收藏"}
+            {saved ? "已收藏" : "收藏"}
           </button>
-          <button
-            aria-pressed={progress.caught.includes(fish.id)}
-            onClick={() => onToggle(fish.id, "caught")}
-          >
-            <Check />
-            {progress.caught.includes(fish.id) ? "已钓获" : "标记已钓获"}
-          </button>
+          {gameManaged ? (
+            <span className="fish-detail-record" data-caught={caught}>
+              {caught && <Check aria-hidden="true" weight="bold" />}
+              游戏图鉴：{caught ? "已钓获" : "未钓获"}
+            </span>
+          ) : (
+            <button
+              type="button"
+              aria-pressed={caught}
+              onClick={() => onToggle(fish.id, "caught")}
+            >
+              <Check aria-hidden="true" />
+              {caught ? "已手动记录" : "手动记录钓获"}
+            </button>
+          )}
         </div>
       </header>
+      {gameLogNotice}
+      {gameLogActive && !gameManaged && (
+        <p className="fish-detail-note">
+          这条任务鱼不在游戏钓鱼图鉴中，过去是否钓获无法自动读取。
+        </p>
+      )}
+      <section className="fish-plan" aria-label="本次钓鱼准备">
+        <div className="fish-plan-primary">
+          <h2>时间窗口</h2>
+          <strong>{timingHeadline}</strong>
+          <p>
+            {fish.method === "ocean"
+              ? "当前航次的时段与幻海流需在游戏中确认。"
+              : open && currentWindow && !unrestricted
+                ? `本机时间 ${localTime(currentWindow.end)} 结束`
+                : timeRequirement(fish) === "全天"
+                  ? "艾欧泽亚时间不限"
+                  : `艾欧泽亚时间 ${timeRequirement(fish)}`}
+          </p>
+        </div>
+        <div>
+          <h2>钓点</h2>
+          <strong>{firstSpot?.name || "钓点待补充"}</strong>
+          <p>
+            {firstSpot?.zone || fish.zone || "区域待补充"}
+            {firstSpot?.coords &&
+              ` · X:${firstSpot.coords[0].toFixed(1)} Y:${firstSpot.coords[1].toFixed(1)}`}
+          </p>
+        </div>
+        <div>
+          <h2>{fish.method === "spear" ? "鱼影" : "鱼饵"}</h2>
+          <strong>
+            {fish.method === "spear"
+              ? { Small: "小型鱼影", Normal: "中型鱼影", Large: "大型鱼影" }[
+                  condition?.gig || ""
+                ] || "鱼影大小待补充"
+              : baitSummary}
+          </strong>
+          {Boolean(condition?.predators.length) && <p>还需先钓前置鱼</p>}
+        </div>
+      </section>
       {fish.description && (
         <p className="fish-description">
           {fish.description.replace(/<[^>]*>/g, "")}
         </p>
       )}
       <div className="fish-detail-layout">
-        <section className="fish-section">
-          <h2>钓获条件</h2>
+        <section className="fish-detail-section">
+          <header>
+            <h2>钓获条件</h2>
+          </header>
           {!condition ? (
-            <p className="fish-muted">
-              这条鱼暂未收录鱼饵与窗口条件，可先查看钓点或打开参考站点查询。
-            </p>
+            <p className="fish-muted">鱼饵与天气条件尚未收录。</p>
           ) : (
             <>
               <dl className="fish-facts">
                 <div>
-                  <dt>
-                    {fish.method === "ocean" ? "海钓时间" : "艾欧泽亚时间"}
-                  </dt>
+                  <dt>艾欧泽亚时间</dt>
                   <dd>{timeRequirement(fish)}</dd>
                 </div>
                 <div>
@@ -161,53 +237,40 @@ export function FishDetail({
                     <WeatherSet
                       ids={condition.previousWeather}
                       catalog={catalog}
-                      empty="前置天气不限"
+                      empty="不限"
                     />
                   </dd>
                 </div>
                 <div>
-                  <dt>要求天气</dt>
+                  <dt>当前天气</dt>
                   <dd>
-                    <WeatherSet
-                      ids={condition.weather}
-                      catalog={catalog}
-                      unknown={
-                        fish.method === "ocean"
-                          ? "航次天气受限，具体天气待补充"
-                          : "具体天气待补充"
-                      }
-                    />
+                    <WeatherSet ids={condition.weather} catalog={catalog} />
                   </dd>
                 </div>
-                <div>
-                  <dt>咬钩 / 提钩</dt>
-                  <dd>
-                    {{ light: "轻杆", medium: "中杆", heavy: "重杆" }[
-                      condition.tug || ""
-                    ] || "未收录"}{" "}
-                    /{" "}
-                    {{ Precision: "精准提钩", Powerful: "强力提钩" }[
-                      condition.hookset || ""
-                    ] || "未收录"}
-                  </dd>
-                </div>
+                {condition.tug && (
+                  <div>
+                    <dt>咬钩</dt>
+                    <dd>
+                      {{ light: "轻杆", medium: "中杆", heavy: "重杆" }[
+                        condition.tug
+                      ] || "未收录"}
+                    </dd>
+                  </div>
+                )}
+                {condition.hookset && (
+                  <div>
+                    <dt>提钩</dt>
+                    <dd>
+                      {{ Precision: "精准提钩", Powerful: "强力提钩" }[
+                        condition.hookset
+                      ] || "未收录"}
+                    </dd>
+                  </div>
+                )}
                 {condition.snagging && (
                   <div>
                     <dt>额外要求</dt>
-                    <dd>需要开启钓组</dd>
-                  </div>
-                )}
-                {condition.gig && (
-                  <div>
-                    <dt>捕鱼方式</dt>
-                    <dd>
-                      刺鱼 ·{" "}
-                      {{
-                        Small: "小型鱼影",
-                        Normal: "中型鱼影",
-                        Large: "大型鱼影",
-                      }[condition.gig] || "鱼影大小待补充"}
-                    </dd>
+                    <dd>开启钓组</dd>
                   </div>
                 )}
                 {condition.folklore && (
@@ -218,19 +281,19 @@ export function FishDetail({
                 )}
               </dl>
               {fish.method !== "spear" && (
-                <>
+                <div className="fish-detail-subsection">
                   <h3>鱼饵与以小钓大</h3>
                   {condition.bait.length ? (
                     <FishBait steps={condition.bait} catalog={catalog} />
                   ) : (
-                    <p className="fish-muted">未收录推荐鱼饵</p>
+                    <p className="fish-muted">推荐鱼饵待补充</p>
                   )}
-                </>
+                </div>
               )}
               {condition.predators.length > 0 && (
-                <>
+                <div className="fish-detail-subsection">
                   <h3>{fish.method === "spear" ? "鱼群前置" : "鱼识前置"}</h3>
-                  <ul>
+                  <ul className="fish-predators">
                     {condition.predators.map(([id, count]) => (
                       <li key={id}>
                         {name(id)} × {count}
@@ -242,75 +305,49 @@ export function FishDetail({
                       鱼识持续 {condition.intuitionLength} 秒
                     </p>
                   )}
-                </>
+                </div>
               )}
             </>
           )}
-        </section>
-        <section className="fish-section">
-          <h2>钓点</h2>
-          {fish.locations.length ? (
-            <ul className="fish-locations">
-              {fish.locations.map((spot) => (
-                <li key={spot.id}>
-                  <strong>{spot.name}</strong>
-                  <span>{spot.zone || fish.zone}</span>
-                  {spot.coords && (
-                    <span className="fish-muted">
-                      X: {spot.coords[0].toFixed(1)} Y:{" "}
-                      {spot.coords[1].toFixed(1)}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
+          {fish.specialConditions && !condition?.predators.length && (
             <p className="fish-muted">
-              {fish.zone || "区域未收录"} · 具体钓点未收录
+              游戏图鉴标记了额外条件，具体要求尚未收录。
             </p>
           )}
-          <h3>图鉴信息</h3>
-          <dl className="fish-facts">
-            <div>
-              <dt>钓鱼等级</dt>
-              <dd>{fish.level ?? "未收录"}</dd>
-            </div>
-            <div>
-              <dt>版本</dt>
-              <dd>{fish.patch ?? "未收录"}</dd>
-            </div>
-            {fish.collectable && (
-              <div>
-                <dt>收藏品</dt>
-                <dd>可作为收藏品钓获</dd>
-              </div>
-            )}
-            {fish.aquarium && (
-              <div>
-                <dt>水族箱</dt>
-                <dd>
-                  {fish.aquarium.water === "Saltwater" ? "海水" : "淡水"} ·{" "}
-                  {fish.aquarium.size} 级
-                </dd>
-              </div>
-            )}
-          </dl>
         </section>
-        <section className="fish-section fish-window-section">
-          <h2>时间与天气窗口</h2>
+        <section className="fish-detail-section">
+          <header>
+            <h2>窗口与天气</h2>
+            <p>窗口时间按本机时区显示</p>
+          </header>
           <WindowStatus
             fish={fish}
             catalog={catalog}
             now={now}
             fishEyes={fishEyes}
           />
+          {condition?.fishEyes && fish.method === "rod" && (
+            <label className="fish-eyes-toggle">
+              <input
+                type="checkbox"
+                checked={fishEyes}
+                onChange={(event) => setFishEyes(event.target.checked)}
+              />
+              按鱼眼计算时间
+            </label>
+          )}
           {condition &&
             fish.method !== "ocean" &&
-            isWindowOpen(fish, catalog, now, fishEyes) !== null &&
+            open !== null &&
             (unrestricted ? (
-              <p>全天，无天气限制。</p>
+              <p>全天开放，不受天气限制。</p>
             ) : windows.length ? (
               <>
+                <div className="fish-window-head" aria-hidden="true">
+                  <span>开始</span>
+                  <span>结束</span>
+                  <span>时长</span>
+                </div>
                 <ol className="fish-windows">
                   {windows.map((window) => (
                     <li key={window.start}>
@@ -320,58 +357,69 @@ export function FishDetail({
                           : localTime(window.start)}
                       </strong>
                       <span>至 {localTime(window.end)}</span>
+                      <span className="fish-window-duration">
+                        {window.start <= now && "剩余 "}
+                        {windowDurationText(
+                          window.end - Math.max(window.start, now),
+                        )}
+                      </span>
                     </li>
                   ))}
                 </ol>
                 <button
+                  className="fish-text-action"
                   onClick={() => {
                     setWindowCount((count) => count + 10);
                     setHorizonDays((days) => days + 365);
                   }}
                 >
-                  继续计算 10 个窗口
+                  继续计算窗口
                 </button>
-                {windows.length < windowCount && (
-                  <p className="fish-muted">
-                    未来 {horizonDays} 天内找到 {windows.length} 个完整窗口。
-                  </p>
-                )}
               </>
             ) : (
-              <>
-                <p className="fish-muted">
-                  未来 {horizonDays} 天内未找到完整窗口。
-                </p>
-                <button onClick={() => setHorizonDays((days) => days + 365)}>
-                  继续向后查找一年
-                </button>
-              </>
+              <p className="fish-muted">
+                未来 {horizonDays} 天内未找到完整窗口。
+              </p>
             ))}
-          <p className="fish-muted">
-            窗口按本机时间计算，显示本地时间；不包含鱼识、前置任务与属性要求。
-            {fishEyes
-              ? "已启用鱼眼计算：对支持鱼眼的鱼忽略时间限制，仍需在游戏内使用技能。"
-              : "未启用鱼眼计算。"}
+          <p className="fish-window-caveat">
+            窗口只按已收录时间与天气计算；鱼识、任务和属性要求需另行确认。
+            {fishEyes && "鱼眼计算仅忽略支持该技能的鱼的时间限制。"}
           </p>
-          {fish.specialConditions && !condition?.predators.length && (
-            <p className="fish-muted">
-              图鉴标记有额外钓获条件，时间与天气满足不代表已完成该条件。
-            </p>
-          )}
-          <h3>钓点天气预报</h3>
+          <h3>钓点天气</h3>
           <WeatherForecast fish={fish} catalog={catalog} now={now} />
         </section>
       </div>
-      <p className="fish-muted">
-        记录仅保存在本机，可再次点击取消标记。更多资料：
-        <a href="https://fish.ffmomola.com/" target="_blank" rel="noreferrer">
-          鱼糕
-        </a>{" "}
-        ·{" "}
-        <a href="https://eorzea-weather.com/" target="_blank" rel="noreferrer">
-          艾欧泽亚天气
-        </a>
-      </p>
-    </>
+      <section className="fish-location-section">
+        <header>
+          <h2>钓点与图鉴资料</h2>
+          {fish.locations.length > 1 && <p>可在多个钓点钓获</p>}
+        </header>
+        {fish.locations.length ? (
+          <ul className="fish-locations">
+            {fish.locations.map((spot) => (
+              <li key={spot.id}>
+                <strong>{spot.name}</strong>
+                <span>{spot.zone || fish.zone}</span>
+                {spot.coords && (
+                  <span>
+                    X:{spot.coords[0].toFixed(1)} Y:{spot.coords[1].toFixed(1)}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="fish-muted">具体钓点尚未收录。</p>
+        )}
+        <p className="fish-fine-print">
+          {fish.level != null && `Lv. ${fish.level} · `}
+          {fish.patch != null && `版本 ${fish.patch} · `}
+          物品 ID {fish.id}
+          {fish.collectable && " · 可作为收藏品钓获"}
+          {fish.aquarium &&
+            ` · ${fish.aquarium.water === "Saltwater" ? "海水" : "淡水"}水族箱 ${fish.aquarium.size} 级`}
+        </p>
+      </section>
+    </div>
   );
 }

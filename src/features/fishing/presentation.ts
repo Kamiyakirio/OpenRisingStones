@@ -16,6 +16,17 @@ export function durationText(milliseconds: number) {
     : `${Math.floor(seconds / 60)}分${seconds % 60}秒`;
 }
 
+/** Window durations retain seconds, unlike compact countdown labels. */
+export function windowDurationText(milliseconds: number) {
+  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  return hours > 0
+    ? `${hours}时${minutes}分${remainder}秒`
+    : `${minutes}分${remainder}秒`;
+}
+
 import type { Fish } from "./types";
 /** Ocean voyage time is separate from the world's Eorzean clock. */
 export function timeRequirement(fish: Fish) {

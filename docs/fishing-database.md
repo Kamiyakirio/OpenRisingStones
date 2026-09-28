@@ -3,8 +3,13 @@
 The first workflow is available from the home directory and `#fishing`, without
 authentication: search/filter fish, open a catch sheet, then save a target or mark
 it caught. Returning to the list preserves its filters, page, and scroll position.
-Progress uses `ors.fishing.progress.v1` in local storage and is removed by the
-existing clear-local-data action. Progress is device-local, not character-specific.
+Manual progress uses `ors.fishing.progress.v1` in local storage and is removed by
+the existing clear-local-data action. On Windows desktop, the page reads the
+loaded FFXIV character's rod and spear catch bits automatically on entry, every
+30 seconds, and when the app regains focus. Game-log entries override manual
+catch marks while that character is available. Rows absent from the game log
+remain manually editable. The app does not persist a character's game-log bits
+to shared local storage, so another character cannot inherit that snapshot.
 
 ## Reference findings
 
@@ -57,6 +62,16 @@ fills ordinary-fish release versions. Ocean rarity 2 and 3 identifies rare and
 legendary ocean fish. Unclassified guide entries and unknown conditions are
 explicit. Aquarium information is available only where supplied by the tracker.
 
+The catalog includes FishParameter and SpearfishingItem row IDs beside Item IDs;
+the game stores catch bits by those row IDs. The current snapshot maps 1,806 of
+1,810 entries. Four delivery quest fish (Item IDs 43903–43906) exist in
+FishParameter only as rows 15185–15188 with `IsInLog=False`; they have no
+historical caught bit and retain manual marks. The 1,806 in-game log entries
+are fully mapped. [FFXIVClientStructs PlayerState](https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/Game/UI/PlayerState.cs)
+documents the bit-array layout; game updates may require revalidation.
+The generated catalog also stores tone-free full pinyin and initials for each
+Chinese fish name, so lookup does not ship a pinyin dictionary to every page.
+
 The catalog ships with the app and needs no external service to search or track
 progress. Fish and weather icons use XIVAPI; failures keep weather names visible
 and use a Phosphor fallback. Weather icon IDs come from the game Weather sheet.
@@ -86,18 +101,26 @@ world forecast. `IKDSpot` links spectral fishing spots to the spectral-current
 weather icon (Weather 145). Known bait, prey, and weather properties are displayed,
 but player-triggered spectral currents cannot receive a guaranteed wall-clock
 start time. Exact ocean voyage time-of-day rules are not yet imported. Unknown
-ocean weather sets remain explicit, not silently unrestricted. Alarms,
-game-character sync, and ocean route scheduling remain future work.
+ocean weather sets remain explicit, not silently unrestricted. Alarms and ocean
+route scheduling remain future work.
 
-## List and detail behavior
+## Workspace and detail behavior
 
-Independent multi-select facets cover patch families, world/ocean, fish kind,
-time/weather restrictions, completion, and rod/spear. Region, saved targets,
-aquarium, collectables, and current eligibility narrow them further. The default
-sort prioritizes open-window expiry, then future opening, unrestricted fish, and
-unforecastable fish. Name, descending release patch, and descending level sorts
-are also available. Whole-row clicks and keyboard fish buttons open the catch sheet;
-record buttons remain independent.
+Three task views show current/next windows, region-based completion, and direct
+lookup. Direct lookup supports Chinese names, full pinyin, initials, English
+names, Item IDs, zones, and spots. Its primary classes are timed, all-day,
+ocean-voyage, and unknown-condition fish. The earlier independent facets remain
+available in the lookup filter panel: patch families, world/ocean, fish kind,
+time restrictions, completion, rod/spear, region, saved targets, aquarium,
+collectables, current eligibility, and Fish Eyes. Name, descending release
+patch, and descending level sorts remain available. Fish row buttons open a
+focused preparation page while save buttons stay independent.
+
+The preparation page places the next window, location, and bait or fish shadow
+first. Window rows show start, end, and duration as three columns. The current
+row displays remaining time; later rows display their full duration. Details
+retain bait/mooch order, weather transitions, local forecast, and all fishing
+spots. Returning preserves the active task, lookup filters, and scroll position.
 
 The shared visibility-aware clock updates the ET display separately from the
 one-second countdown. Forecasts are cached until an opening or closing boundary.
@@ -108,7 +131,8 @@ glamour. Browser preview links to the original Wiki page without fabricated sour
 ## Verification
 
 `tests/fishing.test.mjs` covers data joins, weather transitions, overnight and
-fractional boundaries, unknown conditions, filtering, and malformed stored data.
+fractional boundaries, unknown conditions, combined filtering, pinyin search,
+duration formatting, and malformed stored data.
 Browser review should cover desktop and narrow viewports in both themes, returning
 to filtered results, persistence across reload, load-error retry, unavailable
 storage, empty filters, and keyboard navigation. Browser verification does not

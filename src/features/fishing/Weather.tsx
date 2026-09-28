@@ -110,7 +110,7 @@ export function WeatherForecast({
   if (fish.method === "ocean")
     return (
       <p className="fish-muted">
-        海钓天气和幻海流由当前航次决定。幻海流受玩家钓获触发，不能仅凭本机时间预报；上方仍展示已知的天气要求。
+        海钓天气与幻海流由航次决定，本机时间无法预报。
       </p>
     );
   return (
@@ -131,9 +131,7 @@ export function WeatherForecast({
         </label>
       )}
       {!spot || !catalog.weatherRates[spot.territory] ? (
-        <p className="fish-muted">
-          缺少钓点的地区天气分布表，暂时无法生成当地预报；钓获天气要求仍显示在上方。
-        </p>
+        <p className="fish-muted">此钓点缺少天气分布数据，无法显示预报。</p>
       ) : (
         <div className="fish-forecast">
           {[-1, 0, 1, 2].map((offset) => {

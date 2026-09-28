@@ -15,6 +15,14 @@ import {
   upcomingWindow,
   patchGroup,
 } from "../src/features/fishing/model.ts";
+import { applyGameFishingLog } from "../src/features/fishing/gameLog.ts";
+import {
+  fishingCategory,
+  fishingZones,
+  initialFishingFacets,
+  searchFishingCatalog,
+} from "../src/features/fishing/workspace.ts";
+import { windowDurationText } from "../src/features/fishing/presentation.ts";
 
 const catalog = JSON.parse(
   readFileSync(
@@ -32,6 +40,102 @@ const fishAt = (startHour, endHour) => ({
     weather: [],
     previousWeather: [],
   },
+});
+
+test("task categories follow timing semantics rather than fish rarity", () => {
+  assert.equal(fishingCategory(fishAt(20, 4), catalog, 0), "timed");
+  assert.equal(fishingCategory(fishAt(0, 24), catalog, 0), "anytime");
+  assert.equal(
+    fishingCategory({ ...fishAt(20, 4), method: "ocean" }, catalog, 0),
+    "voyage",
+  );
+  assert.equal(
+    fishingCategory({ ...fishAt(20, 4), conditions: null }, catalog, 0),
+    "unknown",
+  );
+});
+
+test("fish lookup accepts full pinyin and initials without losing ID search", () => {
+  const search = {
+    query: "nieputelong",
+    category: "all",
+    sort: "name",
+  };
+  for (const query of ["nieputelong", "nptl", "涅普特龙", "8754"]) {
+    const results = searchFishingCatalog(
+      catalog,
+      { saved: [], caught: [] },
+      0,
+      {
+        ...search,
+        query,
+      },
+      initialFishingFacets,
+    );
+    assert.ok(
+      results.some((fish) => fish.id === 8754),
+      query,
+    );
+  }
+  assert.equal(
+    fishingZones(catalog, { saved: [], caught: [] }).reduce(
+      (count, zone) => count + zone.fish.length,
+      0,
+    ),
+    catalog.fish.length,
+  );
+});
+
+test("legacy facets combine with task categories and duration keeps seconds", () => {
+  const results = searchFishingCatalog(
+    catalog,
+    { saved: [], caught: [] },
+    0,
+    { query: "", category: "all", sort: "name" },
+    { ...initialFishingFacets, kinds: ["legendary"], methods: ["rod"] },
+  );
+  assert.ok(results.length > 0);
+  assert.ok(
+    results.every(
+      (fish) => fish.kind === "legendary" && fish.method !== "spear",
+    ),
+  );
+  assert.equal(windowDurationText(61_001), "1分2秒");
+  assert.equal(windowDurationText(3_661_000), "1时1分1秒");
+});
+
+test("game log rows override manual marks only for catalog entries they cover", () => {
+  const rod = catalog.fish.find((fish) => fish.fishParameterId !== null);
+  const spear = catalog.fish.find((fish) => fish.spearfishingItemId !== null);
+  const unmapped = catalog.fish.find(
+    (fish) => fish.fishParameterId === null && fish.spearfishingItemId === null,
+  );
+  assert.deepEqual(
+    catalog.fish
+      .filter(
+        (fish) =>
+          fish.fishParameterId === null && fish.spearfishingItemId === null,
+      )
+      .map((fish) => fish.id),
+    [43903, 43904, 43905, 43906],
+  );
+  assert.ok(rod && spear && unmapped);
+  const result = applyGameFishingLog(
+    catalog,
+    { saved: [rod.id], caught: [rod.id, unmapped.id] },
+    {
+      contentId: "123",
+      characterName: "Test Character",
+      caughtFishParameterIds: [],
+      caughtSpearfishingItemIds: [spear.spearfishingItemId],
+    },
+  );
+  assert.equal(result.coveredIds.has(rod.id), true);
+  assert.equal(result.coveredIds.has(unmapped.id), false);
+  assert.equal(result.progress.caught.includes(rod.id), false);
+  assert.equal(result.progress.caught.includes(spear.id), true);
+  assert.equal(result.progress.caught.includes(unmapped.id), true);
+  assert.deepEqual(result.progress.saved, [rod.id]);
 });
 
 test("ten default windows and extended results retain complete boundaries", () => {
