@@ -1,0 +1,72 @@
+/** A quiet indeterminate scan using the shared canvas, type, and accent. */
+@import "../styles/tokens.css";
+
+.loading-page {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 40px 24px;
+  color: var(--ors-color-text);
+  font-family: var(--ors-font-ui);
+}
+
+.loading-page--fullscreen.app {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--ors-color-canvas);
+}
+
+.loading-page__content {
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+  max-width: 100%;
+  text-align: center;
+}
+
+.loading-page__track {
+  display: block;
+  width: 128px;
+  height: 2px;
+  background: var(--ors-color-line);
+}
+
+.loading-page__indicator {
+  display: block;
+  width: 28px;
+  height: 2px;
+  background: var(--ors-color-accent);
+  animation: loading-page-scan 1.6s ease-in-out infinite;
+}
+
+.loading-page__message {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+@keyframes loading-page-scan {
+  50% {
+    transform: translateX(100px);
+  }
+}
+
+@media (max-width: 899px) {
+  .workspace-content .loading-page {
+    min-height: calc(100dvh - 59px);
+  }
+}
+
+@media (max-width: 619px) {
+  .workspace-content .loading-page {
+    min-height: calc(100dvh - 103px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-page__indicator {
+    transform: translateX(50px);
+    animation: none;
+  }
+}

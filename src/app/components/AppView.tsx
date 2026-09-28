@@ -1,5 +1,6 @@
 /** Root View with declarative bindings and no infrastructure access. */
 import { AppHeader } from "./AppHeader";
+import { LoadingPage } from "./LoadingPage";
 import { LoginDialog } from "../../features/auth/components/LoginDialog";
 import { SettingsDialog } from "../../features/settings/components/SettingsDialog";
 import { GlamourPage } from "../../pages/GlamourPage";
@@ -74,30 +75,30 @@ export function AppView({ viewModel }: AppViewProps) {
             onOpenPortrait={viewModel.openPortrait}
           />
         ) : viewModel.activeFeature === "fishing" ? (
-          <Suspense fallback={<p role="status">正在加载钓鱼数据库…</p>}>
+          <Suspense fallback={<LoadingPage message="正在加载钓鱼数据库…" />}>
             <FishingPage />
           </Suspense>
         ) : viewModel.activeFeature === "gearing" ? (
           <GearingErrorBoundary onGoHome={viewModel.goHome}>
-            <Suspense fallback={<p role="status">正在加载配装…</p>}>
+            <Suspense fallback={<LoadingPage message="正在加载配装…" />}>
               <GearingPage />
             </Suspense>
           </GearingErrorBoundary>
         ) : viewModel.activeFeature === "gearing-benchmark" &&
           GearingBenchmarkPage ? (
           <GearingErrorBoundary onGoHome={viewModel.goHome}>
-            <Suspense fallback={<p role="status">正在加载性能测试…</p>}>
+            <Suspense fallback={<LoadingPage message="正在加载性能测试…" />}>
               <GearingBenchmarkPage onBack={viewModel.openGearing} />
             </Suspense>
           </GearingErrorBoundary>
         ) : viewModel.activeFeature === "debug" && DebugPage ? (
-          <Suspense fallback={<p role="status">正在加载调试工具…</p>}>
+          <Suspense fallback={<LoadingPage message="正在加载调试工具…" />}>
             <DebugPage />
           </Suspense>
         ) : viewModel.activeFeature === "chat" ? (
           <ChatPage />
         ) : viewModel.activeFeature === "portrait" ? (
-          <Suspense fallback={<p role="status">正在加载肖像助手…</p>}>
+          <Suspense fallback={<LoadingPage message="正在加载肖像助手…" />}>
             <PortraitPage />
           </Suspense>
         ) : viewModel.activeFeature === "glamour" ? (
