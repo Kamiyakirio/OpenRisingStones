@@ -4,7 +4,12 @@
  */
 import { invoke } from "../../../shared/diagnostics/invoke";
 import { isTauriRuntime } from "../../../shared/utils/runtime";
-import type { LoginPoll, LoginStart, LoginStatus } from "../types";
+import type {
+  LoginPoll,
+  LoginStart,
+  LoginStatus,
+  SignInResult,
+} from "../types";
 
 function requireDesktopRuntime() {
   if (!isTauriRuntime())
@@ -15,6 +20,12 @@ export async function getSdoLoginStatus() {
   if (!isTauriRuntime())
     return { authenticated: false, profile: null } satisfies LoginStatus;
   return invoke<LoginStatus>("sdo_login_status");
+}
+
+/** Submit one check-in using the verified session held by the desktop backend. */
+export async function signInRisingStones() {
+  requireDesktopRuntime();
+  return invoke<SignInResult>("sdo_sign_in");
 }
 
 export async function startPushLogin(account: string) {

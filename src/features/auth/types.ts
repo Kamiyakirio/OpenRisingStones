@@ -11,6 +11,13 @@ export type LoginStatus = {
   profile: LoginProfile | null;
 };
 
+export type SignInResult = {
+  status: "signed" | "already_signed";
+};
+
+export type AutoSignInStatus =
+  "idle" | "pending" | "signed" | "already_signed" | "failed";
+
 export type LoginStart = {
   loginId: number;
   status: LoginProgress;

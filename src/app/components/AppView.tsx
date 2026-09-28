@@ -69,6 +69,8 @@ export function AppView({ viewModel }: AppViewProps) {
             profile={viewModel.loginProfile}
             loginChecking={viewModel.loginChecking}
             onOpenLogin={viewModel.openLogin}
+            signInStatus={viewModel.signInStatus}
+            onRetrySignIn={viewModel.retrySignIn}
             onOpenGlamour={viewModel.openGlamour}
             onOpenRecruit={viewModel.openRecruit}
             onOpenTeleport={viewModel.openTeleport}

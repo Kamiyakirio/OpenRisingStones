@@ -49,6 +49,9 @@ When signed out, show `未登录角色` and a login action. While checking the
 session, show `正在读取角色信息…`. Label the two calculated statuses `纷争前线`
 and `水晶冲突`, show the next local rotation time, and state that they are
 calculated from the 7.5 rotation rules. The directory heading remains `工具`.
+After verified login, show `正在自动签到…`, `✅ 石之家自动签到成功`,
+`✅ 石之家今日已签到`, or `❌ 石之家自动签到失败` as the request progresses.
+Failure offers `重试签到`.
 
 Feature buttons use a whole-row click target. An arrow may
 support that affordance; it should not become another nested button. The accessible

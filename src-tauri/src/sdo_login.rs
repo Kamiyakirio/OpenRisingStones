@@ -89,6 +89,18 @@ pub struct LoginStatus {
   profile: Option<LoginProfile>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SignInOutcome {
+  Signed,
+  AlreadySigned,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SignInResult {
+  status: SignInOutcome,
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginStart {
@@ -217,6 +229,28 @@ pub async fn sdo_login_status(state: State<'_, LoginState>) -> Result<LoginStatu
   }
   commit_active(&state, lifecycle_version, response.session, profile.clone())?;
   Ok(authenticated_status(profile))
+}
+
+/// Uses only an active, verified session; cookies never enter the webview.
+#[tauri::command]
+pub async fn sdo_sign_in(state: State<'_, LoginState>) -> Result<SignInResult, String> {
+  let session = state
+    .active
+    .lock()
+    .map_err(|_| "Unable to read the authenticated session.".to_owned())?
+    .as_ref()
+    .map(|login| login.session.clone())
+    .ok_or_else(|| "AUTHENTICATION_REQUIRED".to_owned())?;
+
+  tauri::async_runtime::spawn_blocking(move || {
+    python_sidecar::request(
+      &json!({ "operation": "signIn", "session": session }),
+      4 * 1024,
+      "Rising Stones check-in",
+    )
+  })
+  .await
+  .map_err(|_| "The Rising Stones check-in task stopped unexpectedly.".to_owned())?
 }
 
 #[tauri::command]

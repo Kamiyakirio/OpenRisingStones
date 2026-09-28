@@ -10,7 +10,7 @@ import {
   Sword,
   UsersThree,
 } from "@phosphor-icons/react";
-import type { LoginProfile } from "../features/auth/types";
+import type { AutoSignInStatus, LoginProfile } from "../features/auth/types";
 import {
   getCrystallineConflictRotation,
   getFrontlineRotation,
@@ -22,6 +22,8 @@ type HomePageProps = {
   profile: LoginProfile | null;
   loginChecking: boolean;
   onOpenLogin: () => void;
+  signInStatus: AutoSignInStatus;
+  onRetrySignIn: () => void;
   onOpenRecruit: () => void;
   onOpenGlamour: () => void;
   onOpenTeleport: () => void;
@@ -35,6 +37,8 @@ export function HomePage({
   profile,
   loginChecking,
   onOpenLogin,
+  signInStatus,
+  onRetrySignIn,
   onOpenRecruit,
   onOpenGlamour,
   onOpenTeleport,
@@ -137,6 +141,30 @@ export function HomePage({
         )}
         {profile && (!characterName || !serverName) && (
           <p>当前账号未提供完整的游戏 ID 和服务器信息。</p>
+        )}
+        {profile && (
+          <div className="home-signin" role="status">
+            {signInStatus === "signed" || signInStatus === "already_signed" ? (
+              <>
+                <span aria-hidden="true">✅</span>
+                <span>
+                  {signInStatus === "signed"
+                    ? "石之家自动签到成功"
+                    : "石之家今日已签到"}
+                </span>
+              </>
+            ) : signInStatus === "failed" ? (
+              <>
+                <span aria-hidden="true">❌</span>
+                <span>石之家自动签到失败</span>
+                <button type="button" onClick={onRetrySignIn}>
+                  重试签到
+                </button>
+              </>
+            ) : (
+              <span>正在自动签到…</span>
+            )}
+          </div>
         )}
       </header>
 

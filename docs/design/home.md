@@ -23,7 +23,7 @@ FINISH: Implemented and reviewed at 1440×900, 1024×700, and 720×520 with no h
 
 ## Content and behavior
 
-Use `interface-copy.md` for exact labels and descriptions. Keep recruitment, glamour, regional teleport, and gearing in the existing order. The home identity uses the verified character name and server from the login profile, with a login action while signed out. PvP maps use the documented rotation calculator in `docs/pvp-map-rotation.md`. Do not add unimplemented destinations, recent activity, counts, or notifications.
+Use `interface-copy.md` for exact labels and descriptions. Keep recruitment, glamour, regional teleport, and gearing in the existing order. The home identity uses the verified character name and server from the login profile, with a login action while signed out. The check-in state appears below the identity only after login; failure has a retry action. PvP maps use the documented rotation calculator in `docs/pvp-map-rotation.md`. Do not add unimplemented destinations, recent activity, counts, or notifications.
 
 Each destination is one whole-row button with a feature icon, title, concrete description, and decorative trailing arrow. The 2×2 directory uses shared rules, no card shadows, and no dominant call to action. Hover changes the row surface; keyboard focus outlines the whole target. Below 768px, entries stack into one column and preserve all descriptions and actions.
 

@@ -228,7 +228,7 @@ Primary buttons use accent fill and on-accent text. Secondary controls use neutr
 
 ### Home directory
 
-Use verified profile fields for the home identity, never placeholder character data. Calculate PvP status from the documented patch rotation, label it as a calculation, and refresh at the next boundary and when the app regains focus.
+Use verified profile fields for the home identity, never placeholder character data. Show the automatic Rising Stones check-in result directly below it; success and an already-completed check-in both use a check mark, while failure offers a retry. Calculate PvP status from the documented patch rotation, label it as a calculation, and refresh at the next boundary and when the app regains focus.
 
 Keep recruitment, glamour, regional teleport, and gearing as equal whole-row buttons. Each has one icon, direct title, concrete description, and decorative trailing arrow. Shared rules define the 2×2 layout; compact widths stack it to one column.
 

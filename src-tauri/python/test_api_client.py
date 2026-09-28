@@ -11,6 +11,7 @@ from api_client import (
     ApiClientError,
     BASE_HEADERS,
     GLAMOUR_SEARCH_URL,
+    SIGN_IN_URL,
     DIAGNOSTICS_PREFIX,
     RECRUIT_LIST_URL,
     TELEPORT_ENDPOINTS,
@@ -28,6 +29,7 @@ from api_client import (
     normalize_user_agent,
     preserve_game_auth,
     refresh_teleport_service_session,
+    sign_in,
 )
 
 
@@ -99,6 +101,35 @@ def client_with(
 
 
 class ApiClientTests(unittest.TestCase):
+    def test_sign_in_uses_form_post_and_distinct_request_nonces(self) -> None:
+        client, session = client_with(FakeResponse(content=b'{"code":10000}'))
+
+        self.assertEqual(sign_in(client), {"status": "signed"})
+
+        method, url, arguments = session.arguments
+        self.assertEqual((method, url), ("POST", SIGN_IN_URL))
+        self.assertNotEqual(
+            arguments["params"]["tempsuid"], arguments["data"]["tempsuid"]
+        )
+        self.assertEqual(
+            arguments["headers"]["Content-Type"],
+            "application/x-www-form-urlencoded",
+        )
+        self.assertFalse(arguments["allow_redirects"])
+
+    def test_sign_in_treats_already_signed_as_success(self) -> None:
+        client, _ = client_with(
+            FakeResponse(status_code=400, content=b'{"code":10001}')
+        )
+
+        self.assertEqual(sign_in(client), {"status": "already_signed"})
+
+    def test_sign_in_rejects_unexpected_business_code(self) -> None:
+        client, _ = client_with(FakeResponse(content=b'{"code":10103}'))
+
+        with self.assertRaisesRegex(ApiClientError, "not accepted"):
+            sign_in(client)
+
     def test_debug_network_record_contains_request_and_response(self) -> None:
         response_url = "https://example.invalid/path?existing=1&token=request-token"
         client, _ = client_with(

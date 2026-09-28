@@ -36,6 +36,7 @@ SITE_INDEX_URL = "https://ff14risingstones.web.sdo.com/pc/index.html"
 SITE_REFERER = "https://ff14risingstones.web.sdo.com/"
 LOGIN_REFERER = "https://login.u.sdo.com/"
 LOGIN_STATUS_URL = "https://apiff14risingstones.web.sdo.com/api/home/GHome/isLogin"
+SIGN_IN_URL = "https://apiff14risingstones.web.sdo.com/api/home/sign/signIn"
 GLAMOUR_LIST_URL = (
     "https://apiff14risingstones.web.sdo.com/api/home/glamour/glamoursList"
 )
@@ -712,6 +713,30 @@ def parse_cookie_header(cookie_header: str) -> list[tuple[str, str]]:
 def restore_session(client: ApiClient) -> dict[str, Any]:
     """Revalidate a decrypted local session before accepting it."""
     return finalize_authenticated_login(client)
+
+
+def sign_in(client: ApiClient) -> dict[str, str]:
+    """Submit one daily check-in with the authenticated Rising Stones session."""
+    response = client.request(
+        "POST",
+        SIGN_IN_URL,
+        params={"tempsuid": str(uuid.uuid4())},
+        data={"tempsuid": str(uuid.uuid4())},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        allow_redirects=False,
+        accepted_statuses=(*range(200, 300), 400),
+        max_bytes=16 * 1024,
+        error_message="Unable to complete the Rising Stones check-in.",
+    )
+    payload = client.parse_json(
+        response, "The Rising Stones check-in returned invalid data."
+    )
+    code = payload.get("code")
+    if code in (10000, "10000"):
+        return {"status": "signed"}
+    if code in (10001, "10001"):
+        return {"status": "already_signed"}
+    raise ApiClientError("The Rising Stones check-in was not accepted.")
 
 
 def finish_ticket_login(
@@ -1525,6 +1550,8 @@ def main() -> None:
         result = login_with_cookie(client, request["cookie"])
     elif operation == "restoreSession":
         result = restore_session(client)
+    elif operation == "signIn":
+        result = sign_in(client)
     elif operation == "fetchGlamourPage":
         result = fetch_glamour_page(client, request)
     elif operation == "fetchGlamourDetail":

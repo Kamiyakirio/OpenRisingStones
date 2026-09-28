@@ -135,6 +135,7 @@ pub fn run() {
       recruit::fetch_recruit_page,
       sdo_login::clear_all_local_data,
       sdo_login::sdo_login_status,
+      sdo_login::sdo_sign_in,
       sdo_login::sdo_start_push_login,
       sdo_login::sdo_start_qr_login,
       sdo_login::sdo_poll_push_login,

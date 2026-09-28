@@ -27,6 +27,18 @@
 .home-identity button:hover {
   color: var(--ors-color-accent-hover);
 }
+.home-signin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--ors-color-muted);
+  font-size: 0.875rem;
+}
+.home-signin button {
+  margin: 0 0 0 8px;
+}
 .home-pvp {
   margin-bottom: 48px;
 }

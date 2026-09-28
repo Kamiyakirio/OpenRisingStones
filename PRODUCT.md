@@ -43,6 +43,7 @@ on product scope:
 - Regional teleport workflows, including destination selection and orders.
 - Gear-set planning, materia selection, statistics, optimization, and share codes.
 - Authentication, light and dark themes, and local-data clearing.
+- Automatic Rising Stones daily check-in after a verified desktop login, with a visible result on the home page.
 
 Game-process bridging supports Windows only. Preserve explicit user consent for
 process injection and the existing version-validation gates. A desktop build on
