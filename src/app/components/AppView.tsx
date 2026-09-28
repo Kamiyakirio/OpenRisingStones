@@ -66,6 +66,9 @@ export function AppView({ viewModel }: AppViewProps) {
       <div id="workspace-content" className="workspace-content" tabIndex={-1}>
         {viewModel.activeFeature === "home" ? (
           <HomePage
+            profile={viewModel.loginProfile}
+            loginChecking={viewModel.loginChecking}
+            onOpenLogin={viewModel.openLogin}
             onOpenGlamour={viewModel.openGlamour}
             onOpenRecruit={viewModel.openRecruit}
             onOpenTeleport={viewModel.openTeleport}

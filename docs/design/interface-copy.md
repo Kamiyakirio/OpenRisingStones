@@ -27,22 +27,28 @@ what an adventurer is, celebrate routine clicks, or add a story around navigatio
 
 ## Home
 
-The home page is a feature directory. A player should be able to choose a tool
-without reading an introduction.
+The home page shows the bound character, current PvP maps, and the feature
+directory. A player should be able to read either map and choose a tool without
+reading an introduction.
 
-| Location                  | Previous copy                                     | Implemented copy or treatment     |
-| ------------------------- | ------------------------------------------------- | --------------------------------- |
-| Product name              | OpenRisingStone                                   | OpenRisingStones                  |
-| Eyebrow                   | 冒险者工具集                                      | Remove                            |
-| Main heading              | 从这里，开启下一段旅程。                          | 工具                              |
-| Introduction              | 选择一项功能，整理角色形象与跨区冒险计划。        | Remove                            |
-| 招募 description          | 寻找同行者，组织下一次冒险。                      | 按副本、职业和大区筛选招募        |
-| 幻化 description          | 浏览冒险者投稿，寻找你的下一套造型。              | 浏览幻化投稿，查看装备与染色      |
-| 超域传送 description      | 规划跨区路线，快速抵达目的地。                    | 提交超域传送申请，查看订单状态    |
-| 配装 description          | 规划装备与魔晶石搭配，为下一场战斗做好准备。      | 搭配装备与魔晶石，计算属性        |
-| English feature subtitles | Recruit / Glamour / Regional Teleport / Gear Sets | Remove from the Chinese interface |
-| Footer slogan             | 为艾欧泽亚冒险者打造                              | Remove                            |
-| Attribution               | 非官方社区工具                                    | 非官方 FF14 工具                  |
+| Location                  | Previous copy                                     | Implemented copy or treatment        |
+| ------------------------- | ------------------------------------------------- | ------------------------------------ |
+| Product name              | OpenRisingStone                                   | OpenRisingStones                     |
+| Eyebrow                   | 冒险者工具集                                      | Remove                               |
+| Main heading              | 工具                                              | 游戏 ID@服务器 from verified profile |
+| Introduction              | 选择一项功能，整理角色形象与跨区冒险计划。        | Remove                               |
+| 招募 description          | 寻找同行者，组织下一次冒险。                      | 按副本、职业和大区筛选招募           |
+| 幻化 description          | 浏览冒险者投稿，寻找你的下一套造型。              | 浏览幻化投稿，查看装备与染色         |
+| 超域传送 description      | 规划跨区路线，快速抵达目的地。                    | 提交超域传送申请，查看订单状态       |
+| 配装 description          | 规划装备与魔晶石搭配，为下一场战斗做好准备。      | 搭配装备与魔晶石，计算属性           |
+| English feature subtitles | Recruit / Glamour / Regional Teleport / Gear Sets | Remove from the Chinese interface    |
+| Footer slogan             | 为艾欧泽亚冒险者打造                              | Remove                               |
+| Attribution               | 非官方社区工具                                    | 非官方 FF14 工具                     |
+
+When signed out, show `未登录角色` and a login action. While checking the
+session, show `正在读取角色信息…`. Label the two calculated statuses `纷争前线`
+and `水晶冲突`, show the next local rotation time, and state that they are
+calculated from the 7.5 rotation rules. The directory heading remains `工具`.
 
 Feature buttons use a whole-row click target. An arrow may
 support that affordance; it should not become another nested button. The accessible

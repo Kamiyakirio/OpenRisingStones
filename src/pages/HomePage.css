@@ -1,11 +1,75 @@
-/** Equal feature entries extend the shared sidebar directory as tools are added. */
+/** Current account and PvP status lead into the ruled feature directory. */
 .product-home {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
 }
-.product-home h1 {
-  margin: 0 0 28px;
+.home-identity {
+  margin-bottom: 48px;
+}
+.home-identity h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.home-identity p {
+  margin: 8px 0 0;
+  color: var(--ors-color-muted);
+}
+.home-identity button {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ors-color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.home-identity button:hover {
+  color: var(--ors-color-accent-hover);
+}
+.home-pvp {
+  margin-bottom: 48px;
+}
+.home-pvp h2,
+.home-tools h2 {
+  margin: 0 0 20px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.home-pvp-rotations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-block: 1px solid var(--ors-color-line);
+}
+.home-pvp-rotation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 24px 32px 24px 0;
+}
+.home-pvp-rotation + .home-pvp-rotation {
+  padding: 24px 0 24px 32px;
+  border-left: 1px solid var(--ors-color-line);
+}
+.home-pvp-rotation h3 {
+  margin: 0;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.home-pvp-rotation strong {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.home-pvp-rotation time,
+.home-pvp-note {
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+.home-pvp-note {
+  margin: 12px 0 0;
 }
 .feature-directory {
   display: grid;
@@ -83,6 +147,21 @@
   font-size: 0.75rem;
 }
 @media (max-width: 767px) {
+  .home-identity,
+  .home-pvp {
+    margin-bottom: 40px;
+  }
+  .home-pvp-rotations {
+    grid-template-columns: 1fr;
+  }
+  .home-pvp-rotation,
+  .home-pvp-rotation + .home-pvp-rotation {
+    padding: 20px 0;
+    border-left: 0;
+  }
+  .home-pvp-rotation + .home-pvp-rotation {
+    border-top: 1px solid var(--ors-color-line);
+  }
   .feature-directory {
     grid-template-columns: 1fr;
   }

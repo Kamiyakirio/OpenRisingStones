@@ -198,7 +198,7 @@ From 620px through 899px, brand, horizontally scrollable text navigation, and co
 
 Use the 4px spacing rhythm. Controls have a 40px global minimum and at least 44px for coarse pointers. Dense gearing controls may use 36px with coarse-pointer overrides.
 
-The home is a ruled 2×2 directory with four equal whole-row targets and 132px minimum entries. Below 768px it becomes one column. No destination becomes a promotional card.
+The home first shows the bound character as `game ID@server`, or a login action when no verified profile is available. A two-column ruled status area shows the current Frontline and Crystalline Conflict maps and their next rotation times. The feature directory remains a ruled two-column set of equal whole-row targets with 132px minimum entries; both areas become one column below 768px. No destination becomes a promotional card.
 
 Preserve one task surface at a time when simultaneous panes would compete for effective width. Gearing groups equipment and candidates into one editing task, with statistics/comparison and optimization as separate tasks. Wide screens retain equipped context beside candidates; compact screens provide a slot selector and return action. Drafts are saved only through explicit save actions. Local tables may scroll; the page must not overflow horizontally.
 
@@ -227,6 +227,8 @@ At 900px and above, navigation is a 176px full-text sidebar with 48px targets, m
 Primary buttons use accent fill and on-accent text. Secondary controls use neutral surfaces and control-line borders. Disabled controls remain identifiable and prevent duplicate action. Visible labels sit outside fields; validation uses complete messages and invalid semantics in addition to danger color.
 
 ### Home directory
+
+Use verified profile fields for the home identity, never placeholder character data. Calculate PvP status from the documented patch rotation, label it as a calculation, and refresh at the next boundary and when the app regains focus.
 
 Keep recruitment, glamour, regional teleport, and gearing as equal whole-row buttons. Each has one icon, direct title, concrete description, and decorative trailing arrow. Shared rules define the 2×2 layout; compact widths stack it to one column.
 
