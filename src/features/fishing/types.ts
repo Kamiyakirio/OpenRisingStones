@@ -24,6 +24,10 @@ export type FishConditions = {
 };
 export type Fish = {
   id: number;
+  namePinyin: string;
+  nameInitials: string;
+  fishParameterId: number | null;
+  spearfishingItemId: number | null;
   method: "rod" | "spear" | "ocean";
   specialConditions: boolean;
   name: string;

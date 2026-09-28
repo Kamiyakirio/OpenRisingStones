@@ -2,6 +2,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import Papa from "papaparse";
+import { pinyin } from "pinyin-pro";
 import { ProxyAgent, setGlobalDispatcher } from "undici";
 import { configureSystemProxy } from "./system-proxy.mjs";
 
@@ -112,14 +113,14 @@ const [
 ]);
 // Visible game-log rows define catalog coverage; the tracker only enriches their conditions.
 const rodByItem = new Map(
-  [...fishParameters.values()]
-    .filter((row) => Number(row.Item) > 0 && row.IsInLog === "True")
-    .map((row) => [Number(row.Item), row]),
+  [...fishParameters]
+    .filter(([, row]) => Number(row.Item) > 0 && row.IsInLog === "True")
+    .map(([rowId, row]) => [Number(row.Item), { ...row, logId: rowId }]),
 );
 const spearByItem = new Map(
-  [...spearItems.values()]
-    .filter((row) => Number(row.Item) > 0 && row.IsVisible === "True")
-    .map((row) => [Number(row.Item), row]),
+  [...spearItems]
+    .filter(([, row]) => Number(row.Item) > 0 && row.IsVisible === "True")
+    .map(([rowId, row]) => [Number(row.Item), { ...row, logId: rowId }]),
 );
 const notesByItem = new Map(
   [...notes.values()].map((row) => [Number(row.Item), row]),
@@ -197,6 +198,8 @@ const fish = ids.map((id) => {
   const supplemental = fishingSources[id]?.[0];
   const spearSupplemental = spearSources[id]?.[0];
   const isSpear = spearByItem.has(id) || Boolean(condition?.gig);
+  const fishName = itemName(id);
+  const syllables = pinyin(fishName, { toneType: "none", type: "array" });
   const locations = [];
   if (condition?.location != null) {
     const spot = location(condition.location, Boolean(condition.gig));
@@ -286,10 +289,19 @@ const fish = ids.map((id) => {
     : null;
   return {
     id,
+    // Precompute full pinyin and initials to keep the browser bundle small.
+    namePinyin: syllables.join("").toLocaleLowerCase(),
+    nameInitials: syllables
+      .map((syllable) => syllable[0] || "")
+      .join("")
+      .toLocaleLowerCase(),
+    // The game stores caught bits by sheet row, rather than by Item ID.
+    fishParameterId: rodByItem.get(id)?.logId ?? null,
+    spearfishingItemId: spearByItem.get(id)?.logId ?? null,
     method: ocean ? "ocean" : isSpear ? "spear" : "rod",
     specialConditions:
       Number(note?.SpecialConditions ?? info?.special_conditions ?? 0) > 0,
-    name: itemName(id),
+    name: fishName,
     nameEn: info?.name_en || data.ITEMS[id]?.name_en || "",
     icon:
       info?.icon ||
@@ -355,7 +367,7 @@ const fish = ids.map((id) => {
 if (fish.length < 1730 || fish.some((fish) => !fish.name))
   throw new Error("Fish catalog validation failed.");
 const catalog = {
-  formatVersion: 2,
+  formatVersion: 4,
   generatedAt: new Date().toISOString(),
   sources: sources.sort((a, b) => a.url.localeCompare(b.url)),
   fish,

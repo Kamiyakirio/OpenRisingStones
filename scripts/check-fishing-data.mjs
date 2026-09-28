@@ -9,9 +9,19 @@ try {
     ),
   );
   if (
-    catalog.formatVersion !== 2 ||
+    catalog.formatVersion !== 4 ||
     catalog.fish?.length < 1730 ||
-    !catalog.itemIcons
+    !catalog.itemIcons ||
+    catalog.fish.filter(
+      (fish) =>
+        Number.isInteger(fish.fishParameterId) ||
+        Number.isInteger(fish.spearfishingItemId),
+    ).length < 1700 ||
+    catalog.fish.some(
+      (fish) =>
+        typeof fish.namePinyin !== "string" ||
+        typeof fish.nameInitials !== "string",
+    )
   )
     throw new Error("Unsupported or incomplete fishing catalog.");
 } catch (error) {

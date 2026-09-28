@@ -10,7 +10,12 @@ export async function invoke<T>(
   if (typeof __DEBUG_BUILD__ === "undefined" || !__DEBUG_BUILD__) {
     return nativeInvoke<T>(command, args, options);
   }
-  if (command.startsWith("debug_log_") || command === "clear_all_local_data") {
+  if (
+    command.startsWith("debug_log_") ||
+    command === "clear_all_local_data" ||
+    // Character identity and complete catch bits should not enter Debug logs.
+    command === "capture_fishing_log"
+  ) {
     return nativeInvoke<T>(command, args, options);
   }
 
