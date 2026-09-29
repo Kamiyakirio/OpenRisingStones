@@ -22,10 +22,23 @@ impl ElevationError {
 /// Starts a new elevated process through the Windows `runas` verb.
 #[tauri::command]
 pub fn restart_as_administrator(app: AppHandle) -> Result<(), ElevationError> {
-  #[cfg(windows)]
+  #[cfg(all(windows, debug_assertions))]
+  {
+    let _ = app;
+    Err(ElevationError::new(
+      "development_relaunch_required",
+      "Restart `npm run tauri dev` from an administrator terminal so its development server stays available.",
+    ))
+  }
+
+  #[cfg(all(windows, not(debug_assertions)))]
   {
     relaunch_elevated()?;
-    app.exit(0);
+    // Let the IPC reply finish before the old WebView begins shutting down.
+    tauri::async_runtime::spawn(async move {
+      tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+      app.exit(0);
+    });
     Ok(())
   }
 
@@ -39,7 +52,7 @@ pub fn restart_as_administrator(app: AppHandle) -> Result<(), ElevationError> {
   }
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, not(debug_assertions)))]
 fn relaunch_elevated() -> Result<(), ElevationError> {
   use std::ptr::null;
   use windows_sys::Win32::UI::Shell::ShellExecuteW;
@@ -85,7 +98,7 @@ fn relaunch_elevated() -> Result<(), ElevationError> {
   }
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, not(debug_assertions)))]
 fn wide_null(value: &std::ffi::OsStr) -> Vec<u16> {
   use std::os::windows::ffi::OsStrExt;
 

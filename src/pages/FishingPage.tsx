@@ -48,6 +48,7 @@ import type {
   OceanRoute,
 } from "../features/fishing/types";
 import { useListDetailScroll } from "../shared/hooks/useListDetailScroll";
+import { restartAsAdministrator } from "../shared/game-bridge/api";
 import "../features/fishing/fishing.css";
 
 type Mode = "now" | "completion" | "voyage" | "lookup";
@@ -704,6 +705,9 @@ export function FishingPage() {
   const voyageScroll = useListDetailScroll(Boolean(selectedVoyage));
   const fishScroll = useListDetailScroll(Boolean(vm.selected));
   const [lastTrigger, setLastTrigger] = useState<string | null>(null);
+  const [elevationFailed, setElevationFailed] = useState(false);
+  const debugAccessDenied =
+    __DEBUG_BUILD__ && vm.gameLogStatus === "access-denied";
   const regions = useMemo(
     () =>
       catalog ? fishingRegions(catalog, progress, completionDiscipline) : [],
@@ -751,26 +755,49 @@ export function FishingPage() {
         </strong>
         <span>
           {vm.gameLogStatus === "ready"
-            ? `已读取 ${vm.gameCoveredIds.size} 条记录；${gameUnmapped} 条图鉴外鱼需手动记录。`
+            ? `已从游戏读取 ${vm.gameCaughtCount} 条已钓记录；${gameUnmapped} 条图鉴外鱼需手动记录。`
             : vm.gameLogStatus === "unsupported"
               ? "自动读取仅支持 Windows 桌面版。"
-              : vm.gameLogStatus === "error"
-                ? "当前游戏版本无法读取图鉴，请更新应用后重试。"
-                : vm.gameLogStatus === "syncing"
-                  ? "正在读取当前角色的图鉴…"
-                  : "进入游戏角色后自动读取；当前显示本机记录。"}
+              : vm.gameLogStatus === "access-denied"
+                ? debugAccessDenied
+                  ? "调试模式下请关闭应用，在管理员终端运行 npm run tauri dev 后重试。"
+                  : elevationFailed
+                    ? "Windows 未能以管理员身份重启应用，请检查权限后重试。"
+                    : "Windows 拒绝读取游戏进程，请以管理员身份重启应用后重试。"
+                : vm.gameLogStatus === "multiple-processes"
+                  ? "检测到多个游戏进程，请只保留一个后重新读取。"
+                  : vm.gameLogStatus === "unsupported-version"
+                    ? "当前游戏版本无法读取图鉴，请更新应用后重试。"
+                    : vm.gameLogStatus === "error"
+                      ? "读取游戏图鉴失败，请重试。"
+                      : vm.gameLogStatus === "syncing"
+                        ? "正在读取当前角色的图鉴…"
+                        : "进入游戏角色后自动读取；当前显示本机记录。"}
         </span>
       </div>
-      <button
-        type="button"
-        onClick={() => void vm.refreshGameLog()}
-        disabled={
-          vm.gameLogStatus === "syncing" || vm.gameLogStatus === "unsupported"
-        }
-      >
-        <ArrowsClockwise aria-hidden="true" />
-        重新读取
-      </button>
+      {!debugAccessDenied && (
+        <button
+          type="button"
+          onClick={() => {
+            if (vm.gameLogStatus === "access-denied") {
+              setElevationFailed(false);
+              void restartAsAdministrator().catch(() =>
+                setElevationFailed(true),
+              );
+            } else {
+              void vm.refreshGameLog();
+            }
+          }}
+          disabled={
+            vm.gameLogStatus === "syncing" || vm.gameLogStatus === "unsupported"
+          }
+        >
+          <ArrowsClockwise aria-hidden="true" />
+          {vm.gameLogStatus === "access-denied"
+            ? "以管理员身份重启"
+            : "重新读取"}
+        </button>
+      )}
     </div>
   );
   function changeSearch(change: Partial<FishingSearch>) {

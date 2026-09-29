@@ -31,15 +31,7 @@ struct MonitorEvent {
   error_message: Option<String>,
 }
 fn report_error(window: &WebviewWindow, session_id: &str, error: BridgeError) {
-  let code = match &error {
-    BridgeError::ProcessNotFound => "process_not_found",
-    BridgeError::MultipleProcesses => "multiple_processes",
-    BridgeError::Windows { code: 5, .. } => "access_denied",
-    BridgeError::InvalidData(_) => "unsupported_game_version",
-    BridgeError::ConnectionClosed => "game_closed",
-    BridgeError::UnsupportedPlatform => "unsupported_platform",
-    _ => "read_failed",
-  };
+  let code = fishing_error_code(&error);
   let _ = window.emit(
     "fishing-timer://sample",
     MonitorEvent {
@@ -52,22 +44,66 @@ fn report_error(window: &WebviewWindow, session_id: &str, error: BridgeError) {
   );
 }
 
+/// Keep timer events and one-shot log reads on the same stable error codes.
+fn fishing_error_code(error: &BridgeError) -> &'static str {
+  match error {
+    BridgeError::ProcessNotFound => "process_not_found",
+    BridgeError::MultipleProcesses => "multiple_processes",
+    BridgeError::Windows { code: 5, .. } => "access_denied",
+    BridgeError::InvalidData(message)
+      if matches!(
+        message.as_str(),
+        "character is not loaded"
+          | "character identity is unavailable"
+          | "character changed during fishing log capture"
+      ) =>
+    {
+      "character_not_loaded"
+    }
+    BridgeError::InvalidData(_) => "unsupported_game_version",
+    BridgeError::ConnectionClosed => "game_closed",
+    BridgeError::UnsupportedPlatform => "unsupported_platform",
+    _ => "read_failed",
+  }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FishingLogCaptureError {
+  code: &'static str,
+  message: String,
+}
+
+impl From<BridgeError> for FishingLogCaptureError {
+  fn from(error: BridgeError) -> Self {
+    Self {
+      code: fishing_error_code(&error),
+      message: error.to_string(),
+    }
+  }
+}
+
 /// Capture the loaded character's game fishing log without requiring the timer window.
 #[tauri::command]
-pub async fn capture_fishing_log() -> Result<FishingLogSnapshot, String> {
+pub async fn capture_fishing_log() -> Result<FishingLogSnapshot, FishingLogCaptureError> {
   #[cfg(windows)]
   {
     tauri::async_runtime::spawn_blocking(|| {
       game_bridge_host::fishing::FishingReader::connect(None)
         .and_then(|reader| reader.capture_log())
-        .map_err(|error| error.to_string())
+        .map_err(FishingLogCaptureError::from)
     })
     .await
-    .map_err(|error| format!("Fishing log worker failed: {error}"))?
+    .map_err(|error| FishingLogCaptureError {
+      code: "read_failed",
+      message: format!("Fishing log worker failed: {error}"),
+    })?
   }
   #[cfg(not(windows))]
   {
-    Err("Fishing log capture requires the Windows desktop app.".into())
+    Err(FishingLogCaptureError::from(
+      BridgeError::UnsupportedPlatform,
+    ))
   }
 }
 #[tauri::command]

@@ -4,6 +4,7 @@ import { parseProgress, PROGRESS_KEY } from "./model";
 import { useFishingClock } from "./clock";
 import { applyGameFishingLog, type GameFishingLog } from "./gameLog";
 import { captureFishingLog } from "./api";
+import { normalizeGameBridgeError } from "../../shared/game-bridge/api";
 import { isTauriRuntime } from "../../shared/utils/runtime";
 import type { FishCatalog, FishProgress } from "./types";
 export function useFishing() {
@@ -23,7 +24,14 @@ export function useFishing() {
   const desktop = isTauriRuntime();
   const [gameLog, setGameLog] = useState<GameFishingLog | null>(null);
   const [gameLogStatus, setGameLogStatus] = useState<
-    "syncing" | "ready" | "waiting" | "error" | "unsupported"
+    | "syncing"
+    | "ready"
+    | "waiting"
+    | "error"
+    | "unsupported"
+    | "unsupported-version"
+    | "access-denied"
+    | "multiple-processes"
   >("waiting");
   const requestVersion = useRef(0);
   const unsupportedPlatform = useRef(false);
@@ -46,18 +54,22 @@ export function useFishing() {
     } catch (reason) {
       if (version !== requestVersion.current) return;
       setGameLog(null);
-      const message = String(reason);
-      if (/requires the Windows desktop app/i.test(message)) {
-        unsupportedPlatform.current = true;
-      }
+      const { code } = normalizeGameBridgeError(reason);
+      if (code === "unsupported_platform") unsupportedPlatform.current = true;
       setGameLogStatus(
         unsupportedPlatform.current
           ? "unsupported"
-          : /signature|image size mismatch|invalid fishing log snapshot/i.test(
-                message,
-              )
-            ? "error"
-            : "waiting",
+          : code === "access_denied"
+            ? "access-denied"
+            : code === "unsupported_game_version"
+              ? "unsupported-version"
+              : code === "multiple_processes"
+                ? "multiple-processes"
+                : code === "process_not_found" ||
+                    code === "character_not_loaded" ||
+                    code === "game_closed"
+                  ? "waiting"
+                  : "error",
       );
     }
   }, [desktop]);
@@ -119,6 +131,11 @@ export function useFishing() {
         : null,
     [catalog, gameLog, manualProgress],
   );
+  // Count actual caught catalog entries; coveredIds counts every readable log row.
+  const gameCaughtCount =
+    gameProgress?.progress.caught.filter((id) =>
+      gameProgress.coveredIds.has(id),
+    ).length ?? 0;
   const progress = gameProgress?.progress ?? manualProgress;
   const selected = catalog?.fish.find((fish) => fish.id === selectedId) ?? null;
   function toggleProgress(id: number, key: keyof FishProgress) {
@@ -150,6 +167,7 @@ export function useFishing() {
     progress,
     gameLog,
     gameLogStatus,
+    gameCaughtCount,
     gameCoveredIds: gameProgress?.coveredIds ?? new Set<number>(),
     desktop,
     refreshGameLog,
