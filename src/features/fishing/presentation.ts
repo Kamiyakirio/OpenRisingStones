@@ -8,6 +8,23 @@ export const kindLabels = {
   unknown: "未分类",
 };
 
+export const tugLabels: Record<string, string> = {
+  light: "轻杆",
+  medium: "中杆",
+  heavy: "重杆",
+};
+
+export const hooksetLabels: Record<string, string> = {
+  Precision: "精准提钩",
+  Powerful: "强力提钩",
+};
+
+export const gigLabels: Record<string, string> = {
+  Small: "小型鱼影",
+  Normal: "中型鱼影",
+  Large: "大型鱼影",
+};
+
 /** Round upward so an unexpired window never reads as already elapsed. */
 export function durationText(milliseconds: number) {
   const seconds = Math.max(0, Math.ceil(milliseconds / 1000));

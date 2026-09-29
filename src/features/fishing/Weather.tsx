@@ -97,12 +97,15 @@ export function WeatherForecast({
   fish,
   catalog,
   now,
+  spotId,
+  onSelectSpot,
 }: {
   fish: Fish;
   catalog: FishCatalog;
   now: number;
+  spotId?: number;
+  onSelectSpot: (spotId: number) => void;
 }) {
-  const [spotId, setSpotId] = useState(fish.locations[0]?.id);
   const spot =
     fish.locations.find((spot) => spot.id === spotId) ?? fish.locations[0];
   const period = 8 * EORZEA_HOUR;
@@ -120,7 +123,7 @@ export function WeatherForecast({
           查看钓点天气
           <select
             value={spot?.id}
-            onChange={(event) => setSpotId(Number(event.target.value))}
+            onChange={(event) => onSelectSpot(Number(event.target.value))}
           >
             {fish.locations.map((location) => (
               <option key={location.id} value={location.id}>
