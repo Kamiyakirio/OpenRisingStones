@@ -1,6 +1,18 @@
 /** One fish, one preparation path: window, destination, bait, then full conditions. */
-import { ArrowLeft, BookmarkSimple, Check } from "@phosphor-icons/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookmarkSimple,
+  Check,
+} from "@phosphor-icons/react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   isWindowOpen,
   isUnrestricted,
@@ -9,13 +21,19 @@ import {
 } from "./model";
 import {
   durationText,
+  gigLabels,
+  hooksetLabels,
   kindLabels,
   timeRequirement,
+  tugLabels,
   windowDurationText,
 } from "./presentation";
 import { WeatherForecast, WeatherSet } from "./Weather";
-import { FishBait } from "./FishBait";
 import { FishIcon } from "./FishIcon";
+import { BaitComparison } from "./BaitComparison";
+import { FishingTechnique } from "./FishingTechnique";
+import { useBiteTimes } from "./useBiteTimes";
+import { useSelfMooch } from "./useSelfMooch";
 import type { Fish, FishCatalog, FishProgress } from "./types";
 
 const localTime = (time: number) =>
@@ -60,6 +78,7 @@ export function WindowStatus({
 
 export function FishDetail({
   fish,
+  initialSpotId,
   catalog,
   now,
   progress,
@@ -71,6 +90,7 @@ export function FishDetail({
   onBack,
 }: {
   fish: Fish;
+  initialSpotId?: number;
   catalog: FishCatalog;
   now: number;
   progress: FishProgress;
@@ -82,14 +102,26 @@ export function FishDetail({
   onBack: () => void;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
+  const windowScroll = useRef<HTMLDivElement>(null);
   const [fishEyes, setFishEyes] = useState(initialFishEyes);
   const [windowCount, setWindowCount] = useState(10);
   const [horizonDays, setHorizonDays] = useState(365);
+  const previousWindowCount = useRef(windowCount);
+  const previousWindowLength = useRef(0);
+  const [spotId, setSpotId] = useState(initialSpotId ?? fish.locations[0]?.id);
   useEffect(() => heading.current?.focus(), [fish.id]);
   const caught = progress.caught.includes(fish.id);
   const saved = progress.saved.includes(fish.id);
   const condition = fish.conditions;
-  const firstSpot = fish.locations[0];
+  // Keep the opening row's spot and synchronize every detail view when it changes.
+  const activeSpot =
+    fish.locations.find((spot) => spot.id === spotId) ?? fish.locations[0];
+  const fishById = useMemo(
+    () => new Map(catalog.fish.map((item) => [item.id, item])),
+    [catalog],
+  );
+  const biteTimes = useBiteTimes([fish], fishById, activeSpot?.id);
+  const selfMooch = useSelfMooch([fish], fishById, activeSpot?.id);
   const firstBait = condition?.bait[0];
   const baitIds =
     firstBait == null ? [] : Array.isArray(firstBait) ? firstBait : [firstBait];
@@ -111,6 +143,25 @@ export function FishDetail({
     fishEyes,
     horizonDays,
   );
+  /** Reveal the first newly calculated row inside the capped window list. */
+  useLayoutEffect(() => {
+    const previousCount = previousWindowCount.current;
+    const previousLength = previousWindowLength.current;
+    previousWindowCount.current = windowCount;
+    previousWindowLength.current = windows.length;
+    if (windowCount <= previousCount || windows.length <= previousLength)
+      return;
+    const viewport = windowScroll.current;
+    const firstNew = viewport?.querySelectorAll("li")[previousLength];
+    if (!viewport || !firstNew) return;
+    viewport.scrollTo({
+      top:
+        viewport.scrollTop +
+        firstNew.getBoundingClientRect().top -
+        viewport.getBoundingClientRect().top,
+      behavior: "instant",
+    });
+  }, [windowCount, windows.length]);
   const name = (id: number) => catalog.items[id] || String(id);
   const timingHeadline =
     fish.method === "ocean"
@@ -193,29 +244,48 @@ export function FishDetail({
         </div>
         <div>
           <h2>钓点</h2>
-          <strong>{firstSpot?.name || "钓点待补充"}</strong>
+          <strong>{activeSpot?.name || "钓点待补充"}</strong>
           <p>
-            {firstSpot?.zone || fish.zone || "区域待补充"}
-            {firstSpot?.coords &&
-              ` · X:${firstSpot.coords[0].toFixed(1)} Y:${firstSpot.coords[1].toFixed(1)}`}
+            {activeSpot?.zone || fish.zone || "区域待补充"}
+            {activeSpot?.coords &&
+              ` · X:${activeSpot.coords[0].toFixed(1)} Y:${activeSpot.coords[1].toFixed(1)}`}
           </p>
         </div>
         <div>
           <h2>{fish.method === "spear" ? "鱼影" : "鱼饵"}</h2>
           <strong>
             {fish.method === "spear"
-              ? { Small: "小型鱼影", Normal: "中型鱼影", Large: "大型鱼影" }[
-                  condition?.gig || ""
-                ] || "鱼影大小待补充"
+              ? gigLabels[condition?.gig || ""] || "鱼影大小待补充"
               : baitSummary}
           </strong>
           {Boolean(condition?.predators.length) && <p>还需先钓前置鱼</p>}
+          {fish.method !== "spear" && activeSpot && (
+            <button
+              type="button"
+              className="fish-plan-bait-link"
+              onClick={() =>
+                document
+                  .getElementById("fish-bait-comparison")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+            >
+              比较不同鱼饵的咬钩时间 <ArrowRight aria-hidden="true" />
+            </button>
+          )}
         </div>
       </section>
       {fish.description && (
         <p className="fish-description">
           {fish.description.replace(/<[^>]*>/g, "")}
         </p>
+      )}
+      {fish.method !== "spear" && (
+        <BaitComparison
+          fish={fish}
+          catalog={catalog}
+          spotId={activeSpot?.id}
+          onSelectSpot={setSpotId}
+        />
       )}
       <div className="fish-detail-layout">
         <section className="fish-detail-section">
@@ -250,33 +320,27 @@ export function FishDetail({
                 {condition.tug && (
                   <div>
                     <dt>咬钩</dt>
-                    <dd>
-                      {{ light: "轻杆", medium: "中杆", heavy: "重杆" }[
-                        condition.tug
-                      ] || "未收录"}
-                    </dd>
+                    <dd>{tugLabels[condition.tug] || "未收录"}</dd>
                   </div>
                 )}
                 {condition.hookset && (
                   <div>
                     <dt>提钩</dt>
-                    <dd>
-                      {{ Precision: "精准提钩", Powerful: "强力提钩" }[
-                        condition.hookset
-                      ] || "未收录"}
-                    </dd>
+                    <dd>{hooksetLabels[condition.hookset] || "未收录"}</dd>
                   </div>
                 )}
+                {fish.method !== "spear" &&
+                  !condition.tug &&
+                  !condition.hookset && (
+                    <div>
+                      <dt>咬钩 / 提钩</dt>
+                      <dd>资料待补</dd>
+                    </div>
+                  )}
                 {condition.snagging && (
                   <div>
                     <dt>额外要求</dt>
                     <dd>开启钓组</dd>
-                  </div>
-                )}
-                {condition.folklore && (
-                  <div>
-                    <dt>传承录</dt>
-                    <dd>{condition.folklore}</dd>
                   </div>
                 )}
               </dl>
@@ -284,7 +348,32 @@ export function FishDetail({
                 <div className="fish-detail-subsection">
                   <h3>鱼饵与以小钓大</h3>
                   {condition.bait.length ? (
-                    <FishBait steps={condition.bait} catalog={catalog} />
+                    <>
+                      <FishingTechnique
+                        fish={fish}
+                        catalog={catalog}
+                        fishById={fishById}
+                        biteTimes={biteTimes}
+                        selfMooch={selfMooch.confirmed}
+                        spotId={activeSpot?.id}
+                      />
+                      {biteTimes.status === "error" && (
+                        <p className="fish-bite-error" role="status">
+                          咬钩时间暂时无法读取。
+                          <button type="button" onClick={biteTimes.retry}>
+                            重试
+                          </button>
+                        </p>
+                      )}
+                      {selfMooch.status === "error" && (
+                        <p className="fish-bite-error" role="status">
+                          回转记录暂时无法读取。
+                          <button type="button" onClick={selfMooch.retry}>
+                            重试
+                          </button>
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <p className="fish-muted">推荐鱼饵待补充</p>
                   )}
@@ -343,29 +432,37 @@ export function FishDetail({
               <p>全天开放，不受天气限制。</p>
             ) : windows.length ? (
               <>
-                <div className="fish-window-head" aria-hidden="true">
-                  <span>开始</span>
-                  <span>结束</span>
-                  <span>时长</span>
+                <div
+                  className="fish-window-scroll"
+                  role="region"
+                  aria-label="可钓窗口时间表"
+                  tabIndex={0}
+                  ref={windowScroll}
+                >
+                  <div className="fish-window-head" aria-hidden="true">
+                    <span>开始</span>
+                    <span>结束</span>
+                    <span>时长</span>
+                  </div>
+                  <ol className="fish-windows">
+                    {windows.map((window) => (
+                      <li key={window.start}>
+                        <strong>
+                          {window.start <= now
+                            ? "当前窗口"
+                            : localTime(window.start)}
+                        </strong>
+                        <span>至 {localTime(window.end)}</span>
+                        <span className="fish-window-duration">
+                          {window.start <= now && "剩余 "}
+                          {windowDurationText(
+                            window.end - Math.max(window.start, now),
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
-                <ol className="fish-windows">
-                  {windows.map((window) => (
-                    <li key={window.start}>
-                      <strong>
-                        {window.start <= now
-                          ? "当前窗口"
-                          : localTime(window.start)}
-                      </strong>
-                      <span>至 {localTime(window.end)}</span>
-                      <span className="fish-window-duration">
-                        {window.start <= now && "剩余 "}
-                        {windowDurationText(
-                          window.end - Math.max(window.start, now),
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
                 <button
                   className="fish-text-action"
                   onClick={() => {
@@ -375,6 +472,11 @@ export function FishDetail({
                 >
                   继续计算窗口
                 </button>
+                {windowCount > 10 && (
+                  <p className="fish-window-progress fish-muted" role="status">
+                    已计算未来 {horizonDays} 天，找到 {windows.length} 个窗口。
+                  </p>
+                )}
               </>
             ) : (
               <p className="fish-muted">
@@ -386,7 +488,13 @@ export function FishDetail({
             {fishEyes && "鱼眼计算仅忽略支持该技能的鱼的时间限制。"}
           </p>
           <h3>钓点天气</h3>
-          <WeatherForecast fish={fish} catalog={catalog} now={now} />
+          <WeatherForecast
+            fish={fish}
+            catalog={catalog}
+            now={now}
+            spotId={activeSpot?.id}
+            onSelectSpot={setSpotId}
+          />
         </section>
       </div>
       <section className="fish-location-section">

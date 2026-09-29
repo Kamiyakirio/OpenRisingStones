@@ -1,8 +1,11 @@
 /** Compact task row: timing and destination lead, rarity remains secondary. */
 import { ArrowRight, BookmarkSimple, Check } from "@phosphor-icons/react";
 import { FishIcon } from "./FishIcon";
+import { FishEntryConditions } from "./FishEntryConditions";
+import { FishingTechnique } from "./FishingTechnique";
+import type { useBiteTimes } from "./useBiteTimes";
 import { isUnrestricted, isWindowOpen, upcomingWindow } from "./model";
-import { durationText, kindLabels } from "./presentation";
+import { durationText, kindLabels, windowDurationText } from "./presentation";
 import { fishingCategory } from "./workspace";
 import type { Fish, FishCatalog } from "./types";
 
@@ -19,6 +22,10 @@ const localStart = (time: number) =>
 export function FishingRow({
   fish,
   catalog,
+  fishById,
+  biteTimes,
+  selfMooch,
+  spotId,
   now,
   fishEyes,
   caught,
@@ -26,11 +33,19 @@ export function FishingRow({
   gameManaged,
   gameLogActive,
   idPrefix,
+  showLocation = true,
+  showConditions = true,
+  showTiming = true,
+  showNextCountdown = false,
   onOpen,
   onToggleSaved,
 }: {
   fish: Fish;
   catalog: FishCatalog;
+  fishById: Map<number, Fish>;
+  biteTimes: ReturnType<typeof useBiteTimes>;
+  selfMooch: ReadonlySet<string>;
+  spotId?: number;
   now: number;
   fishEyes: boolean;
   caught: boolean;
@@ -38,7 +53,11 @@ export function FishingRow({
   gameManaged: boolean;
   gameLogActive: boolean;
   idPrefix: string;
-  onOpen: (fish: Fish, triggerId: string) => void;
+  showLocation?: boolean;
+  showConditions?: boolean;
+  showTiming?: boolean;
+  showNextCountdown?: boolean;
+  onOpen: (fish: Fish, triggerId: string, spotId?: number) => void;
   onToggleSaved: (id: number) => void;
 }) {
   const category = fishingCategory(fish, catalog, now);
@@ -63,6 +82,7 @@ export function FishingRow({
               : open
                 ? `开放中 · 剩余 ${durationText(window.end - now)}`
                 : `${localStart(window.start)} 开放`;
+  const nextCountdown = showNextCountdown && window && !open;
   const record = caught
     ? "已钓获"
     : gameManaged
@@ -72,20 +92,27 @@ export function FishingRow({
         : "未标记";
   const triggerId = `${idPrefix}-${fish.id}`;
   return (
-    <article className="fish-entry" data-category={category}>
+    <article
+      className="fish-entry"
+      data-category={category}
+      data-conditions={showConditions}
+      data-timing={showTiming}
+    >
       <button
         id={triggerId}
         type="button"
         className="fish-entry-open"
-        onClick={() => onOpen(fish, triggerId)}
+        onClick={() => onOpen(fish, triggerId, spotId)}
       >
         <FishIcon fish={fish} />
         <span className="fish-entry-copy">
           <strong>{fish.name}</strong>
-          <span className="fish-entry-meta">
-            {fish.zone || "区域未收录"}
-            {fish.locations[0]?.name && ` · ${fish.locations[0].name}`}
-          </span>
+          {showLocation && (
+            <span className="fish-entry-meta">
+              {fish.zone || "区域未收录"}
+              {fish.locations[0]?.name && ` · ${fish.locations[0].name}`}
+            </span>
+          )}
           <span className="fish-entry-type">
             {methodLabels[fish.method]}
             {fish.kind !== "normal" &&
@@ -93,11 +120,36 @@ export function FishingRow({
               ` · ${kindLabels[fish.kind]}`}
           </span>
         </span>
-        <span className="fish-entry-timing" data-open={open}>
-          {timing}
-        </span>
+        {showTiming && (
+          <span
+            className="fish-entry-timing"
+            data-open={open}
+            data-countdown={Boolean(nextCountdown)}
+          >
+            {nextCountdown ? (
+              <>
+                <strong>
+                  还有 {windowDurationText(window.start - now)} 可钓
+                </strong>
+                <small>{localStart(window.start)} 开放</small>
+              </>
+            ) : (
+              timing
+            )}
+          </span>
+        )}
         <ArrowRight className="fish-entry-arrow" aria-hidden="true" />
       </button>
+      {showConditions && <FishEntryConditions fish={fish} catalog={catalog} />}
+      <FishingTechnique
+        fish={fish}
+        catalog={catalog}
+        fishById={fishById}
+        biteTimes={biteTimes}
+        selfMooch={selfMooch}
+        spotId={spotId}
+        showAlternatives={false}
+      />
       <div className="fish-entry-side">
         <span className="fish-entry-record" data-caught={caught}>
           {caught && <Check aria-hidden="true" weight="bold" />}
