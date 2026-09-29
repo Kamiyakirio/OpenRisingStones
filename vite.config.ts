@@ -21,9 +21,8 @@ export default defineConfig(({ command }) => {
       rollupOptions: {
         output: {
           // Match the stable bundle naming convention used by Webpack builds.
-          entryFileNames: "assets/chunk-[hash].js",
-          chunkFileNames: (chunkInfo) =>
-            `assets/${chunkInfo.name === "vendor" ? "vendor" : "chunk"}-[hash].js`,
+          entryFileNames: "assets/index-[hash].js",
+          chunkFileNames: (chunkInfo) => `assets/${chunkInfo.name}-[hash].js`,
           manualChunks: (id) =>
             id.includes("node_modules") ? "vendor" : undefined,
         },
