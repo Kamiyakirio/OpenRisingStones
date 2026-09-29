@@ -14,6 +14,8 @@ const game =
   "https://raw.githubusercontent.com/thewakingsands/ffxiv-datamining-cn/master/";
 const teamcraft =
   "https://raw.githubusercontent.com/ffxiv-teamcraft/ffxiv-teamcraft/staging/";
+const distantSeas =
+  "https://raw.githubusercontent.com/NotNite/DistantSeas/main/";
 const sources = [];
 async function download(url) {
   const response = await fetch(url, { signal: AbortSignal.timeout(60000) });
@@ -63,6 +65,11 @@ const [
   license,
   notes,
   oceanSpots,
+  oceanRouteRows,
+  oceanTableRows,
+  oceanIndigo,
+  oceanRuby,
+  distantLicense,
   fishingSources,
   teamcraftLicense,
   fishParameters,
@@ -89,6 +96,11 @@ const [
   download(`${tracker}LICENSE`),
   sheet("FishingNoteInfo"),
   sheet("IKDSpot"),
+  sheet("IKDRoute"),
+  sheet("IKDRouteTable"),
+  download(`${distantSeas}Data/indigo.json`).then(JSON.parse),
+  download(`${distantSeas}Data/ruby.json`).then(JSON.parse),
+  download(`${distantSeas}LICENSE`),
   download(`${teamcraft}libs/data/src/lib/json/fishing-sources.json`).then(
     JSON.parse,
   ),
@@ -172,6 +184,8 @@ const location = (id, spear = false) => {
   return {
     id: Number(id),
     name: placeName(row?.PlaceName, source?.name_en || String(id)),
+    // TerritoryType is the game's region -> map parent for each fishing spot.
+    region: placeName(territories.get(territory)?.["PlaceName{Region}"], ""),
     zone: placeName(
       rates?.zone_id ??
         territories.get(territory)?.PlaceName ??
@@ -197,6 +211,11 @@ const fish = ids.map((id) => {
   const note = notesByItem.get(id);
   const supplemental = fishingSources[id]?.[0];
   const spearSupplemental = spearSources[id]?.[0];
+  // Complete partial tracker records with matching Teamcraft catch metadata.
+  const supplementalHookset =
+    [null, "Powerful", "Precision"][supplemental?.hookset] ?? null;
+  const supplementalTug =
+    ["medium", "heavy", "light"][supplemental?.tug] ?? null;
   const isSpear = spearByItem.has(id) || Boolean(condition?.gig);
   const fishName = itemName(id);
   const syllables = pinyin(fishName, { toneType: "none", type: "array" });
@@ -272,12 +291,8 @@ const fish = ids.map((id) => {
           []
         ).map((prey) => [prey.id, prey.amount]),
         intuitionLength: null,
-        hookset: supplemental
-          ? ([null, "Powerful", "Precision"][supplemental.hookset] ?? null)
-          : null,
-        tug: supplemental
-          ? (["medium", "heavy", "light"][supplemental.tug] ?? null)
-          : null,
+        hookset: supplementalHookset,
+        tug: supplementalTug,
         snagging: supplemental?.snagging ?? null,
         fishEyes: null,
         folklore: null,
@@ -351,8 +366,8 @@ const fish = ids.map((id) => {
           bait: condition.bestCatchPath,
           predators: condition.predators,
           intuitionLength: condition.intuitionLength,
-          hookset: condition.hookset,
-          tug: condition.tug,
+          hookset: condition.hookset ?? supplementalHookset,
+          tug: condition.tug ?? supplementalTug,
           snagging: condition.snagging,
           fishEyes: condition.fishEyes,
           folklore: condition.folklore
@@ -366,11 +381,125 @@ const fish = ids.map((id) => {
 });
 if (fish.length < 1730 || fish.some((fish) => !fish.name))
   throw new Error("Fish catalog validation failed.");
+// Game voyage rows preserve all three stop orders and their daytime variants.
+const oceanRoutes = [...oceanRouteRows]
+  .filter(([id]) => id > 0)
+  .map(([id, row]) => ({
+    id,
+    name: row.Name,
+    family: id <= 12 ? "near" : "far",
+    stops: [0, 1, 2].map((index) => {
+      const spotId = Number(row[`Spot[${index}]`]);
+      const spot = oceanSpots.get(spotId);
+      return {
+        spotId,
+        name: placeName(spot?.PlaceName, ""),
+        phase: Number(row[`Time[${index}]`]),
+        mainSpotId: Number(spot?.SpotMain),
+        spectralSpotId: Number(spot?.SpotSub),
+      };
+    }),
+  }));
+const catalogOceanSpotIds = new Set(
+  fish
+    .filter((item) => item.method === "ocean")
+    .flatMap((item) => item.locations.map((spot) => spot.id)),
+);
+if (
+  oceanRoutes.length < 21 ||
+  oceanRoutes.some(
+    (route) =>
+      !route.name ||
+      route.stops.some(
+        (stop) =>
+          !stop.name ||
+          ![1, 2, 3].includes(stop.phase) ||
+          !catalogOceanSpotIds.has(stop.mainSpotId) ||
+          !catalogOceanSpotIds.has(stop.spectralSpotId),
+      ),
+  )
+)
+  throw new Error("Ocean route data is incomplete or has unmatched spots.");
+const oceanRouteIds = new Set(oceanRoutes.map((route) => route.id));
+const oceanRouteTable = [...oceanTableRows]
+  .sort(([a], [b]) => a - b)
+  .map(([, row]) => ({
+    nearRouteId: Number(row.Route),
+    farRouteId: Number(row[""]),
+  }));
+if (
+  oceanRouteTable.length !== 144 ||
+  oceanRouteTable.some(
+    (pair) =>
+      !oceanRouteIds.has(pair.nearRouteId) ||
+      !oceanRouteIds.has(pair.farRouteId),
+  )
+)
+  throw new Error("Ocean route rotation is incomplete.");
+// The game lists every fish in a sea, while the community record supplies its time-of-day exclusions.
+const oceanAvailability = {};
+const oceanFishByItem = new Map(
+  fish.filter((item) => item.method === "ocean").map((item) => [item.id, item]),
+);
+const fishByOceanSpot = new Map(
+  [...oceanSpotIds].map((spotId) => [
+    spotId,
+    new Set(
+      fish
+        .filter(
+          (item) =>
+            item.method === "ocean" &&
+            item.locations.some((spot) => spot.id === spotId),
+        )
+        .map((item) => item.id),
+    ),
+  ]),
+);
+const sourceOceanSpots = [...oceanIndigo, ...oceanRuby];
+for (const sourceSpot of sourceOceanSpots) {
+  const sourceFishIds = new Set(sourceSpot.Fish.map((item) => item.ItemId));
+  const matches = [...fishByOceanSpot].filter(
+    ([, ids]) =>
+      ids.size === sourceFishIds.size &&
+      [...ids].every((id) => sourceFishIds.has(id)),
+  );
+  if (matches.length !== 1)
+    throw new Error("Community ocean fish cannot be matched to a game spot.");
+  const [spotId] = matches[0];
+  for (const sourceFish of sourceSpot.Fish) {
+    const allowed = ["Day", "Sunset", "Night"]
+      .map((phase, index) =>
+        sourceFish.TimeAvailability?.[phase] === false ? null : index + 1,
+      )
+      .filter(Boolean);
+    if (allowed.length < 3)
+      oceanAvailability[`${spotId}:${sourceFish.ItemId}`] = allowed;
+    const target = oceanFishByItem.get(sourceFish.ItemId);
+    if (!target?.conditions) continue;
+    if (!target.conditions.bait.length) {
+      const bait =
+        sourceFish.RequiredBait ??
+        Object.entries(sourceFish.BiteTimes).find(
+          ([, value]) => value.CellType === "BestOrRequired",
+        )?.[0] ??
+        Object.keys(sourceFish.BiteTimes)[0];
+      if (bait) target.conditions.bait = [Number(bait)];
+    }
+    target.conditions.hookset ||= sourceFish.Hookset || null;
+    target.conditions.tug ||=
+      [null, "light", "medium", "heavy"][sourceFish.BitePower] ?? null;
+  }
+}
+if (sourceOceanSpots.length !== 26)
+  throw new Error("Ocean fish availability source is incomplete.");
 const catalog = {
-  formatVersion: 4,
+  formatVersion: 6,
   generatedAt: new Date().toISOString(),
   sources: sources.sort((a, b) => a.url.localeCompare(b.url)),
   fish,
+  oceanRoutes,
+  oceanRouteTable,
+  oceanAvailability,
   items: namedItems,
   itemIcons: Object.fromEntries(
     Object.keys(namedItems).map((id) => [
@@ -401,6 +530,8 @@ await writeFile("public/data/fishing/catalog.json", JSON.stringify(catalog));
 await writeFile("licenses/ff14-fish-tracker-app/LICENSE", license);
 await mkdir("licenses/ffxiv-teamcraft", { recursive: true });
 await writeFile("licenses/ffxiv-teamcraft/LICENSE", teamcraftLicense);
+await mkdir("licenses/distantseas", { recursive: true });
+await writeFile("licenses/distantseas/LICENSE", distantLicense);
 console.log(
   `Generated ${fish.length} fish with ${fish.filter((fish) => fish.conditions).length} condition records.`,
 );

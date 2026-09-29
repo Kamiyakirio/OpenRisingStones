@@ -35,7 +35,7 @@ Run `npm run fishing:data:update`. The importer downloads the MIT tracker's guid
 and conditions plus Chinese `Item`, `PlaceName`, `Weather`, `FishingSpot`,
 `SpearfishingNotebook`, `FishingNoteInfo`, `IKDSpot`, `FishParameter`,
 `SpearfishingItem`, `GatheringPointBase`, `GatheringItemLevelConvertTable`, and
-`TerritoryType` sheets from
+`TerritoryType`, `IKDRoute`, and `IKDRouteTable` sheets from
 [thewakingsands/ffxiv-datamining-cn](https://github.com/thewakingsands/ffxiv-datamining-cn).
 It joins records by game IDs, preserves multiple ordinary fishing spots, and
 writes the compact `public/data/fishing/catalog.json` snapshot. Every input URL
@@ -53,7 +53,11 @@ records. Explicit game-note restriction flags and
 [Teamcraft fishing sources](https://github.com/ffxiv-teamcraft/ffxiv-teamcraft/blob/staging/libs/data/src/lib/json/fishing-sources.json)
 fill ordinary-fish rules and bait, while preserving null for genuinely unknown
 fields. All 1,551 rod/spear records now support time/weather eligibility; the other
-259 records belong to ocean voyages. Empty weather arrays mean unrestricted,
+259 records belong to ocean voyages. The
+[DistantSeas ocean data](https://github.com/NotNite/DistantSeas/tree/main/Data)
+adds per-spot day/sunset/night exclusions and fills the remaining ocean bait,
+bite-strength, and hookset gaps. Its AGPL license is included in
+`licenses/distantseas/LICENSE`. Empty weather arrays mean unrestricted,
 whereas null means unknown. Teamcraft's MIT license is included separately.
 This merges visible game-log entries with tracker records, not a claim of future-patch completeness.
 Chinese names fall back to upstream English when unavailable. The upstream
@@ -100,21 +104,74 @@ requirements remain separate. Ocean fishing uses voyage state rather than the
 world forecast. `IKDSpot` links spectral fishing spots to the spectral-current
 weather icon (Weather 145). Known bait, prey, and weather properties are displayed,
 but player-triggered spectral currents cannot receive a guaranteed wall-clock
-start time. Exact ocean voyage time-of-day rules are not yet imported. Unknown
-ocean weather sets remain explicit, not silently unrestricted. Alarms and ocean
-route scheduling remain future work.
+start time. The route page uses the game's 21 route variants and 144-slot
+rotation, groups near and far voyages at each local two-hour boarding time,
+and opens a separate page for the selected voyage. Its three stops show only
+fish eligible at that stop's day/sunset/night phase. The 15-minute boarding
+window and rotation anchor were checked against the displayed 2026-09-29
+18:00 China-time voyages; verify the anchor again after a route-table change.
+Weather and Fisher's Intuition can still restrict a listed fish. Unknown ocean
+weather sets remain explicit, not silently unrestricted.
 
 ## Workspace and detail behavior
 
-Three task views show current/next windows, region-based completion, and direct
-lookup. Direct lookup supports Chinese names, full pinyin, initials, English
+Four task views show current/next windows, region → map → fishing spot
+completion, upcoming ocean voyages, and direct lookup. The window view defaults its main lists to fish
+kings and emperors, with a locally remembered switch to all fish; saved and
+all-day side tasks retain their full scope. Upcoming rows show the live wait
+to the next window and its local start time. Direct lookup supports Chinese names, full
+pinyin, initials, English
 names, Item IDs, zones, and spots. Its primary classes are timed, all-day,
 ocean-voyage, and unknown-condition fish. The earlier independent facets remain
 available in the lookup filter panel: patch families, world/ocean, fish kind,
 time restrictions, completion, rod/spear, region, saved targets, aquarium,
 collectables, current eligibility, and Fish Eyes. Name, descending release
 patch, and descending level sorts remain available. Fish row buttons open a
-focused preparation page while save buttons stay independent.
+focused preparation page while save buttons stay independent. Direct catches
+show their bait without repeating the row's target fish. Mooch chains show
+each source and target fish, bite strength, and target hookset. Item and Fisher
+hookset Action icons load through XIVAPI; unknown
+values stay explicit. Spearfishing rows show fish-shadow size instead.
+An inline circular-arrow icon marks a mooch fish with confirmed self-catch
+records at the selected spot. These relationships are read from Teamcraft's
+public bait counts by exact fish and spot, rather than inferred from the
+guide's shortest catch path.
+
+The tracker supplies most bite and hookset values. Teamcraft fills a missing
+value even when the tracker already supplies other conditions for that fish.
+The current catalog resolves 80 previously blank hooksets this way. For 39
+remaining rod or ocean fish, neither source supplies a bite or hookset; rows
+show that the data needs checking instead of guessing from rarity or tug.
+
+Cast-to-bite time is read on demand from Teamcraft's public
+[Gubal GraphQL service](https://gubal.ffxivteamcraft.com/graphql). Its
+[`bite_time_per_fish_per_spot_per_bait` query](https://github.com/ffxiv-teamcraft/ffxiv-teamcraft/blob/staging/apps/client/src/app/pages/db/service/fish-data.gql.ts)
+groups community reports by target fish, fishing spot, bait, and whole second.
+Catalog rows request only the first suggested bait for each catch step;
+mooch catches use each intermediate target and source fish separately. The
+fish detail has a prominent bait-comparison section that merges guide baits
+with reported successful baits for the chosen fishing spot. Baits without
+enough timing samples remain visible with an explicit missing-time label. Its spot
+selector keeps different locations separate and updates the detail plan,
+catch-step bite times, and weather forecast together. The spot page uses its
+selected spot and passes that spot into fish detail; other rows use the fish's first
+listed spot. Bins with fewer than three
+reports are excluded, and the displayed range spans the middle 90% of
+qualifying reports. The total sample count appears beside the range. Skills,
+gear, and bait can shift actual bite times, so this is a planning reference.
+Missing samples and network errors have distinct states. These queries send
+game item and spot IDs only, without character or catch-log data.
+
+`TerritoryType.PlaceName{Region}` supplies each spot's region; the existing
+territory map name and fishing spot ID supply the next two levels. Fish at
+multiple spots appear under each location, while region and map completion
+counts include each Item ID once. A fishing/spearfishing navigation scopes
+all three levels and their recorded totals; fishing includes rod and ocean
+entries. The directory shows only fishing spots;
+opening a spot replaces it with a fish list. That list follows FishParameter
+or SpearfishingItem game-log row order, rather than Chinese-name collation.
+Out-of-log fish follow the indexed rows. Missing and all entries can be viewed
+without losing the directory's position.
 
 The preparation page places the next window, location, and bait or fish shadow
 first. Window rows show start, end, and duration as three columns. The current

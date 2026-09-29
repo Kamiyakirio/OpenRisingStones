@@ -9,8 +9,15 @@ try {
     ),
   );
   if (
-    catalog.formatVersion !== 4 ||
+    catalog.formatVersion !== 6 ||
     catalog.fish?.length < 1730 ||
+    catalog.oceanRoutes?.length < 21 ||
+    catalog.oceanRouteTable?.length !== 144 ||
+    !catalog.oceanAvailability ||
+    catalog.oceanRoutes.some(
+      (route) =>
+        route.stops?.length !== 3 || route.stops.some((stop) => !stop.name),
+    ) ||
     !catalog.itemIcons ||
     catalog.fish.filter(
       (fish) =>
@@ -20,7 +27,8 @@ try {
     catalog.fish.some(
       (fish) =>
         typeof fish.namePinyin !== "string" ||
-        typeof fish.nameInitials !== "string",
+        typeof fish.nameInitials !== "string" ||
+        fish.locations.some((spot) => !spot.region || !spot.zone || !spot.name),
     )
   )
     throw new Error("Unsupported or incomplete fishing catalog.");

@@ -2,6 +2,8 @@
 export type FishingLocation = {
   id: number;
   name: string;
+  region: string;
+  // The existing zone name is the map level under TerritoryType's region.
   zone: string;
   territory: number;
   coords: number[] | null;
@@ -49,9 +51,25 @@ export type Fish = {
   aquarium: { water: string; size: number } | null;
   conditions: FishConditions | null;
 };
+export type OceanRouteStop = {
+  spotId: number;
+  name: string;
+  phase: number;
+  mainSpotId: number;
+  spectralSpotId: number;
+};
+export type OceanRoute = {
+  id: number;
+  name: string;
+  family: "near" | "far";
+  stops: OceanRouteStop[];
+};
 export type FishCatalog = {
   generatedAt: string;
   fish: Fish[];
+  oceanRoutes: OceanRoute[];
+  oceanRouteTable: { nearRouteId: number; farRouteId: number }[];
+  oceanAvailability: Record<string, number[]>;
   items: Record<string, string>;
   itemIcons: Record<string, number>;
   weather: Record<string, string>;
