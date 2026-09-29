@@ -17,12 +17,44 @@ import {
 } from "../src/features/fishing/model.ts";
 import { applyGameFishingLog } from "../src/features/fishing/gameLog.ts";
 import {
+  compareFishingLogOrder,
   fishingCategory,
-  fishingZones,
+  fishingRegions,
   initialFishingFacets,
+  matchesFishingDiscipline,
+  matchesNowFishScope,
   searchFishingCatalog,
 } from "../src/features/fishing/workspace.ts";
 import { windowDurationText } from "../src/features/fishing/presentation.ts";
+import {
+  initialOceanViewState,
+  oceanRouteFish,
+  oceanRouteGroups,
+  oceanSpotFish,
+  oceanStopFish,
+  parseOceanViewState,
+} from "../src/features/fishing/oceanRoutes.ts";
+import {
+  OCEAN_BOARDING_MS,
+  upcomingOceanDepartures,
+} from "../src/features/fishing/oceanSchedule.ts";
+import { xivIconUrl } from "../src/features/fishing/iconUrl.ts";
+import { fishingCatchSteps } from "../src/features/fishing/technique.ts";
+import {
+  selfMoochRequests,
+  summarizeSelfMooch,
+} from "../src/features/fishing/selfMooch.ts";
+import {
+  biteTimeRequests,
+  formatBiteTimeRange,
+  summarizeBaitComparisons,
+  summarizeBiteTimes,
+} from "../src/features/fishing/biteTimes.ts";
+import {
+  initialFishingSearch,
+  parseFishingFilterPreferences,
+  parseNowFishScope,
+} from "../src/features/fishing/filterPreferences.ts";
 
 const catalog = JSON.parse(
   readFileSync(
@@ -40,6 +72,265 @@ const fishAt = (startHour, endHour) => ({
     weather: [],
     previousWeather: [],
   },
+});
+
+test("lookup filters survive storage round trips and bad saved data", () => {
+  const saved = {
+    version: 1,
+    search: { query: "nieputelong", category: "timed", sort: "patch" },
+    facets: {
+      ...initialFishingFacets,
+      patches: ["7.2", "8.0"],
+      kinds: ["legendary"],
+      completion: ["uncaught"],
+      zone: "Coerthas Central Highlands",
+      available: true,
+      fishEyes: true,
+    },
+  };
+  const restored = parseFishingFilterPreferences(JSON.stringify(saved));
+  assert.deepEqual(restored.search, saved.search);
+  assert.equal(restored.facets.zone, saved.facets.zone);
+  assert.deepEqual(restored.facets.patches, ["7.2", "8.0"]);
+  assert.deepEqual(restored.facets.kinds, ["legendary"]);
+  assert.deepEqual(restored.facets.completion, ["uncaught"]);
+  assert.equal(restored.facets.available, true);
+  assert.equal(restored.facets.fishEyes, true);
+  assert.deepEqual(
+    parseFishingFilterPreferences("invalid-json").search,
+    initialFishingSearch,
+  );
+  assert.deepEqual(
+    parseFishingFilterPreferences(JSON.stringify({ ...saved, version: 2 }))
+      .search,
+    initialFishingSearch,
+  );
+  assert.deepEqual(
+    parseFishingFilterPreferences(
+      JSON.stringify({
+        version: 1,
+        search: { sort: "bad" },
+        facets: { patches: "bad" },
+      }),
+    ).facets.patches,
+    initialFishingFacets.patches,
+  );
+});
+
+test("current-window scope defaults to fish kings and emperors", () => {
+  assert.equal(parseNowFishScope(null), "big");
+  assert.equal(parseNowFishScope("invalid"), "big");
+  assert.equal(parseNowFishScope("all"), "all");
+  assert.ok(matchesNowFishScope({ kind: "big" }, "big"));
+  assert.ok(matchesNowFishScope({ kind: "legendary" }, "big"));
+  assert.equal(matchesNowFishScope({ kind: "normal" }, "big"), false);
+  assert.equal(matchesNowFishScope({ kind: "ocean-legendary" }, "big"), false);
+  assert.ok(matchesNowFishScope({ kind: "normal" }, "all"));
+});
+
+test("game action and bait icons use XIVAPI's six-digit static path", () => {
+  assert.equal(xivIconUrl(1115), "https://xivapi.com/i/001000/001115.png");
+  assert.equal(xivIconUrl(27035), "https://xivapi.com/i/027000/027035.png");
+});
+
+test("each mooch catch uses that prey's bite and hookset", () => {
+  const fish = catalog.fish.find((item) => item.id === 4919);
+  const byId = new Map(catalog.fish.map((item) => [item.id, item]));
+  const steps = fishingCatchSteps(fish, byId);
+  assert.deepEqual(
+    steps.map((step) => step.sourceIds),
+    [[2585], [4869], [4904]],
+  );
+  assert.deepEqual(
+    steps.map((step) => step.targetId),
+    [4869, 4904, 4919],
+  );
+  assert.deepEqual(
+    steps.map((step) => step.target.conditions.hookset),
+    ["Precision", "Powerful", "Powerful"],
+  );
+  assert.deepEqual(
+    steps.map((step) => step.kind),
+    ["bait", "mooch", "mooch"],
+  );
+});
+
+test("self-mooch checks the intermediate fish at its fishing spot", () => {
+  const byId = new Map(catalog.fish.map((fish) => [fish.id, fish]));
+  const redDragon = byId.get(24993);
+  const pearlPipira = byId.get(32053);
+  const requests = [
+    ...selfMoochRequests([redDragon], byId, 158),
+    ...selfMoochRequests([pearlPipira], byId, 226),
+  ];
+  assert.deepEqual(requests, [
+    { fishId: 24214, spotId: 158 },
+    { fishId: 27492, spotId: 226 },
+  ]);
+  const confirmed = summarizeSelfMooch(requests, [
+    { itemId: 24214, spot: 158, baitId: 24214, occurences: 20183 },
+    { itemId: 27492, spot: 226, baitId: 27492, occurences: 15740 },
+    { itemId: 24214, spot: 999, baitId: 24214, occurences: 100 },
+    { itemId: 27492, spot: 226, baitId: 24214, occurences: 100 },
+  ]);
+  assert.equal(confirmed.get("24214:158"), true);
+  assert.equal(confirmed.get("27492:226"), true);
+  assert.equal(summarizeSelfMooch(requests, []).get("24214:158"), false);
+});
+
+test("bite times match each mooch catch, spot, and bait separately", () => {
+  const fish = catalog.fish.find((item) => item.id === 4919);
+  const byId = new Map(catalog.fish.map((item) => [item.id, item]));
+  const requests = biteTimeRequests([fish], byId, 65);
+  assert.deepEqual(requests, [
+    { fishId: 4869, spotId: 65, baitId: 2585 },
+    { fishId: 4904, spotId: 65, baitId: 4869 },
+    { fishId: 4919, spotId: 65, baitId: 4904 },
+  ]);
+  const ranges = summarizeBiteTimes(requests, [
+    {
+      fishId: 4919,
+      spotId: 65,
+      baitId: 4904,
+      flooredBiteTime: 2,
+      occurences: 3,
+    },
+    {
+      fishId: 4919,
+      spotId: 65,
+      baitId: 4904,
+      flooredBiteTime: 14,
+      occurences: 100,
+    },
+    {
+      fishId: 4919,
+      spotId: 65,
+      baitId: 4904,
+      flooredBiteTime: 72,
+      occurences: 100,
+    },
+    {
+      fishId: 4919,
+      spotId: 65,
+      baitId: 4904,
+      flooredBiteTime: 590,
+      occurences: 3,
+    },
+    {
+      fishId: 4919,
+      spotId: 66,
+      baitId: 4904,
+      flooredBiteTime: 30,
+      occurences: 100,
+    },
+  ]);
+  assert.deepEqual(ranges.get("4919:65:4904"), {
+    minSeconds: 14,
+    maxSeconds: 72,
+    samples: 206,
+  });
+  assert.equal(formatBiteTimeRange(ranges.get("4919:65:4904")), "14秒–1分12秒");
+  assert.equal(ranges.get("4904:65:4869"), null);
+});
+
+test("bait comparison keeps each reported bait and spot separate", () => {
+  const baits = [
+    { itemId: 4919, spot: 65, baitId: 4904, occurences: 200 },
+    { itemId: 4919, spot: 65, baitId: 2585, occurences: 40 },
+    { itemId: 4919, spot: 65, baitId: 2587, occurences: 3 },
+    { itemId: 4919, spot: 108, baitId: 2591, occurences: 100 },
+  ];
+  const times = [
+    {
+      itemId: 4919,
+      spot: 65,
+      baitId: 4904,
+      flooredBiteTime: 14,
+      occurences: 100,
+    },
+    {
+      itemId: 4919,
+      spot: 65,
+      baitId: 4904,
+      flooredBiteTime: 23,
+      occurences: 100,
+    },
+    {
+      itemId: 4919,
+      spot: 65,
+      baitId: 2585,
+      flooredBiteTime: 8,
+      occurences: 20,
+    },
+    {
+      itemId: 4919,
+      spot: 65,
+      baitId: 2585,
+      flooredBiteTime: 12,
+      occurences: 20,
+    },
+    {
+      itemId: 4919,
+      spot: 108,
+      baitId: 2585,
+      flooredBiteTime: 90,
+      occurences: 100,
+    },
+    {
+      itemId: 4904,
+      spot: 65,
+      baitId: 2585,
+      flooredBiteTime: 40,
+      occurences: 100,
+    },
+  ];
+  assert.deepEqual(summarizeBaitComparisons(4919, 65, baits, times), [
+    { baitId: 4904, range: { minSeconds: 14, maxSeconds: 23, samples: 200 } },
+    { baitId: 2585, range: { minSeconds: 8, maxSeconds: 12, samples: 40 } },
+    { baitId: 2587, range: null },
+  ]);
+});
+
+test("catalog rows query only the first suggested bait", () => {
+  const fish = catalog.fish.find((item) => item.id === 43664);
+  const byId = new Map(catalog.fish.map((item) => [item.id, item]));
+  assert.deepEqual(biteTimeRequests([fish], byId, 294, true), [
+    { fishId: 43664, spotId: 294, baitId: 43849 },
+  ]);
+  assert.deepEqual(biteTimeRequests([fish], byId, 294), [
+    { fishId: 43664, spotId: 294, baitId: 43849 },
+    { fishId: 43664, spotId: 294, baitId: 43852 },
+  ]);
+});
+
+test("the same fish keeps its opening spot in bite-time requests", () => {
+  const fish = catalog.fish.find((item) => item.id === 20132);
+  const byId = new Map(catalog.fish.map((item) => [item.id, item]));
+  assert.deepEqual(biteTimeRequests([fish], byId, 180, true), [
+    { fishId: 20132, spotId: 180, baitId: 20127 },
+  ]);
+  assert.deepEqual(biteTimeRequests([fish], byId, undefined, true), [
+    { fishId: 20132, spotId: 175, baitId: 20127 },
+  ]);
+});
+
+test("partial tracker records receive hooksets from the supplemental source", () => {
+  assert.equal(
+    catalog.fish.find((fish) => fish.id === 26746)?.conditions?.hookset,
+    "Precision",
+  );
+  assert.equal(
+    catalog.fish.find((fish) => fish.id === 26749)?.conditions?.hookset,
+    "Powerful",
+  );
+  assert.ok(
+    catalog.fish.every(
+      (fish) =>
+        fish.method === "spear" ||
+        !fish.conditions?.tug ||
+        Boolean(fish.conditions.hookset),
+    ),
+  );
 });
 
 test("task categories follow timing semantics rather than fish rarity", () => {
@@ -77,13 +368,195 @@ test("fish lookup accepts full pinyin and initials without losing ID search", ()
       query,
     );
   }
+});
+
+test("completion follows game region, map, and fishing spot with unique counts", () => {
+  const example = catalog.fish.find(
+    (fish) =>
+      fish.locations.length > 1 &&
+      new Set(fish.locations.map((spot) => spot.territory)).size === 1,
+  );
+  assert.ok(example);
+  const regions = fishingRegions(catalog, {
+    saved: [],
+    caught: [example.id],
+  });
+  assert.ok(regions.at(-1).fish.every((fish) => fish.method === "ocean"));
   assert.equal(
-    fishingZones(catalog, { saved: [], caught: [] }).reduce(
-      (count, zone) => count + zone.fish.length,
-      0,
-    ),
+    new Set(regions.flatMap((region) => region.fish.map((fish) => fish.id)))
+      .size,
     catalog.fish.length,
   );
+  const region = regions.find((group) =>
+    group.maps.some((map) =>
+      map.spots.some((spot) =>
+        spot.fish.some((fish) => fish.id === example.id),
+      ),
+    ),
+  );
+  const map = region?.maps.find((group) =>
+    group.spots.some((spot) =>
+      spot.fish.some((fish) => fish.id === example.id),
+    ),
+  );
+  assert.ok(region && map);
+  assert.equal(region.fish.filter((fish) => fish.id === example.id).length, 1);
+  assert.equal(map.fish.filter((fish) => fish.id === example.id).length, 1);
+  assert.equal(
+    map.spots.filter((spot) => spot.fish.some((fish) => fish.id === example.id))
+      .length,
+    example.locations.length,
+  );
+  assert.equal(map.name, example.locations[0].zone);
+  assert.equal(region.name, example.locations[0].region);
+  assert.ok(region.caught >= 1 && map.caught >= 1);
+  assert.ok(
+    regions.every((group) =>
+      group.maps.every((territory) =>
+        territory.spots.every((spot) => spot.name && spot.fish.length),
+      ),
+    ),
+  );
+  assert.ok(
+    regions.every((group) =>
+      group.maps.every((territory) =>
+        territory.spots.every((spot) =>
+          spot.fish.every(
+            (fish, index) =>
+              index === 0 ||
+              compareFishingLogOrder(spot.fish[index - 1], fish) <= 0,
+          ),
+        ),
+      ),
+    ),
+  );
+  const referenceIds = [
+    20034, 20092, 20094, 20099, 20110, 20112, 22393, 24883, 30491,
+  ];
+  const byLog = referenceIds
+    .map((id) => catalog.fish.find((fish) => fish.id === id))
+    .sort(compareFishingLogOrder)
+    .map((fish) => fish.id);
+  assert.deepEqual(
+    byLog,
+    [20092, 20094, 20112, 20099, 20110, 20034, 22393, 24883, 30491],
+  );
+});
+
+test("each ocean route resolves its three stops and all catalog ocean fish", () => {
+  const groups = oceanRouteGroups(catalog);
+  assert.equal(groups.length, 7);
+  assert.equal(
+    groups.reduce((total, group) => total + group.variants.length, 0),
+    21,
+  );
+  const listed = new Set();
+  for (const group of groups) {
+    assert.equal(group.variants.length, 3);
+    const variants = new Set();
+    for (const route of group.variants) {
+      assert.equal(route.stops.length, 3);
+      assert.deepEqual(
+        new Set(route.stops.map((stop) => stop.phase)),
+        new Set([1, 2, 3]),
+      );
+      const fish = oceanRouteFish(catalog, route);
+      variants.add(fish.map((item) => item.id).join(","));
+      for (const stop of route.stops) {
+        const catches = oceanStopFish(catalog, stop);
+        assert.equal(catches.main.length, 10);
+        assert.ok(catches.spectral.length > 0 && catches.spectral.length <= 10);
+        catches.main
+          .concat(catches.spectral)
+          .forEach((item) =>
+            assert.ok(fish.some((candidate) => candidate.id === item.id)),
+          );
+      }
+    }
+    assert.ok(variants.size > 1);
+    group.fish.forEach((fish) => listed.add(fish.id));
+  }
+  assert.deepEqual(
+    listed,
+    new Set(
+      catalog.fish
+        .filter((fish) => fish.method === "ocean")
+        .map((fish) => fish.id),
+    ),
+  );
+  assert.ok(!oceanSpotFish(catalog, 238, 1).some((fish) => fish.id === 29788));
+  assert.ok(oceanSpotFish(catalog, 238, 3).some((fish) => fish.id === 29788));
+  assert.equal(
+    catalog.fish.filter(
+      (fish) => fish.method === "ocean" && fish.conditions?.bait.length,
+    ).length,
+    259,
+  );
+});
+
+test("ocean departures follow the verified game rotation and boarding cutoff", () => {
+  const at = Date.UTC(2026, 8, 29, 10);
+  const voyages = upcomingOceanDepartures(catalog, at - 1000, 3);
+  assert.deepEqual(
+    voyages.map(({ at: departure, near, far }) => [departure, near.id, far.id]),
+    [
+      [at, 12, 15],
+      [at + 7200000, 3, 21],
+      [at + 14400000, 6, 18],
+    ],
+  );
+  assert.equal(
+    upcomingOceanDepartures(catalog, at + OCEAN_BOARDING_MS - 1, 1)[0].at,
+    at,
+  );
+  assert.equal(
+    upcomingOceanDepartures(catalog, at + OCEAN_BOARDING_MS, 1)[0].at,
+    at + 7200000,
+  );
+});
+
+test("ocean route selection survives storage and rejects stale values", () => {
+  const saved = {
+    family: "far",
+    routeId: 19,
+    variantId: 21,
+    stopIndex: 2,
+    scope: "saved",
+  };
+  assert.deepEqual(parseOceanViewState(JSON.stringify(saved)), saved);
+  assert.deepEqual(parseOceanViewState("bad-json"), initialOceanViewState);
+  assert.deepEqual(
+    parseOceanViewState(
+      JSON.stringify({ ...saved, stopIndex: 9, scope: "bogus" }),
+    ),
+    { ...saved, stopIndex: 0, scope: "all" },
+  );
+});
+
+test("completion separates fishing and spearfishing through every location level", () => {
+  const progress = { saved: [], caught: [] };
+  for (const discipline of ["fishing", "spearfishing"]) {
+    const regions = fishingRegions(catalog, progress, discipline);
+    const expected = catalog.fish.filter((fish) =>
+      matchesFishingDiscipline(fish, discipline),
+    );
+    const grouped = new Set(
+      regions.flatMap((region) => region.fish.map((fish) => fish.id)),
+    );
+    assert.equal(grouped.size, expected.length);
+    assert.ok(expected.every((fish) => grouped.has(fish.id)));
+    assert.ok(
+      regions.every((region) =>
+        region.maps.every((map) =>
+          map.spots.every((spot) =>
+            spot.fish.every((fish) =>
+              matchesFishingDiscipline(fish, discipline),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 });
 
 test("legacy facets combine with task categories and duration keeps seconds", () => {
