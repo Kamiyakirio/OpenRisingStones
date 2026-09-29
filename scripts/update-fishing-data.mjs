@@ -1,6 +1,7 @@
 /** Build an offline fish catalog from the MIT tracker and Chinese game sheets. */
 import { mkdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 import Papa from "papaparse";
 import { pinyin } from "pinyin-pro";
 import { ProxyAgent, setGlobalDispatcher } from "undici";
@@ -18,15 +19,30 @@ const distantSeas =
   "https://raw.githubusercontent.com/NotNite/DistantSeas/main/";
 const sources = [];
 async function download(url) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(60000) });
-  if (!response.ok)
-    throw new Error(`Download failed (${response.status}): ${url}`);
-  const text = await response.text();
-  sources.push({
-    url,
-    sha256: createHash("sha256").update(text).digest("hex"),
-  });
-  return text;
+  // Raw file hosts occasionally reset concurrent connections; retry transient failures.
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    let retryable = true;
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(60000) });
+      if (!response.ok) {
+        retryable = response.status === 429 || response.status >= 500;
+        await response.body?.cancel();
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const text = await response.text();
+      sources.push({
+        url,
+        sha256: createHash("sha256").update(text).digest("hex"),
+      });
+      return text;
+    } catch (error) {
+      if (!retryable || attempt === 4)
+        throw new Error(`Download failed for ${url}: ${error.message}`, {
+          cause: error,
+        });
+      await delay(500 * attempt);
+    }
+  }
 }
 // Upstream files contain JSON literals with named top-level sections, not executable input.
 function literal(text, declaration) {
