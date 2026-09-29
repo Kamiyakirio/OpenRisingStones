@@ -10,9 +10,13 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-#[cfg(not(debug_assertions))]
+#[cfg(all(not(debug_assertions), not(feature = "bundled-game-bridge")))]
 use tauri::Manager;
 use tauri::{AppHandle, Emitter};
+
+#[cfg(feature = "bundled-game-bridge")]
+#[path = "game_bridge_assets.rs"]
+mod assets;
 
 use crate::{
   owned_items::{self, OwnedItemsSnapshot},
@@ -184,7 +188,9 @@ impl GameBridgeState {
     manager.observe(Arc::new(move |status| {
       let _ = event_handle.emit(STATUS_EVENT, status);
     }));
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "bundled-game-bridge")]
+    let asset_root = assets::materialize()?;
+    #[cfg(all(debug_assertions, not(feature = "bundled-game-bridge")))]
     let asset_root = std::env::var_os("ORS_GAME_BRIDGE_DIR")
       .map(PathBuf::from)
       .unwrap_or_else(|| {
@@ -195,7 +201,7 @@ impl GameBridgeState {
           .join("Debug")
           .join("game-bridge")
       });
-    #[cfg(not(debug_assertions))]
+    #[cfg(all(not(debug_assertions), not(feature = "bundled-game-bridge")))]
     let asset_root = app_handle
       .path()
       .resource_dir()
@@ -691,6 +697,16 @@ pub async fn game_bridge_debug_unload_payload(
 mod tests {
   use super::{validate_manifest_file, GameBridgeApiError};
   use game_bridge_host::BridgeError;
+
+  #[cfg(feature = "bundled-game-bridge")]
+  #[test]
+  fn embedded_runtime_resolves_connection_assets() {
+    let root = super::assets::materialize().expect("embedded bridge runtime");
+    let options = super::connect_options(&root, None, None).expect("complete runtime");
+    assert_eq!(options.payload_path, root.join("game_bridge_payload.dll"));
+    assert!(options.manifest_path.is_file());
+    assert!(options.world_map_path.is_file());
+  }
 
   #[test]
   fn duplicate_payload_has_a_stable_error_code() {
