@@ -149,6 +149,7 @@ export function FishingRow({
         selfMooch={selfMooch}
         spotId={spotId}
         showAlternatives={false}
+        showBaitSources
       />
       <div className="fish-entry-side">
         <span className="fish-entry-record" data-caught={caught}>

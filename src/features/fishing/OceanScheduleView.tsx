@@ -1,8 +1,9 @@
 /** Departure times lead into a voyage's three seas and their catch plans. */
 import { ArrowRight, Moon, Sun, SunHorizon } from "@phosphor-icons/react";
 import { useMemo } from "react";
+import { FishIcon } from "./FishIcon";
 import { windowDurationText } from "./presentation";
-import { oceanRouteFish } from "./oceanRoutes";
+import { oceanRouteFish, oceanRouteTargets } from "./oceanRoutes";
 import { OCEAN_BOARDING_MS, upcomingOceanDepartures } from "./oceanSchedule";
 import type { RowContext } from "./FishingRows";
 import type { OceanRoute } from "./types";
@@ -13,6 +14,20 @@ const phaseLabels: Record<number, string> = {
   3: "夜晚",
 };
 const phaseIcons = { 1: Sun, 2: SunHorizon, 3: Moon };
+const missionLabels: Record<string, string> = {
+  Shark: "鲨鱼",
+  Jellyfish: "水母",
+  Crab: "螃蟹",
+  Fugu: "河豚",
+  Shellfish: "贝类",
+  Squid: "鱿鱼",
+  Shrimp: "虾类",
+  MantisShrimp: "螳螂虾",
+  PrehistoricWavekin: "古代鱼",
+  Seadragon: "海马",
+  Octopus: "章鱼",
+  Manta: "蝠鲼",
+};
 const departureText = (time: number) =>
   new Date(time).toLocaleString("zh-CN", {
     month: "numeric",
@@ -50,9 +65,9 @@ export function OceanScheduleView({
     limit,
   );
   const routeButton = (route: OceanRoute, at: number) => {
-    const remaining =
-      fishByRoute.get(route.id)?.filter((fish) => !caught.has(fish.id))
-        .length ?? 0;
+    const fish = fishByRoute.get(route.id) ?? [];
+    const remaining = fish.filter((item) => !caught.has(item.id)).length;
+    const targets = oceanRouteTargets(route, fish);
     const triggerId = `fish-voyage-${at}-${route.id}`;
     return (
       <button
@@ -62,6 +77,35 @@ export function OceanScheduleView({
         key={route.id}
         onClick={() => onOpen(route, at, triggerId)}
       >
+        <span className="fish-ocean-departure-targets">
+          {targets.length ? (
+            targets.map((target) => {
+              const label =
+                target.type === "blue"
+                  ? target.fish.name
+                  : `${missionLabels[target.missionType] || "鱼类"}成就`;
+              return (
+                <span
+                  className="fish-ocean-departure-target"
+                  key={
+                    target.type === "blue" ? target.fish.id : target.missionType
+                  }
+                  title={
+                    target.type === "blue"
+                      ? `蓝鱼：${label}`
+                      : `${label} · 图标示例：${target.fish.name}`
+                  }
+                >
+                  <FishIcon fish={target.fish} />
+                  <span>{label}</span>
+                </span>
+              );
+            })
+          ) : (
+            <span className="fish-ocean-departure-target-empty">已齐</span>
+          )}
+          <small>查看本航次 {fish.length} 种</small>
+        </span>
         <span className="fish-ocean-departure-name">
           <small>{route.family === "near" ? "近海" : "远洋"}</small>
           <strong>{route.name}</strong>
@@ -92,6 +136,12 @@ export function OceanScheduleView({
         </div>
         <span>近海与远洋每两小时各一班</span>
       </header>
+      <div className="fish-ocean-schedule-columns" aria-hidden="true">
+        <span>登记时间</span>
+        <span>目标</span>
+        <span>航线</span>
+        <span>航线线路</span>
+      </div>
       <div className="fish-ocean-departure-list">
         {departures.map(({ at, near, far }, index) => {
           const boarding = at <= context.now;
@@ -125,7 +175,7 @@ export function OceanScheduleView({
         再显示 6 班
       </button>
       <p className="fish-ocean-note">
-        航线顺序来自游戏数据；报名截止时间请以游戏内的航行时刻表为准。
+        成就目标表示本航次有相关鱼；蓝鱼还需满足幻海流等条件。报名截止时间请以游戏内为准。
       </p>
     </div>
   );

@@ -2,6 +2,7 @@
 import { FishSimple } from "@phosphor-icons/react";
 import { useState } from "react";
 import { formatBiteTimeRange } from "./biteTimes";
+import { FishBaitSource } from "./FishBaitSource";
 import { xivIconUrl } from "./iconUrl";
 import { useBaitComparisons } from "./useBaitComparisons";
 import type { Fish, FishCatalog } from "./types";
@@ -108,8 +109,12 @@ export function BaitComparison({
               {baits.map(({ baitId, range }) => (
                 <li key={baitId}>
                   <span className="fish-bait-compare-name">
-                    <BaitIcon icon={catalog.itemIcons[baitId]} />
-                    <strong>{catalog.items[baitId] || `物品 ${baitId}`}</strong>
+                    <FishBaitSource baitId={baitId}>
+                      <BaitIcon icon={catalog.itemIcons[baitId]} />
+                      <strong>
+                        {catalog.items[baitId] || `物品 ${baitId}`}
+                      </strong>
+                    </FishBaitSource>
                   </span>
                   <strong className="fish-bait-compare-time">
                     {range ? formatBiteTimeRange(range) : "时间样本不足"}

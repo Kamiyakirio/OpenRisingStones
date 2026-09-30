@@ -7,6 +7,7 @@ import {
   WaveSine,
 } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
+import { FishBaitSource } from "./FishBaitSource";
 import { biteTimeKey, formatBiteTimeRange } from "./biteTimes";
 import { xivIconUrl } from "./iconUrl";
 import { gigLabels, hooksetLabels, tugLabels } from "./presentation";
@@ -53,6 +54,7 @@ export function FishingTechnique({
   selfMooch,
   spotId,
   showAlternatives = true,
+  showBaitSources = false,
 }: {
   fish: Fish;
   catalog: FishCatalog;
@@ -61,6 +63,7 @@ export function FishingTechnique({
   selfMooch: ReadonlySet<string>;
   spotId?: number;
   showAlternatives?: boolean;
+  showBaitSources?: boolean;
 }) {
   const condition = fish.conditions;
   if (fish.method === "spear") {
@@ -118,35 +121,46 @@ export function FishingTechnique({
             </span>
             <span className="fish-technique-catch">
               {sourceIds.length ? (
-                sourceIds.map((id, sourceIndex) => (
-                  <span className="fish-technique-item" key={id}>
-                    {sourceIndex > 0 && (
-                      <span className="fish-technique-divider">/</span>
-                    )}
-                    <TechniqueIcon
-                      icon={catalog.itemIcons[id]}
-                      fallback={<FishSimple />}
-                    />
-                    <strong>
-                      {catalog.items[id] ||
-                        fishById.get(id)?.name ||
-                        String(id)}
-                    </strong>
-                    {referenceSpot &&
-                      selfMooch.has(
-                        selfMoochKey({ fishId: id, spotId: referenceSpot }),
-                      ) && (
-                        <span
-                          className="fish-technique-loop"
-                          role="img"
-                          aria-label={`${catalog.items[id] || fishById.get(id)?.name || id}可回转钓起自身`}
-                          title="可回转钓起自身"
-                        >
-                          <ArrowClockwise weight="bold" aria-hidden="true" />
-                        </span>
+                sourceIds.map((id, sourceIndex) => {
+                  const baitLabel = (
+                    <>
+                      <TechniqueIcon
+                        icon={catalog.itemIcons[id]}
+                        fallback={<FishSimple />}
+                      />
+                      <strong>
+                        {catalog.items[id] ||
+                          fishById.get(id)?.name ||
+                          String(id)}
+                      </strong>
+                    </>
+                  );
+                  return (
+                    <span className="fish-technique-item" key={id}>
+                      {sourceIndex > 0 && (
+                        <span className="fish-technique-divider">/</span>
                       )}
-                  </span>
-                ))
+                      {showBaitSources ? (
+                        <FishBaitSource baitId={id}>{baitLabel}</FishBaitSource>
+                      ) : (
+                        baitLabel
+                      )}
+                      {referenceSpot &&
+                        selfMooch.has(
+                          selfMoochKey({ fishId: id, spotId: referenceSpot }),
+                        ) && (
+                          <span
+                            className="fish-technique-loop"
+                            role="img"
+                            aria-label={`${catalog.items[id] || fishById.get(id)?.name || id}可回转钓起自身`}
+                            title="可回转钓起自身"
+                          >
+                            <ArrowClockwise weight="bold" aria-hidden="true" />
+                          </span>
+                        )}
+                    </span>
+                  );
+                })
               ) : (
                 <strong className="fish-technique-missing">未收录</strong>
               )}
