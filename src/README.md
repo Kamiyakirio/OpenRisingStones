@@ -51,7 +51,10 @@ live under the glamour feature. `app/styles/App.css` imports the extracted style
 in a deliberate order after existing component styles, preserving the cascade.
 Keep responsive and accessibility rules with the styles they modify.
 
-The existing Node tests remain in `tests/` and import feature utilities directly.
+The Node tests and helpers use TypeScript in `tests/` and import feature utilities
+directly. `npm test` checks them with `tsconfig.tests.json` before running the Node
+test runner with the shared TS/JSON module loader. Use `npm run test:typecheck`
+to check test types without executing the suite.
 Use explicit `.ts` extensions in runtime imports reached by those tests. Validate
 structural changes with `npm test`, `npm run build`, `npm run lint`, Prettier, and
 browser checks of navigation, dialogs, themes, and responsive layouts.

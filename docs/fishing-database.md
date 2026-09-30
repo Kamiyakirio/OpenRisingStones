@@ -187,7 +187,7 @@ glamour. Browser preview links to the original Wiki page without fabricated sour
 
 ## Verification
 
-`tests/fishing.test.mjs` covers data joins, weather transitions, overnight and
+`tests/fishing.test.ts` covers data joins, weather transitions, overnight and
 fractional boundaries, unknown conditions, combined filtering, pinyin search,
 duration formatting, and malformed stored data.
 Browser review should cover desktop and narrow viewports in both themes, returning
