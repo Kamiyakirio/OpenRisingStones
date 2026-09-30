@@ -89,6 +89,7 @@ export function nextWindows(
   limit = 10,
   fishEyes = false,
   horizonDays = 365,
+  matchesWindow?: (window: FishWindow) => boolean,
 ): FishWindow[] {
   const c = fish.conditions;
   if (
@@ -101,7 +102,10 @@ export function nextWindows(
     limit <= 0
   )
     return [];
-  if (isUnrestricted(fish, fishEyes)) return [{ start: now, end: Infinity }];
+  if (isUnrestricted(fish, fishEyes)) {
+    const window = { start: now, end: Infinity };
+    return !matchesWindow || matchesWindow(window) ? [window] : [];
+  }
   const hours = [...new Set([0, 8, 16, 24, c.startHour, c.endHour])].sort(
     (a, b) => a - b,
   );
@@ -113,7 +117,8 @@ export function nextWindows(
     if (isWindowOpen(fish, catalog, point, fishEyes)) {
       active ??= point;
     } else if (active !== null) {
-      windows.push({ start: active, end: point });
+      const window = { start: active, end: point };
+      if (!matchesWindow || matchesWindow(window)) windows.push(window);
       active = null;
     }
     point = next;

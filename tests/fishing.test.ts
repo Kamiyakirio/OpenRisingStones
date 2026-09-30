@@ -25,7 +25,13 @@ import {
   upcomingWindow,
   patchGroup,
 } from "../src/features/fishing/model.ts";
-import { applyGameFishingLog } from "../src/features/fishing/gameLog.ts";
+import {
+  applyGameFishingLog,
+  cacheGameFishingLog,
+  emptyGameFishingLogCache,
+  parseGameFishingLogCache,
+  serializeGameFishingLogCache,
+} from "../src/features/fishing/gameLog.ts";
 import {
   compareFishingLogOrder,
   fishingCategory,
@@ -40,6 +46,7 @@ import {
   initialOceanViewState,
   oceanRouteFish,
   oceanRouteGroups,
+  oceanRouteTargets,
   oceanSpotFish,
   oceanStopFish,
   parseOceanViewState,
@@ -60,6 +67,7 @@ import {
   summarizeBaitComparisons,
   summarizeBiteTimes,
 } from "../src/features/fishing/biteTimes.ts";
+import { summarizeSpotCatchStats } from "../src/features/fishing/spotCatchData.ts";
 import {
   initialFishingSearch,
   parseFishingFilterPreferences,
@@ -314,6 +322,41 @@ test("bait comparison keeps each reported bait and spot separate", () => {
   ]);
 });
 
+test("spot catch stats keep misses separate from each fish and bait", () => {
+  assert.deepEqual(
+    summarizeSpotCatchStats([
+      { itemId: 8756, baitId: 100, occurences: 3 },
+      { itemId: 8756, baitId: 100, occurences: 2 },
+      { itemId: 4919, baitId: 100, occurences: 5 },
+      { itemId: -1, baitId: 100, occurences: 4 },
+      { itemId: 4919, baitId: 200, occurences: 7 },
+      { itemId: -1, baitId: 300, occurences: 9 },
+      { itemId: 0, baitId: 100, occurences: 10 },
+      { itemId: 8756, baitId: -1, occurences: 10 },
+      { itemId: 8756, baitId: 100, occurences: -1 },
+    ]),
+    [
+      {
+        baitId: 100,
+        total: 14,
+        caught: 10,
+        missed: 4,
+        fish: [
+          { fishId: 4919, reports: 5 },
+          { fishId: 8756, reports: 5 },
+        ],
+      },
+      {
+        baitId: 200,
+        total: 7,
+        caught: 7,
+        missed: 0,
+        fish: [{ fishId: 4919, reports: 7 }],
+      },
+    ],
+  );
+});
+
 test("catalog rows query only the first suggested bait", () => {
   const fish = catalog.fish.find((item) => item.id === 43664)!;
   const byId = new Map(catalog.fish.map((item) => [item.id, item]));
@@ -490,6 +533,17 @@ test("each ocean route resolves its three stops and all catalog ocean fish", () 
         new Set([1, 2, 3]),
       );
       const fish = oceanRouteFish(catalog, route);
+      const targets = oceanRouteTargets(route, fish);
+      assert.ok(targets.length > 0 && targets.length <= 2);
+      targets.forEach((target) => {
+        assert.ok(target.fish.icon);
+        assert.ok(fish.some((candidate) => candidate.id === target.fish.id));
+        if (target.type === "blue") {
+          assert.equal(target.fish.kind, "ocean-legendary");
+        } else {
+          assert.ok(target.missionType);
+        }
+      });
       variants.add(fish.map((item) => item.id).join(","));
       for (const stop of route.stops) {
         const catches = oceanStopFish(catalog, stop);
@@ -523,6 +577,42 @@ test("each ocean route resolves its three stops and all catalog ocean fish", () 
   );
 });
 
+test("ocean goals follow route objectives instead of counting fish categories", () => {
+  const blueRoute = catalog.oceanRoutes.find((item) => item.id === 12)!;
+  const blueFish = oceanRouteFish(catalog, blueRoute);
+  assert.deepEqual(
+    oceanRouteTargets(blueRoute, blueFish).map((target) =>
+      target.type === "blue" ? target.fish.name : target.missionType,
+    ),
+    ["\u54c8\u5f17\u53e4\u6cd5", "\u76fe\u9f7f\u9f99"],
+  );
+  const achievementRoute = catalog.oceanRoutes.find((item) => item.id === 15)!;
+  assert.deepEqual(
+    oceanRouteTargets(
+      achievementRoute,
+      oceanRouteFish(catalog, achievementRoute),
+    ).map((target) => target.type === "achievement" && target.missionType),
+    ["Shellfish", "Shrimp"],
+  );
+  const at = Date.UTC(2026, 8, 30, 10);
+  const departure = upcomingOceanDepartures(catalog, at - 1000, 1)[0];
+  assert.equal(departure.at, at);
+  assert.equal(departure.near.id, 3);
+  assert.deepEqual(
+    oceanRouteTargets(
+      departure.near,
+      oceanRouteFish(catalog, departure.near),
+    ).map((target) => [
+      target.type,
+      target.type === "blue" ? target.fish.name : target.missionType,
+    ]),
+    [
+      ["achievement", "Seadragon"],
+      ["blue", "\u73ca\u745a\u8760\u9cbc"],
+    ],
+  );
+});
+
 test("ocean departures follow the verified game rotation and boarding cutoff", () => {
   const at = Date.UTC(2026, 8, 29, 10);
   const voyages = upcomingOceanDepartures(catalog, at - 1000, 3);
@@ -541,6 +631,37 @@ test("ocean departures follow the verified game rotation and boarding cutoff", (
   assert.equal(
     upcomingOceanDepartures(catalog, at + OCEAN_BOARDING_MS, 1)[0].at,
     at + 7200000,
+  );
+  const midnight = Date.UTC(2026, 8, 29, 16);
+  assert.deepEqual(
+    upcomingOceanDepartures(catalog, midnight - 1000, 2).map(
+      ({ near, far }) => [near.id, far.id],
+    ),
+    [
+      [10, 13],
+      [1, 19],
+    ],
+  );
+  const octoberMidnight = Date.UTC(2026, 8, 30, 16);
+  const octoberVoyages = upcomingOceanDepartures(
+    catalog,
+    octoberMidnight - 1000,
+    2,
+  );
+  assert.deepEqual(
+    octoberVoyages.map(({ near, far }) => [near.id, far.id]),
+    [
+      [1, 19],
+      [4, 16],
+    ],
+  );
+  assert.deepEqual(
+    octoberVoyages.map(({ near }) =>
+      oceanRouteTargets(near, oceanRouteFish(catalog, near)).map((target) =>
+        target.type === "achievement" ? target.missionType : target.fish.name,
+      ),
+    ),
+    [["Octopus"], ["Jellyfish"]],
   );
 });
 
@@ -641,6 +762,54 @@ test("game log rows override manual marks only for catalog entries they cover", 
   assert.equal(result.progress.caught.includes(spear.id), true);
   assert.equal(result.progress.caught.includes(unmapped.id), true);
   assert.deepEqual(result.progress.saved, [rod.id]);
+});
+
+test("game fishing logs survive storage round trips for multiple characters", () => {
+  const first = {
+    contentId: "1001",
+    characterName: "First Fisher",
+    caughtFishParameterIds: [1, 2],
+    caughtSpearfishingItemIds: [3],
+  };
+  const second = {
+    contentId: "1002",
+    characterName: "Second Fisher",
+    caughtFishParameterIds: [4],
+    caughtSpearfishingItemIds: [],
+  };
+  const cached = cacheGameFishingLog(
+    cacheGameFishingLog(emptyGameFishingLogCache(), first, 1000),
+    second,
+    2000,
+  );
+  const restored = parseGameFishingLogCache(
+    serializeGameFishingLogCache(cached),
+  );
+  assert.equal(restored.activeContentId, "1002");
+  assert.deepEqual(restored.entries["1001"], {
+    log: first,
+    capturedAt: 1000,
+  });
+  assert.deepEqual(restored.entries["1002"], {
+    log: second,
+    capturedAt: 2000,
+  });
+  assert.deepEqual(parseGameFishingLogCache(null), emptyGameFishingLogCache());
+  assert.deepEqual(
+    parseGameFishingLogCache(
+      JSON.stringify({
+        version: 1,
+        activeContentId: "1002",
+        entries: {
+          1002: {
+            log: { ...second, caughtFishParameterIds: ["invalid"] },
+            capturedAt: 2000,
+          },
+        },
+      }),
+    ).activeContentId,
+    null,
+  );
 });
 
 test("ten default windows and extended results retain complete boundaries", () => {

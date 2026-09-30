@@ -94,6 +94,114 @@ export function oceanRouteFish(catalog: FishCatalog, route: OceanRoute) {
     .sort(compareFishingLogOrder);
 }
 
+export type OceanRouteTarget =
+  | { type: "blue"; fish: Fish }
+  | { type: "achievement"; missionType: string; fish: Fish };
+
+type OceanGoal =
+  | { type: "blue"; fishId: number }
+  | { type: "achievement"; missionType: string; fishId: number };
+
+// These are route objectives, not a ranking by the number of eligible fish.
+// Source: https://ffxiv.oceanfishing.boats/indigo/ and /ruby/ (optional objectives).
+// Achievement fish IDs are eligible examples used only for their item icons.
+const oceanRouteGoals: Record<number, OceanGoal[]> = {
+  1: [{ type: "achievement", missionType: "Octopus", fishId: 29734 }],
+  2: [
+    { type: "blue", fishId: 29788 },
+    { type: "blue", fishId: 29791 },
+  ],
+  3: [
+    { type: "achievement", missionType: "Seadragon", fishId: 29740 },
+    { type: "blue", fishId: 29789 },
+  ],
+  4: [{ type: "achievement", missionType: "Jellyfish", fishId: 29739 }],
+  5: [
+    { type: "achievement", missionType: "Shark", fishId: 28942 },
+    { type: "blue", fishId: 29789 },
+  ],
+  6: [
+    { type: "blue", fishId: 29788 },
+    { type: "blue", fishId: 29790 },
+  ],
+  7: [{ type: "achievement", missionType: "Manta", fishId: 32058 }],
+  8: [
+    { type: "achievement", missionType: "Crab", fishId: 29741 },
+    { type: "blue", fishId: 32094 },
+  ],
+  9: [
+    { type: "blue", fishId: 32074 },
+    { type: "blue", fishId: 29791 },
+  ],
+  10: [
+    { type: "achievement", missionType: "Fugu", fishId: 32095 },
+    { type: "blue", fishId: 29790 },
+  ],
+  11: [
+    { type: "achievement", missionType: "Fugu", fishId: 32095 },
+    { type: "achievement", missionType: "Manta", fishId: 32058 },
+  ],
+  12: [
+    { type: "blue", fishId: 32074 },
+    { type: "blue", fishId: 32114 },
+  ],
+  13: [
+    { type: "achievement", missionType: "Shellfish", fishId: 40522 },
+    { type: "blue", fishId: 40540 },
+  ],
+  14: [
+    { type: "blue", fishId: 40560 },
+    { type: "blue", fishId: 40600 },
+  ],
+  15: [
+    { type: "achievement", missionType: "Shellfish", fishId: 40522 },
+    { type: "achievement", missionType: "Shrimp", fishId: 40543 },
+  ],
+  16: [
+    { type: "achievement", missionType: "Squid", fishId: 40523 },
+    { type: "blue", fishId: 40540 },
+  ],
+  17: [
+    { type: "achievement", missionType: "Squid", fishId: 40523 },
+    { type: "blue", fishId: 40560 },
+  ],
+  18: [
+    { type: "achievement", missionType: "Shrimp", fishId: 40543 },
+    { type: "blue", fishId: 40580 },
+  ],
+  19: [
+    { type: "achievement", missionType: "MantisShrimp", fishId: 40538 },
+    { type: "blue", fishId: 51247 },
+  ],
+  20: [
+    { type: "achievement", missionType: "PrehistoricWavekin", fishId: 40536 },
+    { type: "blue", fishId: 51228 },
+  ],
+  21: [
+    { type: "achievement", missionType: "MantisShrimp", fishId: 40538 },
+    { type: "blue", fishId: 40540 },
+  ],
+};
+
+/** Resolve a voyage's curated goals only when their example fish is available. */
+export function oceanRouteTargets(
+  route: OceanRoute,
+  fish: Fish[],
+  limit = 2,
+): OceanRouteTarget[] {
+  const available = new Map(fish.map((item) => [item.id, item]));
+  return (oceanRouteGoals[route.id] ?? [])
+    .flatMap((goal): OceanRouteTarget[] => {
+      const item = available.get(goal.fishId);
+      if (!item || (goal.type === "blue" && item.kind !== "ocean-legendary"))
+        return [];
+      return goal.type === "blue"
+        ? [{ type: "blue", fish: item }]
+        : [{ type: "achievement", missionType: goal.missionType, fish: item }];
+    })
+    .slice(0, limit);
+}
+
 export function oceanRouteGroups(catalog: FishCatalog): OceanRouteGroup[] {
   const groups = new Map<string, OceanRouteGroup>();
   for (const route of catalog.oceanRoutes) {

@@ -2,7 +2,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseProgress, PROGRESS_KEY } from "./model";
 import { useFishingClock } from "./clock";
-import { applyGameFishingLog, type GameFishingLog } from "./gameLog";
+import {
+  applyGameFishingLog,
+  cacheGameFishingLog,
+  emptyGameFishingLogCache,
+  GAME_LOG_CACHE_KEY,
+  isGameFishingLog,
+  parseGameFishingLogCache,
+  serializeGameFishingLogCache,
+} from "./gameLog";
 import { captureFishingLog } from "./api";
 import { normalizeGameBridgeError } from "../../shared/game-bridge/api";
 import { isTauriRuntime } from "../../shared/utils/runtime";
@@ -13,7 +21,8 @@ export function useFishing() {
   const [attempt, setAttempt] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const now = useFishingClock();
-  const [storageError, setStorageError] = useState(false);
+  const [manualStorageError, setManualStorageError] = useState(false);
+  const [gameLogStorageError, setGameLogStorageError] = useState(false);
   const [manualProgress, setManualProgress] = useState<FishProgress>(() => {
     try {
       return parseProgress(localStorage.getItem(PROGRESS_KEY));
@@ -22,7 +31,18 @@ export function useFishing() {
     }
   });
   const desktop = isTauriRuntime();
-  const [gameLog, setGameLog] = useState<GameFishingLog | null>(null);
+  const [gameLogCache, setGameLogCache] = useState(() => {
+    try {
+      return parseGameFishingLogCache(localStorage.getItem(GAME_LOG_CACHE_KEY));
+    } catch {
+      return emptyGameFishingLogCache();
+    }
+  });
+  const gameLogCacheRef = useRef(gameLogCache);
+  const cachedLog = gameLogCache.activeContentId
+    ? gameLogCache.entries[gameLogCache.activeContentId]
+    : null;
+  const gameLog = desktop ? (cachedLog?.log ?? null) : null;
   const [gameLogStatus, setGameLogStatus] = useState<
     | "syncing"
     | "ready"
@@ -42,18 +62,28 @@ export function useFishing() {
     try {
       const snapshot = await captureFishingLog();
       if (version !== requestVersion.current) return;
-      if (
-        !snapshot.contentId ||
-        !Array.isArray(snapshot.caughtFishParameterIds) ||
-        !Array.isArray(snapshot.caughtSpearfishingItemIds)
-      ) {
+      if (!isGameFishingLog(snapshot)) {
         throw new Error("Invalid fishing log snapshot.");
       }
-      setGameLog(snapshot);
+      const nextCache = cacheGameFishingLog(
+        gameLogCacheRef.current,
+        snapshot,
+        Date.now(),
+      );
+      gameLogCacheRef.current = nextCache;
+      setGameLogCache(nextCache);
+      try {
+        localStorage.setItem(
+          GAME_LOG_CACHE_KEY,
+          serializeGameFishingLogCache(nextCache),
+        );
+        setGameLogStorageError(false);
+      } catch {
+        setGameLogStorageError(true);
+      }
       setGameLogStatus("ready");
     } catch (reason) {
       if (version !== requestVersion.current) return;
-      setGameLog(null);
       const { code } = normalizeGameBridgeError(reason);
       if (code === "unsupported_platform") unsupportedPlatform.current = true;
       setGameLogStatus(
@@ -120,6 +150,11 @@ export function useFishing() {
     const sync = (event: StorageEvent) => {
       if (event.key === PROGRESS_KEY || event.key === null)
         setManualProgress(parseProgress(event.newValue));
+      if (event.key === GAME_LOG_CACHE_KEY || event.key === null) {
+        const next = parseGameFishingLogCache(event.newValue);
+        gameLogCacheRef.current = next;
+        setGameLogCache(next);
+      }
     };
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
@@ -149,9 +184,9 @@ export function useFishing() {
     setManualProgress(next);
     try {
       localStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
-      setStorageError(false);
+      setManualStorageError(false);
     } catch {
-      setStorageError(true);
+      setManualStorageError(true);
     }
   }
   return {
@@ -166,12 +201,14 @@ export function useFishing() {
     now,
     progress,
     gameLog,
+    gameLogCapturedAt: gameLog ? (cachedLog?.capturedAt ?? null) : null,
+    gameLogStorageError,
     gameLogStatus,
     gameCaughtCount,
     gameCoveredIds: gameProgress?.coveredIds ?? new Set<number>(),
     desktop,
     refreshGameLog,
     toggleProgress,
-    storageError,
+    storageError: manualStorageError || gameLogStorageError,
   };
 }

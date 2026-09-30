@@ -9,11 +9,12 @@ try {
     ),
   );
   if (
-    catalog.formatVersion !== 6 ||
+    catalog.formatVersion !== 7 ||
     catalog.fish?.length < 1730 ||
     catalog.oceanRoutes?.length < 21 ||
     catalog.oceanRouteTable?.length !== 144 ||
     !catalog.oceanAvailability ||
+    Object.keys(catalog.oceanMissionTypes ?? {}).length < 60 ||
     catalog.oceanRoutes.some(
       (route) =>
         route.stops?.length !== 3 || route.stops.some((stop) => !stop.name),

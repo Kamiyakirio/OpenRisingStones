@@ -454,6 +454,7 @@ if (
   throw new Error("Ocean route rotation is incomplete.");
 // The game lists every fish in a sea, while the community record supplies its time-of-day exclusions.
 const oceanAvailability = {};
+const oceanMissionTypes = {};
 const oceanFishByItem = new Map(
   fish.filter((item) => item.method === "ocean").map((item) => [item.id, item]),
 );
@@ -483,6 +484,15 @@ for (const sourceSpot of sourceOceanSpots) {
     throw new Error("Community ocean fish cannot be matched to a game spot.");
   const [spotId] = matches[0];
   for (const sourceFish of sourceSpot.Fish) {
+    if (
+      sourceFish.VoyageMissionType &&
+      sourceFish.VoyageMissionType !== "None"
+    ) {
+      const previous = oceanMissionTypes[sourceFish.ItemId];
+      if (previous && previous !== sourceFish.VoyageMissionType)
+        throw new Error("Ocean mission category conflicts between spots.");
+      oceanMissionTypes[sourceFish.ItemId] = sourceFish.VoyageMissionType;
+    }
     const allowed = ["Day", "Sunset", "Night"]
       .map((phase, index) =>
         sourceFish.TimeAvailability?.[phase] === false ? null : index + 1,
@@ -508,14 +518,17 @@ for (const sourceSpot of sourceOceanSpots) {
 }
 if (sourceOceanSpots.length !== 26)
   throw new Error("Ocean fish availability source is incomplete.");
+if (Object.keys(oceanMissionTypes).length < 60)
+  throw new Error("Ocean mission categories are incomplete.");
 const catalog = {
-  formatVersion: 6,
+  formatVersion: 7,
   generatedAt: new Date().toISOString(),
   sources: sources.sort((a, b) => a.url.localeCompare(b.url)),
   fish,
   oceanRoutes,
   oceanRouteTable,
   oceanAvailability,
+  oceanMissionTypes,
   items: namedItems,
   itemIcons: Object.fromEntries(
     Object.keys(namedItems).map((id) => [

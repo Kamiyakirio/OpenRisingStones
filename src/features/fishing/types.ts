@@ -70,6 +70,7 @@ export type FishCatalog = {
   oceanRoutes: OceanRoute[];
   oceanRouteTable: { nearRouteId: number; farRouteId: number }[];
   oceanAvailability: Record<string, number[]>;
+  oceanMissionTypes: Record<string, string>;
   items: Record<string, string>;
   itemIcons: Record<string, number>;
   weather: Record<string, string>;

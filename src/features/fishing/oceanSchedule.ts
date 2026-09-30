@@ -3,9 +3,10 @@ import type { FishCatalog, OceanRoute } from "./types.ts";
 
 const TWO_HOURS = 2 * 60 * 60 * 1000;
 export const OCEAN_BOARDING_MS = 15 * 60 * 1000;
-// The observed 2026-09-29 10:00 UTC voyage is rotation row 108 in the game sheet.
-const ANCHOR_TIME = Date.UTC(2026, 8, 29, 10);
-const ANCHOR_ROW = 108;
+// The published Unix-epoch schedule starts at pattern index 88; the game
+// IKDRouteTable starts 48 entries later. This also aligns the daily route skip.
+// https://ffxiv.pf-n.co/ocean-fishing/about
+const ROUTE_TABLE_OFFSET = 88 + 48;
 
 export type OceanDeparture = {
   at: number;
@@ -25,7 +26,7 @@ export function upcomingOceanDepartures(
   for (let index = 0; index < count; index++) {
     const at = first + index * TWO_HOURS;
     const row =
-      (((ANCHOR_ROW + (at - ANCHOR_TIME) / TWO_HOURS) %
+      (((ROUTE_TABLE_OFFSET + at / TWO_HOURS) %
         catalog.oceanRouteTable.length) +
         catalog.oceanRouteTable.length) %
       catalog.oceanRouteTable.length;
