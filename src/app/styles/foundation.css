@@ -153,16 +153,16 @@ progress {
   background: var(--ors-color-surface);
   box-shadow: none;
 }
-.app
-  :is(
-    button,
-    select,
-    input:not([type="checkbox"]):not([type="radio"]):not(.gear-input)
-  ) {
+/* Keep each control selector separate so complex input filters do not raise button specificity. */
+.app button,
+.app select,
+.app input:not([type="checkbox"]):not([type="radio"]):not(.gear-input) {
   min-height: 40px;
 }
 @media (pointer: coarse) {
-  .app :is(button, select, input:not([type="checkbox"]):not([type="radio"])) {
+  .app button,
+  .app select,
+  .app input:not([type="checkbox"]):not([type="radio"]) {
     min-height: 44px;
   }
 }

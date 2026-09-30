@@ -21,12 +21,18 @@ fish use game-log order, and back navigation restores the directory position.
 A fish can appear at several spots; completion totals at region and map level
 count each Item ID once. Keep the three directory levels scannable at desktop
 width and stack them without horizontal page overflow on narrow screens.
+The spot page places compact, bait-specific community catch statistics before
+its fish list. Fish rows in that statistic show successful-catch share and
+sample count; the bait summary keeps combined miss reports separate because
+they cannot identify the escaped fish or isolate a pure escape percentage.
 
 The ocean task begins with departures every two hours, paired near and far
 routes, local boarding time, and three ordered stops. Clicking a departure
 opens a separate route page. Each stop separates normal and spectral catches
-and filters fish by that voyage's day/sunset/night phase. The row-level
-bookmark and recorded-status controls make this a catch plan, not a static
+and filters fish by that voyage's day/sunset/night phase. The schedule preview
+shows the route variant's blue-fish or achievement goals and the full route count.
+Ordinary fish never fill target slots. The row-level bookmark and
+recorded-status controls make this a catch plan, not a static
 route directory. Restore the schedule position when returning.
 
 Fish rows name only the bait for direct catches; mooch chains name each source

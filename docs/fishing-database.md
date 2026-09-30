@@ -6,10 +6,13 @@ it caught. Returning to the list preserves its filters, page, and scroll positio
 Manual progress uses `ors.fishing.progress.v1` in local storage and is removed by
 the existing clear-local-data action. On Windows desktop, the page reads the
 loaded FFXIV character's rod and spear catch bits automatically on entry, every
-30 seconds, and when the app regains focus. Game-log entries override manual
-catch marks while that character is available. Rows absent from the game log
-remain manually editable. The app does not persist a character's game-log bits
-to shared local storage, so another character cannot inherit that snapshot.
+30 seconds, and when the app regains focus. Successful snapshots are stored by
+character Content ID under `ors.fishing.gameLog.v1`; the last used character's
+record remains visible after a restart or temporary read failure, with its
+capture time shown in the sync status. A new character's snapshot replaces the
+active view without mixing catch bits across characters. Game-log entries
+override manual catch marks; rows absent from the game log remain manually
+editable. Clearing local data removes both manual marks and saved snapshots.
 
 ## Reference findings
 
@@ -106,10 +109,18 @@ weather icon (Weather 145). Known bait, prey, and weather properties are display
 but player-triggered spectral currents cannot receive a guaranteed wall-clock
 start time. The route page uses the game's 21 route variants and 144-slot
 rotation, groups near and far voyages at each local two-hour boarding time,
-and opens a separate page for the selected voyage. Its three stops show only
+and opens a separate page for the selected voyage. Each schedule row shows the
+route-specific catch count and up to two curated goals: achievable ocean-fishing
+bonuses or eligible five-star blue fish, matched by the game's route variant.
+The goal order follows the Indigo and Ruby optional-objective schedules from
+Ocean Fishing Tracker rather than fish counts. Achievement icons show one
+eligible example fish, not the only fish counted toward that bonus. Its three stops show only
 fish eligible at that stop's day/sunset/night phase. The 15-minute boarding
-window and rotation anchor were checked against the displayed 2026-09-29
-18:00 China-time voyages; verify the anchor again after a route-table change.
+window and rotation offset were checked against the displayed 2026-09-29
+18:00 China-time voyages, the 00:00 China-time daily route skip, and the
+[published Unix-epoch schedule](https://ffxiv.pf-n.co/ocean-fishing/about).
+Several table rows show the same voyage pair, so a single observed voyage
+cannot identify the rotation offset; verify it again after a route-table change.
 Weather and Fisher's Intuition can still restrict a listed fish. Unknown ocean
 weather sets remain explicit, not silently unrestricted.
 
@@ -161,6 +172,15 @@ qualifying reports. The total sample count appears beside the range. Skills,
 gear, and bait can shift actual bite times, so this is a planning reference.
 Missing samples and network errors have distinct states. These queries send
 game item and spot IDs only, without character or catch-log data.
+
+The fishing spot page also reads Teamcraft's `baits_per_fish_per_spot`
+aggregates for that spot, excluding positive lure stacks. The bait buttons
+show each fish's share of successful reported catches and its sample count.
+Teamcraft's `itemId = -1` is a combined miss outcome; the page shows its count
+and share separately. It does not label that share as a fish-specific bite rate
+or a pure escape rate because the aggregate cannot identify the lost fish or
+separate every miss cause. These are community observations across varying
+time, weather, and player conditions, not fixed game probabilities.
 
 `TerritoryType.PlaceName{Region}` supplies each spot's region; the existing
 territory map name and fishing spot ID supply the next two levels. Fish at

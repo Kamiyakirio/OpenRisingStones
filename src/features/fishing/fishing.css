@@ -773,6 +773,127 @@
 .fish-spot-page-heading > p {
   font-variant-numeric: tabular-nums;
 }
+.fish-spot-stats {
+  margin-top: 24px;
+}
+.fish-spot-stats-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin-bottom: 10px;
+}
+.fish-spot-stats-heading h2 {
+  margin: 0;
+}
+.fish-spot-stats-heading p,
+.fish-spot-stats-note {
+  margin: 3px 0 0;
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+}
+.fish-spot-stats-baits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.fishing-workspace .fish-spot-stats-bait {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 4px 8px 4px 5px;
+  border-color: var(--ors-color-line);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+.fish-spot-stats-bait small {
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.fish-spot-stats-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 8px 0;
+  border-block: 1px solid var(--ors-color-line);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.fish-spot-stats-summary > strong {
+  margin-right: auto;
+  font-size: 0.9375rem;
+}
+.fish-spot-stats-bait-icon,
+.fish-spot-stats-bait-icon :is(img, svg) {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+.fish-spot-stats-table-wrap {
+  max-height: 340px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--ors-color-control-line) transparent;
+}
+.fish-spot-stats-table {
+  width: 100%;
+  min-width: 390px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.fish-spot-stats-table :is(th, td) {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--ors-color-line);
+}
+.fish-spot-stats-table :is(th, td):first-child {
+  padding-left: 0;
+}
+.fish-spot-stats-table :is(th, td):not(:first-child) {
+  width: 112px;
+  text-align: right;
+  white-space: nowrap;
+}
+.fish-spot-stats-table th {
+  position: sticky;
+  top: 0;
+  background: var(--ors-color-canvas);
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-align: left;
+}
+.fish-spot-stats-table td {
+  font-size: 0.875rem;
+}
+.fishing-workspace .fish-spot-stats-fish {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.fish-spot-stats-fish .fish-icon,
+.fish-spot-stats-fish .fish-icon img {
+  width: 28px;
+  height: 28px;
+}
+.fish-spot-stats-fish span:last-child {
+  font-weight: 600;
+}
+.fish-spot-stats-unknown {
+  color: var(--ors-color-muted);
+}
+.fish-spot-stats-note {
+  margin-top: 9px;
+}
 .fish-spot-page-fish {
   margin-top: 28px;
 }
@@ -866,20 +987,26 @@
 .fish-ocean-schedule {
   max-width: 1240px;
 }
-.fish-ocean-departure-list {
-  border-top: 1px solid var(--ors-color-line);
+.fish-ocean-schedule-columns {
+  display: grid;
+  grid-template-columns: 190px 190px 180px minmax(0, 1fr);
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--ors-color-line);
+  color: var(--ors-color-muted);
+  font-size: 0.8125rem;
 }
 .fish-ocean-departure {
   display: grid;
-  grid-template-columns: minmax(155px, 190px) minmax(0, 1fr);
-  gap: 18px;
-  padding: 20px 0;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 14px;
   border-bottom: 1px solid var(--ors-color-line);
 }
 .fish-ocean-departure > header {
   display: grid;
   align-content: start;
   gap: 4px;
+  padding: 12px 0;
 }
 .fish-ocean-departure > header > div {
   display: grid;
@@ -903,28 +1030,59 @@
 }
 .fish-ocean-departure-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
 }
 .fishing-workspace .fish-ocean-departure-route {
   display: grid;
-  align-content: start;
-  gap: 8px;
+  grid-template-columns: 190px 180px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
   min-width: 0;
-  min-height: 92px;
-  padding: 10px 12px;
-  border: 1px solid var(--ors-color-line);
+  min-height: 82px;
+  padding: 8px 4px;
+  border: 0;
+  border-top: 1px solid var(--ors-color-line);
+  border-radius: 0;
   background: transparent;
   text-align: left;
+}
+.fishing-workspace .fish-ocean-departure-route:first-child {
+  border-top: 0;
 }
 .fishing-workspace .fish-ocean-departure-route:hover {
   background: var(--ors-color-hover);
 }
-.fish-ocean-departure-name {
+.fish-ocean-departure-targets {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.fish-ocean-departure-target {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 9px;
+  align-items: center;
+  min-width: 0;
+  gap: 5px;
+  font-size: 0.8125rem;
+}
+.fish-ocean-departure-target .fish-icon,
+.fish-ocean-departure-target .fish-icon img {
+  width: 24px;
+  height: 24px;
+}
+.fish-ocean-departure-target > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fish-ocean-departure-targets small,
+.fish-ocean-departure-target-empty {
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+}
+.fish-ocean-departure-name {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
 }
 .fish-ocean-departure-name small,
 .fish-ocean-departure-name > span {
@@ -970,6 +1128,21 @@
   margin: 0;
   color: var(--ors-color-muted);
   font-size: 0.8125rem;
+}
+@media (max-width: 1150px) {
+  .fish-ocean-schedule-columns {
+    display: none;
+  }
+  .fish-ocean-departure {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .fish-ocean-departure > header {
+    padding-bottom: 6px;
+  }
+  .fishing-workspace .fish-ocean-departure-route:first-child {
+    border-top: 1px solid var(--ors-color-line);
+  }
 }
 .fish-ocean-detail .fish-ocean-stop-heading h2 {
   margin: 0;
@@ -1271,6 +1444,30 @@
 .fish-plan-primary strong {
   color: var(--ors-color-accent);
 }
+.fishing-workspace .fish-plan-spot-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ors-color-accent);
+  text-align: left;
+}
+.fishing-workspace .fish-plan-spot-link:hover {
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fish-plan-spot-link strong {
+  color: inherit;
+}
+.fish-plan-spot-link svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
 .fish-plan p {
   margin: 5px 0 0;
   color: var(--ors-color-muted);
@@ -1454,42 +1651,34 @@
 .fish-predators li {
   padding: 3px 0;
 }
-.fish-bait-area {
+.fish-bait-source-anchor {
   position: relative;
-}
-.fish-bait-chain {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  margin: 0;
-  padding-left: 20px;
-}
-.fish-bait-chain li {
-  padding-left: 3px;
-}
-.fish-bait-chain li > span {
-  display: block;
-  font-size: 0.8125rem;
-}
-.fishing-workspace .fish-bait-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 5px;
-  padding: 4px 8px 4px 2px;
+  min-width: 0;
 }
-.fish-bait-item .fish-icon,
-.fish-bait-item .fish-icon img {
-  width: 32px;
-  height: 32px;
+.fishing-workspace .fish-bait-source-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.fishing-workspace .fish-bait-source-trigger:hover {
+  background: transparent;
+  color: var(--ors-color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .fish-bait-source {
-  position: absolute;
-  z-index: 20;
-  top: 100%;
-  left: 0;
-  width: min(440px, 100%);
-  max-height: 370px;
+  position: fixed;
+  z-index: 100;
   overflow: auto;
   padding: 16px;
   border-radius: var(--ors-radius-panel);
@@ -1519,11 +1708,148 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 16px;
 }
 .fish-eyes-toggle input {
   width: 17px;
   height: 17px;
+}
+.fish-window-planner {
+  margin-top: 0;
+}
+.fish-window-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+.fish-window-tools .fish-eyes-toggle {
+  white-space: nowrap;
+}
+.fish-window-filter-anchor {
+  position: relative;
+  margin-left: auto;
+}
+.fishing-workspace .fish-window-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 10px;
+  background: transparent;
+  color: var(--ors-color-accent);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+.fish-window-filter-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+.fish-window-filter-toggle span {
+  padding-left: 7px;
+  border-left: 1px solid var(--ors-color-line);
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+}
+.fish-window-filters {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(480px, calc(100vw - 40px));
+  max-height: min(65vh, 560px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--ors-color-line);
+  border-radius: var(--ors-radius-panel);
+  background: var(--ors-color-surface);
+  box-shadow: var(--ors-shadow-popover);
+}
+.fish-window-filter-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fish-window-filter-heading h3 {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+}
+.fishing-workspace .fish-window-filter-heading button {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ors-color-accent);
+}
+.fish-window-filter-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.fish-window-filters fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.fish-window-filters legend {
+  margin-bottom: 6px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+}
+.fish-window-filter-fields fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.fish-window-filter-fields legend {
+  grid-column: 1 / -1;
+}
+.fish-window-filter-fields label {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+}
+.fish-window-filter-fields input {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 7px;
+  font-size: 0.8125rem;
+}
+.fish-window-weekdays {
+  margin-top: 12px !important;
+}
+.fish-window-weekdays > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fishing-workspace .fish-window-weekdays button {
+  min-height: 34px;
+  padding: 4px 9px;
+  background: transparent;
+  font-size: 0.75rem;
+}
+.fish-window-filters > p {
+  margin: 9px 0 0;
+  color: var(--ors-color-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.fish-window-filter-error {
+  margin: 8px 0;
+  color: var(--ors-color-danger);
+  font-size: 0.8125rem;
+}
+.fish-window-filter-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ors-color-line);
 }
 .fish-window-scroll {
   max-height: 360px;
@@ -1565,6 +1891,11 @@
 .fish-window-progress {
   margin: 4px 0 0;
   font-size: 0.8125rem;
+}
+@media (max-width: 680px) {
+  .fish-window-filter-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .fish-weather-set,
 .fish-weather-option {
@@ -1671,10 +2002,6 @@
   }
 }
 @media (max-width: 850px) {
-  .fish-ocean-departure {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
   .fish-filter-content {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1734,12 +2061,22 @@
   }
 }
 @media (max-width: 620px) {
-  .fish-ocean-departure-options {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-  }
   .fishing-workspace .fish-ocean-departure-route {
-    min-height: 72px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 12px;
+    min-height: 86px;
+  }
+  .fish-ocean-departure-name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .fish-ocean-departure-targets {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .fish-ocean-departure-stops {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
   .fish-ocean-stops {
     grid-template-columns: minmax(0, 1fr);
@@ -1871,11 +2208,6 @@
   }
   .fish-window-duration {
     grid-column: 3;
-  }
-  .fish-bait-source {
-    position: static;
-    width: auto;
-    margin-top: 12px;
   }
   .fish-detail-actions {
     width: 100%;
