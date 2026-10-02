@@ -1,6 +1,6 @@
 /** Typed IPC boundary for local Mentor records, monitoring, and legacy migration. */
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { invoke } from "../../shared/diagnostics/invoke";
+import { invoke } from "../../../shared/diagnostics/invoke";
 
 export type MentorResult =
   "completed" | "exited" | "needs_review" | "legacy_unknown";

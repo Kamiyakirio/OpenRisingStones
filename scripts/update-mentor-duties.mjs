@@ -21,9 +21,9 @@ const duties = Object.fromEntries(
     .filter((row) => row[nameIndex] && Number(row[0]) > 0)
     .map((row) => [row[0], row[nameIndex]]),
 );
-await mkdir("src/features/mentor", { recursive: true });
+await mkdir("src/features/mentor/data", { recursive: true });
 await writeFile(
-  "src/features/mentor/dutyNames.json",
+  "src/features/mentor/data/dutyNames.json",
   `${JSON.stringify(duties)}\n`,
 );
 console.log(`Wrote ${Object.keys(duties).length} duty names.`);

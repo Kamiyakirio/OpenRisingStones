@@ -37,12 +37,12 @@ import {
   type MentorRecord,
   type MentorResult,
   type MonitorStatus,
-} from "../features/mentor/api";
+} from "../features/mentor/api/mentorApi";
 import {
   grantMentorConsent,
   hasMentorConsent,
-} from "../features/mentor/consent";
-import dutyNames from "../features/mentor/dutyNames.json";
+} from "../features/mentor/utils/consent";
+import dutyNames from "../features/mentor/data/dutyNames.json";
 import "./MentorPage.css";
 
 const names = dutyNames as Record<string, string>;
