@@ -325,12 +325,39 @@
   white-space: nowrap;
 }
 .mentor-record-title small {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   color: var(--muted);
   font-size: 0.8125rem;
   font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* Combat role colors reuse the theme's readable semantic palette. */
+.mentor-job {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+}
+.mentor-job img {
+  flex: none;
+  object-fit: contain;
+}
+.mentor-job.role-tank {
+  color: var(--ors-color-info);
+}
+.mentor-job.role-healer {
+  color: var(--ors-color-success);
+}
+.mentor-job.role-dps {
+  color: var(--ors-color-danger);
+}
+.mentor-session-job {
+  margin-top: 18px;
+  font-size: 0.875rem;
 }
 .mentor-result {
   font-size: 0.8125rem;

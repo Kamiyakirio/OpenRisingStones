@@ -21,7 +21,7 @@ import {
 import { RiskDialog } from "../shared/components/RiskDialog";
 import { prepareGameBridge } from "../shared/game-bridge/api";
 import { isTauriRuntime } from "../shared/utils/runtime";
-import { CLASS_JOB_LABEL_BY_GLAMOUR_ID } from "../features/glamour/data/classJobs";
+import { MentorJob } from "../features/mentor/components/MentorJob";
 import {
   addManualRecord,
   correctRecord,
@@ -425,6 +425,11 @@ export function MentorPage() {
             结果<span>完成或退出后记录</span>
           </div>
         </div>
+        {active && (
+          <div className="mentor-session-job">
+            <MentorJob jobId={active.jobId} jobName={active.jobName} />
+          </div>
+        )}
         <p className="mentor-session-caption">
           {status?.phase === "in_duty"
             ? `正在记录 ${active?.characterName ?? "当前角色"} 的副本；完成信号或退出后会更新结果。`
@@ -627,12 +632,6 @@ export function MentorPage() {
                       const duty = record.dutyId
                         ? (names[String(record.dutyId)] ?? record.dutyName)
                         : record.dutyName;
-                      const job =
-                        record.jobName ??
-                        (record.jobId
-                          ? CLASS_JOB_LABEL_BY_GLAMOUR_ID[record.jobId]
-                          : null) ??
-                        "职业未记录";
                       const open = expanded === record.id;
                       return (
                         <div className="mentor-record" key={record.id}>
@@ -655,7 +654,11 @@ export function MentorPage() {
                             <span className="mentor-record-title">
                               {duty}
                               <small>
-                                {record.characterName || "未指定角色"} · {job}
+                                {record.characterName || "未指定角色"}
+                                <MentorJob
+                                  jobId={record.jobId}
+                                  jobName={record.jobName}
+                                />
                               </small>
                             </span>
                             <span
