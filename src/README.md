@@ -5,7 +5,7 @@ domain logic together instead of adding global component or service folders.
 
 - `app/` composes navigation, theme, authentication, diagnostics, and settings.
   Its components are the application shell, including the header and footer.
-- `pages/` assembles the home, glamour, recruitment, teleport, gearing, and fishing entrypoints.
+- `pages/` assembles feature entrypoints, including desktop tools and debug views.
   Page components connect feature hooks to feature UI and application chrome.
 - `features/auth/` owns login methods, session state, expiry events, and consent.
 - `features/glamour/` owns discovery, details, equipment search, Wiki integration,
@@ -14,9 +14,9 @@ domain logic together instead of adding global component or service folders.
   shared configuration, party presentation, filtering, and request pacing.
 - `features/teleport/` owns departure/return selection, orders, and automatic travel.
 - `features/gearing/` owns equipment selection, materia, stats, sharing, and native
-  optimization. Its legacy MobX models stay internal to `models/`; core and
-  optimization contracts live in the feature's type files, and pure rules live in
-  `utils/`. Imported assets and generated data belong to this feature as well.
+  optimization. `editor/` keeps the cohesive editor UI, React state, calculation
+  contracts, and pure equipment rules together; `benchmark/` owns debug performance
+  tooling. Imported assets and generated data belong to this feature as well.
   SVG icons share one sprite. `data/generated/` is ignored and must be produced
   by `npm run gearing:data:update` before development, builds, or tests.
   The owned generator and editable input rules live under `scripts/gearing/`.
@@ -25,6 +25,12 @@ domain logic together instead of adding global component or service folders.
   `npm run fishing:data:update` generates it before development, builds, or tests.
   Only the importer and licenses are committed; built applications include the generated asset.
 - `features/settings/` owns local-data clearing and its confirmation UI.
+- `features/chat/` owns desktop and mobile message presentation, bridge state,
+  channel selection, and consent.
+- `features/portrait/` owns lighting controls, transport, and consent.
+- `features/mentor/` owns mentor records, consent, and generated duty names.
+- `features/diagnostics/` owns log inspection, grouping, and debug payload commands.
+- `mobile/` composes the standalone phone UI and its browser entrypoint.
 - `shared/` contains reusable UI, hooks, avatar loading, runtime detection, and the
   typed game bridge used by both glamour and teleport.
   `shared/wiki/` owns item acquisition transport, parsing, verification, and caching
@@ -32,8 +38,10 @@ domain logic together instead of adding global component or service folders.
 
 Within a feature, use `api/` for transport, `components/` for UI, `hooks/` for state
 and effects, and `utils/` for pure logic or browser persistence. Add directories
-only when needed. Keep component-private props and helpers in their component
-file. Use `types.ts` for core contracts and named `*.types.ts` for larger related
+only when needed; keep cohesive subfeatures such as the fishing `timer/` together.
+Use `data/` for static or generated feature data. Keep component-private props
+and helpers in their component file. Use `types.ts` for core contracts and named
+`*.types.ts` for larger related
 contracts; defaults and validation functions belong with their feature logic.
 
 Features may depend on `shared/` and the explicit authentication contract. They

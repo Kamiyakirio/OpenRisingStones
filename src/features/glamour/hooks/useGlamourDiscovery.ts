@@ -27,7 +27,7 @@ import {
   revealNextGlamourBatch,
   visibleGlamourFeed,
 } from "../utils/glamourJobFilter";
-import type { WikiModelItem } from "../wiki.types";
+import type { WikiModelItem } from "../../../shared/wiki/wiki.types.ts";
 
 const DISCOVERY_PAGE_SIZE = GLAMOUR_FEED_BATCH_SIZE;
 const SEARCH_PAGE_SIZE = 20;

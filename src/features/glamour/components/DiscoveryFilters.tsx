@@ -18,8 +18,8 @@ import type {
   EquipmentSearchItem,
 } from "../equipment.types";
 import type { GlamourSearchMode } from "../hooks/useGlamourDiscovery";
-import type { WikiLoadStatus } from "../hooks/useWikiItem";
-import type { WikiModelItem } from "../wiki.types";
+import type { WikiLoadStatus } from "../../../shared/wiki/useWikiItem";
+import type { WikiModelItem } from "../../../shared/wiki/wiki.types.ts";
 import { EquipmentSearchFilters } from "./EquipmentSearchFilters";
 import { SelectedEquipmentSummary } from "./EquipmentSearchResults";
 import { EquivalentEquipmentSelector } from "./EquivalentEquipmentSelector";

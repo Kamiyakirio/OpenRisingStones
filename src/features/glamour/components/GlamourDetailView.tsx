@@ -16,7 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRisingStonesAvatar } from "../../../shared/hooks/useRisingStonesAvatar";
 import { useGlamourDetail } from "../hooks/useGlamourDetail";
 import type { OwnedItemsState } from "../hooks/useOwnedItems";
-import type { WikiItemState } from "../hooks/useWikiItem";
+import type { WikiItemState } from "../../../shared/wiki/useWikiItem";
 import type { OwnedItemMatch, OwnedItemSource } from "../ownedItems.types";
 import type { Glamour, GlamourDetail, GlamourEquipment } from "../types";
 import { hideBrokenImage } from "../utils/glamourPresentation";

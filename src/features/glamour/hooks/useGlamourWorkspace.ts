@@ -5,7 +5,7 @@ import type { EquipmentSearchItem } from "../equipment.types";
 import type { Glamour, GlamourEquipment } from "../types";
 import { useGlamourDiscovery } from "./useGlamourDiscovery";
 import { useOwnedItems } from "./useOwnedItems";
-import { useWikiItem } from "./useWikiItem";
+import { useWikiItem } from "../../../shared/wiki/useWikiItem";
 
 type GlamourWorkspaceOptions = {
   authenticated: boolean;

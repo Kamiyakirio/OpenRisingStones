@@ -18,7 +18,7 @@ import {
 } from "@phosphor-icons/react";
 import { useLayoutEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import type { WikiLoadStatus } from "../hooks/useWikiItem";
+import type { WikiLoadStatus } from "../../../shared/wiki/useWikiItem";
 import {
   clusterModelItems,
   type ModelNameCluster,
@@ -29,7 +29,7 @@ import type {
   WikiItemData,
   WikiModelItem,
   WikiSourceItem,
-} from "../wiki.types";
+} from "../../../shared/wiki/wiki.types.ts";
 
 type EquipmentSourcePopoverProps = {
   anchor: HTMLElement | null;
