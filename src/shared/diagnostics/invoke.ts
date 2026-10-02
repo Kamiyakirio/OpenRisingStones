@@ -13,6 +13,8 @@ export async function invoke<T>(
   if (
     command.startsWith("debug_log_") ||
     command === "clear_all_local_data" ||
+    // Legacy account credentials are deliberately excluded from debug capture.
+    command === "mentor_preview_legacy" ||
     // Character identity and complete catch bits should not enter Debug logs.
     command === "capture_fishing_log"
   ) {

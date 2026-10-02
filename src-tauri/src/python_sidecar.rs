@@ -26,6 +26,7 @@ use std::{
 };
 
 use serde::{de::DeserializeOwned, Serialize};
+use zeroize::Zeroize;
 
 #[cfg(not(feature = "bundled-python-sidecar"))]
 const CLIENT_SCRIPT_BYTES: &[u8] = include_bytes!("../python/api_client.py");
@@ -111,9 +112,11 @@ where
   Request: Serialize,
   Response: DeserializeOwned,
 {
-  let input = serde_json::to_vec(request)
+  let mut input = serde_json::to_vec(request)
     .map_err(|_| format!("Unable to serialize the {request_label} request."))?;
-  let output = execute(&input, max_response_bytes).map_err(|error| match error {
+  let result = execute(&input, max_response_bytes);
+  input.zeroize();
+  let output = result.map_err(|error| match error {
     ProcessError::ResponseTooLarge => {
       format!("The {request_label} response exceeded the size limit.")
     }

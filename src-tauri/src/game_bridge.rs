@@ -223,6 +223,12 @@ impl GameBridgeState {
   pub(crate) fn manager(&self) -> Arc<BridgeManager> {
     Arc::clone(&self.manager)
   }
+
+  /// Reconnect from a desktop service after an explicitly enabled monitor resumes.
+  pub(crate) fn prepare_for_monitor(&self) -> Result<BridgeStatus, String> {
+    let options = connect_options(&self.asset_root, None, None).map_err(|error| error.message)?;
+    prepare_bridge(&self.manager, options).map_err(|error| error.message)
+  }
 }
 
 async fn run_bridge_task<T, F>(task: F) -> ApiResult<T>

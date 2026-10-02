@@ -82,6 +82,7 @@ TELEPORT_ENDPOINTS = {
 }
 GAME_AREA_LIST_URL = "https://ff.dorado.sdo.com/ff/area/serverlist_new.js"
 WIKI_ORIGIN = "https://ff14.huijiwiki.com"
+MENTOR_LEGACY_ORIGIN = "https://dlog.luyulight.cn"
 WIKI_IMPERSONATE = "safari2601"
 WIKI_ITEM_NAMESPACE = "\u7269\u54c1:"
 CHARACTER_BINDING_URL = (
@@ -1530,11 +1531,115 @@ def fetch_wiki_page(
     }
 
 
+def fetch_mentor_legacy_records(
+    request: dict[str, Any], session: Any | None = None
+) -> dict[str, Any]:
+    """Read one account's paginated records without invoking its destructive export."""
+    if requests is None and session is None:
+        raise ApiClientError("The HTTP client is unavailable.")
+    username = str(request.get("username") or "").strip()
+    password = str(request.get("password") or "")
+    if not username or not password or len(username) > 120 or len(password) > 120:
+        raise ApiClientError("Enter a valid legacy-site email and password.")
+
+    owns_session = session is None
+    legacy_session = session or requests.Session(impersonate="chrome", default_headers=False)
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Origin": MENTOR_LEGACY_ORIGIN,
+        "Referer": f"{MENTOR_LEGACY_ORIGIN}/",
+    }
+
+    def read_response(response: Any, stage: str) -> dict[str, Any]:
+        if len(response.content) > MAX_RESPONSE_BYTES:
+            raise ApiClientError(f"Legacy {stage} exceeded the response size limit.")
+        if not 200 <= response.status_code < 300:
+            raise ApiClientError(
+                f"Legacy {stage} failed (HTTP {response.status_code})."
+            )
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as error:
+            raise ApiClientError(f"Legacy {stage} returned invalid JSON.") from error
+        if not isinstance(payload, dict) or payload.get("code") != 0:
+            code = payload.get("code") if isinstance(payload, dict) else None
+            if stage == "login" and code == 1:
+                raise ApiClientError("Legacy login rejected the credentials (code 1).")
+            raise ApiClientError(f"Legacy {stage} was rejected (code {code}).")
+        return payload
+
+    try:
+        login = legacy_session.post(
+            f"{MENTOR_LEGACY_ORIGIN}/api/login",
+            json={"username": username, "password": password},
+            headers=headers,
+            timeout=15,
+            allow_redirects=False,
+        )
+        read_response(login, "login")
+
+        rows: list[dict[str, Any]] = []
+        total: int | None = None
+        # The site's own record page uses ten rows per request. This also works
+        # when its backend rejects larger page sizes.
+        page_size = 10
+        for page in range(1, 2001):
+            response = legacy_session.get(
+                f"{MENTOR_LEGACY_ORIGIN}/api/record",
+                params={"page": page, "pageSize": page_size, "desc": 1},
+                headers=headers,
+                timeout=15,
+                allow_redirects=False,
+            )
+            data = read_response(response, f"record page {page}").get("data")
+            if not isinstance(data, dict):
+                raise ApiClientError("The legacy record list is missing.")
+            batch = data.get("recordList")
+            count = data.get("totalCount")
+            if not isinstance(batch, list) or not isinstance(count, int) or not 0 <= count <= 20000:
+                raise ApiClientError("The legacy record list is invalid.")
+            if total is None:
+                total = count
+            elif total != count:
+                raise ApiClientError("The legacy record count changed during retrieval. Retry.")
+            if len(batch) > page_size or (not batch and len(rows) < total):
+                raise ApiClientError("The legacy record list is incomplete.")
+            for row in batch:
+                if not isinstance(row, dict):
+                    raise ApiClientError("The legacy record list contains an invalid row.")
+                maze = row.get("maze") if isinstance(row.get("maze"), dict) else {}
+                profession = row.get("prof") if isinstance(row.get("prof"), dict) else {}
+                rows.append(
+                    {
+                        "id": row.get("id"),
+                        "createdAt": row.get("createdAt"),
+                        "dutyId": maze.get("id"),
+                        "dutyName": maze.get("name"),
+                        "jobKey": profession.get("key"),
+                        "jobName": profession.get("nameCn"),
+                        "note": row.get("comment"),
+                    }
+                )
+            if len(rows) >= total:
+                if len(rows) != total:
+                    raise ApiClientError("The legacy record count does not match the list.")
+                return {"username": username, "totalCount": total, "records": rows}
+        raise ApiClientError("The legacy record list exceeded the page limit.")
+    finally:
+        if owns_session:
+            legacy_session.close()
+
+
 def main() -> None:
     request = json.load(sys.stdin)
     operation = request.get("operation")
     if operation == "fetchWikiPage":
         result = fetch_wiki_page(request)
+        json.dump(result, sys.stdout, ensure_ascii=True)
+        return
+    if operation == "fetchMentorLegacyRecords":
+        result = fetch_mentor_legacy_records(request)
         json.dump(result, sys.stdout, ensure_ascii=True)
         return
     client = ApiClient(request.get("session"), request.get("userAgent"))

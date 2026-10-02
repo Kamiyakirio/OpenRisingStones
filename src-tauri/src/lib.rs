@@ -14,6 +14,7 @@ mod gearing;
 mod gearing_storage;
 mod glamour;
 mod glamour_verification;
+mod mentor;
 mod owned_items;
 mod process_memory;
 mod python_sidecar;
@@ -85,10 +86,16 @@ pub fn run() {
       app.manage(recruit::RecruitSessionState::default());
       app.manage(wiki::WikiVerificationState::default());
       app.manage(fishing_monitor::FishingMonitorState::default());
+      #[cfg(debug_assertions)]
+      let mentor_path = std::env::current_dir()?.join("mentor-records.debug.json");
+      #[cfg(not(debug_assertions))]
+      let mentor_path = app.path().app_local_data_dir()?.join("mentor-records.v1.json");
+      app.manage(mentor::MentorState::new(mentor_path));
       let game_bridge = game_bridge::GameBridgeState::new(app.handle().clone())?;
       let chat_bridge = chat_bridge::ChatBridgeState::new(game_bridge.manager());
       app.manage(game_bridge);
       app.manage(chat_bridge);
+      mentor::MentorState::start_supervisor(app.handle().clone())?;
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
@@ -105,6 +112,15 @@ pub fn run() {
       fishing_monitor::start_fishing_monitor,
       fishing_monitor::stop_fishing_monitor,
       fishing_monitor::capture_fishing_log,
+      mentor::mentor_list_records,
+      mentor::mentor_add_manual_record,
+      mentor::mentor_correct_record,
+      mentor::mentor_delete_record,
+      mentor::mentor_preview_legacy,
+      mentor::mentor_import_legacy,
+      mentor::mentor_monitor_status,
+      mentor::mentor_start_monitor,
+      mentor::mentor_stop_monitor,
       glamour::fetch_glamour_detail,
       glamour::fetch_glamour_page,
       game_bridge::game_bridge_status,
@@ -177,6 +193,7 @@ pub fn run() {
 
   app.run(move |app_handle, event| {
     if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
+      app_handle.state::<mentor::MentorState>().shutdown();
       app_handle
         .state::<fishing_monitor::FishingMonitorState>()
         .stop();

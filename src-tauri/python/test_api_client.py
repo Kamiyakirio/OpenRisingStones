@@ -23,6 +23,7 @@ from api_client import (
     fetch_recruit_page,
     fetch_teleport,
     fetch_wiki_page,
+    fetch_mentor_legacy_records,
     finalize_authenticated_login,
     game_auth_from_cookies,
     normalize_game_auth,
@@ -628,6 +629,87 @@ class ApiClientTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "success")
         self.assertEqual(result["profile"]["characterName"], "Character")
+
+class MentorLegacyReadTests(unittest.TestCase):
+    """Migration must use only normal login and paginated list reads."""
+
+    def test_reads_all_pages_without_export_or_cancel(self) -> None:
+        class LegacySession:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def post(self, url, **kwargs):
+                self.calls.append(("POST", url, kwargs))
+                return FakeResponse(status_code=201, content=b'{"code":0}')
+
+            def get(self, url, **kwargs):
+                self.calls.append(("GET", url, kwargs))
+                page = kwargs["params"]["page"]
+                count = 101
+                start = (page - 1) * 10
+                batch_size = min(10, count - start)
+                records = [
+                    {
+                        "id": start + index,
+                        "createdAt": "2026-01-01T00:00:00+08:00",
+                        "maze": {"id": 42, "name": "Duty"},
+                        "prof": {"key": "PLD", "nameCn": "Paladin"},
+                        "comment": "note",
+                    }
+                    for index in range(batch_size)
+                ]
+                return FakeResponse(
+                    content=json.dumps(
+                        {"code": 0, "data": {"totalCount": count, "recordList": records}}
+                    ).encode()
+                )
+
+        session = LegacySession()
+        result = fetch_mentor_legacy_records(
+            {"username": "example@example.com", "password": "temporary"}, session
+        )
+
+        self.assertEqual(result["totalCount"], 101)
+        self.assertEqual(len(result["records"]), 101)
+        self.assertEqual(len(session.calls), 12)
+        self.assertEqual(
+            [(method, url.rsplit("/", 1)[-1]) for method, url, _ in session.calls[:2]],
+            [("POST", "login"), ("GET", "record")],
+        )
+        self.assertTrue(all(url.endswith("/api/record") for _, url, _ in session.calls[1:]))
+        self.assertEqual(
+            session.calls[1][2]["params"],
+            {"page": 1, "pageSize": 10, "desc": 1},
+        )
+
+    def test_rejects_login_before_reading_records(self) -> None:
+        class RejectedSession:
+            def post(self, url, **kwargs):
+                return FakeResponse(content=b'{"code":1}')
+
+            def get(self, url, **kwargs):
+                raise AssertionError("Record reads must not start after rejected login.")
+
+        with self.assertRaises(ApiClientError):
+            fetch_mentor_legacy_records(
+                {"username": "example@example.com", "password": "wrong"},
+                RejectedSession(),
+            )
+
+    def test_names_the_failing_stage_without_exposing_credentials(self) -> None:
+        class ExpiredSession:
+            def post(self, url, **kwargs):
+                return FakeResponse(content=b'{"code":0}')
+
+            def get(self, url, **kwargs):
+                return FakeResponse(status_code=401, content=b'{}')
+
+        with self.assertRaisesRegex(ApiClientError, r"record page 1 failed \(HTTP 401\)"):
+            fetch_mentor_legacy_records(
+                {"username": "example@example.com", "password": "secret-value"},
+                ExpiredSession(),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
