@@ -1,8 +1,8 @@
 /** Strict Mode presentation grouping keeps each raw operation reachable. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { LogSummary } from "../src/features/diagnostics/api.ts";
-import { groupSimilarLogs } from "../src/features/diagnostics/grouping.ts";
+import type { LogSummary } from "../src/features/diagnostics/api/diagnosticsApi.ts";
+import { groupSimilarLogs } from "../src/features/diagnostics/utils/grouping.ts";
 
 function entry(
   id: number,

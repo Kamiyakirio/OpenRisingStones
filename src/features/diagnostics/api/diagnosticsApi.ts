@@ -1,6 +1,6 @@
 /** Debug-only, read-only queries and management actions for the current session. */
 import { listen } from "@tauri-apps/api/event";
-import { invoke } from "../../shared/diagnostics/invoke";
+import { invoke } from "../../../shared/diagnostics/invoke";
 
 export type LogKind = "network" | "invoke" | "bridge";
 export type LogSummary = {

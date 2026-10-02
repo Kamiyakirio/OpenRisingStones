@@ -1,6 +1,6 @@
 /** Debug-only transport for explicitly unloading the injected game payload. */
-import { invoke } from "../../shared/diagnostics/invoke";
-import type { GameBridgeStatus } from "../../shared/game-bridge/types";
+import { invoke } from "../../../shared/diagnostics/invoke";
+import type { GameBridgeStatus } from "../../../shared/game-bridge/types";
 
 export type DebugPayloadUnloadResult = {
   unloaded: boolean;

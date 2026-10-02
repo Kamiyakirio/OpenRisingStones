@@ -7,7 +7,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { unloadDebugPayload } from "../features/diagnostics/payload";
+import { unloadDebugPayload } from "../features/diagnostics/api/payload";
 import {
   getGameBridgeStatus,
   normalizeGameBridgeError,

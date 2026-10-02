@@ -1,5 +1,5 @@
 /** Groups adjacent identical Debug operations without discarding raw records. */
-import type { LogSummary } from "./api.ts";
+import type { LogSummary } from "../api/diagnosticsApi.ts";
 
 const STRICT_MODE_GROUP_WINDOW_MS = 750;
 

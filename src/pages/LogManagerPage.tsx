@@ -20,11 +20,11 @@ import {
   type LogEntry,
   type LogKind,
   type LogSummary,
-} from "../features/diagnostics/api";
+} from "../features/diagnostics/api/diagnosticsApi";
 import {
   groupSimilarLogs,
   type LogGroup,
-} from "../features/diagnostics/grouping";
+} from "../features/diagnostics/utils/grouping";
 import "./LogManagerPage.css";
 
 type DetailTab =
