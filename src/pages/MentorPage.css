@@ -474,8 +474,14 @@
   display: grid;
   gap: 4px;
   min-width: 0;
+  /* Keep long legends compact while preserving access to every category. */
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
   margin: 0;
-  padding: 0;
+  padding: 2px 6px 2px 2px;
   list-style: none;
 }
 .mentor-analysis-types .mentor-chart-legend {
