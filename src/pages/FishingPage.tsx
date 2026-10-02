@@ -3,39 +3,39 @@ import { useMemo, useState } from "react";
 import {
   CompletionView,
   type SpotSelection,
-} from "../features/fishing/CompletionView";
-import { FishDetail } from "../features/fishing/FishDetail";
-import { FishClock } from "../features/fishing/FishClock";
+} from "../features/fishing/components/CompletionView";
+import { FishDetail } from "../features/fishing/components/FishDetail";
+import { FishClock } from "../features/fishing/components/FishClock";
 import {
   FISHING_FILTERS_KEY,
   FISHING_NOW_SCOPE_KEY,
   initialFishingSearch,
   parseFishingFilterPreferences,
   parseNowFishScope,
-} from "../features/fishing/filterPreferences";
-import { FishingSource } from "../features/fishing/FishingSource";
-import { FishingSpotPage } from "../features/fishing/FishingSpotPage";
-import { FishingSyncStatus } from "../features/fishing/FishingSyncStatus";
-import type { RowContext } from "../features/fishing/FishingRows";
-import { LookupView } from "../features/fishing/LookupView";
-import { NowView } from "../features/fishing/NowView";
-import { OceanRouteView } from "../features/fishing/OceanRouteView";
-import { OceanScheduleView } from "../features/fishing/OceanScheduleView";
+} from "../features/fishing/utils/filterPreferences";
+import { FishingSource } from "../features/fishing/components/FishingSource";
+import { FishingSpotPage } from "../features/fishing/components/FishingSpotPage";
+import { FishingSyncStatus } from "../features/fishing/components/FishingSyncStatus";
+import type { RowContext } from "../features/fishing/components/FishingRows";
+import { LookupView } from "../features/fishing/components/LookupView";
+import { NowView } from "../features/fishing/components/NowView";
+import { OceanRouteView } from "../features/fishing/components/OceanRouteView";
+import { OceanScheduleView } from "../features/fishing/components/OceanScheduleView";
 import {
   initialOceanViewState,
   OCEAN_VIEW_KEY,
   parseOceanViewState,
   type OceanViewState,
-} from "../features/fishing/oceanRoutes";
+} from "../features/fishing/utils/oceanRoutes";
 import { TimerLauncher } from "../features/fishing/timer/TimerLauncher";
-import { useFishing } from "../features/fishing/useFishing";
+import { useFishing } from "../features/fishing/hooks/useFishing";
 import {
   fishingRegions,
   initialFishingFacets,
   type FishingDiscipline,
   type FishingSearch,
   type NowFishScope,
-} from "../features/fishing/workspace";
+} from "../features/fishing/utils/workspace";
 import type {
   Fish,
   FishFilters as FishingFacets,
@@ -43,7 +43,7 @@ import type {
   OceanRoute,
 } from "../features/fishing/types";
 import { useListDetailScroll } from "../shared/hooks/useListDetailScroll";
-import "../features/fishing/fishing.css";
+import "../features/fishing/components/fishing.css";
 
 type Mode = "now" | "completion" | "voyage" | "lookup";
 type SelectedVoyage = { at: number; triggerId: string };

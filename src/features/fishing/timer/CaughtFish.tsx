@@ -1,6 +1,6 @@
 /** Resolves native catch item IDs against the same offline catalog as the database. */
 import { useEffect, useState } from "react";
-import { FishIcon } from "../FishIcon";
+import { FishIcon } from "../components/FishIcon";
 import type { Fish, FishCatalog } from "../types";
 
 export function CaughtFish({

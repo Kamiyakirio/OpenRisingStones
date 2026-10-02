@@ -10,7 +10,7 @@ import type {
 import type {
   FishingDiscipline,
   FishingSearch,
-} from "../src/features/fishing/workspace.ts";
+} from "../src/features/fishing/utils/workspace.ts";
 import { readFileSync } from "node:fs";
 import {
   EORZEA_HOUR,
@@ -24,14 +24,14 @@ import {
   sortFish,
   upcomingWindow,
   patchGroup,
-} from "../src/features/fishing/model.ts";
+} from "../src/features/fishing/utils/model.ts";
 import {
   applyGameFishingLog,
   cacheGameFishingLog,
   emptyGameFishingLogCache,
   parseGameFishingLogCache,
   serializeGameFishingLogCache,
-} from "../src/features/fishing/gameLog.ts";
+} from "../src/features/fishing/utils/gameLog.ts";
 import {
   compareFishingLogOrder,
   fishingCategory,
@@ -40,8 +40,8 @@ import {
   matchesFishingDiscipline,
   matchesNowFishScope,
   searchFishingCatalog,
-} from "../src/features/fishing/workspace.ts";
-import { windowDurationText } from "../src/features/fishing/presentation.ts";
+} from "../src/features/fishing/utils/workspace.ts";
+import { windowDurationText } from "../src/features/fishing/utils/presentation.ts";
 import {
   initialOceanViewState,
   oceanRouteFish,
@@ -50,29 +50,29 @@ import {
   oceanSpotFish,
   oceanStopFish,
   parseOceanViewState,
-} from "../src/features/fishing/oceanRoutes.ts";
+} from "../src/features/fishing/utils/oceanRoutes.ts";
 import {
   OCEAN_BOARDING_MS,
   upcomingOceanDepartures,
-} from "../src/features/fishing/oceanSchedule.ts";
-import { xivIconUrl } from "../src/features/fishing/iconUrl.ts";
-import { fishingCatchSteps } from "../src/features/fishing/technique.ts";
+} from "../src/features/fishing/utils/oceanSchedule.ts";
+import { xivIconUrl } from "../src/features/fishing/utils/iconUrl.ts";
+import { fishingCatchSteps } from "../src/features/fishing/utils/technique.ts";
 import {
   selfMoochRequests,
   summarizeSelfMooch,
-} from "../src/features/fishing/selfMooch.ts";
+} from "../src/features/fishing/utils/selfMooch.ts";
 import {
   biteTimeRequests,
   formatBiteTimeRange,
   summarizeBaitComparisons,
   summarizeBiteTimes,
-} from "../src/features/fishing/biteTimes.ts";
-import { summarizeSpotCatchStats } from "../src/features/fishing/spotCatchData.ts";
+} from "../src/features/fishing/utils/biteTimes.ts";
+import { summarizeSpotCatchStats } from "../src/features/fishing/utils/spotCatchData.ts";
 import {
   initialFishingSearch,
   parseFishingFilterPreferences,
   parseNowFishScope,
-} from "../src/features/fishing/filterPreferences.ts";
+} from "../src/features/fishing/utils/filterPreferences.ts";
 
 const catalog: FishCatalog = JSON.parse(
   readFileSync(

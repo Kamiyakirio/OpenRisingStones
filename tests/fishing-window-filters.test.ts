@@ -1,14 +1,14 @@
 /** Verify local calendar filtering, overnight windows, and deeper searches. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { nextWindows } from "../src/features/fishing/model.ts";
+import { nextWindows } from "../src/features/fishing/utils/model.ts";
 import {
   initialWindowFilters,
   invalidWindowDateRange,
   parseWindowFilters,
   windowMatchesFilters,
   windowSearchHorizonDays,
-} from "../src/features/fishing/windowFilters.ts";
+} from "../src/features/fishing/utils/windowFilters.ts";
 import type { Fish, FishCatalog } from "../src/features/fishing/types.ts";
 
 const at = (month: number, day: number, hour: number, minute = 0) =>
