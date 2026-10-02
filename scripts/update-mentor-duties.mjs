@@ -1,4 +1,4 @@
-/** Build the offline duty-name dictionary used by the Mentor record ledger. */
+/** Build offline duty names and content classification for the Mentor ledger. */
 import { mkdir, writeFile } from "node:fs/promises";
 import Papa from "papaparse";
 import { ProxyAgent, setGlobalDispatcher } from "undici";
@@ -14,12 +14,22 @@ if (!response.ok)
 const rows = Papa.parse(await response.text(), { skipEmptyLines: true }).data;
 const header = rows[1];
 const nameIndex = header.indexOf("Name");
-if (nameIndex < 0) throw new Error("Duty sheet columns are missing.");
+const typeIndex = header.indexOf("ContentType");
+const memberIndex = header.indexOf("ContentMemberType");
+if ([nameIndex, typeIndex, memberIndex].some((index) => index < 0))
+  throw new Error("Duty sheet columns are missing.");
+const namedRows = rows
+  .slice(3)
+  .filter((row) => row[nameIndex] && Number(row[0]) > 0);
 const duties = Object.fromEntries(
-  rows
-    .slice(3)
-    .filter((row) => row[nameIndex] && Number(row[0]) > 0)
-    .map((row) => [row[0], row[nameIndex]]),
+  namedRows.map((row) => [row[0], row[nameIndex]]),
+);
+// Tuple fields: ContentType and ContentMemberType, both direct game-sheet IDs.
+const types = Object.fromEntries(
+  namedRows.map((row) => [
+    row[0],
+    [Number(row[typeIndex]), Number(row[memberIndex])],
+  ]),
 );
 await mkdir("src/features/mentor/data", { recursive: true });
 await writeFile(
@@ -27,3 +37,8 @@ await writeFile(
   `${JSON.stringify(duties)}\n`,
 );
 console.log(`Wrote ${Object.keys(duties).length} duty names.`);
+await writeFile(
+  "src/features/mentor/data/dutyTypes.json",
+  `${JSON.stringify(types)}\n`,
+);
+console.log(`Wrote ${Object.keys(types).length} duty classifications.`);
