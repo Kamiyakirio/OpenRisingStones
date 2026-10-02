@@ -8,7 +8,7 @@ import {
   matchesChatFilters,
   toggleChatFilter,
   isChatCategorySelected,
-} from "../src/features/chat/channels.ts";
+} from "../src/features/chat/utils/channels.ts";
 
 test("multi-selection merges categories and channels without duplicating messages", () => {
   const kinds = [24, 41, 29, 57, 127];

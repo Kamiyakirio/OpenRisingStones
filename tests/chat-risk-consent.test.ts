@@ -6,7 +6,7 @@ import {
   CHAT_RISK_CONSENT_KEY,
   grantChatRiskConsent,
   hasChatRiskConsent,
-} from "../src/features/chat/chatRiskConsent.ts";
+} from "../src/features/chat/utils/chatRiskConsent.ts";
 
 test("chat risk consent persists only the acknowledgement marker", (t) => {
   const values = new Map<string, string>();

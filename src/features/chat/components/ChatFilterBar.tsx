@@ -7,7 +7,7 @@ import {
   matchesChatFilters,
   toggleChatFilter,
   type ChatFilter,
-} from "./channels";
+} from "../utils/channels";
 import "./ChatDisplay.css";
 
 export function ChatFilterBar({

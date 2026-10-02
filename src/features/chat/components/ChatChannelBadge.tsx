@@ -1,5 +1,5 @@
 /** Display the game channel independently from a potentially absent sender. */
-import { getChatChannel } from "./channels";
+import { getChatChannel } from "../utils/channels";
 import "./ChatDisplay.css";
 
 export function ChatChannelBadge({ logKind }: { logKind: number }) {

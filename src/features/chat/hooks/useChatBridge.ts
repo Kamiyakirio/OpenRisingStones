@@ -1,15 +1,18 @@
 /** Coordinates consent, game-bridge preparation, and local server lifecycle. */
 import { useCallback, useEffect, useState } from "react";
-import { prepareGameBridge } from "../../shared/game-bridge/api";
+import { prepareGameBridge } from "../../../shared/game-bridge/api";
 import {
   getChatBridgeStatus,
   normalizeChatBridgeError,
   renewChatPairing,
   startChatBridge,
   stopChatBridge,
-} from "./api";
-import { grantChatRiskConsent, hasChatRiskConsent } from "./chatRiskConsent";
-import type { ChatBridgeError, ChatBridgeStatus } from "./types";
+} from "../api/chatApi";
+import {
+  grantChatRiskConsent,
+  hasChatRiskConsent,
+} from "../utils/chatRiskConsent";
+import type { ChatBridgeError, ChatBridgeStatus } from "../types";
 
 export function useChatBridge() {
   const [status, setStatus] = useState<ChatBridgeStatus | null>(null);

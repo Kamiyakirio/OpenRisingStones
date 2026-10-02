@@ -6,7 +6,7 @@ import {
   chatSendChannels,
   chatMessageBudget,
   validTellRecipient,
-} from "../src/features/chat/sendChannels.ts";
+} from "../src/features/chat/utils/sendChannels.ts";
 
 test("all send destinations agree with the native IDs and prefixes", () => {
   const native = readFileSync(

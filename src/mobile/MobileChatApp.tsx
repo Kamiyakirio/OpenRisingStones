@@ -13,15 +13,18 @@ import {
   type FormEvent,
 } from "react";
 import type { ChatMessage } from "../features/chat/types";
-import { ChatFilterBar } from "../features/chat/ChatFilterBar";
-import { ChatChannelBadge } from "../features/chat/ChatChannelBadge";
-import { matchesChatFilters, type ChatFilter } from "../features/chat/channels";
+import { ChatFilterBar } from "../features/chat/components/ChatFilterBar";
+import { ChatChannelBadge } from "../features/chat/components/ChatChannelBadge";
+import {
+  matchesChatFilters,
+  type ChatFilter,
+} from "../features/chat/utils/channels";
 import {
   chatSendChannels,
   chatMessageBudget,
   validTellRecipient,
   type ChatSendChannel,
-} from "../features/chat/sendChannels";
+} from "../features/chat/utils/sendChannels";
 
 type ConnectionState =
   "pairing" | "online" | "reconnecting" | "disconnected" | "error";

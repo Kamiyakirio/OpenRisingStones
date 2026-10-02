@@ -8,10 +8,13 @@ import {
   StopCircle,
 } from "@phosphor-icons/react";
 import { useLayoutEffect, useRef, useState } from "react";
-import { useChatBridge } from "../features/chat/useChatBridge";
-import { ChatFilterBar } from "../features/chat/ChatFilterBar";
-import { ChatChannelBadge } from "../features/chat/ChatChannelBadge";
-import { matchesChatFilters, type ChatFilter } from "../features/chat/channels";
+import { useChatBridge } from "../features/chat/hooks/useChatBridge";
+import { ChatFilterBar } from "../features/chat/components/ChatFilterBar";
+import { ChatChannelBadge } from "../features/chat/components/ChatChannelBadge";
+import {
+  matchesChatFilters,
+  type ChatFilter,
+} from "../features/chat/utils/channels";
 import type { ChatBridgeError, ChatMessage } from "../features/chat/types";
 import { RiskDialog } from "../shared/components/RiskDialog";
 import "./ChatPage.css";

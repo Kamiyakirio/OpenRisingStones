@@ -1,8 +1,8 @@
 /** Typed desktop commands for the LAN-only phone chat service. */
 // eslint-disable-next-line no-restricted-imports -- Chat payloads must not enter persistent diagnostic logs.
 import { invoke } from "@tauri-apps/api/core";
-import { isTauriRuntime } from "../../shared/utils/runtime";
-import type { ChatBridgeError, ChatBridgeStatus } from "./types";
+import { isTauriRuntime } from "../../../shared/utils/runtime";
+import type { ChatBridgeError, ChatBridgeStatus } from "../types";
 
 function requireDesktopRuntime() {
   if (!isTauriRuntime()) {
