@@ -1,6 +1,5 @@
 /** Mentor roulette ledger with live tracking, corrections, and read-only migration. */
 import {
-  ArrowClockwise,
   ArrowRight,
   CheckCircle,
   DownloadSimple,
@@ -22,6 +21,11 @@ import { RiskDialog } from "../shared/components/RiskDialog";
 import { prepareGameBridge } from "../shared/game-bridge/api";
 import { isTauriRuntime } from "../shared/utils/runtime";
 import { MentorJob } from "../features/mentor/components/MentorJob";
+import { MentorRecordFilters } from "../features/mentor/components/MentorRecordFilters";
+import {
+  DEFAULT_MENTOR_FILTERS,
+  filterMentorRecords,
+} from "../features/mentor/utils/recordFilters";
 import {
   addManualRecord,
   correctRecord,
@@ -102,8 +106,12 @@ export function MentorPage() {
   const [riskOpen, setRiskOpen] = useState(false);
   const [storageError, setStorageError] = useState(false);
   const [view, setView] = useState<"history" | "data">("history");
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | MentorResult>("all");
+  const [filters, setFilters] = useState({ ...DEFAULT_MENTOR_FILTERS });
+  const [filterNow, setFilterNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setFilterNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editResult, setEditResult] = useState<MentorResult>("completed");
   const [editNote, setEditNote] = useState("");
@@ -204,19 +212,8 @@ export function MentorPage() {
     [records],
   );
   const visible = useMemo(
-    () =>
-      records.filter((record) => {
-        const duty = record.dutyId
-          ? (names[String(record.dutyId)] ?? record.dutyName)
-          : record.dutyName;
-        return (
-          (filter === "all" || filter === record.result) &&
-          `${duty} ${record.characterName} ${record.jobName ?? ""}`
-            .toLocaleLowerCase()
-            .includes(search.trim().toLocaleLowerCase())
-        );
-      }),
-    [records, filter, search],
+    () => filterMentorRecords(records, filters, filterNow),
+    [records, filters, filterNow],
   );
   const grouped = useMemo(() => {
     const groups = new Map<string, MentorRecord[]>();
@@ -576,35 +573,13 @@ export function MentorPage() {
                 </div>
               </form>
             )}
-            <div className="mentor-filters">
-              <input
-                aria-label="搜索副本、角色或职业"
-                placeholder="搜索副本、角色或职业"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-              <select
-                aria-label="按结果筛选"
-                value={filter}
-                onChange={(event) =>
-                  setFilter(event.target.value as typeof filter)
-                }
-              >
-                <option value="all">全部结果</option>
-                <option value="completed">已完成</option>
-                <option value="exited">已退出</option>
-                <option value="needs_review">待核对</option>
-                <option value="legacy_unknown">结果未标记</option>
-              </select>
-              <button
-                type="button"
-                aria-label="刷新记录"
-                title="刷新记录"
-                onClick={() => void refreshRecords()}
-              >
-                <ArrowClockwise />
-              </button>
-            </div>
+            <MentorRecordFilters
+              records={records}
+              filters={filters}
+              count={visible.length}
+              onChange={setFilters}
+              onRefresh={() => void refreshRecords()}
+            />
             {grouped.length === 0 ? (
               <div className="mentor-empty">
                 <h3>
