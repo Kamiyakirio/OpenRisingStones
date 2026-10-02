@@ -20,6 +20,7 @@ import {
 import { RiskDialog } from "../shared/components/RiskDialog";
 import { prepareGameBridge } from "../shared/game-bridge/api";
 import { isTauriRuntime } from "../shared/utils/runtime";
+import { MentorAnalysis } from "../features/mentor/components/MentorAnalysis";
 import { MentorJob } from "../features/mentor/components/MentorJob";
 import { MentorRecordFilters } from "../features/mentor/components/MentorRecordFilters";
 import {
@@ -105,7 +106,7 @@ export function MentorPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [riskOpen, setRiskOpen] = useState(false);
   const [storageError, setStorageError] = useState(false);
-  const [view, setView] = useState<"history" | "data">("history");
+  const [view, setView] = useState<"history" | "analysis" | "data">("history");
   const [filters, setFilters] = useState({ ...DEFAULT_MENTOR_FILTERS });
   const [filterNow, setFilterNow] = useState(Date.now);
   useEffect(() => {
@@ -452,13 +453,25 @@ export function MentorPage() {
         </button>
         <button
           role="tab"
+          aria-selected={view === "analysis"}
+          onClick={() => setView("analysis")}
+        >
+          数据分析
+        </button>
+        <button
+          role="tab"
           aria-selected={view === "data"}
           onClick={() => setView("data")}
         >
           数据管理
         </button>
       </div>
-      {view === "history" ? (
+      {view === "analysis" ? (
+        <MentorAnalysis
+          records={records}
+          activeRecordId={status?.running ? status.activeRecordId : null}
+        />
+      ) : view === "history" ? (
         <>
           <div className="mentor-summary" aria-label="记录统计">
             <span>
