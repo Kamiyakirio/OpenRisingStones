@@ -3,22 +3,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   normalizeGameBridgeError,
   prepareGameBridge,
-} from "../../shared/game-bridge/api";
-import type { GameBridgeApiError } from "../../shared/game-bridge/types";
+} from "../../../shared/game-bridge/api";
+import type { GameBridgeApiError } from "../../../shared/game-bridge/types";
 import {
   capturePortraitLighting,
   updatePortraitAnimation,
   updatePortraitLighting,
-} from "./api";
+} from "../api/portraitApi";
 import {
   grantPortraitRiskConsent,
   hasPortraitRiskConsent,
-} from "./riskConsent";
+} from "../utils/riskConsent";
 import type {
   PortraitConnectionPhase,
   PortraitLighting,
   PortraitLightingUpdate,
-} from "./types";
+} from "../types";
 
 const UPDATE_DELAY_MS = 80;
 const REFRESH_INTERVAL_MS = 1_000;

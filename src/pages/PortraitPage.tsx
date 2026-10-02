@@ -15,7 +15,7 @@ import {
 } from "@phosphor-icons/react";
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { RiskDialog } from "../shared/components/RiskDialog";
-import { usePortraitLighting } from "../features/portrait/usePortraitLighting";
+import { usePortraitLighting } from "../features/portrait/hooks/usePortraitLighting";
 import {
   PORTRAIT_ANIMATION_FIELDS,
   PORTRAIT_LIGHTING_FIELDS,

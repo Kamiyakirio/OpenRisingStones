@@ -5,7 +5,7 @@ import { mockBrowserGlobals } from "./helpers/browser-globals.ts";
 import {
   grantPortraitRiskConsent,
   hasPortraitRiskConsent,
-} from "../src/features/portrait/riskConsent.ts";
+} from "../src/features/portrait/utils/riskConsent.ts";
 
 test("portrait risk consent persists only the acknowledgement marker", (t) => {
   const values = new Map<string, string>();

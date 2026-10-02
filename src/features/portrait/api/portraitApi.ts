@@ -1,10 +1,10 @@
 /** Typed Tauri calls for reading and changing the native portrait editor. */
-import { invoke } from "../../shared/diagnostics/invoke";
+import { invoke } from "../../../shared/diagnostics/invoke";
 import type {
   PortraitAnimationUpdate,
   PortraitLighting,
   PortraitLightingUpdate,
-} from "./types";
+} from "../types";
 
 export function capturePortraitLighting() {
   return invoke<PortraitLighting>("game_bridge_capture_portrait_lighting");
