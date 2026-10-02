@@ -8,7 +8,7 @@
 namespace bridge {
 
 inline constexpr std::uint32_t kSharedMagic = 0x4742524F;
-inline constexpr std::uint32_t kSharedAbiVersion = 10;
+inline constexpr std::uint32_t kSharedAbiVersion = 11;
 inline constexpr std::size_t kMaximumSharedContainers = 18;
 inline constexpr std::size_t kMaximumSharedItems = 1024;
 inline constexpr std::size_t kMaximumSharedDresserItems = 800;
@@ -22,6 +22,7 @@ inline constexpr std::uint32_t kPortraitCapabilityRead = 1U << 0;
 inline constexpr std::uint32_t kPortraitCapabilityWrite = 1U << 1;
 inline constexpr std::uint32_t kPortraitCapabilityAnimationRead = 1U << 2;
 inline constexpr std::uint32_t kPortraitCapabilityAnimationWrite = 1U << 3;
+inline constexpr std::uint32_t kMentorCapabilityRead = 1U << 0;
 
 enum class SharedPayloadState : std::uint32_t {
   Initializing = 0,
@@ -45,6 +46,7 @@ enum class SharedCommandKind : std::uint32_t {
   CapturePortraitLighting = 11,
   UpdatePortraitLighting = 12,
   UpdatePortraitAnimation = 13,
+  CaptureMentorDuty = 14,
 };
 
 enum class SharedResponseStatus : std::uint32_t {
@@ -106,6 +108,10 @@ struct SharedGameLayout final {
   std::uint32_t game_main_connected_to_zone{};
   std::uint32_t game_main_territory_load_state{};
   std::uint32_t game_main_current_territory{};
+  std::uint32_t game_main_current_content_finder_condition{};
+  std::uint32_t contents_finder_queue_info{};
+  std::uint32_t contents_finder_queue_state{};
+  std::uint32_t contents_finder_queued_roulette{};
   std::uint32_t get_item_finder_module_vtable_index{};
   std::uint32_t inventory_container_items{};
   std::uint32_t inventory_container_type{};
@@ -197,6 +203,8 @@ struct SharedGameApi final {
   std::uint64_t portrait_set_pose_timed{};
   std::uint64_t portrait_is_animation_paused{};
   std::uint64_t portrait_toggle_animation_playback{};
+  std::uint64_t contents_finder_instance{};
+  std::uint64_t handle_actor_control_packet{};
   SharedGameLayout layout;
 };
 
@@ -303,6 +311,17 @@ struct SharedGameState final {
   std::uint32_t territory_load_state{};
 };
 
+// A typed, bounded snapshot of queue and duty completion state.
+struct SharedMentorDuty final {
+  std::uint8_t queued_roulette_id{};
+  std::uint8_t queue_state{};
+  std::uint16_t reserved{};
+  std::uint32_t content_finder_condition_id{};
+  std::uint64_t completion_sequence{};
+  std::uint32_t completion_content_finder_condition_id{};
+  std::uint32_t completion_territory_id{};
+};
+
 struct SharedPortraitLightingSnapshot final {
   std::uint64_t session_id{};
   std::uint8_t editor_open{};
@@ -383,6 +402,7 @@ struct SharedResponse final {
   SharedGameState game_state;
   SharedInventorySnapshot inventory;
   SharedPortraitLightingSnapshot portrait_lighting;
+  SharedMentorDuty mentor_duty;
 };
 
 struct SharedBridge final {
@@ -392,6 +412,7 @@ struct SharedBridge final {
   std::uint32_t payload_state{};
   std::uint32_t chat_capabilities{};
   std::uint32_t portrait_capabilities{};
+  std::uint32_t mentor_capabilities{};
   alignas(8) std::uint64_t heartbeat{};
   alignas(8) std::uint64_t request_sequence{};
   alignas(8) std::uint64_t response_sequence{};
@@ -409,8 +430,8 @@ struct SharedBridge final {
 };
 
 static_assert(sizeof(SharedSwitchRegion) == 4948);
-static_assert(sizeof(SharedGameLayout) == 428);
-static_assert(sizeof(SharedGameApi) == 688);
+static_assert(sizeof(SharedGameLayout) == 444);
+static_assert(sizeof(SharedGameApi) == 720);
 static_assert(sizeof(SharedSendChat) == 1028);
 static_assert(sizeof(SharedPortraitLighting) == 16);
 static_assert(sizeof(SharedPortraitAnimation) == 12);
@@ -419,11 +440,12 @@ static_assert(sizeof(SharedChatEvent) == 1304);
 static_assert(sizeof(SharedGameSnapshot) == 88);
 static_assert(sizeof(SharedActiveCharacter) == 128);
 static_assert(sizeof(SharedGameState) == 12);
+static_assert(sizeof(SharedMentorDuty) == 24);
 static_assert(sizeof(SharedInventoryItem) == 48);
 static_assert(sizeof(SharedInventoryContainer) == 52);
 static_assert(sizeof(SharedInventorySnapshot) == 57144);
 static_assert(sizeof(SharedPortraitLightingSnapshot) == 40);
-static_assert(sizeof(SharedResponse) == 57752);
-static_assert(sizeof(SharedBridge) == 231864);
+static_assert(sizeof(SharedResponse) == 57776);
+static_assert(sizeof(SharedBridge) == 231928);
 
 }  // namespace bridge

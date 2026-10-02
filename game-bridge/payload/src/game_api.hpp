@@ -41,6 +41,8 @@ struct ResolvedAddresses final {
   std::byte* portrait_set_pose_timed{};
   std::byte* portrait_is_animation_paused{};
   std::byte* portrait_toggle_animation_playback{};
+  std::byte* contents_finder_instance{};
+  std::byte* handle_actor_control_packet{};
 };
 
 [[nodiscard]] ResolvedAddresses resolve_addresses(const SharedGameApi& api);

@@ -99,6 +99,18 @@ pub struct GameStateSnapshot {
     pub territory_load_state: u32,
 }
 
+/// Read-only queue identity and a monotonic duty completion signal.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MentorDutySnapshot {
+    pub queued_roulette_id: u8,
+    pub queue_state: u8,
+    pub content_finder_condition_id: u32,
+    pub completion_sequence: u64,
+    pub completion_content_finder_condition_id: u32,
+    pub completion_territory_id: u32,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InventoryItemSnapshot {
@@ -236,6 +248,7 @@ pub enum Command {
     CaptureActiveCharacter,
     CaptureInventory,
     CaptureGameState,
+    CaptureMentorDuty,
     LogoutToTitle,
     ReturnToTitle,
     SwitchRegion {
@@ -274,6 +287,9 @@ pub enum CommandResult {
     },
     GameState {
         state: GameStateSnapshot,
+    },
+    MentorDuty {
+        duty: MentorDutySnapshot,
     },
     PortraitLighting {
         lighting: PortraitLightingSnapshot,

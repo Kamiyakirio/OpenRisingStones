@@ -5,7 +5,7 @@ use game_bridge_protocol::{
     build_chat_entry, ActiveCharacterSnapshot, ArmoireSnapshot, ChatMessageSnapshot, Command,
     CommandResult, GameScreen, GameSnapshot, GameStateSnapshot, GlamourDresserItemSnapshot,
     GlamourDresserSnapshot, InventoryContainerSnapshot, InventoryItemSnapshot,
-    PlayerInventorySnapshot, PortraitLightingSnapshot, Position3,
+    MentorDutySnapshot, PlayerInventorySnapshot, PortraitLightingSnapshot, Position3,
 };
 use memchr::memmem::Finder;
 use serde::Deserialize;
@@ -28,7 +28,7 @@ use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcess, PROC
 
 // Must match kSharedMagic in the native shared_bridge.hpp contract.
 const SHARED_MAGIC: u32 = 0x4742_524F;
-const SHARED_ABI_VERSION: u32 = 10;
+const SHARED_ABI_VERSION: u32 = 11;
 const PAYLOAD_STATE_READY: u32 = 1;
 const PAYLOAD_STATE_FAULTED: u32 = 2;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
@@ -55,6 +55,8 @@ const COMMAND_SEND_CHAT: u32 = 10;
 const COMMAND_CAPTURE_PORTRAIT_LIGHTING: u32 = 11;
 const COMMAND_UPDATE_PORTRAIT_LIGHTING: u32 = 12;
 const COMMAND_UPDATE_PORTRAIT_ANIMATION: u32 = 13;
+const COMMAND_CAPTURE_MENTOR_DUTY: u32 = 14;
+const MENTOR_CAPABILITY_READ: u32 = 1;
 
 const CHAT_CAPABILITY_READ: u32 = 1 << 0;
 const CHAT_CAPABILITY_SEND: u32 = 1 << 1;
@@ -141,6 +143,10 @@ struct SharedGameLayout {
     game_main_connected_to_zone: u32,
     game_main_territory_load_state: u32,
     game_main_current_territory: u32,
+    game_main_current_content_finder_condition: u32,
+    contents_finder_queue_info: u32,
+    contents_finder_queue_state: u32,
+    contents_finder_queued_roulette: u32,
     get_item_finder_module_vtable_index: u32,
     inventory_container_items: u32,
     inventory_container_type: u32,
@@ -234,6 +240,8 @@ struct SharedGameApi {
     portrait_set_pose_timed: u64,
     portrait_is_animation_paused: u64,
     portrait_toggle_animation_playback: u64,
+    contents_finder_instance: u64,
+    handle_actor_control_packet: u64,
     layout: SharedGameLayout,
 }
 
@@ -358,6 +366,18 @@ struct SharedGameState {
 
 #[repr(C)]
 #[derive(Clone, Copy)]
+struct SharedMentorDuty {
+    queued_roulette_id: u8,
+    queue_state: u8,
+    reserved: u16,
+    content_finder_condition_id: u32,
+    completion_sequence: u64,
+    completion_content_finder_condition_id: u32,
+    completion_territory_id: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
 struct SharedPortraitLightingSnapshot {
     session_id: u64,
     editor_open: u8,
@@ -446,6 +466,7 @@ struct SharedResponse {
     game_state: SharedGameState,
     inventory: SharedInventorySnapshot,
     portrait_lighting: SharedPortraitLightingSnapshot,
+    mentor_duty: SharedMentorDuty,
 }
 
 #[repr(C)]
@@ -456,6 +477,7 @@ struct SharedBridge {
     payload_state: AtomicU32,
     chat_capabilities: AtomicU32,
     portrait_capabilities: AtomicU32,
+    mentor_capabilities: AtomicU32,
     heartbeat: AtomicU64,
     request_sequence: AtomicU64,
     response_sequence: AtomicU64,
@@ -473,8 +495,8 @@ struct SharedBridge {
 }
 
 const _: [(); 4948] = [(); size_of::<SharedSwitchRegion>()];
-const _: [(); 428] = [(); size_of::<SharedGameLayout>()];
-const _: [(); 688] = [(); size_of::<SharedGameApi>()];
+const _: [(); 444] = [(); size_of::<SharedGameLayout>()];
+const _: [(); 720] = [(); size_of::<SharedGameApi>()];
 const _: [(); 1028] = [(); size_of::<SharedSendChat>()];
 const _: [(); 16] = [(); size_of::<SharedPortraitLighting>()];
 const _: [(); 12] = [(); size_of::<SharedPortraitAnimation>()];
@@ -486,8 +508,9 @@ const _: [(); 48] = [(); size_of::<SharedInventoryItem>()];
 const _: [(); 52] = [(); size_of::<SharedInventoryContainer>()];
 const _: [(); 57144] = [(); size_of::<SharedInventorySnapshot>()];
 const _: [(); 40] = [(); size_of::<SharedPortraitLightingSnapshot>()];
-const _: [(); 57752] = [(); size_of::<SharedResponse>()];
-const _: [(); 231864] = [(); size_of::<SharedBridge>()];
+const _: [(); 24] = [(); size_of::<SharedMentorDuty>()];
+const _: [(); 57776] = [(); size_of::<SharedResponse>()];
+const _: [(); 231928] = [(); size_of::<SharedBridge>()];
 
 pub(crate) enum SessionEvent {
     Ready {
@@ -632,6 +655,7 @@ impl SharedSession {
                 Command::CaptureActiveCharacter => COMMAND_CAPTURE_ACTIVE_CHARACTER,
                 Command::CaptureInventory => COMMAND_CAPTURE_INVENTORY,
                 Command::CaptureGameState => COMMAND_CAPTURE_GAME_STATE,
+                Command::CaptureMentorDuty => COMMAND_CAPTURE_MENTOR_DUTY,
                 Command::LogoutToTitle => COMMAND_LOGOUT_TO_TITLE,
                 Command::ReturnToTitle => COMMAND_RETURN_TO_TITLE,
                 Command::SwitchRegion { target: region } => {
@@ -847,6 +871,9 @@ fn monitor_shared_memory(
                 capabilities.push("chat_send".to_owned());
             }
             let portrait_capabilities = shared.portrait_capabilities.load(Ordering::Acquire);
+            if shared.mentor_capabilities.load(Ordering::Acquire) & MENTOR_CAPABILITY_READ != 0 {
+                capabilities.push("mentor_duty_read".to_owned());
+            }
             if portrait_capabilities & PORTRAIT_CAPABILITY_READ != 0 {
                 capabilities.push("portrait_lighting_read".to_owned());
             }
@@ -950,6 +977,16 @@ fn decode_response(
         }),
         COMMAND_CAPTURE_GAME_STATE => Ok(CommandResult::GameState {
             state: decode_game_state(&response.game_state)?,
+        }),
+        COMMAND_CAPTURE_MENTOR_DUTY => Ok(CommandResult::MentorDuty {
+            duty: MentorDutySnapshot {
+                queued_roulette_id: response.mentor_duty.queued_roulette_id,
+                queue_state: response.mentor_duty.queue_state,
+                content_finder_condition_id: response.mentor_duty.content_finder_condition_id,
+                completion_sequence: response.mentor_duty.completion_sequence,
+                completion_content_finder_condition_id: response.mentor_duty.completion_content_finder_condition_id,
+                completion_territory_id: response.mentor_duty.completion_territory_id,
+            },
         }),
         COMMAND_CAPTURE_PORTRAIT_LIGHTING
         | COMMAND_UPDATE_PORTRAIT_LIGHTING
@@ -1472,6 +1509,8 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     api.portrait_set_pose_timed = resolve_optional("portraitSetPoseTimed")?;
     api.portrait_is_animation_paused = resolve_optional("portraitIsAnimationPaused")?;
     api.portrait_toggle_animation_playback = resolve_optional("portraitToggleAnimationPlayback")?;
+    api.contents_finder_instance = resolve_optional("contentsFinderInstance")?;
+    api.handle_actor_control_packet = resolve_optional("handleActorControlPacket")?;
 
     macro_rules! layout {
         ($field:ident, $name:literal) => {
@@ -1550,6 +1589,10 @@ fn resolve_game_api(manifest_path: &Path, process_id: u32) -> BridgeResult<Share
     layout!(game_main_connected_to_zone, "gameMainConnectedToZone");
     layout!(game_main_territory_load_state, "gameMainTerritoryLoadState");
     layout!(game_main_current_territory, "gameMainCurrentTerritory");
+    optional_layout!(game_main_current_content_finder_condition, "gameMainCurrentContentFinderCondition");
+    optional_layout!(contents_finder_queue_info, "contentsFinderQueueInfo");
+    optional_layout!(contents_finder_queue_state, "contentsFinderQueueState");
+    optional_layout!(contents_finder_queued_roulette, "contentsFinderQueuedRoulette");
     layout!(
         get_item_finder_module_vtable_index,
         "getItemFinderModuleVtableIndex"

@@ -72,6 +72,8 @@ ResolvedAddresses resolve_addresses(const SharedGameApi& api) {
       optional_pointer<std::byte*>(api.portrait_set_pose_timed),
       optional_pointer<std::byte*>(api.portrait_is_animation_paused),
       optional_pointer<std::byte*>(api.portrait_toggle_animation_playback),
+      optional_pointer<std::byte*>(api.contents_finder_instance),
+      optional_pointer<std::byte*>(api.handle_actor_control_packet),
   };
 }
 

@@ -297,6 +297,25 @@ void GameRuntime::start() {
   }
   std::atomic_ref(shared_->portrait_capabilities)
       .store(portrait_capabilities, std::memory_order_release);
+
+  // Mentor tracking is enabled only when this executable's signatures and offsets resolve.
+  const bool mentor_layout_available =
+      addresses_.contents_finder_instance && addresses_.handle_actor_control_packet &&
+      layout_.game_main_current_content_finder_condition && layout_.contents_finder_queue_info &&
+      layout_.contents_finder_queue_state && layout_.contents_finder_queued_roulette;
+  if (mentor_layout_available) {
+    auto* target = addresses_.handle_actor_control_packet;
+    if (MH_CreateHook(target, reinterpret_cast<void*>(&actor_control_detour),
+                      reinterpret_cast<void**>(&original_actor_control_)) == MH_OK &&
+        MH_EnableHook(target) == MH_OK) {
+      actor_control_hook_target_ = target;
+      std::atomic_ref(shared_->mentor_capabilities)
+          .store(kMentorCapabilityRead, std::memory_order_release);
+    } else {
+      MH_RemoveHook(target);
+      original_actor_control_ = nullptr;
+    }
+  }
 }
 
 void GameRuntime::stop() {
@@ -304,7 +323,9 @@ void GameRuntime::stop() {
   stopping_.store(true, std::memory_order_release);
   std::atomic_ref(shared_->chat_capabilities).store(0, std::memory_order_release);
   std::atomic_ref(shared_->portrait_capabilities).store(0, std::memory_order_release);
+  std::atomic_ref(shared_->mentor_capabilities).store(0, std::memory_order_release);
   if (chat_hook_target_) MH_DisableHook(chat_hook_target_);
+  if (actor_control_hook_target_) MH_DisableHook(actor_control_hook_target_);
   if (hook_target_) {
     MH_DisableHook(hook_target_);
     while (active_callbacks_.load(std::memory_order_acquire) != 0) {
@@ -314,6 +335,10 @@ void GameRuntime::stop() {
     if (chat_hook_target_) {
       MH_RemoveHook(chat_hook_target_);
       chat_hook_target_ = nullptr;
+    }
+    if (actor_control_hook_target_) {
+      MH_RemoveHook(actor_control_hook_target_);
+      actor_control_hook_target_ = nullptr;
     }
     MH_Uninitialize();
     hook_target_ = nullptr;
@@ -334,6 +359,39 @@ std::uint32_t __fastcall GameRuntime::chat_detour(void* manager, std::uint16_t l
       runtime->original_chat_(manager, log_info, sender, message, timestamp, silent);
   runtime->active_callbacks_.fetch_sub(1, std::memory_order_acq_rel);
   return result;
+}
+
+void __fastcall GameRuntime::actor_control_detour(std::uint32_t entity_id, std::uint32_t category,
+                                                  std::uint32_t arg1, std::uint32_t arg2,
+                                                  std::uint32_t arg3, std::uint32_t arg4,
+                                                  std::uint32_t arg5, std::uint32_t arg6,
+                                                  std::uint32_t arg7, std::uint32_t arg8,
+                                                  std::uint64_t target_id, bool is_recorded) {
+  auto* runtime = active_;
+  if (!runtime || !runtime->original_actor_control_) return;
+  runtime->active_callbacks_.fetch_add(1, std::memory_order_acq_rel);
+  if (!runtime->stopping_.load(std::memory_order_acquire) && category == 0x6D &&
+      (arg2 == 0x40000002 || arg2 == 0x40000003)) {
+    try {
+      const auto condition =
+          read_value<std::uint16_t>(runtime->addresses_.game_main_instance,
+                                    runtime->layout_.game_main_current_content_finder_condition);
+      const auto territory = read_value<std::uint32_t>(
+          runtime->addresses_.game_main_instance, runtime->layout_.game_main_current_territory);
+      if (condition != 0 && territory != 0 &&
+          runtime->completion_territory_id_.load(std::memory_order_relaxed) != territory) {
+        runtime->completion_content_finder_condition_id_.store(condition,
+                                                               std::memory_order_relaxed);
+        runtime->completion_territory_id_.store(territory, std::memory_order_relaxed);
+        runtime->completion_sequence_.fetch_add(1, std::memory_order_release);
+      }
+    } catch (...) {
+      // A transient unreadable game field must never prevent the original packet handler.
+    }
+  }
+  runtime->original_actor_control_(entity_id, category, arg1, arg2, arg3, arg4, arg5, arg6, arg7,
+                                   arg8, target_id, is_recorded);
+  runtime->active_callbacks_.fetch_sub(1, std::memory_order_acq_rel);
 }
 
 void GameRuntime::publish_chat_message(std::uint16_t log_info, const void* sender,
@@ -500,6 +558,9 @@ void GameRuntime::process_shared_command(void* framework) {
         break;
       case SharedCommandKind::CaptureGameState:
         outcome = capture_game_state(framework);
+        break;
+      case SharedCommandKind::CaptureMentorDuty:
+        outcome = capture_mentor_duty();
         break;
       case SharedCommandKind::LogoutToTitle:
         outcome = logout_to_title(framework);
@@ -1052,6 +1113,33 @@ CommandOutcome GameRuntime::capture_game_state(void* framework) {
   return {true, {}, {}, std::nullopt, std::nullopt, std::nullopt, snapshot, {}};
 }
 
+CommandOutcome GameRuntime::capture_mentor_duty() {
+  if (std::atomic_ref(shared_->mentor_capabilities).load(std::memory_order_acquire) == 0) {
+    return failure("mentor_unavailable",
+                   "Mentor duty reading is unavailable for this game version.");
+  }
+  MentorDutySnapshot duty;
+  const auto* queue = addresses_.contents_finder_instance + layout_.contents_finder_queue_info;
+  duty.queued_roulette_id =
+      read_value<std::uint8_t>(queue, layout_.contents_finder_queued_roulette);
+  duty.queue_state = read_value<std::uint8_t>(queue, layout_.contents_finder_queue_state);
+  duty.content_finder_condition_id = read_value<std::uint16_t>(
+      addresses_.game_main_instance, layout_.game_main_current_content_finder_condition);
+  const auto territory =
+      read_value<std::uint32_t>(addresses_.game_main_instance, layout_.game_main_current_territory);
+  if (territory != duty.completion_territory_id &&
+      territory != completion_territory_id_.load(std::memory_order_relaxed)) {
+    completion_territory_id_.store(0, std::memory_order_relaxed);
+  }
+  duty.completion_sequence = completion_sequence_.load(std::memory_order_acquire);
+  duty.completion_content_finder_condition_id =
+      completion_content_finder_condition_id_.load(std::memory_order_relaxed);
+  duty.completion_territory_id = completion_territory_id_.load(std::memory_order_relaxed);
+  CommandOutcome outcome = acknowledgement();
+  outcome.mentor_duty = duty;
+  return outcome;
+}
+
 CommandOutcome GameRuntime::logout_to_title(void* framework) {
   auto state = capture_game_state(framework);
   if (!state.success || !state.game_state) return state;
@@ -1122,6 +1210,16 @@ void GameRuntime::write_response(std::uint64_t sequence, SharedCommandKind kind,
       response.game_state.connected_to_zone = source.connected_to_zone ? 1 : 0;
       response.game_state.region_switch_supported = source.region_switch_supported ? 1 : 0;
       response.game_state.territory_load_state = source.territory_load_state;
+    }
+    if (outcome.mentor_duty) {
+      const auto& source = *outcome.mentor_duty;
+      response.mentor_duty.queued_roulette_id = source.queued_roulette_id;
+      response.mentor_duty.queue_state = source.queue_state;
+      response.mentor_duty.content_finder_condition_id = source.content_finder_condition_id;
+      response.mentor_duty.completion_sequence = source.completion_sequence;
+      response.mentor_duty.completion_content_finder_condition_id =
+          source.completion_content_finder_condition_id;
+      response.mentor_duty.completion_territory_id = source.completion_territory_id;
     }
     if (outcome.portrait_lighting) {
       const auto& source = *outcome.portrait_lighting;

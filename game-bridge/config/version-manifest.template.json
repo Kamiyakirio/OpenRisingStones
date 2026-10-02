@@ -192,6 +192,18 @@
       "resolve": "relative32",
       "offset": 1,
       "nextInstruction": 5
+    },
+    "contentsFinderInstance": {
+      "pattern": "0F B6 FA 48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 80 78 59 02",
+      "resolve": "rip_relative",
+      "offset": 6,
+      "nextInstruction": 10
+    },
+    "handleActorControlPacket": {
+      "pattern": "40 55 53 57 41 54 41 56 48 8D AC 24 ?? ?? ?? ?? B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 85 ?? ?? ?? ?? 8B 85",
+      "resolve": "direct",
+      "offset": 0,
+      "nextInstruction": 0
     }
   },
   "layout": {
@@ -247,6 +259,10 @@
     "gameMainConnectedToZone": "0x40FE",
     "gameMainTerritoryLoadState": "0x4100",
     "gameMainCurrentTerritory": "0x4108",
+    "gameMainCurrentContentFinderCondition": "0x4114",
+    "contentsFinderQueueInfo": "0x20",
+    "contentsFinderQueueState": "0x55",
+    "contentsFinderQueuedRoulette": "0x5A",
     "getItemFinderModuleVtableIndex": 17,
     "inventoryContainerItems": "0x0008",
     "inventoryContainerType": "0x0010",

@@ -336,6 +336,15 @@ impl BridgeManager {
         }
     }
 
+    pub fn capture_mentor_duty(&self) -> BridgeResult<game_bridge_protocol::MentorDutySnapshot> {
+        match self.send_command(Command::CaptureMentorDuty)? {
+            CommandResult::MentorDuty { duty } => Ok(duty),
+            _ => Err(BridgeError::InvalidData(
+                "unexpected mentor-duty response".to_owned(),
+            )),
+        }
+    }
+
     pub fn capture_portrait_lighting(
         &self,
     ) -> BridgeResult<game_bridge_protocol::PortraitLightingSnapshot> {

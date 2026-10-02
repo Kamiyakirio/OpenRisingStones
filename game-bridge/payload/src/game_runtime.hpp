@@ -65,6 +65,15 @@ struct GameStateSnapshot final {
   std::uint32_t territory_load_state{};
 };
 
+struct MentorDutySnapshot final {
+  std::uint8_t queued_roulette_id{};
+  std::uint8_t queue_state{};
+  std::uint32_t content_finder_condition_id{};
+  std::uint64_t completion_sequence{};
+  std::uint32_t completion_content_finder_condition_id{};
+  std::uint32_t completion_territory_id{};
+};
+
 struct PortraitLightingSnapshot final {
   std::uint64_t session_id{};
   bool editor_open{};
@@ -160,6 +169,7 @@ struct CommandOutcome final {
   std::optional<GameStateSnapshot> game_state;
   std::string region_name;
   std::optional<PortraitLightingSnapshot> portrait_lighting;
+  std::optional<MentorDutySnapshot> mentor_duty;
 };
 
 class GameRuntime final {
@@ -182,10 +192,20 @@ class GameRuntime final {
   using GetLogMessageDetail = bool(__fastcall*)(void* manager, std::int32_t index,
                                                 std::uint16_t* log_info, void* sender,
                                                 void* message, std::int32_t* timestamp);
+  using HandleActorControlPacket = void(__fastcall*)(
+      std::uint32_t entity_id, std::uint32_t category, std::uint32_t arg1, std::uint32_t arg2,
+      std::uint32_t arg3, std::uint32_t arg4, std::uint32_t arg5, std::uint32_t arg6,
+      std::uint32_t arg7, std::uint32_t arg8, std::uint64_t target_id, bool is_recorded);
 
   static bool __fastcall tick_detour(void* framework);
   static std::uint32_t __fastcall chat_detour(void* manager, std::uint16_t log_info, void* sender,
                                               void* message, std::int32_t timestamp, bool silent);
+  static void __fastcall actor_control_detour(std::uint32_t entity_id, std::uint32_t category,
+                                              std::uint32_t arg1, std::uint32_t arg2,
+                                              std::uint32_t arg3, std::uint32_t arg4,
+                                              std::uint32_t arg5, std::uint32_t arg6,
+                                              std::uint32_t arg7, std::uint32_t arg8,
+                                              std::uint64_t target_id, bool is_recorded);
   bool on_tick(void* framework) noexcept;
   bool initialize_chat_log(void* framework) noexcept;
   void poll_chat_log(void* framework) noexcept;
@@ -199,6 +219,7 @@ class GameRuntime final {
   [[nodiscard]] CommandOutcome capture_active_character();
   [[nodiscard]] CommandOutcome capture_inventory(void* framework);
   [[nodiscard]] CommandOutcome capture_game_state(void* framework);
+  [[nodiscard]] CommandOutcome capture_mentor_duty();
   [[nodiscard]] CommandOutcome capture_portrait_lighting(void* framework);
   [[nodiscard]] CommandOutcome update_portrait_lighting(void* framework,
                                                         const SharedPortraitLighting& update);
@@ -224,8 +245,13 @@ class GameRuntime final {
   SharedBridge* shared_{};
   void* hook_target_{};
   void* chat_hook_target_{};
+  void* actor_control_hook_target_{};
   FrameworkTick original_tick_{};
   PrintChatMessage original_chat_{};
+  HandleActorControlPacket original_actor_control_{};
+  std::atomic<std::uint64_t> completion_sequence_{0};
+  std::atomic<std::uint32_t> completion_content_finder_condition_id_{0};
+  std::atomic<std::uint32_t> completion_territory_id_{0};
   void* chat_log_module_{};
   std::int32_t next_chat_log_index_{};
   bool chat_log_supported_{};

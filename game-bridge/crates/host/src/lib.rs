@@ -17,7 +17,7 @@ pub use game_bridge_protocol::{
     build_chat_entry, ActiveCharacterSnapshot, ArmoireSnapshot, ChatMessageSnapshot,
     ChatSendChannel, Command, CommandResult, GameScreen, GameSnapshot, GameStateSnapshot,
     GlamourDresserItemSnapshot, GlamourDresserSnapshot, InventoryContainerSnapshot,
-    InventoryItemSnapshot, PlayerInventorySnapshot, PortraitAnimationUpdate,
+    InventoryItemSnapshot, MentorDutySnapshot, PlayerInventorySnapshot, PortraitAnimationUpdate,
     PortraitLightingSnapshot, PortraitLightingUpdate, Position3, RegionTarget, SecretValue,
 };
 pub use manager::{BridgeManager, BridgePhase, BridgeStatus, ConnectOptions};
