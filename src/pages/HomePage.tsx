@@ -7,6 +7,7 @@ import {
   CoatHanger,
   FishSimple,
   MapTrifold,
+  ClipboardText,
   Sword,
   UsersThree,
 } from "@phosphor-icons/react";
@@ -34,6 +35,7 @@ type HomePageProps = {
   onOpenFishing: () => void;
   onOpenChat: () => void;
   onOpenPortrait: () => void;
+  onOpenMentor: () => void;
 };
 
 export function HomePage({
@@ -49,6 +51,7 @@ export function HomePage({
   onOpenFishing,
   onOpenChat,
   onOpenPortrait,
+  onOpenMentor,
 }: HomePageProps) {
   const [now, setNow] = useState(() => new Date());
   const nowMs = now.getTime();
@@ -123,6 +126,12 @@ export function HomePage({
       description: "调整动作时间和肖像光照",
       icon: Aperture,
       open: onOpenPortrait,
+    },
+    {
+      name: "导随记录",
+      description: "自动记录指导者随机任务，区分完成与退出",
+      icon: ClipboardText,
+      open: onOpenMentor,
     },
   ];
   return (

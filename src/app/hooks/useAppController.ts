@@ -42,6 +42,10 @@ export function useAppController() {
     () => navigateToFeature(setActiveFeature, "portrait"),
     [],
   );
+  const openMentor = useCallback(
+    () => navigateToFeature(setActiveFeature, "mentor"),
+    [],
+  );
   const goHome = useCallback(
     () => navigateToFeature(setActiveFeature, "home"),
     [],
@@ -98,6 +102,7 @@ export function useAppController() {
     openFishing,
     openChat,
     openPortrait,
+    openMentor,
     goHome,
     toggleTheme,
     openSettings,

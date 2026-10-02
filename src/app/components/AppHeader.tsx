@@ -8,6 +8,7 @@ import {
   GearSix,
   House,
   MapTrifold,
+  ClipboardText,
   Moon,
   Sword,
   Sun,
@@ -58,6 +59,7 @@ export function AppHeader({
     ["fishing", "钓鱼数据库", FishSimple],
     ["chat", "手机聊天", ChatCircleDots],
     ["portrait", "肖像助手", Aperture],
+    ["mentor", "导随记录", ClipboardText],
   ];
   if (__DEBUG_BUILD__) destinations.push(["debug", "调试", Bug]);
   return (

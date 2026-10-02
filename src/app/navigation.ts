@@ -9,7 +9,8 @@ export type ActiveFeature =
   | "debug"
   | "fishing"
   | "chat"
-  | "portrait";
+  | "portrait"
+  | "mentor";
 
 const debugBuild = typeof __DEBUG_BUILD__ !== "undefined" && __DEBUG_BUILD__;
 
@@ -33,6 +34,7 @@ export function featureFromHash(
       "fishing",
       "chat",
       "portrait",
+      "mentor",
     ].includes(destination)
   )
     return destination as ActiveFeature;
