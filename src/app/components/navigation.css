@@ -13,6 +13,7 @@
 }
 
 .app-header-bar {
+  flex-shrink: 0;
   padding: 0 12px 24px;
 }
 
@@ -29,7 +30,11 @@
 
 .app-navigation {
   display: grid;
+  /* Scroll navigation within short sidebars instead of overflowing the app canvas. */
+  min-height: 0;
   gap: 4px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .app-navigation a,
@@ -71,6 +76,7 @@
 
 .header-actions {
   display: grid;
+  flex-shrink: 0;
   gap: 4px;
   margin-top: auto;
   padding-top: 20px;
@@ -237,6 +243,7 @@
     gap: 2px;
     padding: 0 8px;
     overflow-x: auto;
+    overflow-y: hidden;
     scrollbar-width: thin;
   }
 
