@@ -56,17 +56,19 @@ npm run release
 4. 按 Tauri sidecar 规范命名二进制，并将其嵌入桌面应用安装包。
 5. 执行前端 production build、Rust release build 和当前平台的 Tauri bundler。
 
-生成的安装包位于 `src-tauri/target/release/bundle/`。Python 虚拟环境和 PyInstaller 中间产物位于 `.release/`，两者都不会提交到 Git。
+Windows 便携程序位于 `.release/artifacts/<目标三元组>/OpenRisingStones.exe`；macOS 和 Linux 安装包位于该目录的 `bundle/` 子目录。
+
+无论构建成功或失败，脚本都会清理桌面应用和 game bridge 工作区的 Rust 构建目录：有有效缓存标记时执行 `cargo clean`，旧目录或命令失败时在校验项目内路径后直接清理。其他清理范围包括前端构建产物及缓存、Python 虚拟环境及字节码缓存、PyInstaller 中间产物、C++ 构建目录和 Release 打包用中间文件。最终发布产物、game bridge 的 Debug 产物、npm 依赖和全局下载缓存会保留；清理失败会报告具体错误，并继续尝试其他清理步骤。脚本会输出各构建阶段、构建总耗时、清理耗时和发布总耗时。
 
 ### 跨平台说明
 
 PyInstaller 不是交叉编译器，因此发布包必须在目标系统和目标 CPU 架构上构建：
 
-- Windows 构建 Windows 安装包。
+- Windows 构建 Windows 便携程序。
 - macOS Intel 与 Apple Silicon 分别在匹配架构的 Python/Rust 环境中构建。
 - Linux 应在与最低支持版本兼容的发行版或构建容器中构建，以控制 glibc 兼容性。
 
-最终用户不需要安装 Python 或 `curl_cffi`；release 构建只会启动安装包中捆绑的 Python sidecar。首次发布构建需要联网下载 Python、npm 和 Cargo 依赖，后续构建会复用本地缓存及隔离环境。
+最终用户不需要安装 Python 或 `curl_cffi`；release 构建只会启动发布程序中捆绑的 Python sidecar。每次发布都会重新创建 Python 隔离环境和编译产物，依赖下载可复用全局缓存。
 
 脚本只在仓库的构建目录生成安装介质，不会挂载 DMG、运行安装器或将应用复制到系统应用目录。面向外部分发时，还应在各平台构建机中配置对应的代码签名与公证凭据。
 

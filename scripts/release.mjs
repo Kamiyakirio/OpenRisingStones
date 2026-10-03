@@ -2,22 +2,27 @@
  * Build the host platform's Python sidecar and bundle it with the Tauri app.
  * PyInstaller is not a cross-compiler, so each OS and CPU architecture must run
  * this script on a matching build machine.
+ * Preserve final artifacts, then clean build files on both success and failure.
  */
 
 import { createHash } from "node:crypto";
 import {
   chmodSync,
   copyFileSync,
+  cpSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { performance } from "node:perf_hooks";
 import { configureSystemProxy } from "./system-proxy.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -36,6 +41,27 @@ const executableExtension = isWindows ? ".exe" : "";
 
 function fail(message) {
   throw new Error(message);
+}
+
+/** Use a monotonic clock and report elapsed time even when a build step fails. */
+function timed(label, action) {
+  const startedAt = performance.now();
+  try {
+    return action();
+  } finally {
+    const elapsedSeconds = (performance.now() - startedAt) / 1000;
+    const hours = Math.floor(elapsedSeconds / 3600);
+    const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+    const seconds = (elapsedSeconds % 60).toFixed(1);
+    const elapsed = [
+      hours && `${hours}h`,
+      minutes && `${minutes}m`,
+      `${seconds}s`,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    console.log(`\n[Timing] ${label}: ${elapsed}`);
+  }
 }
 
 /** Run a command with visible output and stop at the first failure. */
@@ -256,6 +282,7 @@ function ensureFrontendDependencies(npm) {
   );
   if (!existsSync(tauriCliPackage)) {
     run(npm.command, [...npm.launcherArgs, "ci"]);
+    run(npm.command, [...npm.launcherArgs, "run", "skills:install"]);
   }
 }
 
@@ -374,63 +401,260 @@ function buildDesktopApp(
 
   run(npm.command, buildArguments);
 
-  if (!isWindows) {
-    return {
-      description: "Installers",
-      path: join(tauriDirectory, "target", "release", "bundle"),
-    };
-  }
-
-  const builtApp = join(
-    tauriDirectory,
-    "target",
-    "release",
-    `${appBinaryName}.exe`,
-  );
-  if (!existsSync(builtApp)) {
-    fail(`Tauri did not create ${builtApp}.`);
+  const builtOutput = isWindows
+    ? join(tauriDirectory, "target", "release", `${appBinaryName}.exe`)
+    : join(tauriDirectory, "target", "release", "bundle");
+  if (!existsSync(builtOutput)) {
+    fail(`Tauri did not create ${builtOutput}.`);
   }
 
   const artifactDirectory = join(releaseDirectory, "artifacts", targetTriple);
   rmSync(artifactDirectory, { recursive: true, force: true });
   mkdirSync(artifactDirectory, { recursive: true });
-  const portableApp = join(artifactDirectory, `${productName}.exe`);
-  copyFileSync(builtApp, portableApp);
-  return { description: "Portable executable", path: portableApp };
+  // Preserve installers outside Cargo's target directory before cargo clean runs.
+  const outputPath = join(
+    artifactDirectory,
+    isWindows ? `${productName}.exe` : "bundle",
+  );
+  // macOS app bundles contain relative framework links that must survive cleanup.
+  cpSync(builtOutput, outputPath, { recursive: true, verbatimSymlinks: true });
+  return {
+    description: isWindows ? "Portable executable" : "Installers",
+    path: outputPath,
+  };
+}
+
+/** Reject cleanup paths outside the project, including paths through symlinks. */
+function cleanupPath(rootDirectory, relativePath) {
+  const root = realpathSync(rootDirectory);
+  const target = resolve(root, relativePath);
+  const isWithinRoot = (path) => {
+    const suffix = relative(root, path);
+    return (
+      suffix &&
+      suffix !== ".." &&
+      !suffix.startsWith(`..${sep}`) &&
+      !isAbsolute(suffix)
+    );
+  };
+  if (!isWithinRoot(target)) fail(`Unsafe cleanup path: ${target}.`);
+  let existingPath = target;
+  while (!existsSync(existingPath)) existingPath = dirname(existingPath);
+  const resolvedPath = realpathSync(existingPath);
+  if (resolvedPath !== root && !isWithinRoot(resolvedPath)) {
+    fail(`Cleanup path resolves outside the project: ${target}.`);
+  }
+  return target;
+}
+
+/** Only pass tagged Cargo caches to --target-dir; older caches use scoped removal. */
+function hasCargoCacheTag(target) {
+  const tag = join(target, "CACHEDIR.TAG");
+  if (!existsSync(tag) || !lstatSync(tag).isFile()) return false;
+  return readFileSync(tag, "utf8").startsWith(
+    "Signature: 8a477f597d28d172789f06886806bc55",
+  );
+}
+
+/** Retry transient Windows locks and clear read-only attributes only when needed. */
+function removeBuildFiles(rootDirectory, relativePath) {
+  const target = cleanupPath(rootDirectory, relativePath);
+  const options = {
+    recursive: true,
+    force: true,
+    maxRetries: 8,
+    retryDelay: 200,
+  };
+  try {
+    rmSync(target, options);
+  } catch (error) {
+    if (!isWindows || !["EPERM", "EACCES"].includes(error.code)) throw error;
+    const makeWritable = (path) => {
+      const checkedPath = cleanupPath(
+        rootDirectory,
+        relative(rootDirectory, path),
+      );
+      if (!existsSync(checkedPath)) return;
+      const metadata = lstatSync(checkedPath);
+      if (metadata.isSymbolicLink()) return;
+      chmodSync(checkedPath, metadata.isDirectory() ? 0o700 : 0o600);
+      if (metadata.isDirectory()) {
+        for (const entry of readdirSync(checkedPath))
+          makeWritable(join(checkedPath, entry));
+      }
+    };
+    makeWritable(target);
+    rmSync(target, options);
+  }
+}
+
+/** Clean independent build stages even when a preceding cleanup action fails. */
+export function cleanupReleaseBuilds({
+  rootDirectory = projectRoot,
+  runCommand = run,
+} = {}) {
+  console.log("\nCleaning release build files...");
+  const errors = [];
+  const attempt = (label, action) => {
+    try {
+      action();
+    } catch (error) {
+      errors.push(new Error(`${label}: ${error.message}`, { cause: error }));
+    }
+  };
+  for (const workspace of ["src-tauri", "game-bridge"]) {
+    attempt(`cargo clean (${workspace})`, () => {
+      const targetPath = join(workspace, "target");
+      const target = cleanupPath(rootDirectory, targetPath);
+      if (!existsSync(target)) return;
+      if (hasCargoCacheTag(target)) {
+        try {
+          runCommand(
+            "cargo",
+            [
+              "clean",
+              "--manifest-path",
+              join(rootDirectory, workspace, "Cargo.toml"),
+              "--target-dir",
+              target,
+            ],
+            { cwd: rootDirectory },
+          );
+        } catch (error) {
+          // A recovered command failure must not turn a completed release into a failure.
+          console.warn(
+            `Cargo clean failed for ${workspace}; trying scoped removal: ${error.message}`,
+          );
+        }
+      } else {
+        console.log(
+          `Removing legacy Cargo build files without a cache tag: ${target}`,
+        );
+      }
+      removeBuildFiles(rootDirectory, targetPath);
+    });
+  }
+
+  const remove = (path) =>
+    attempt(path, () => {
+      removeBuildFiles(rootDirectory, path);
+    });
+  for (const path of [
+    "dist",
+    "dist-mobile",
+    "dist-ssr",
+    "node_modules/.tmp",
+    "node_modules/.vite",
+    "node_modules/.vite-temp",
+    ".release/pyinstaller",
+    ".release/generated",
+    "src-tauri/binaries",
+    "game-bridge/build",
+    // Debug payloads can be loaded by the running game and belong to development.
+    "game-bridge/artifacts/Release",
+  ])
+    remove(path);
+
+  attempt("Python virtual environments", () => {
+    const directory = cleanupPath(rootDirectory, ".release");
+    if (!existsSync(directory)) return;
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (entry.name.startsWith("venv-")) remove(join(".release", entry.name));
+    }
+  });
+  const removePythonCaches = (directory) => {
+    const path = cleanupPath(rootDirectory, directory);
+    if (!existsSync(path)) return;
+    for (const entry of readdirSync(path, { withFileTypes: true })) {
+      const child = join(directory, entry.name);
+      if (entry.name === "__pycache__") remove(child);
+      else if (entry.isDirectory()) removePythonCaches(child);
+    }
+  };
+  attempt("Python bytecode caches", () =>
+    removePythonCaches("src-tauri/python"),
+  );
+  if (errors.length) {
+    throw new AggregateError(
+      errors,
+      errors.map((error) => error.message).join("\n"),
+    );
+  }
+}
+
+/** Always clean up and retain the original build error if cleanup also fails. */
+export function withReleaseCleanup(build, cleanup) {
+  let buildError;
+  try {
+    return build();
+  } catch (error) {
+    buildError = error;
+    throw error;
+  } finally {
+    try {
+      cleanup();
+    } catch (error) {
+      if (!buildError) throw error;
+      throw new AggregateError(
+        [buildError, error],
+        `${buildError.message}\nCleanup failed: ${error.message}`,
+      );
+    }
+  }
 }
 
 function main() {
   console.log("Building an OpenRisingStones desktop release...");
-  configureSystemProxy();
-  const targetTriple = detectTargetTriple();
-  const python = findPython();
-  const npm = findNpm();
+  const { targetTriple, python, npm } = timed("Toolchain discovery", () => {
+    configureSystemProxy();
+    return {
+      targetTriple: detectTargetTriple(),
+      python: findPython(),
+      npm: findNpm(),
+    };
+  });
   console.log(`Target: ${targetTriple}`);
   console.log(`Python: ${python.version}`);
 
-  ensureFrontendDependencies(npm);
-  buildGameBridge();
-  const venvPython = preparePythonEnvironment(python, targetTriple);
-  const sidecarPath = buildSidecar(venvPython, targetTriple);
+  timed("Frontend dependencies", () => ensureFrontendDependencies(npm));
+  if (isWindows) timed("C++ payload and Rust game bridge", buildGameBridge);
+  const venvPython = timed("Python environment", () =>
+    preparePythonEnvironment(python, targetTriple),
+  );
+  const sidecarPath = timed("Python sidecar packaging and smoke test", () =>
+    buildSidecar(venvPython, targetTriple),
+  );
   console.log(`Packaged sidecar: ${sidecarPath}`);
   const gameBridgeManifestPath = isWindows
-    ? prepareEmbeddedGameBridge(targetTriple)
+    ? timed("Game bridge embedding", () =>
+        prepareEmbeddedGameBridge(targetTriple),
+      )
     : null;
 
-  const releaseOutput = buildDesktopApp(
-    npm,
-    sidecarPath,
-    gameBridgeManifestPath,
-    targetTriple,
+  const releaseOutput = timed(
+    "Frontend and Tauri build, packaging and artifact copy",
+    () =>
+      buildDesktopApp(npm, sidecarPath, gameBridgeManifestPath, targetTriple),
   );
   console.log(
     `\nRelease complete. ${releaseOutput.description}: ${releaseOutput.path}`,
   );
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(`\nRelease failed: ${error.message}`);
-  process.exitCode = 1;
+// Importing cleanup helpers for isolated tests must never start a release build.
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  try {
+    timed("Release total (including cleanup)", () =>
+      withReleaseCleanup(
+        () => timed("Build total", main),
+        () => timed("Cleanup", cleanupReleaseBuilds),
+      ),
+    );
+  } catch (error) {
+    console.error(`\nRelease failed: ${error.message}`);
+    process.exitCode = 1;
+  }
 }
