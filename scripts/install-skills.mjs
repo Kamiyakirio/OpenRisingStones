@@ -1,4 +1,4 @@
-/** Restore project-local skill dependencies with the official CLI and verify installation completed. */
+/** Restore pinned project skills and repair Impeccable hooks through its upstream launcher. */
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -56,6 +56,30 @@ try {
   console.log(
     `Verified ${entries.length} project-local skills in .agents/skills/.`,
   );
+  if (expected.skills.impeccable) {
+    const configPath = join(root, ".impeccable/config.json");
+    const config = statSync(configPath, { throwIfNoEntry: false })?.isFile()
+      ? JSON.parse(readFileSync(configPath, "utf8"))
+      : {};
+    // Preserve an explicit project opt-out; fresh installs enable upstream defaults.
+    if (config.hook?.enabled !== false) {
+      const launcher = join(
+        root,
+        ".agents/skills/impeccable/scripts",
+        process.platform === "win32" ? "impeccable.cmd" : "impeccable",
+      );
+      const hooks = spawnSync(launcher, ["hooks", "on"], {
+        cwd: root,
+        stdio: "inherit",
+        shell: process.platform === "win32",
+      });
+      if (hooks.error || hooks.status !== 0)
+        throw (
+          hooks.error ??
+          new Error(`Impeccable hook setup exited with ${hooks.status}.`)
+        );
+    }
+  }
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;

@@ -13,8 +13,27 @@ dist-ssr
 dist-mobile
 *.local
 .release/
-# Local browser captures and isolated visual fixtures are not application assets.
-.impeccable/review/
+# impeccable-ignore-start
+# Ephemeral output, runtime state, and per-developer overrides.
+# Shared config, design specs, surface briefs, and reports remain tracked.
+**/.impeccable/config.local.json
+**/.impeccable/hook.cache.json
+**/.impeccable/hook.pending.json
+**/.impeccable/*.png
+**/.impeccable/review/
+**/.impeccable/questions/
+**/.impeccable/live/server.json
+**/.impeccable/live/sessions/
+**/.impeccable/live/previews/
+**/.impeccable/live/annotations/
+**/.impeccable/live/cache/
+**/.impeccable/live/manual-edit-apply-transaction.json
+**/.impeccable/live/manual-edit-events.jsonl
+**/.impeccable/live/manual-edit-evidence/
+**/.impeccable/live/pending-manual-edits.json
+**/.impeccable/live/deferred-svelte-component-accepts.json
+**/.impeccable/live/*.png
+# impeccable-ignore-end
 src-tauri/binaries/
 game-bridge/artifacts/
 game-bridge/build/

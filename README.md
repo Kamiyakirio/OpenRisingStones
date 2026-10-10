@@ -85,4 +85,10 @@ npm run skills:install
 安装命令优先使用项目固定版本的 [Skills CLI](https://github.com/vercel-labs/skills)；项目依赖尚未安装时，也会查找 npm 全局安装的 Skills CLI，并按清单中的固定提交恢复到 `.agents/skills/`。
 该目录与 `node_modules/` 一样被 Git 忽略；不会作为 `npm install` 的自动钩子执行，构建应用也不需要安装技能。
 升级技能时更新清单的 `ref` 后重新安装，并审阅清单变化；不要把下载文件重新加入 Git。
-Impeccable 保留上游 launcher；本项目的 `.impeccable/` 设计状态继续按现有规则维护。
+Impeccable 按 [官方安装说明](https://github.com/pbakaus/impeccable#installation) 使用项目级安装，保留上游 launcher。恢复命令也会通过固定版本的 launcher 安装或修复 Codex hooks；若 `.impeccable/config.json` 已明确设置 `hook.enabled: false`，则保持关闭。
+
+安装后重启 Codex，在 Settings → Hooks（CLI 使用 `/hooks`）中信任本项目的 `PostToolUse` 和 `Stop` hooks。Impeccable 无法代替用户完成这一步；未信任时自动检查不会运行。使用 `$impeccable` 访问命令，Windows 终端调用 `.agents/skills/impeccable/scripts/impeccable.cmd`。
+
+共享配置 `.impeccable/config.json` 和 `.codex/hooks.json` 提交到 Git；本机配置、检查缓存、截图和 Live 会话按上游规则忽略。从空白上下文初始化时，通过 `$impeccable init` 确认产品信息并生成 `PRODUCT.md`；设计资料按需通过 `$impeccable document` 生成，不恢复旧配置、草图或 surface briefs。
+
+直接使用官方安装器的命令是 `npx impeccable install --providers=codex --scope=project`，更新命令是 `npx impeccable update`。本仓日常恢复使用 `npm run skills:install`，以免绕过 `skills-lock.json` 的版本固定；升级时同步更新锁定提交后重新恢复。

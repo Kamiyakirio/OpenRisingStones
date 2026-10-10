@@ -17,10 +17,10 @@
     },
     "impeccable": {
       "source": "pbakaus/impeccable",
-      "ref": "2bc2879276c1f321a53c4ca99d3371e411329b52",
+      "ref": "e103efe779e2dd01274dabae83531fef00bf2563",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "60dbc4e983f695f76c63c533f87500fe36149a8165351d4a599252f7ea5fdad0"
+      "computedHash": "9290e72b74d64023803957614a6c773c4f45deefd444ce667e258f843ff69980"
     }
   }
 }

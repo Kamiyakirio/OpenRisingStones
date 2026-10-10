@@ -15,3 +15,5 @@ commit 不能过大。你需要控制commit的规模，按照功能或文件进�
 Skills are local dependencies declared in `skills-lock.json`; their files under `.agents/skills/` are not tracked by Git. After `npm install`, run `npm run skills:install` to restore the pinned versions before using them.
 
 Impeccable is restored to `.agents/skills/impeccable/SKILL.md`. Use its original launcher and keep Impeccable project state in the root `.impeccable/` directory.
+
+`npm run skills:install` also repairs Impeccable's provider hooks using the pinned upstream launcher, unless the project explicitly disables them. Codex hooks live in `.codex/hooks.json`; each developer must trust the PostToolUse and Stop hooks in Codex Settings > Hooks (or `/hooks` in Codex CLI). On Windows, invoke `impeccable.cmd`. Keep per-developer config and runtime output ignored, while shared `.impeccable/config.json` remains tracked.
