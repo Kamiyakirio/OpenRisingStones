@@ -53,9 +53,14 @@ import {
 } from "../src/features/fishing/utils/oceanRoutes.ts";
 import {
   OCEAN_BOARDING_MS,
+  OCEAN_DISPLAY_MS,
   upcomingOceanDepartures,
 } from "../src/features/fishing/utils/oceanSchedule.ts";
 import { xivIconUrl } from "../src/features/fishing/utils/iconUrl.ts";
+import {
+  fishingWeatherTypes,
+  summarizeWeatherChoices,
+} from "../src/features/fishing/utils/weatherChoices.ts";
 import { fishingCatchSteps } from "../src/features/fishing/utils/technique.ts";
 import {
   selfMoochRequests,
@@ -613,7 +618,7 @@ test("ocean goals follow route objectives instead of counting fish categories", 
   );
 });
 
-test("ocean departures follow the verified game rotation and boarding cutoff", () => {
+test("ocean departures follow the game rotation and remain visible for one hour", () => {
   const at = Date.UTC(2026, 8, 29, 10);
   const voyages = upcomingOceanDepartures(catalog, at - 1000, 3);
   assert.deepEqual(
@@ -630,9 +635,25 @@ test("ocean departures follow the verified game rotation and boarding cutoff", (
   );
   assert.equal(
     upcomingOceanDepartures(catalog, at + OCEAN_BOARDING_MS, 1)[0].at,
+    at,
+  );
+  assert.equal(
+    upcomingOceanDepartures(catalog, at + OCEAN_DISPLAY_MS - 1, 1)[0].at,
+    at,
+  );
+  assert.equal(
+    upcomingOceanDepartures(catalog, at + OCEAN_DISPLAY_MS, 1)[0].at,
     at + 7200000,
   );
   const midnight = Date.UTC(2026, 8, 29, 16);
+  assert.equal(
+    upcomingOceanDepartures(catalog, midnight + OCEAN_DISPLAY_MS - 1, 1)[0].at,
+    midnight,
+  );
+  assert.equal(
+    upcomingOceanDepartures(catalog, midnight + OCEAN_DISPLAY_MS, 1)[0].at,
+    midnight + 7200000,
+  );
   assert.deepEqual(
     upcomingOceanDepartures(catalog, midnight - 1000, 2).map(
       ({ near, far }) => [near.id, far.id],
@@ -662,6 +683,97 @@ test("ocean departures follow the verified game rotation and boarding cutoff", (
       ),
     ),
     [["Octopus"], ["Jellyfish"]],
+  );
+});
+
+test("ocean fish include per-catch average points and intuition requirements", () => {
+  const oceanFish = catalog.fish.filter((fish) => fish.method === "ocean");
+  assert.ok(oceanFish.length >= 259);
+  assert.ok(
+    oceanFish.every(
+      (fish) =>
+        Number.isFinite(fish.oceanAveragePoints) &&
+        fish.oceanAveragePoints! > 0,
+    ),
+  );
+  const ordinary = catalog.fish.find((fish) => fish.id === 28937)!;
+  assert.equal(ordinary.oceanAveragePoints, 10);
+  const rare = catalog.fish.find((fish) => fish.id === 29744)!;
+  assert.equal(rare.oceanAveragePoints, 253);
+  assert.deepEqual(rare.conditions!.predators, [[28938, 3]]);
+  assert.equal(rare.conditions!.intuitionLength, 60);
+  assert.deepEqual(rare.conditions!.weather, []);
+  const blue = catalog.fish.find((fish) => fish.id === 29788)!;
+  assert.equal(blue.oceanAveragePoints, 500);
+  assert.equal(blue.conditions!.intuitionLength, 15);
+  assert.deepEqual(blue.conditions!.weather, [145]);
+  assert.ok(
+    catalog.fish
+      .filter((fish) => fish.method !== "ocean")
+      .every((fish) => fish.oceanAveragePoints == null),
+  );
+});
+
+test("long weather lists exclude only weather possible at the selected spot", () => {
+  const ordinary = catalog.fish.find((fish) => fish.id === 28937)!;
+  const possible = fishingWeatherTypes(ordinary, catalog, 237)!;
+  assert.deepEqual(new Set(possible), new Set([1, 2, 3, 4, 7, 8]));
+  assert.deepEqual(summarizeWeatherChoices([2, 3, 4, 7, 8], possible), {
+    ids: [1],
+    excluded: true,
+  });
+  assert.deepEqual(summarizeWeatherChoices([2, 3, 4, 1], possible), {
+    ids: [7, 8],
+    excluded: true,
+  });
+  assert.deepEqual(summarizeWeatherChoices([2, 3], possible), {
+    ids: [2, 3],
+    excluded: false,
+  });
+  assert.deepEqual(summarizeWeatherChoices([1, 2, 3], possible), {
+    ids: [1, 2, 3],
+    excluded: false,
+  });
+  assert.deepEqual(summarizeWeatherChoices([2, 3, 4, 7, 8]), {
+    ids: [2, 3, 4, 7, 8],
+    excluded: false,
+  });
+  assert.deepEqual(summarizeWeatherChoices([145], possible), {
+    ids: [145],
+    excluded: false,
+  });
+  assert.deepEqual(summarizeWeatherChoices([], possible), {
+    ids: [],
+    excluded: false,
+  });
+  const spectral = catalog.fish.find((fish) => fish.id === 29788)!;
+  assert.deepEqual(fishingWeatherTypes(spectral, catalog, 238), [145]);
+  const acrossSeas = {
+    ...ordinary,
+    locations: [
+      ordinary.locations[0],
+      catalog.fish.find((fish) => fish.id === 29745)!.locations[0],
+    ],
+  };
+  assert.equal(fishingWeatherTypes(acrossSeas, catalog), undefined);
+  assert.deepEqual(fishingWeatherTypes(acrossSeas, catalog, 237), possible);
+  assert.equal(fishingWeatherTypes(ordinary, catalog, -1), undefined);
+  const world = { ...ordinary, method: "rod" as const };
+  const worldCatalog = {
+    ...catalog,
+    weatherRates: {
+      900: [
+        [1, 20],
+        [2, 20],
+        [3, 60],
+        [4, 100],
+      ] as [number, number][],
+    },
+  };
+  assert.deepEqual(fishingWeatherTypes(world, worldCatalog), [1, 3, 4]);
+  assert.equal(
+    fishingWeatherTypes(world, { ...catalog, weatherRates: {} }),
+    undefined,
   );
 });
 

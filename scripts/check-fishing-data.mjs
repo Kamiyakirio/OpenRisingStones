@@ -9,12 +9,19 @@ try {
     ),
   );
   if (
-    catalog.formatVersion !== 7 ||
+    catalog.formatVersion !== 9 ||
     catalog.fish?.length < 1730 ||
     catalog.oceanRoutes?.length < 21 ||
     catalog.oceanRouteTable?.length !== 144 ||
     !catalog.oceanAvailability ||
+    Object.keys(catalog.oceanWeatherTypes ?? {}).length !== 26 ||
     Object.keys(catalog.oceanMissionTypes ?? {}).length < 60 ||
+    catalog.fish.some(
+      (fish) =>
+        fish.method === "ocean" &&
+        (!Number.isFinite(fish.oceanAveragePoints) ||
+          fish.oceanAveragePoints <= 0),
+    ) ||
     catalog.oceanRoutes.some(
       (route) =>
         route.stops?.length !== 3 || route.stops.some((stop) => !stop.name),

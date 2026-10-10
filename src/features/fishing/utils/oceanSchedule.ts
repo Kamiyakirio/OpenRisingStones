@@ -3,6 +3,8 @@ import type { FishCatalog, OceanRoute } from "../types.ts";
 
 const TWO_HOURS = 2 * 60 * 60 * 1000;
 export const OCEAN_BOARDING_MS = 15 * 60 * 1000;
+// Keep the current voyage available for planning after boarding has closed.
+export const OCEAN_DISPLAY_MS = 60 * 60 * 1000;
 // The published Unix-epoch schedule starts at pattern index 88; the game
 // IKDRouteTable starts 48 entries later. This also aligns the daily route skip.
 // https://ffxiv.pf-n.co/ocean-fishing/about
@@ -21,7 +23,7 @@ export function upcomingOceanDepartures(
 ): OceanDeparture[] {
   const routes = new Map(catalog.oceanRoutes.map((route) => [route.id, route]));
   const first =
-    (Math.floor((now - OCEAN_BOARDING_MS) / TWO_HOURS) + 1) * TWO_HOURS;
+    (Math.floor((now - OCEAN_DISPLAY_MS) / TWO_HOURS) + 1) * TWO_HOURS;
   const result: OceanDeparture[] = [];
   for (let index = 0; index < count; index++) {
     const at = first + index * TWO_HOURS;

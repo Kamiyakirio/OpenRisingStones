@@ -59,7 +59,9 @@ fields. All 1,551 rod/spear records now support time/weather eligibility; the ot
 259 records belong to ocean voyages. The
 [DistantSeas ocean data](https://github.com/NotNite/DistantSeas/tree/main/Data)
 adds per-spot day/sunset/night exclusions and fills the remaining ocean bait,
-bite-strength, and hookset gaps. Its AGPL license is included in
+bite-strength, hookset, weather, and intuition-duration gaps. It also supplies
+each ocean fish's average points per catch, displayed in the list before voyage
+bonuses. Its AGPL license is included in
 `licenses/distantseas/LICENSE`. Empty weather arrays mean unrestricted,
 whereas null means unknown. Teamcraft's MIT license is included separately.
 This merges visible game-log entries with tracker records, not a claim of future-patch completeness.
@@ -116,7 +118,14 @@ The goal order follows the Indigo and Ruby optional-objective schedules from
 Ocean Fishing Tracker rather than fish counts. Achievement icons show one
 eligible example fish, not the only fish counted toward that bonus. Its three stops show only
 fish eligible at that stop's day/sunset/night phase. The 15-minute boarding
-window and rotation offset were checked against the displayed 2026-09-29
+window is separate from the one-hour schedule visibility period: a 00:00 voyage
+remains listed until 01:00, with a departed status once registration closes.
+Rows expose fish-specific weather, available phases, and intuition prey counts
+and duration without opening the catch sheet. Long allowed-weather lists use
+shorter exclusions when the complete weather set of the sea or fishing spot is
+known; unknown sets and spectral-current requirements stay explicit.
+The rotation offset was checked
+against the displayed 2026-09-29
 18:00 China-time voyages, the 00:00 China-time daily route skip, and the
 [published Unix-epoch schedule](https://ffxiv.pf-n.co/ocean-fishing/about).
 Several table rows show the same voyage pair, so a single observed voyage

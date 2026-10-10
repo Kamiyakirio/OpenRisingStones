@@ -454,6 +454,7 @@ if (
   throw new Error("Ocean route rotation is incomplete.");
 // The game lists every fish in a sea, while the community record supplies its time-of-day exclusions.
 const oceanAvailability = {};
+const oceanWeatherTypes = {};
 const oceanMissionTypes = {};
 const oceanFishByItem = new Map(
   fish.filter((item) => item.method === "ocean").map((item) => [item.id, item]),
@@ -473,6 +474,23 @@ const fishByOceanSpot = new Map(
   ]),
 );
 const sourceOceanSpots = [...oceanIndigo, ...oceanRuby];
+// DistantSeas weather names map to the game's ordinary weather sheet IDs.
+const oceanWeatherIds = {
+  ClearSkies: 1,
+  FairSkies: 2,
+  Clouds: 3,
+  Fog: 4,
+  Wind: 5,
+  Gales: 6,
+  Rain: 7,
+  Showers: 8,
+  Thunder: 9,
+  Thunderstorms: 10,
+  DustStorms: 12,
+  HeatWaves: 14,
+  Snow: 15,
+  Blizzards: 16,
+};
 for (const sourceSpot of sourceOceanSpots) {
   const sourceFishIds = new Set(sourceSpot.Fish.map((item) => item.ItemId));
   const matches = [...fishByOceanSpot].filter(
@@ -483,6 +501,20 @@ for (const sourceSpot of sourceOceanSpots) {
   if (matches.length !== 1)
     throw new Error("Community ocean fish cannot be matched to a game spot.");
   const [spotId] = matches[0];
+  // Ocean weather belongs to each sea, not the shared Endeavor territory.
+  oceanWeatherTypes[spotId] = sourceSpot.IsSpectral
+    ? [145]
+    : [
+        ...new Set(
+          sourceSpot.Fish.flatMap((item) =>
+            Object.keys(item.WeatherAvailability ?? {}),
+          ),
+        ),
+      ].map((name) => {
+        if (!oceanWeatherIds[name])
+          throw new Error(`Unknown ocean weather: ${name}.`);
+        return oceanWeatherIds[name];
+      });
   for (const sourceFish of sourceSpot.Fish) {
     if (
       sourceFish.VoyageMissionType &&
@@ -501,7 +533,39 @@ for (const sourceSpot of sourceOceanSpots) {
     if (allowed.length < 3)
       oceanAvailability[`${spotId}:${sourceFish.ItemId}`] = allowed;
     const target = oceanFishByItem.get(sourceFish.ItemId);
+    if (target) {
+      if (
+        !Number.isFinite(sourceFish.AveragePoints) ||
+        sourceFish.AveragePoints <= 0
+      )
+        throw new Error(`Invalid ocean points for item ${sourceFish.ItemId}.`);
+      target.oceanAveragePoints = sourceFish.AveragePoints;
+    }
     if (!target?.conditions) continue;
+    const weatherChoices = Object.entries(sourceFish.WeatherAvailability ?? {});
+    if (target.conditions.weather == null && weatherChoices.length) {
+      // All supplied choices being available means unrestricted voyage weather.
+      target.conditions.weather = weatherChoices.every(
+        ([, available]) => available,
+      )
+        ? []
+        : weatherChoices
+            .filter(([, available]) => available)
+            .map(([name]) => {
+              if (!oceanWeatherIds[name])
+                throw new Error(`Unknown ocean weather: ${name}.`);
+              return oceanWeatherIds[name];
+            });
+    }
+    // The tracker omits some ocean intuition durations; retain its prey rules.
+    if (sourceFish.Intuition) {
+      if (!target.conditions.predators.length)
+        target.conditions.predators = sourceFish.Intuition.Fish.map((prey) => [
+          prey.Item1,
+          prey.Item2,
+        ]);
+      target.conditions.intuitionLength ??= sourceFish.Intuition.Duration;
+    }
     if (!target.conditions.bait.length) {
       const bait =
         sourceFish.RequiredBait ??
@@ -520,14 +584,17 @@ if (sourceOceanSpots.length !== 26)
   throw new Error("Ocean fish availability source is incomplete.");
 if (Object.keys(oceanMissionTypes).length < 60)
   throw new Error("Ocean mission categories are incomplete.");
+if ([...oceanFishByItem.values()].some((item) => !item.oceanAveragePoints))
+  throw new Error("Ocean fish points are incomplete.");
 const catalog = {
-  formatVersion: 7,
+  formatVersion: 9,
   generatedAt: new Date().toISOString(),
   sources: sources.sort((a, b) => a.url.localeCompare(b.url)),
   fish,
   oceanRoutes,
   oceanRouteTable,
   oceanAvailability,
+  oceanWeatherTypes,
   oceanMissionTypes,
   items: namedItems,
   itemIcons: Object.fromEntries(

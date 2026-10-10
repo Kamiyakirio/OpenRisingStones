@@ -31,6 +31,8 @@ export type Fish = {
   fishParameterId: number | null;
   spearfishingItemId: number | null;
   method: "rod" | "spear" | "ocean";
+  // Community average per catch, before voyage bonuses; absent for rod/spear fish.
+  oceanAveragePoints?: number;
   specialConditions: boolean;
   name: string;
   nameEn: string;
@@ -70,6 +72,8 @@ export type FishCatalog = {
   oceanRoutes: OceanRoute[];
   oceanRouteTable: { nearRouteId: number; farRouteId: number }[];
   oceanAvailability: Record<string, number[]>;
+  // All possible weather IDs by sea, including spectral spots; used for exclusions.
+  oceanWeatherTypes: Record<string, number[]>;
   oceanMissionTypes: Record<string, string>;
   items: Record<string, string>;
   itemIcons: Record<string, number>;
