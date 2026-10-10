@@ -43,7 +43,6 @@ import type {
   OceanRoute,
 } from "../features/fishing/types";
 import { useListDetailScroll } from "../shared/hooks/useListDetailScroll";
-import "../features/fishing/components/fishing.css";
 
 type Mode = "now" | "completion" | "voyage" | "lookup";
 type SelectedVoyage = { at: number; triggerId: string };
@@ -306,20 +305,31 @@ export function FishingPage() {
     onToggleSaved: (id) => vm.toggleProgress(id, "saved"),
   };
   return (
-    <main className="fishing-workspace" id="top">
+    <main
+      className={
+        "mx-auto w-full max-w-[1600px] px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 fishing-workspace min-w-0 [&_button]:min-h-[40px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-surface [&_button]:text-ink [&_button]:cursor-pointer [&_button:hover]:bg-hover [&_button:disabled]:cursor-not-allowed [&_button[aria-pressed=true]]:bg-selected [&_button[aria-pressed=true]]:text-accent [&_::selection]:bg-selected [&_::selection]:text-ink [&_:is(a,_.fish-text-action)]:text-accent [@media(pointer:_coarse)]:[&_button]:min-h-[44px] [@media(pointer:_coarse)]:[&_select]:min-h-[44px] [@media(pointer:_coarse)]:[&_input:not([type=checkbox])]:min-h-[44px] [&&&&_button]:p-[8px_14px] [&&&&_button:disabled]:opacity-[0.5] [&&&&_:focus-visible]:[outline:2px_solid_var(--ors-color-accent)] [&&&&_:focus-visible]:[outline-offset:3px] [&&&&_:is(input,_select)]:[accent-color:var(--ors-color-accent)] [&&&&_:is(input,_select)]:[caret-color:var(--ors-color-accent)] [&&&&_:is(a,_.fish-text-action)]:[text-underline-offset:3px] [&&&&_:is(h1,_h2,_h3)]:[text-wrap:balance]"
+      }
+      id="top"
+    >
       {vm.storageError && (
-        <p className="fish-alert" role="alert">
+        <p
+          className={"fish-alert text-danger bg-surface [&&&&]:p-[12px_16px]"}
+          role="alert"
+        >
           无法保存本机数据；这次修改仅在当前页面有效。请检查本地存储设置。
         </p>
       )}
       {filterStorageError && (
-        <p className="fish-alert" role="alert">
+        <p
+          className={"fish-alert text-danger bg-surface [&&&&]:p-[12px_16px]"}
+          role="alert"
+        >
           无法保存筛选条件；下次打开时可能需要重新设置。
         </p>
       )}
       {!catalog ? (
-        <div className="fish-loading">
-          <h1>钓鱼</h1>
+        <div className="fish-loading min-h-[220px] [&_h1]:mt-0">
+          <h1 className="text-2xl font-bold tracking-tight">钓鱼</h1>
           {vm.error ? (
             <div role="alert">
               <p>鱼类资料加载失败。</p>
@@ -371,18 +381,31 @@ export function FishingPage() {
         />
       ) : (
         <>
-          <header className="fish-page-heading">
+          <header
+            className={
+              "fish-page-heading [&_p]:text-muted mb-4 flex flex-wrap items-center justify-between gap-3 [&_h1]:m-0 [&_p]:text-[13px] [&&&&_p]:m-[2px_0_0]"
+            }
+          >
             <div>
-              <h1>钓鱼</h1>
+              <h1 className="text-2xl font-bold tracking-tight">钓鱼</h1>
               <p>鱼类资料 {catalog.fish.length} 条 · 窗口按本机时间计算</p>
             </div>
-            <div className="fish-heading-tools">
+            <div
+              className={
+                "fish-heading-tools flex items-center flex-wrap max-[620px]:w-full max-[620px]:justify-between [&&&&]:gap-[8px_12px]"
+              }
+            >
               <FishClock />
               <TimerLauncher />
             </div>
           </header>
           {gameLogNotice}
-          <nav className="fish-mode-nav" aria-label="钓鱼任务">
+          <nav
+            className={
+              "fish-mode-nav my-3 grid grid-cols-4 gap-1 rounded-xl border border-line bg-surface p-1 [.fishing-workspace_&_button]:grid [.fishing-workspace_&_button]:min-h-16 [.fishing-workspace_&_button]:min-w-0 [.fishing-workspace_&_button]:gap-1 [.fishing-workspace_&_button]:rounded-lg [.fishing-workspace_&_button]:border [.fishing-workspace_&_button]:border-transparent [.fishing-workspace_&_button]:bg-transparent [.fishing-workspace_&_button]:px-3 [.fishing-workspace_&_button]:py-3 [.fishing-workspace_&_button]:text-left [.fishing-workspace_&_button]:text-muted [.fishing-workspace_&_button:hover]:bg-hover [.fishing-workspace_&_button[aria-pressed=true]]:border-control [.fishing-workspace_&_button[aria-pressed=true]]:bg-selected [.fishing-workspace_&_button[aria-pressed=true]]:text-accent [&_strong]:text-base [&_strong]:font-semibold [&_span]:text-muted [&_span]:text-[13px] max-[620px]:mb-4 max-[620px]:[.fishing-workspace_&_button]:min-h-[52px] max-[620px]:[.fishing-workspace_&_button]:text-center max-[620px]:[&_strong]:text-sm max-[620px]:[&_span]:hidden [@media(max-width:_620px)]:[.fishing-workspace_&&&&_button]:p-[8px_5px]"
+            }
+            aria-label="钓鱼任务"
+          >
             {modes.map((item) => (
               <button
                 id={`fish-mode-${item.id}`}

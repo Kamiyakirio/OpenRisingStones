@@ -55,19 +55,30 @@ export function OptimizerActions({
             ? "准备周数需在 0–100 之间。"
             : "";
   return (
-    <div className="gear-optimizer-actions">
+    <div
+      className={
+        "gear-optimizer-actions border-t border-solid border-line bg-surface max-[767px]:sticky [&&&&]:shrink-[0] [&&&&]:p-[10px_12px] [@media(max-width:_767px)]:[&&&&]:bottom-[0]"
+      }
+    >
       {validation && (
-        <p className="gear-negative" role="alert">
+        <p
+          className={"gear-negative [&&&&]:[color:var(--ors-color-danger)]!"}
+          role="alert"
+        >
           {validation}
         </p>
       )}
       {c.kind !== "combat" && !Object.keys(doc?.equipment ?? {}).length && (
-        <p className="gear-muted">
+        <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
           请先在配装页选择装备，再计算当前装备的属性分配。
         </p>
       )}
       {ready && next && (
-        <div className="gear-apply-summary">
+        <div
+          className={
+            "gear-apply-summary text-xs [&_>_strong]:block [&_>_strong]:mb-[8px] [&_>_div:not(.gear-run)]:flex [&_>_div:not(.gear-run)]:justify-between [&_>_div:not(.gear-run)]:gap-[12px] [&_>_div:not(.gear-run)]:tabular-nums [&&&&_>_div:not(.gear-run)]:leading-[1.8]"
+          }
+        >
           <strong>应用前确认</strong>
           {next.effects ? (
             <>
@@ -87,8 +98,8 @@ export function OptimizerActions({
                 <span
                   className={
                     next.effects.damage >= (evaluation?.effects?.damage ?? 0)
-                      ? "gear-positive"
-                      : "gear-negative"
+                      ? "gear-positive text-success"
+                      : "gear-negative [&&&&]:[color:var(--ors-color-danger)]!"
                   }
                 >
                   {next.effects.damage >= (evaluation?.effects?.damage ?? 0)
@@ -110,8 +121,15 @@ export function OptimizerActions({
               </div>
             ))
           )}
-          <div className="gear-run">
-            <button className="gear-primary" onClick={() => vm.applyProposal()}>
+          <div
+            className={
+              "gear-run [.gear-unsaved-dialog_&]:justify-end flex flex-wrap gap-[8px] [.gear-optimizer-actions_>_&]:m-0 [.gear-optimizer-actions_>_&]:items-center [.gear-unsaved-dialog_&&&&]:m-[24px_0_0] [&&&&]:m-[12px_0]"
+            }
+          >
+            <button
+              className="gear-primary [.gear-editor_&]:bg-accent [.gear-editor_&]:text-on-accent [.gear-editor_&]:border-accent [.gear-editor_&:hover:not(:disabled)]:bg-accent-hover [.gear-editor_&:disabled]:bg-surface [.gear-editor_&:disabled]:border-line"
+              onClick={() => vm.applyProposal()}
+            >
               应用方案
             </button>
             <button onClick={onSaveProposal}>另存为新方案</button>
@@ -119,9 +137,17 @@ export function OptimizerActions({
         </div>
       )}
       {proposal?.status === "cancelled" && <p role="status">计算已取消。</p>}
-      <div className="gear-run">
+      <div
+        className={
+          "gear-run [.gear-unsaved-dialog_&]:justify-end flex flex-wrap gap-[8px] [.gear-optimizer-actions_>_&]:m-0 [.gear-optimizer-actions_>_&]:items-center [.gear-unsaved-dialog_&&&&]:m-[24px_0_0] [&&&&]:m-[12px_0]"
+        }
+      >
         <button
-          className={ready ? "" : "gear-primary"}
+          className={
+            ready
+              ? ""
+              : "gear-primary [.gear-editor_&]:bg-accent [.gear-editor_&]:text-on-accent [.gear-editor_&]:border-accent [.gear-editor_&:hover:not(:disabled)]:bg-accent-hover [.gear-editor_&:disabled]:bg-surface [.gear-editor_&:disabled]:border-line"
+          }
           disabled={
             state.running ||
             !!validation ||

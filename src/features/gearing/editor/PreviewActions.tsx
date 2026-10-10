@@ -34,12 +34,18 @@ export function PreviewActions({
   return (
     <section
       ref={ref}
-      className="gear-preview-action"
+      className={
+        "gear-preview-action relative grid items-center flex-wrap gap-[12px] bg-surface p-[12px] border border-solid border-line [&_>_span:first-child]:min-w-[200px] [&_>_span:nth-child(2)]:text-xs [&_>_span:nth-child(2)]:text-muted max-[767px]:[&_>_span:first-child]:min-w-[150px] [&&&&]:grid-cols-[minmax(0,_1fr)_auto] [&&&&]:z-[2] [&&&&_>_span:first-child]:flex-[1] [&&&&_>_details]:[grid-column:1_/_-1] [@media(max-width:_600px)]:[&&&&]:grid-cols-[minmax(0,_1fr)]"
+      }
       aria-label="替换预览"
       aria-busy={state.previewing}
     >
-      <div className="gear-preview-identity">
-        <span className="gear-muted">
+      <div
+        className={
+          "gear-preview-identity grid gap-[4px] [&&&&]:flex-[1_1_240px] [&&&&]:[overflow-wrap:anywhere]"
+        }
+      >
+        <span className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
           {before ? (
             <>
               替换 <ItemName item={before} sources={data.sources} />
@@ -52,7 +58,12 @@ export function PreviewActions({
           <ItemName item={preview} sources={data.sources} />
         </strong>
       </div>
-      <div className="gear-preview-deltas" role="status">
+      <div
+        className={
+          "gear-preview-deltas flex flex-wrap text-[13px] tabular-nums [&&&&]:flex-[1_1_100%] [&&&&]:gap-[8px_20px] [&&&&]:[grid-column:1_/_-1]"
+        }
+        role="status"
+      >
         {state.previewing ? (
           "正在计算差异…"
         ) : next ? (
@@ -64,7 +75,11 @@ export function PreviewActions({
                 <span key={stat}>
                   {data.statNames[stat]}{" "}
                   <strong
-                    className={delta > 0 ? "gear-positive" : "gear-negative"}
+                    className={
+                      delta > 0
+                        ? "gear-positive text-success"
+                        : "gear-negative [&&&&]:[color:var(--ors-color-danger)]!"
+                    }
                   >
                     {delta > 0 ? "+" : ""}
                     {delta}
@@ -80,7 +95,11 @@ export function PreviewActions({
               </span>
             )}
             {!!next.issues.length && (
-              <span className="gear-negative">
+              <span
+                className={
+                  "gear-negative [&&&&]:[color:var(--ors-color-danger)]!"
+                }
+              >
                 装备存在冲突，暂时无法应用。请检查下方详情。
               </span>
             )}
@@ -100,10 +119,14 @@ export function PreviewActions({
           ))}
         </details>
       )}
-      <div className="gear-preview-buttons">
+      <div
+        className={
+          "gear-preview-buttons flex gap-[8px] [&&&&]:[margin-left:auto] [&&&&]:[grid-column:2] [&&&&]:[grid-row:1] [@media(max-width:_600px)]:[&&&&]:[grid-column:1] [@media(max-width:_600px)]:[&&&&]:[grid-row:auto]"
+        }
+      >
         <button onClick={() => vm.cancelPreview()}>取消预览</button>
         <button
-          className="gear-primary"
+          className="gear-primary [.gear-editor_&]:bg-accent [.gear-editor_&]:text-on-accent [.gear-editor_&]:border-accent [.gear-editor_&:hover:not(:disabled)]:bg-accent-hover [.gear-editor_&:disabled]:bg-surface [.gear-editor_&:disabled]:border-line"
           disabled={!next || !!next.issues.length || state.previewing}
           onClick={onApply}
         >

@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import { nextWindows } from "../utils/model";
 import { windowDurationText } from "../utils/presentation";
@@ -48,6 +49,7 @@ export function FishWindowPlanner({
   onFishEyesChange,
   origin,
   unrestricted,
+  status,
 }: {
   fish: Fish;
   catalog: FishCatalog;
@@ -56,6 +58,7 @@ export function FishWindowPlanner({
   onFishEyesChange: (enabled: boolean) => void;
   origin: number;
   unrestricted: boolean;
+  status: ReactNode;
 }) {
   const [filters, setFilters] = useState<WindowFilters>(() => {
     try {
@@ -171,25 +174,24 @@ export function FishWindowPlanner({
   }
 
   return (
-    <div className="fish-window-planner">
-      {(canFishEyes || !unrestricted) && (
-        <div className="fish-window-tools">
-          {canFishEyes && (
-            <label className="fish-eyes-toggle">
-              <input
-                type="checkbox"
-                checked={fishEyes}
-                onChange={(event) => onFishEyesChange(event.target.checked)}
-              />
-              按鱼眼计算时间
-            </label>
-          )}
+    <div className="fish-window-planner mt-0">
+      <div className={"fish-window-tools grid gap-[10px] mb-[12px]"}>
+        {/* Share the status row and popover anchor; keep Fish Eyes below on narrow screens. */}
+        <div
+          className={
+            "fish-window-status-row fish-window-filter-anchor relative flex items-center justify-between gap-[12px] [&_>_span]:min-w-0"
+          }
+          ref={filterAnchor}
+        >
+          {status}
           {!unrestricted && (
-            <div className="fish-window-filter-anchor" ref={filterAnchor}>
+            <>
               <button
                 ref={filterTrigger}
                 type="button"
-                className="fish-window-filter-toggle"
+                className={
+                  "fish-window-filter-toggle shrink-0 [.fishing-workspace_&]:inline-flex [.fishing-workspace_&]:items-center [.fishing-workspace_&]:gap-[7px] [.fishing-workspace_&]:min-h-[34px] [.fishing-workspace_&]:text-accent [.fishing-workspace_&]:text-[13px] [.fishing-workspace_&]:whitespace-nowrap [&_svg]:w-[16px] [&_svg]:h-[16px] [&_span]:pl-[7px] [&_span]:border-l [&_span]:border-solid [&_span]:border-line [&_span]:text-muted [&_span]:text-xs [.fishing-workspace_&&&&]:p-[5px_10px] [.fishing-workspace_&&&&]:[background:transparent]"
+                }
                 aria-expanded={filtersOpen}
                 aria-controls={filtersOpen ? filterPanelId : undefined}
                 onClick={() => setFiltersOpen((open) => !open)}
@@ -205,25 +207,37 @@ export function FishWindowPlanner({
               {filtersOpen && (
                 <div
                   id={filterPanelId}
-                  className="fish-window-filters"
+                  className={
+                    "fish-window-filters absolute overflow-auto p-[16px] border border-solid border-line rounded-[var(--ors-radius-panel)] bg-surface [&_fieldset]:min-w-0 [&_fieldset]:m-0 [&_fieldset]:p-0 [&_fieldset]:border-0 [&_legend]:mb-[6px] [&_legend]:text-muted [&_legend]:text-xs [&_>_p]:text-muted [&_>_p]:text-xs [&&&&]:z-[30] [&&&&]:top-[calc(100%_+_6px)] [&&&&]:right-[0] [&&&&]:w-[min(480px,_calc(100vw_-_40px))] [&&&&]:max-h-[min(65vh,_560px)] [&&&&]:shadow-[var(--ors-shadow-popover)] [&&&&_>_p]:m-[9px_0_0] [&&&&_>_p]:leading-[1.5]"
+                  }
                   role="dialog"
                   aria-label="筛选可钓窗口"
                   tabIndex={-1}
                   ref={filterPanel}
                 >
-                  <div className="fish-window-filter-heading">
-                    <h3>筛选窗口</h3>
+                  <div
+                    className={
+                      "fish-window-filter-heading flex items-baseline justify-between gap-[12px] [&_h3]:text-sm [.fishing-workspace_&_button]:min-h-0 [.fishing-workspace_&_button]:p-0 [.fishing-workspace_&_button]:border-0 [.fishing-workspace_&_button]:text-accent [&&&&_h3]:m-[0_0_12px] [.fishing-workspace_&&&&_button]:[background:transparent]"
+                    }
+                  >
+                    <h3 className="text-base font-semibold">筛选窗口</h3>
                     {hasWindowFilters(filters) && (
                       <button
                         type="button"
-                        className="fish-text-action"
+                        className={
+                          "fish-text-action [.fishing-workspace_&]:min-h-[36px] [.fishing-workspace_&]:mt-[12px] [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:font-semibold [.fishing-workspace_&]:text-left [.fishing-workspace_&&&&]:p-[5px_0] [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline]"
+                        }
                         onClick={() => changeFilters(initialWindowFilters)}
                       >
                         清除条件
                       </button>
                     )}
                   </div>
-                  <div className="fish-window-filter-fields">
+                  <div
+                    className={
+                      "fish-window-filter-fields grid gap-[16px] [&_fieldset]:grid [&_fieldset]:gap-[8px] [&_label]:grid [&_label]:min-w-0 [&_label]:gap-[4px] [&_label]:text-muted [&_label]:text-xs [&_input]:w-full [&_input]:min-w-0 [&_input]:px-[7px] [&_input]:text-[13px] [&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [&&&&_fieldset]:grid-cols-[repeat(2,_minmax(0,_1fr))] [&&&&_legend]:[grid-column:1_/_-1] [@media(max-width:_680px)]:[&&&&]:grid-cols-[minmax(0,_1fr)]"
+                    }
+                  >
                     <fieldset>
                       <legend>日期范围</legend>
                       <label>
@@ -287,7 +301,11 @@ export function FishWindowPlanner({
                       </label>
                     </fieldset>
                   </div>
-                  <fieldset className="fish-window-weekdays">
+                  <fieldset
+                    className={
+                      "fish-window-weekdays [&_>_div]:flex [&_>_div]:flex-wrap [&_>_div]:gap-[6px] [.fishing-workspace_&_button]:min-h-[34px] [.fishing-workspace_&_button]:text-xs [&&&&]:[margin-top:12px]! [.fishing-workspace_&&&&_button]:p-[4px_9px] [.fishing-workspace_&&&&_button]:[background:transparent]"
+                    }
+                  >
                     <legend>星期</legend>
                     <div>
                       <button
@@ -315,16 +333,26 @@ export function FishWindowPlanner({
                     窗口与所选日期、星期、时段有交集时显示；跨午夜按实际日期计算。
                   </p>
                   {invalidRange && (
-                    <p className="fish-window-filter-error" role="alert">
+                    <p
+                      className={
+                        "fish-window-filter-error text-danger text-[13px] [&&&&]:m-[8px_0]"
+                      }
+                      role="alert"
+                    >
                       结束日期不能早于开始日期。
                     </p>
                   )}
                   {storageError && (
-                    <p className="fish-window-filter-error" role="alert">
+                    <p
+                      className={
+                        "fish-window-filter-error text-danger text-[13px] [&&&&]:m-[8px_0]"
+                      }
+                      role="alert"
+                    >
                       筛选条件无法保存到本机。
                     </p>
                   )}
-                  <div className="fish-window-filter-footer">
+                  <div className="fish-window-filter-footer flex justify-end mt-[12px] pt-[12px] border-t border-solid border-line">
                     <button
                       type="button"
                       onClick={() => {
@@ -337,33 +365,59 @@ export function FishWindowPlanner({
                   </div>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
-      )}
+        {canFishEyes && (
+          <label className="fish-eyes-toggle flex items-center gap-[8px] [&_input]:w-[17px] [&_input]:h-[17px] [.fish-window-tools_&]:whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={fishEyes}
+              onChange={(event) => onFishEyesChange(event.target.checked)}
+            />
+            按鱼眼计算时间
+          </label>
+        )}
+      </div>
       {unrestricted ? (
         <p>全天开放，不受天气限制。</p>
       ) : (
         <>
           {invalidRange && !filtersOpen && (
-            <p className="fish-window-filter-error" role="alert">
+            <p
+              className={
+                "fish-window-filter-error text-danger text-[13px] [&&&&]:m-[8px_0]"
+              }
+              role="alert"
+            >
               结束日期不能早于开始日期。请打开筛选窗口修改。
             </p>
           )}
           {windows.length ? (
             <div
-              className="fish-window-scroll"
+              className={
+                "fish-window-scroll max-h-[360px] overflow-y-auto [&&&&]:[scrollbar-gutter:stable] [&&&&]:[scrollbar-width:thin] [&&&&]:[scrollbar-color:var(--ors-color-control-line)_transparent] [&&&&]:[padding-inline-end:14px]"
+              }
               role="region"
               aria-label="可钓窗口时间表"
               tabIndex={0}
               ref={windowScroll}
             >
-              <div className="fish-window-head" aria-hidden="true">
+              <div
+                className={
+                  "fish-window-head grid items-baseline gap-[10px] border-b border-solid border-line text-muted text-xs [&_span:last-child]:text-right max-[620px]:gap-[6px] max-[620px]:text-[13px] [&&&&]:grid-cols-[repeat(3,_minmax(0,_1fr))] [&&&&]:p-[10px_0]"
+                }
+                aria-hidden="true"
+              >
                 <span>开始</span>
                 <span>结束</span>
                 <span>时长</span>
               </div>
-              <ol className="fish-windows">
+              <ol
+                className={
+                  "fish-windows m-0 p-0 tabular-nums [&_li]:grid [&_li]:items-baseline [&_li]:gap-[10px] [&_li]:border-b [&_li]:border-solid [&_li]:border-line [&_span]:text-muted max-[620px]:[&_li]:gap-[6px] max-[620px]:[&_li]:text-[13px] [&&&&]:[list-style:none] [&&&&_li]:grid-cols-[repeat(3,_minmax(0,_1fr))] [&&&&_li]:p-[10px_0]"
+                }
+              >
                 {windows.map((window) => (
                   <li key={window.start}>
                     <strong>
@@ -372,7 +426,11 @@ export function FishWindowPlanner({
                         : localTime(window.start)}
                     </strong>
                     <span>至 {localTime(window.end)}</span>
-                    <span className="fish-window-duration">
+                    <span
+                      className={
+                        "fish-window-duration text-right whitespace-nowrap [@media(max-width:_620px)]:[&&&&]:[grid-column:3]"
+                      }
+                    >
                       {window.start <= now && "剩余 "}
                       {windowDurationText(
                         window.end - Math.max(window.start, now),
@@ -383,7 +441,12 @@ export function FishWindowPlanner({
               </ol>
             </div>
           ) : !invalidRange ? (
-            <p className="fish-inline-empty" role="status">
+            <p
+              className={
+                "fish-inline-empty m-0 text-muted [&&&&]:p-[24px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)]"
+              }
+              role="status"
+            >
               {filters.toDate
                 ? "所选日期内没有符合条件的完整窗口。"
                 : `未来 ${horizonDays} 天内没有符合条件的完整窗口。`}
@@ -391,7 +454,9 @@ export function FishWindowPlanner({
           ) : null}
           {(hasMore || !filters.toDate) && !invalidRange && (
             <button
-              className="fish-text-action"
+              className={
+                "fish-text-action [.fishing-workspace_&]:min-h-[36px] [.fishing-workspace_&]:mt-[12px] [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:font-semibold [.fishing-workspace_&]:text-left [.fishing-workspace_&&&&]:p-[5px_0] [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline]"
+              }
               type="button"
               onClick={loadMore}
             >
@@ -399,7 +464,12 @@ export function FishWindowPlanner({
             </button>
           )}
           {(hasWindowFilters(filters) || searchDays > 365) && !invalidRange && (
-            <p className="fish-window-progress fish-muted" role="status">
+            <p
+              className={
+                "fish-window-progress fish-muted text-[13px] text-muted [.fish-forecast_>_div_>_&]:text-[13px] [.fish-forecast_>_div_>_&]:tabular-nums [&&&&]:m-[4px_0_0]"
+              }
+              role="status"
+            >
               已查询未来 {horizonDays} 天，找到 {windows.length} 个匹配窗口。
             </p>
           )}

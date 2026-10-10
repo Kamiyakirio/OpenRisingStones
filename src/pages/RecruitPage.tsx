@@ -29,7 +29,10 @@ export function RecruitPage({
 
   return (
     <>
-      <nav className="workspace-tabs" aria-label="招募视图">
+      <nav
+        className="workspace-tabs mx-auto flex w-full gap-1 overflow-x-auto border-b border-line bg-surface px-8 py-2 [&_button]:min-h-10 [&_button]:shrink-0 [&_button]:rounded-lg [&_button]:border [&_button]:border-transparent [&_button]:px-4 [&_button]:py-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-muted [&_button]:hover:bg-hover [&_button]:hover:text-ink [&_button[aria-pressed=true]]:border-control [&_button[aria-pressed=true]]:bg-selected [&_button[aria-pressed=true]]:text-accent max-[899px]:px-4"
+        aria-label="招募视图"
+      >
         <button
           type="button"
           aria-pressed={viewModel.section === "feed"}

@@ -27,7 +27,7 @@ import {
 } from "../features/chat/utils/sendChannels";
 
 type ConnectionState =
-  "pairing" | "online" | "reconnecting" | "disconnected" | "error";
+  "pairing" | "online" | "reconnecting" | "disconnected" | "error" | "preview";
 
 type MobileState = {
   paired: boolean;
@@ -41,6 +41,10 @@ type MobileEvent =
   | { kind: "status"; online: boolean };
 
 const encoder = new TextEncoder();
+/** Development previews are read-only and do not represent a paired session. */
+const previewMode =
+  import.meta.env.DEV &&
+  new URLSearchParams(window.location.search).has("preview");
 const previewMessages: ChatMessage[] = [
   {
     sequence: 1,
@@ -111,15 +115,10 @@ export function MobileChatApp() {
     async function connect() {
       setConnection("pairing");
       setCanSend(false);
-      if (
-        import.meta.env.DEV &&
-        new URLSearchParams(window.location.search).has("preview")
-      ) {
+      if (previewMode) {
         setMessages(previewMessages);
-        setConnection("online");
-        sendingAvailable = true;
-        setCanSend(true);
-        setNotice("已连接。手机只能发送普通文字，不支持游戏指令。");
+        setConnection("preview");
+        setNotice("界面预览：以下聊天为演示数据，未连接游戏，不能发送消息。");
         return;
       }
       try {
@@ -267,6 +266,7 @@ export function MobileChatApp() {
   }
 
   async function disconnect() {
+    if (previewMode) return;
     try {
       await request("/api/disconnect", { method: "POST" });
     } finally {
@@ -280,17 +280,32 @@ export function MobileChatApp() {
 
   const online = connection === "online";
 
+  // Short windows use document scrolling so fixed controls cannot clip the composer.
   return (
-    <main className="mobile-chat-shell">
-      <header className="mobile-chat-header">
+    <main
+      className={
+        "mobile-chat-shell mx-auto grid h-dvh min-h-0 w-full max-w-[46rem] bg-canvas text-ink [@media(min-width:_46rem)]:border [@media(min-width:_46rem)]:border-solid [@media(min-width:_46rem)]:border-line [@media(min-width:_46rem)]:rounded-[12px] [@media(min-width:_46rem)]:overflow-hidden [&&&&]:grid-rows-[auto_auto_auto_minmax(0,_1fr)_auto] [@media(min-width:_46rem)]:[&&&&]:h-[calc(100dvh_-_2rem)] [@media(min-width:_46rem)]:[&&&&]:[margin-block:1rem] [@media(max-height:_32rem)]:[&&&&&]:h-auto [@media(max-height:_32rem)]:[&&&&&]:min-h-dvh [@media(max-height:_32rem)]:[&&&&&]:grid-rows-[auto_auto_auto_auto_auto]"
+      }
+    >
+      <header
+        className={
+          "mobile-chat-header flex items-center justify-between gap-4 border-b border-accent bg-tool-soft px-4 pb-4 [&_h1]:m-0 [&_h1]:text-xl [&_h1]:font-semibold [&_p]:text-muted [&&&&]:[padding-top:calc(1rem_+_env(safe-area-inset-top))] [&&&&_h1]:leading-[1.4] [&&&&_p]:m-[0.1rem_0_0] [&&&&_p]:text-[0.72rem]"
+        }
+      >
         <div>
-          <h1>游戏聊天</h1>
+          <h1 className="text-2xl font-bold tracking-tight">游戏聊天</h1>
           <p>OpenRisingStones</p>
         </div>
         <ConnectionMark state={connection} />
       </header>
 
-      <div className="mobile-chat-notice" data-state={connection} role="status">
+      <div
+        className={
+          "mobile-chat-notice border border-warning bg-warning-soft [&[data-state=online]]:bg-success-soft [&[data-state=error]]:bg-danger-soft [&[data-state=disconnected]]:bg-danger-soft [&[data-state=online]]:border-success [&[data-state=online]]:text-success [&[data-state=error]]:border-danger [&[data-state=disconnected]]:border-danger flex gap-[0.6rem] items-start text-warning rounded-[8px] [&[data-state=error]]:text-danger [&[data-state=disconnected]]:text-danger [&_svg]:w-[1rem] [&_svg]:h-[1rem] [&_svg]:mt-[0.12rem] [&&&&]:m-[0.8rem_1rem_0] [&&&&]:p-[0.7rem_0.8rem] [&&&&]:text-[0.78rem] [&&&&]:leading-[1.55] [&&&&_svg]:flex-[0_0_auto]"
+        }
+        data-state={connection}
+        role="status"
+      >
         <WarningCircle weight="fill" aria-hidden="true" />
         <span>{notice}</span>
       </div>
@@ -302,7 +317,9 @@ export function MobileChatApp() {
         totalCount={messages.length}
       />
       <section
-        className="mobile-chat-ledger"
+        className={
+          'mobile-chat-ledger flex flex-col min-h-0 overflow-y-auto [@media(max-height:_32rem)]:max-h-[40dvh] [&&&&]:p-[0.85rem_1rem_1.4rem] [&&&&]:[overscroll-behavior:contain] [&&&&]:[scrollbar-color:var(--ors-color-control-line)_transparent] [&&&&::before]:[margin-top:auto] [&&&&::before]:[content:""] [&&&&:focus-visible]:[outline:2px_solid_var(--ors-color-accent)] [&&&&:focus-visible]:[outline-offset:-2px]'
+        }
         ref={ledger}
         aria-label="游戏聊天记录"
         tabIndex={0}
@@ -312,7 +329,11 @@ export function MobileChatApp() {
         }}
       >
         {visibleMessages.length === 0 ? (
-          <div className="mobile-chat-empty">
+          <div
+            className={
+              "mobile-chat-empty [&_strong]:text-ink grid min-h-0 text-disabled text-center [&_svg]:w-[2rem] [&_svg]:h-[2rem] [&_svg]:text-control [&_span]:mt-[0.25rem] [&_span]:text-xs [&&&&]:flex-[1] [&&&&]:[place-content:center] [&&&&_svg]:m-[0_auto_0.65rem] [&&&&_strong]:text-[0.95rem]"
+            }
+          >
             <ChatCircleDots aria-hidden="true" />
             <strong>
               {filter.length === 0 ? "等待新的游戏对话" : "暂无此类消息"}
@@ -325,7 +346,12 @@ export function MobileChatApp() {
           </div>
         ) : (
           visibleMessages.map((message) => (
-            <article className="mobile-chat-message" key={message.sequence}>
+            <article
+              className={
+                "mobile-chat-message border-b border-line [&_>_div]:flex [&_>_div]:flex-wrap [&_>_div]:gap-[0.5rem] [&_>_div]:items-baseline [&_>_div]:mb-[0.18rem] [&_strong]:text-accent-hover [&_span:not(.chat-channel-badge)]:text-disabled [&_span:not(.chat-channel-badge)]:tabular-nums [&_time]:text-disabled [&_time]:tabular-nums [&_p]:m-0 [&_p]:text-ink [&_p]:whitespace-pre-wrap [&&&&]:flex-[0_0_auto] [&&&&]:p-[0.68rem_0] [&&&&_strong]:text-[0.8rem] [&&&&_span:not(.chat-channel-badge)]:text-[0.67rem] [&&&&_time]:text-[0.67rem] [&&&&_p]:text-[0.9rem] [&&&&_p]:leading-[1.6] [&&&&_p]:[overflow-wrap:anywhere]"
+              }
+              key={message.sequence}
+            >
               <div>
                 <ChatChannelBadge logKind={message.logKind} />
                 {message.sender && <strong>{message.sender}</strong>}
@@ -338,10 +364,16 @@ export function MobileChatApp() {
       </section>
 
       <form
-        className="mobile-chat-composer"
+        className={
+          "mobile-chat-composer bg-canvas border-t border-solid border-line [&_>_label]:block [&_>_label]:mb-[0.42rem] [&_>_label]:text-muted [&_>_label]:font-semibold [&&&&]:bottom-[0] [&&&&]:p-[0.8rem_1rem_calc(0.75rem_+_env(safe-area-inset-bottom))] [&&&&_>_label]:text-[0.72rem]"
+        }
         onSubmit={(event) => void submit(event)}
       >
-        <div className="mobile-chat-send-channel">
+        <div
+          className={
+            "mobile-chat-send-channel flex items-center gap-[12px] mb-[8px] text-muted text-xs font-semibold [&_select]:min-w-0 [&_select]:min-h-[44px] [&_select]:text-ink [&_select]:bg-surface [&_select]:border [&_select]:border-solid [&_select]:border-control [&_select]:rounded-[8px] [&_select]:w-full [&&&&_select]:p-[8px_10px] [&&&&_select]:[font:inherit] [&&&&_select]:flex-[1] [&&&&_select:focus-visible]:[outline:2px_solid_var(--ors-color-accent)] [&&&&_select:focus-visible]:[outline-offset:2px]"
+          }
+        >
           <label htmlFor="chat-send-channel">发送频道</label>
           <select
             id="chat-send-channel"
@@ -381,7 +413,11 @@ export function MobileChatApp() {
           </select>
         </div>
         {sendChannel === "tell" && (
-          <div className="mobile-chat-recipient">
+          <div
+            className={
+              "mobile-chat-recipient [&_input]:min-w-0 [&_input]:min-h-[44px] [&_input]:text-ink [&_input]:bg-surface [&_input]:border [&_input]:border-solid [&_input]:border-control [&_input]:rounded-[8px] grid items-center mb-[8px] text-muted text-xs [&_p]:m-0 [&_p]:text-danger [&&&&_input]:p-[8px_10px] [&&&&_input]:[font:inherit] [&&&&]:grid-cols-[auto_minmax(0,_1fr)] [&&&&]:gap-[8px_12px] [&&&&_p]:[grid-column:1_/_-1] [&&&&_input:focus-visible]:[outline:2px_solid_var(--ors-color-accent)] [&&&&_input:focus-visible]:[outline-offset:2px]"
+            }
+          >
             <label htmlFor="chat-recipient">收件人</label>
             <input
               id="chat-recipient"
@@ -398,7 +434,11 @@ export function MobileChatApp() {
             )}
           </div>
         )}
-        <div className="mobile-chat-compose-row">
+        <div
+          className={
+            "mobile-chat-compose-row grid gap-[0.55rem] items-stretch [&_textarea]:w-full [&_textarea]:min-h-[3rem] [&_textarea]:max-h-[7.5rem] [&_textarea]:text-ink [&_textarea]:bg-surface [&_textarea]:border [&_textarea]:border-solid [&_textarea]:border-control [&_textarea]:rounded-[8px] [&_textarea::placeholder]:text-muted [&_>_button]:grid [&_>_button]:min-w-16 [&_>_button]:place-content-center [&_>_button]:rounded-lg [&_>_button]:border [&_>_button]:border-accent [&_>_button]:bg-accent [&_>_button]:px-3 [&_>_button]:py-2 [&_>_button]:text-on-accent [&_>_button:hover:not(:disabled)]:bg-accent-hover [&_>_button:disabled]:cursor-not-allowed [&_textarea:disabled]:cursor-not-allowed [&_>_button_svg]:w-[1.1rem] [&_>_button_svg]:h-[1.1rem] [&_>_button_span]:font-bold [&&&&]:grid-cols-[minmax(0,_1fr)_auto] [&&&&_textarea]:p-[0.68rem_0.75rem] [&&&&_textarea]:[resize:vertical] [&&&&_textarea]:leading-[1.45] [&&&&_>_button:disabled]:opacity-[0.55] [&&&&_textarea:disabled]:opacity-[0.55] [&&&&_>_button_svg]:m-[0_auto_0.16rem] [&&&&_>_button_span]:text-[0.7rem]"
+          }
+        >
           <textarea
             id="chat-message"
             aria-label="聊天消息"
@@ -431,16 +471,30 @@ export function MobileChatApp() {
           </button>
         </div>
         {!canSend && (
-          <p className="mobile-chat-input-note" role="status">
+          <p
+            className={
+              "mobile-chat-input-note text-warning [&&&&]:m-[0.4rem_0_0] [&&&&]:text-[0.72rem] [&&&&]:leading-[1.5]"
+            }
+            role="status"
+          >
             当前连接暂不支持发送消息。
           </p>
         )}
         {canSend && invalidText && (
-          <p className="mobile-chat-input-error" role="alert">
+          <p
+            className={
+              "mobile-chat-input-error text-danger [&&&&]:m-[0.4rem_0_0] [&&&&]:text-[0.72rem]"
+            }
+            role="alert"
+          >
             请输入单行普通文字，不能发送斜杠指令或控制字符。
           </p>
         )}
-        <div className="mobile-chat-compose-meta">
+        <div
+          className={
+            "mobile-chat-compose-meta flex justify-between gap-[1rem] mt-[0.45rem] text-muted [&_>_span[data-invalid=true]]:text-danger [&_>_span[data-invalid=true]]:font-bold [&_button]:inline-flex [&_button]:gap-[0.3rem] [&_button]:items-center [&_button]:p-0 [&_button]:text-accent-hover [&_button]:border-0 [&_button:disabled]:text-disabled [&_button:disabled]:cursor-not-allowed [&&&&]:text-[0.68rem] [&&&&_button]:[background:transparent] [&&&&_button]:[text-decoration:underline] [&&&&_button]:[text-underline-offset:0.2rem]"
+          }
+        >
           <span data-invalid={byteCount > byteBudget}>
             {byteCount} / {byteBudget} 字节
           </span>
@@ -465,9 +519,15 @@ function ConnectionMark({ state }: { state: ConnectionState }) {
     reconnecting: "正在重连",
     disconnected: "已断开",
     error: "连接失败",
+    preview: "演示预览",
   };
   return (
-    <span className="mobile-chat-connection" data-state={state}>
+    <span
+      className={
+        'mobile-chat-connection inline-flex gap-[0.45rem] items-center text-muted font-semibold [&::before]:w-[0.5rem] [&::before]:h-[0.5rem] [&::before]:bg-warning [&[data-state=online]::before]:bg-success [&[data-state=error]::before]:bg-danger [&[data-state=disconnected]::before]:bg-danger [&&&&]:text-[0.78rem] [&&&&::before]:[content:""] [&&&&::before]:rounded-[50%]'
+      }
+      data-state={state}
+    >
       {labels[state]}
     </span>
   );

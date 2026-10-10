@@ -23,7 +23,11 @@ export function TimerLauncher() {
   }
   return (
     <>
-      <span className="fish-timer-launcher">
+      <span
+        className={
+          "fish-timer-launcher relative [&_button]:inline-flex [&_button]:items-center [&_button]:gap-[8px] [&_svg]:w-[18px] [&_svg]:h-[18px] [&_small]:absolute [&_small]:w-[230px] [&_small]:p-[12px] [&_small]:bg-surface [&_small]:text-danger [&&&&_small]:z-[10] [&&&&_small]:top-[100%] [&&&&_small]:right-[0] [&&&&_small]:shadow-[var(--ors-shadow-popover)]"
+        }
+      >
         <button
           disabled={busy}
           onClick={() => {

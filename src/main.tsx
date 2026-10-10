@@ -1,7 +1,7 @@
 /** Mount the selected desktop or browser entrypoint. */
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "./app/styles/index.css";
+import "./shared/styles/tailwind.css";
 import { Entrypoint } from "./app/Entrypoint";
 import { installFetchCapture } from "./shared/diagnostics/fetch";
 import { installReleaseContextMenuGuard } from "./shared/utils/contextMenu";

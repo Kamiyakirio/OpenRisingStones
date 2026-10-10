@@ -18,7 +18,12 @@ export function ItemName({
     rarityColors[String(item.rarity)] ??
     "white";
   return (
-    <span className="gear-item-name" data-color={color}>
+    <span
+      className={
+        'gear-item-name text-ink [&[data-color=red]]:text-danger [&[data-color=green]]:text-success [&[data-color=blue]]:text-info [&&&&[data-color="purple"]]:[color:#7950a0] [.theme-dark_&&&&[data-color="purple"]]:[color:#d4b0ed]'
+      }
+      data-color={color}
+    >
       {item.name}
     </span>
   );

@@ -54,8 +54,12 @@ export function MentorRecordFilters({
     onChange({ ...filters, [key]: value });
   const invalid = mentorDateRangeInvalid(filters);
   return (
-    <div className="mentor-history-filters">
-      <div className="mentor-filter-search">
+    <div className={"mentor-history-filters [&&&&]:m-[22px_0_26px]"}>
+      <div
+        className={
+          "mentor-filter-search grid gap-[10px] [&_button]:w-[42px] [&_button]:p-0 [&&&&]:grid-cols-[minmax(0,_1fr)_42px] [&&&&]:[align-items:end]"
+        }
+      >
         <label>
           关键词
           <input
@@ -74,7 +78,11 @@ export function MentorRecordFilters({
           <ArrowClockwise />
         </button>
       </div>
-      <div className="mentor-filter-grid">
+      <div
+        className={
+          "mentor-filter-grid grid mt-[16px] [&&&&]:grid-cols-[repeat(3,_minmax(0,_1fr))] [&&&&]:gap-[12px_16px] [@media(max-width:_600px)]:[&&&&]:grid-cols-[1fr]"
+        }
+      >
         <label>
           时间范围
           <select
@@ -173,7 +181,11 @@ export function MentorRecordFilters({
         </label>
       </div>
       {filters.period === "custom" && (
-        <div className="mentor-filter-dates">
+        <div
+          className={
+            "mentor-filter-dates grid mt-[16px] [&_p]:m-0 [&_p]:text-muted [&_p]:text-[13px] [&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [&&&&]:gap-[12px_16px] [&&&&_p]:[grid-column:1_/_-1] [@media(max-width:_600px)]:[&&&&]:grid-cols-[1fr]"
+          }
+        >
           <label>
             开始日期
             <input
@@ -200,15 +212,27 @@ export function MentorRecordFilters({
         </div>
       )}
       {invalid && (
-        <p id="mentor-date-error" className="mentor-filter-error" role="alert">
+        <p
+          id="mentor-date-error"
+          className="mentor-filter-error text-danger"
+          role="alert"
+        >
           请输入有效日期，开始日期不能晚于结束日期。
         </p>
       )}
-      <div className="mentor-filter-footer">
+      <div
+        className={
+          "mentor-filter-footer flex items-center gap-[16px] flex-wrap mt-[18px] pb-[18px] border-b border-solid border-line [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:tabular-nums [&&&&_>_span]:[margin-right:auto]"
+        }
+      >
         <span role="status">
           显示 {count} / {records.length} 条记录
         </span>
-        <label className="mentor-filter-order">
+        <label
+          className={
+            "mentor-filter-order [.mentor-page_&]:flex [.mentor-page_&]:items-center [.mentor-page_&]:gap-[8px] [.mentor-page_&]:whitespace-nowrap [&&&&_select]:w-[auto]"
+          }
+        >
           排序
           <select
             value={filters.order}

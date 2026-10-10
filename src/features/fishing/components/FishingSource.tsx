@@ -3,7 +3,11 @@ import type { FishCatalog } from "../types";
 
 export function FishingSource({ catalog }: { catalog: FishCatalog }) {
   return (
-    <details className="fish-source">
+    <details
+      className={
+        "fish-source mt-[48px] pt-[12px] border-t border-solid border-line text-muted text-[13px] [&_summary]:cursor-pointer [&&&&_summary]:p-[8px_0] [&&&&_p]:max-w-[80ch]"
+      }
+    >
       <summary>数据来源与覆盖范围</summary>
       <p>
         本地收录 {catalog.fish.length} 条鱼类资料，生成于{" "}

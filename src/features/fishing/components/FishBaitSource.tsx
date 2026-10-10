@@ -112,7 +112,9 @@ export function FishBaitSourceProvider({
         createPortal(
           <aside
             id={panelId}
-            className="fish-bait-source"
+            className={
+              "fish-bait-source fixed overflow-auto p-[16px] rounded-[var(--ors-radius-panel)] bg-surface text-[13px] [&_header]:flex [&_header]:justify-between [&_header]:gap-[12px] [&&&&]:z-[100] [&&&&]:shadow-[var(--ors-shadow-popover)] [&&&&_h4]:m-[18px_0_5px]"
+            }
             aria-label={`${name}获取方式`}
             style={position}
             onMouseEnter={keepOpen}
@@ -143,7 +145,10 @@ export function FishBaitSourceProvider({
                       <h4>{source.label}</h4>
                       <p>{source.summary}</p>
                       {source.details.map((detail, i) => (
-                        <div key={i} className="fish-bait-source-detail">
+                        <div
+                          key={i}
+                          className="fish-bait-source-detail pt-[8px] border-t border-solid border-line"
+                        >
                           <strong>{detail.title}</strong>
                           <p>
                             {[
@@ -237,10 +242,15 @@ export function FishBaitSource({
   const name = source.catalog.items[baitId] || String(baitId);
   const expanded = source.active?.key === key;
   return (
-    <span className="fish-bait-source-anchor" onMouseLeave={source.dismiss}>
+    <span
+      className="fish-bait-source-anchor relative inline-flex items-center min-w-0"
+      onMouseLeave={source.dismiss}
+    >
       <button
         type="button"
-        className="fish-bait-source-trigger"
+        className={
+          "fish-bait-source-trigger [.fishing-workspace_&]:inline-flex [.fishing-workspace_&]:items-center [.fishing-workspace_&]:gap-[4px] [.fishing-workspace_&]:min-h-0 [.fishing-workspace_&]:p-0 [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:rounded-none [.fishing-workspace_&]:text-left [.fishing-workspace_&:hover]:text-accent [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&]:[color:inherit] [.fishing-workspace_&&&&]:[font:inherit] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline] [.fishing-workspace_&&&&:hover]:[text-underline-offset:3px]"
+        }
         aria-label={`查看${name}的获取方式`}
         aria-expanded={expanded}
         aria-controls={expanded ? source.panelId : undefined}

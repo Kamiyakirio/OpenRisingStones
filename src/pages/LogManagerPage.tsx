@@ -25,7 +25,6 @@ import {
   groupSimilarLogs,
   type LogGroup,
 } from "../features/diagnostics/utils/grouping";
-import "./LogManagerPage.css";
 
 type DetailTab =
   "headers" | "params" | "request" | "response" | "input" | "output";
@@ -216,22 +215,45 @@ export function LogManagerPage() {
   };
 
   return (
-    <section className="log-manager" aria-labelledby="debug-log-title">
-      <header className="log-manager-heading">
+    <section
+      className={
+        "log-manager grid gap-[20px] max-w-[1280px] [&&&&]:[font-variant-numeric:tabular-nums_lining-nums]"
+      }
+      aria-labelledby="debug-log-title"
+    >
+      <header
+        className={
+          "log-manager-heading flex justify-between gap-[20px] border-b border-solid border-line pb-[18px] [&_p]:m-0 [&_p]:text-muted max-[620px]:flex-col [&&&&]:[align-items:end] [&&&&_h2]:m-[0_0_2px] [&&&&_p]:text-[13px] [@media(max-width:_620px)]:[&&&&]:[align-items:start]"
+        }
+      >
         <div>
-          <h2 id="debug-log-title">运行日志</h2>
+          <h2 className="text-lg font-semibold" id="debug-log-title">
+            运行日志
+          </h2>
           <p>
             仅记录本次 Debug 运行；退出后自动删除。原始内容可能含有账号凭据。
           </p>
         </div>
-        <span className="log-session-count">
+        <span
+          className={
+            "log-session-count m-0 text-muted whitespace-nowrap [&&&&]:text-[13px]"
+          }
+        >
           当前列表 {logs.length} 条
           {groups.length !== logs.length ? ` / ${groups.length} 组` : ""}
         </span>
       </header>
 
-      <div className="log-toolbar">
-        <label className="log-search">
+      <div
+        className={
+          "log-toolbar flex flex-wrap gap-[12px] [&&&&]:[align-items:end]"
+        }
+      >
+        <label
+          className={
+            "log-search grid gap-[5px] [&_span]:text-muted [&_input]:w-full [&_input]:min-h-[40px] [&_input]:border [&_input]:border-solid [&_input]:border-control [&_input]:rounded-[var(--ors-radius-control)] [&_input]:bg-surface [&&&&]:text-[13px] [&&&&]:flex-[1_1_250px] [&&&&_input]:p-[0_12px]"
+          }
+        >
           <span>搜索命令或 URL</span>
           <input
             value={search}
@@ -242,7 +264,11 @@ export function LogManagerPage() {
             placeholder="输入命令名或地址"
           />
         </label>
-        <label className="log-kind-filter">
+        <label
+          className={
+            "log-kind-filter grid gap-[5px] [&_span]:text-muted [&_select]:w-full [&_select]:min-h-[40px] [&_select]:border [&_select]:border-solid [&_select]:border-control [&_select]:rounded-[var(--ors-radius-control)] [&_select]:bg-surface [&&&&]:text-[13px] [&&&&]:flex-[0_0_150px] [&&&&_select]:p-[0_12px]"
+          }
+        >
           <span>来源类型</span>
           <select
             value={kind}
@@ -257,7 +283,11 @@ export function LogManagerPage() {
             <option value="bridge">游戏桥接</option>
           </select>
         </label>
-        <div className="log-actions">
+        <div
+          className={
+            "log-actions [&_svg]:w-[16px] [&_svg]:h-[16px] flex items-center gap-[8px] [&_>_button]:inline-flex [&_>_button]:items-center [&_>_button]:justify-center [&_>_button]:gap-[6px] [&_>_button]:min-h-[40px] [&_>_button]:border [&_>_button]:border-solid [&_>_button]:border-control [&_>_button]:rounded-[var(--ors-radius-control)] [&_>_button]:bg-surface [&_>_button]:whitespace-nowrap [&_button:hover]:bg-hover max-[620px]:flex-wrap [&&&&_>_button]:p-[0_11px] [&&&&_>_button]:text-[13px]"
+          }
+        >
           <button
             type="button"
             onClick={() => {
@@ -276,7 +306,11 @@ export function LogManagerPage() {
             <DownloadSimple aria-hidden="true" /> 导出
           </button>
           {clearing ? (
-            <span className="log-clear-confirm">
+            <span
+              className={
+                "log-clear-confirm flex items-center gap-[8px] [&_button]:inline-flex [&_button]:items-center [&_button]:justify-center [&_button]:gap-[6px] [&_button]:min-h-[40px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-surface [&_button]:whitespace-nowrap [&_button:first-child]:border-danger [&_button:first-child]:text-danger [&&&&_button]:p-[0_11px] [&&&&_button]:text-[13px]"
+              }
+            >
               <button type="button" onClick={() => void clearSession()}>
                 确认清空
               </button>
@@ -292,42 +326,88 @@ export function LogManagerPage() {
         </div>
       </div>
 
-      {exportPath && <p className="log-export-note">已导出到：{exportPath}</p>}
+      {exportPath && (
+        <p
+          className={
+            "log-export-note m-0 rounded-[var(--ors-radius-control)] text-success bg-surface [&&&&]:p-[10px_12px] [&&&&]:[overflow-wrap:anywhere] [&&&&]:text-[13px]"
+          }
+        >
+          已导出到：{exportPath}
+        </p>
+      )}
       {error && (
-        <p className="log-error" role="alert">
+        <p
+          className={
+            "log-error m-0 rounded-[var(--ors-radius-control)] text-danger bg-surface [&&&&]:p-[10px_12px] [&&&&]:[overflow-wrap:anywhere] [&&&&]:text-[13px]"
+          }
+          role="alert"
+        >
           {error}
         </p>
       )}
       {captureFailures > 0 && (
-        <p className="log-capture-warning" role="alert">
+        <p
+          className={
+            "log-capture-warning m-0 rounded-[var(--ors-radius-control)] text-warning bg-surface [&&&&]:p-[10px_12px] [&&&&]:[overflow-wrap:anywhere] [&&&&]:text-[13px]"
+          }
+          role="alert"
+        >
           有 {captureFailures} 条记录未能保存；本次日志可能不完整。
         </p>
       )}
 
-      <div className="log-workspace">
-        <section className="log-list" aria-label="日志列表">
-          <div className="log-list-heading">
+      <div
+        className={
+          "log-workspace grid min-h-[540px] border border-solid border-line rounded-[var(--ors-radius-panel)] overflow-hidden bg-surface [&&&&]:grid-cols-[minmax(290px,_0.95fr)_minmax(0,_1.25fr)] [@media(max-width:_1120px)]:[&&&&]:grid-cols-[minmax(0,_1fr)]"
+        }
+      >
+        <section
+          className={
+            "log-list min-w-0 border-r border-solid border-line max-[1120px]:border-b max-[1120px]:border-solid max-[1120px]:border-line [@media(max-width:_1120px)]:[&&&&]:[border-right:0]"
+          }
+          aria-label="日志列表"
+        >
+          <div
+            className={
+              "log-list-heading grid items-center gap-[10px] min-h-[42px] border-b border-solid border-line text-muted max-[620px]:gap-[6px] [@media(max-width:_620px)]:[&&&&]:px-[10px] [&&&&]:grid-cols-[105px_minmax(0,_1fr)_50px] [&&&&]:p-[0_14px] [&&&&]:text-[12px] [@media(max-width:_620px)]:[&&&&]:grid-cols-[80px_minmax(0,_1fr)_42px]"
+            }
+          >
             <span>时间 / 来源</span>
             <span>操作</span>
             <span>结果</span>
           </div>
           {loading && logs.length === 0 ? (
-            <p className="log-empty" role="status">
+            <p
+              className={
+                "log-empty m-0 text-muted [&&&&]:p-[32px_20px] [&&&&]:text-[13px]"
+              }
+              role="status"
+            >
               正在读取本次运行的日志…
             </p>
           ) : logs.length === 0 ? (
-            <p className="log-empty">
+            <p
+              className={
+                "log-empty m-0 text-muted [&&&&]:p-[32px_20px] [&&&&]:text-[13px]"
+              }
+            >
               暂无匹配记录。执行操作后，记录会出现在这里。
             </p>
           ) : (
-            <div className="log-list-rows">
+            <div
+              className={
+                "log-list-rows overflow-y-auto [@media(max-width:_1120px)]:[&&&&]:max-h-[270px] [&&&&]:max-h-[min(68dvh,_780px)]"
+              }
+            >
               {groups.map((group) => {
                 const entry = group.primary;
                 return (
                   <button
                     key={entry.id}
                     type="button"
-                    className="log-row"
+                    className={
+                      "log-row grid items-center gap-[10px] w-full min-h-[58px] border-0 border-b border-solid border-line text-left [&:hover]:bg-hover [&[aria-current=true]]:bg-selected max-[620px]:gap-[6px] [@media(max-width:_620px)]:[&&&&]:px-[10px] [&&&&]:grid-cols-[105px_minmax(0,_1fr)_50px] [&&&&]:p-[8px_14px] [&&&&]:[background:transparent] [&&&&]:text-[13px] [@media(max-width:_620px)]:[&&&&]:grid-cols-[80px_minmax(0,_1fr)_42px]"
+                    }
                     aria-current={
                       group.occurrences.some((item) => item.id === selectedId)
                         ? "true"
@@ -338,24 +418,36 @@ export function LogManagerPage() {
                       setSelectedId(entry.id);
                     }}
                   >
-                    <span className="log-row-meta">
+                    <span
+                      className={
+                        "log-row-meta grid [&_small]:text-muted [&&&&]:leading-[1.35] [&&&&_small]:text-[11px]"
+                      }
+                    >
                       <time>
                         {new Date(entry.timestampMs).toLocaleTimeString()}
                       </time>
                       <small>{sourceLabel(entry.source)}</small>
                     </span>
                     <span
-                      className="log-row-name"
+                      className={
+                        "log-row-name overflow-hidden whitespace-nowrap [&&&&]:[text-overflow:ellipsis]"
+                      }
                       title={entry.url ?? entry.name}
                     >
                       {entry.name}
                       {group.occurrences.length > 1 && (
-                        <small className="log-repeat-count">
+                        <small
+                          className={
+                            "log-repeat-count inline-block ml-[7px] rounded-[var(--ors-radius-pill)] text-accent bg-surface font-bold [&&&&]:p-[1px_6px] [&&&&]:text-[11px]"
+                          }
+                        >
                           ×{group.occurrences.length}
                         </small>
                       )}
                     </span>
-                    <span className={`log-outcome ${entry.outcome}`}>
+                    <span
+                      className={`[&&&&]:text-[12px] text-right [&.success]:text-success log-outcome ${entry.outcome}`}
+                    >
                       {entry.statusCode ??
                         (entry.outcome === "success" ? "成功" : "失败")}
                     </span>
@@ -364,7 +456,9 @@ export function LogManagerPage() {
               })}
               {hasMore && (
                 <button
-                  className="log-load-more"
+                  className={
+                    "log-load-more w-full min-h-[42px] border-0 text-accent [&&&&]:[background:transparent] [&&&&]:text-[13px]"
+                  }
                   type="button"
                   disabled={loadingMore}
                   onClick={() => void loadMore()}
@@ -376,7 +470,7 @@ export function LogManagerPage() {
           )}
         </section>
 
-        <section className="log-detail" aria-label="日志详情">
+        <section className="log-detail min-w-0" aria-label="日志详情">
           {detail ? (
             <LogDetail
               entry={detail}
@@ -386,7 +480,11 @@ export function LogManagerPage() {
               onTabChange={setTab}
             />
           ) : (
-            <div className="log-detail-empty">
+            <div
+              className={
+                "log-detail-empty m-0 text-muted [&&&&]:p-[32px_20px] [&&&&]:text-[13px]"
+              }
+            >
               选择一条记录，查看输入和输出。
             </div>
           )}
@@ -441,14 +539,23 @@ function LogDetail({
   const response = asRecord(entry.response);
   return (
     <>
-      <div className="log-detail-heading">
-        <h2>{entry.name}</h2>
+      <div
+        className={
+          "log-detail-heading [&_h2]:m-0 [&_p]:text-muted [&&&&]:p-[17px_20px_12px] [&&&&_h2]:[overflow-wrap:anywhere] [&&&&_h2]:text-[17px] [&&&&_p]:m-[5px_0_0] [&&&&_p]:text-[12px]"
+        }
+      >
+        <h2 className="text-lg font-semibold">{entry.name}</h2>
         <p>
           {new Date(entry.timestampMs).toLocaleString()} ·{" "}
           {sourceLabel(entry.source)} · {entry.durationMs?.toFixed(0) ?? "—"} ms
         </p>
         {group && group.occurrences.length > 1 && (
-          <div className="log-occurrences" aria-label="相同调用的原始记录">
+          <div
+            className={
+              "log-occurrences flex items-center flex-wrap gap-[6px] mt-[10px] text-muted [&_button]:min-h-[30px] [&_button]:border [&_button]:border-solid [&_button]:border-line [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-surface [&_button[aria-current=true]]:border-accent [&_button[aria-current=true]]:text-accent [&_button[aria-current=true]]:bg-selected [&&&&]:text-[12px] [&&&&_button]:p-[0_8px] [&&&&_button]:text-[12px]"
+            }
+            aria-label="相同调用的原始记录"
+          >
             <span>相同调用折叠为 {group.occurrences.length} 条：</span>
             {group.occurrences.map((occurrence, index) => (
               <button
@@ -464,7 +571,13 @@ function LogDetail({
           </div>
         )}
       </div>
-      <div className="log-detail-tabs" role="tablist" aria-label="详情类别">
+      <div
+        className={
+          'log-detail-tabs flex overflow-x-auto border-b border-solid border-line [&_button]:min-h-[42px] [&_button]:border-0 [&_button]:text-muted [&_button[aria-selected=true]]:text-accent [&_button[aria-selected=true]]:font-semibold [&&&&]:p-[0_12px] [&&&&_button]:flex-[0_0_auto] [&&&&_button]:[border-bottom:2px_solid_transparent] [&&&&_button]:p-[0_10px] [&&&&_button]:[background:transparent] [&&&&_button]:text-[13px] [&&&&_button[aria-selected="true"]]:[border-bottom-color:var(--ors-color-accent)]'
+        }
+        role="tablist"
+        aria-label="详情类别"
+      >
         {tabs.map(([key, label]) => (
           <button
             key={key}
@@ -477,10 +590,19 @@ function LogDetail({
           </button>
         ))}
       </div>
-      <div className="log-detail-content" role="tabpanel">
+      <div
+        className={
+          "log-detail-content overflow-auto [@media(max-width:_620px)]:[&&&&]:px-[12px] [&&&&]:max-h-[min(62dvh,_720px)] [&&&&]:p-[18px_20px_24px]"
+        }
+        role="tabpanel"
+      >
         {network && tab === "headers" && (
           <>
-            <dl className="log-general">
+            <dl
+              className={
+                "log-general m-0 [&_div]:grid [&_div]:gap-[10px] [&_div]:border-b [&_div]:border-solid [&_div]:border-line [&_dt]:text-muted [&_dd]:m-0 [&&&&_div]:grid-cols-[minmax(110px,_1fr)_minmax(0,_2fr)] [&&&&_div]:p-[7px_0] [&&&&_div]:text-[12px] [&&&&_dt]:[overflow-wrap:anywhere] [&&&&_dd]:[overflow-wrap:anywhere] [&&&&_dd]:[font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace]"
+              }
+            >
               <div>
                 <dt>请求地址</dt>
                 <dd>{String(request.url ?? "—")}</dd>
@@ -497,12 +619,20 @@ function LogDetail({
             <HeaderList title="请求头" value={request.headers} />
             <HeaderList title="响应头" value={response.headers} />
             {entry.source === "webview" && (
-              <p className="log-detail-note">
+              <p
+                className={
+                  "log-detail-note text-muted [&&&&]:m-[5px_0_0] [&&&&]:text-[12px]"
+                }
+              >
                 前端仅能记录浏览器向应用代码开放的请求和响应头。
               </p>
             )}
             {entry.source === "python" && (
-              <p className="log-detail-note">
+              <p
+                className={
+                  "log-detail-note text-muted [&&&&]:m-[5px_0_0] [&&&&]:text-[12px]"
+                }
+              >
                 请求头由 Python 客户端提供；底层自动添加的字段可能不在其中。
               </p>
             )}
@@ -534,9 +664,17 @@ function HeaderList({ title, value }: { title: string; value: unknown }) {
   const [revealed, setRevealed] = useState(false);
   const pairs = asPairs(value);
   return (
-    <section className="log-pair-section">
-      <div className="log-pair-heading">
-        <h3>{title}</h3>
+    <section
+      className={
+        "log-pair-section mt-[22px] [&&&&_h3]:m-[0_0_8px] [&&&&_h3]:text-[14px]"
+      }
+    >
+      <div
+        className={
+          "log-pair-heading [&_button:hover]:bg-hover flex items-center justify-between gap-[12px] [&_button]:min-h-[32px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-surface [&&&&_button]:p-[0_9px] [&&&&_button]:text-[12px]"
+        }
+      >
+        <h3 className="text-base font-semibold">{title}</h3>
         {pairs.some(([name]) =>
           /authorization|cookie|token|secret|key/i.test(name),
         ) && (
@@ -562,17 +700,28 @@ function HeaderList({ title, value }: { title: string; value: unknown }) {
 
 function PairList({ title, value }: { title: string; value: unknown }) {
   return (
-    <section className="log-pair-section">
-      <h3>{title}</h3>
+    <section
+      className={
+        "log-pair-section mt-[22px] [&&&&_h3]:m-[0_0_8px] [&&&&_h3]:text-[14px]"
+      }
+    >
+      <h3 className="text-base font-semibold">{title}</h3>
       <PairRows pairs={asPairs(value)} />
     </section>
   );
 }
 
 function PairRows({ pairs }: { pairs: Array<[string, string]> }) {
-  if (pairs.length === 0) return <p className="log-no-data">无数据</p>;
+  if (pairs.length === 0)
+    return (
+      <p className={"log-no-data m-0 text-muted [&&&&]:text-[13px]"}>无数据</p>
+    );
   return (
-    <dl className="log-pair-rows">
+    <dl
+      className={
+        "log-pair-rows m-0 [&_div]:grid [&_div]:gap-[10px] [&_div]:border-b [&_div]:border-solid [&_div]:border-line [&_dt]:text-muted [&_dd]:m-0 [&&&&_div]:grid-cols-[minmax(110px,_1fr)_minmax(0,_2fr)] [&&&&_div]:p-[7px_0] [&&&&_div]:text-[12px] [&&&&_dt]:[overflow-wrap:anywhere] [&&&&_dd]:[overflow-wrap:anywhere] [&&&&_dd]:[font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace]"
+      }
+    >
       {pairs.map(([name, value], index) => (
         <div key={`${name}-${index}`}>
           <dt>{name}</dt>
@@ -598,11 +747,21 @@ function asPairs(value: unknown): Array<[string, string]> {
 function DataViewer({ value }: { value: unknown }) {
   const [raw, setRaw] = useState(false);
   if (value === null || value === undefined)
-    return <p className="log-no-data">无数据</p>;
+    return (
+      <p className={"log-no-data m-0 text-muted [&&&&]:text-[13px]"}>无数据</p>
+    );
   const parsed = typeof value === "string" ? tryParseJson(value) : value;
   return (
-    <div className="log-data-viewer">
-      <div className="log-data-actions">
+    <div
+      className={
+        "log-data-viewer [&_pre]:m-0 [&_pre]:overflow-auto [&_pre]:border [&_pre]:border-solid [&_pre]:border-line [&_pre]:rounded-[var(--ors-radius-control)] [&_pre]:p-[12px] [&_pre]:bg-canvas [&_pre]:whitespace-pre-wrap [&&&&_pre]:[font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] [&&&&_pre]:text-[12px] [&&&&_pre]:[overflow-wrap:anywhere]"
+      }
+    >
+      <div
+        className={
+          "log-data-actions [&_button:hover]:bg-hover [&_button]:min-h-[32px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-surface flex justify-end mb-[10px] [&&&&_button]:p-[0_9px] [&&&&_button]:text-[12px]"
+        }
+      >
         <button type="button" onClick={() => setRaw((current) => !current)}>
           {raw ? "结构化" : "原文"}
         </button>
@@ -643,8 +802,15 @@ function JsonNode({
   }
   if (value === null || typeof value !== "object") {
     return (
-      <div className="log-json-leaf" style={{ paddingLeft: depth * 16 }}>
-        {label !== null && <span className="log-json-key">{label}: </span>}
+      <div
+        className={
+          "log-json-leaf min-h-[25px] [&&&&]:[font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] [&&&&]:text-[12px] [&&&&]:[overflow-wrap:anywhere]"
+        }
+        style={{ paddingLeft: depth * 16 }}
+      >
+        {label !== null && (
+          <span className="log-json-key text-info">{label}: </span>
+        )}
         <span>{JSON.stringify(value)}</span>
       </div>
     );
@@ -654,7 +820,9 @@ function JsonNode({
     <div className="log-json-branch">
       <button
         type="button"
-        className="log-json-toggle"
+        className={
+          "log-json-toggle min-h-[25px] w-full border-0 text-left [&:hover]:bg-hover [&_svg]:w-[12px] [&_svg]:h-[12px] [&_svg]:mr-[5px] [&&&&]:[font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] [&&&&]:text-[12px] [&&&&]:[overflow-wrap:anywhere] [&&&&]:[background:transparent]"
+        }
         style={{ paddingLeft: depth * 16 }}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
@@ -664,7 +832,9 @@ function JsonNode({
         ) : (
           <CaretRight aria-hidden="true" />
         )}
-        {label !== null && <span className="log-json-key">{label}: </span>}
+        {label !== null && (
+          <span className="log-json-key text-info">{label}: </span>
+        )}
         <span>
           {Array.isArray(value) ? `[${entries.length}]` : `{${entries.length}}`}
         </span>
@@ -676,7 +846,9 @@ function JsonNode({
           ))}
           {entries.length > visible && (
             <button
-              className="log-json-more"
+              className={
+                "log-json-more min-h-[32px] border-0 text-accent [&&&&]:[background:transparent] [&&&&]:text-[12px]"
+              }
               type="button"
               onClick={() => setVisible((count) => count + 100)}
             >
@@ -702,7 +874,11 @@ function BinaryAttachment({
   const contentType = String(value.contentType ?? "application/octet-stream");
   const dataUrl = `data:${contentType};base64,${String(value.value)}`;
   return (
-    <div className="log-binary">
+    <div
+      className={
+        "log-binary grid gap-[8px] border border-solid border-line rounded-[var(--ors-radius-control)] p-[12px] [&_span]:text-muted [&_img]:max-h-[280px] [&_img]:object-contain [&&&&]:[justify-items:start] [&&&&]:text-[12px] [&&&&_img]:max-w-[min(100%,_360px)]"
+      }
+    >
       <strong>{label ?? "二进制内容"}</strong>
       <span>
         {contentType} · {String(value.byteLength ?? "未知")} 字节
@@ -712,7 +888,9 @@ function BinaryAttachment({
       )}
       <button
         type="button"
-        className="log-binary-download"
+        className={
+          "log-binary-download [&_svg]:w-[16px] [&_svg]:h-[16px] inline-flex items-center gap-[6px] border-0 text-accent [&&&&]:[background:transparent] [&&&&:disabled]:[cursor:wait] [&&&&:disabled]:opacity-[0.55]"
+        }
         disabled={saving}
         onClick={() => {
           setSaving(true);

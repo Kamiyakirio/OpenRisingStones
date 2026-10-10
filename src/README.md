@@ -3,6 +3,15 @@
 The frontend is organized by feature. Keep related UI, state, transport, and
 domain logic together instead of adding global component or service folders.
 
+Tailwind CSS v4 is available through the Vite plugin in both desktop and mobile
+builds. The shared entry is `shared/styles/tailwind.css`; standard utilities
+such as `flex gap-4 hover:opacity-80` have no prefix. Tailwind Preflight provides
+the browser baseline, and shared semantic tokens define both themes. Source
+detection covers `src/` and the two HTML entrypoints. Components declare utilities
+directly in JSX/TSX, including responsive, state, and arbitrary geometry variants.
+There are no component or feature CSS files and no `@apply` declarations.
+The shared entry contains only Tailwind imports, theme configuration, and keyframes.
+
 - `app/` composes navigation, theme, authentication, diagnostics, and settings.
   Its components are the application shell, including the header and footer.
 - `pages/` assembles feature entrypoints, including desktop tools and debug views.
@@ -54,10 +63,11 @@ helpers stay with their owner. Recruitment card/detail presentation lives in
 `RecruitEntry.tsx`; teleport automatic flow, orders, and dialogs each have a
 cohesive module. Avoid one folder per button, field, or helper.
 
-Component styles live beside their components. Broader glamour/equipment styles
-live under the glamour feature. `app/styles/App.css` imports the extracted styles
-in a deliberate order after existing component styles, preserving the cascade.
-Keep responsive and accessibility rules with the styles they modify.
+Keep responsive and accessibility utilities beside the elements they modify.
+Legacy selector variants repeat `&` to preserve the removed unlayered stylesheet
+precedence while still allowing runtime inline geometry. New components should
+prefer ordinary utilities and simple state variants. Retained semantic class names
+support navigation, diagnostics, and scoped selectors; they do not load stylesheets.
 
 The Node tests and helpers use TypeScript in `tests/` and import feature utilities
 directly. `npm test` checks them with `tsconfig.tests.json` before running the Node

@@ -82,8 +82,13 @@ export function GlamourPage({
           onPageSizeChange={discovery.changeEquipmentPageSize}
         />
       ) : (
-        <main id="top" className="glamour-workspace">
-          <h1>幻化</h1>
+        <main
+          id="top"
+          className={
+            "mx-auto w-full max-w-[1600px] px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 glamour-workspace [&&&&_>_h1]:m-[0_0_24px]"
+          }
+        >
+          <h1 className="text-2xl font-bold tracking-tight">幻化</h1>
           <DiscoveryFilters
             searchMode={discovery.searchMode}
             query={discovery.query}
@@ -146,7 +151,9 @@ export function GlamourPage({
           />
         </main>
       )}
-      <SiteFooter />
+      <SiteFooter
+        layout={viewModel.selectedGlamour ? "glamour-detail" : "default"}
+      />
       {loginOpen && (
         <LoginDialog
           onClose={onCloseLogin}

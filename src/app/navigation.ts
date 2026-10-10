@@ -14,6 +14,21 @@ export type ActiveFeature =
 
 const debugBuild = typeof __DEBUG_BUILD__ !== "undefined" && __DEBUG_BUILD__;
 
+/** Workspace chrome always names the current destination, including deep links. */
+export const workspaceNames: Record<ActiveFeature, string> = {
+  home: "工具集",
+  recruit: "招募",
+  glamour: "幻化",
+  teleport: "超域传送",
+  gearing: "配装",
+  fishing: "钓鱼数据库",
+  chat: "手机聊天",
+  portrait: "肖像助手",
+  mentor: "导随记录",
+  "gearing-benchmark": "配装性能测试",
+  debug: "调试",
+};
+
 export function featureFromHash(
   hash: string,
   current: ActiveFeature = "home",

@@ -27,7 +27,9 @@ export function CaughtFish({
   const fish = catalog?.find((entry) => entry.id === itemId);
   return (
     <div
-      className="timer-catch"
+      className={
+        "timer-catch flex items-center gap-[10px] pt-[10px] border-t border-solid border-line [&_>_div]:min-w-0 [&_>_div_>_span]:block [&_>_div_>_span]:mb-[3px] [&_>_div_>_span]:text-muted [&&&&]:m-[12px_0] [&&&&_>_div_>_span]:text-[11px] [&&&&_strong]:[overflow-wrap:anywhere]"
+      }
       role="status"
       aria-live="polite"
       aria-atomic="true"

@@ -32,16 +32,30 @@ export function Inspector({
     (s) => preview && evaluation?.stats[s as Stat] !== preview.stats[s as Stat],
   );
   return (
-    <div className={`gear-inspector-body is-${panel}`}>
+    <div
+      className={`[&&&&]:p-[8px_24px_24px] [&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [&&&&]:w-[min(900px,_100%)] [&&&&.is-stats]:m-[0_auto] [@media(max-width:_900px)]:[&&&&]:grid-cols-[1fr] grid gap-[32px] [&.is-stats]:block [&.is-stats]:max-w-[760px] [&_>_section]:mt-0 max-[767px]:block gear-inspector-body is-${panel}`}
+    >
       {panel === "optimize" && <Optimizer vm={vm} state={state} />}
       <section
-        className="gear-statistics"
+        className={
+          "gear-statistics w-full [&&&&_table_td]:p-[7px_0] [&&&&_table_th]:p-[7px_0]"
+        }
         aria-label="配装属性"
         aria-busy={state.evaluating}
       >
-        <div className="gear-section-heading">
-          <h2>{preview ? "方案比较" : "配装属性"}</h2>
-          <label className="gear-check">
+        <div
+          className={
+            "gear-section-heading flex justify-between items-center gap-[8px] min-h-[44px] border-b border-solid border-line [&_>_span]:text-xs [&_>_span]:text-muted [.gear-inspector_&]:pl-0 [.gear-inspector_&]:pr-0 [.gear-equipped_>_&]:justify-start [.gear-equipped_>_&]:flex-wrap [.gear-candidates_&]:flex-wrap [.gear-candidates_>_&]:pt-[4px] [.gear-candidates_>_&]:pb-[4px] [&&&&]:p-[10px_12px] [.gear-equipped_>_&&&&_h2]:[margin-right:auto] [@media(min-width:_768px)]:[.gear-candidates_>_&&&&]:shrink-[0]"
+          }
+        >
+          <h2 className="text-lg font-semibold">
+            {preview ? "方案比较" : "配装属性"}
+          </h2>
+          <label
+            className={
+              "gear-check [.gear-filter-options_&]:min-h-[40px] [.gear-filter-options_&]:items-center text-xs [&_input]:w-[15px] [&_input]:h-[15px] [.gear-optimizer_&_input]:w-[15px] [.gear-editor_.gear-source-options_&]:flex [.gear-editor_.gear-source-options_&]:m-0 [.gear-editor_.gear-source-options_&]:items-start [&&&&]:leading-[1.5] [&&&&_input]:[accent-color:var(--ors-color-accent)]"
+            }
+          >
             <input
               type="checkbox"
               checked={state.tiers}
@@ -51,7 +65,11 @@ export function Inspector({
           </label>
         </div>
         {evaluation?.effects && (
-          <dl className="gear-key-stats">
+          <dl
+            className={
+              "gear-key-stats m-0 grid gap-[12px] [&_>_div]:flex [&_>_div]:justify-between [&_>_div]:items-baseline [&_>_div]:gap-[8px] [&_>_div]:flex-wrap [&_dt]:text-muted [&_dt]:text-xs [&_dd]:m-0 [&_dd]:tabular-nums [&_dd_span]:text-xs [&&&&]:p-[14px_0_8px]"
+            }
+          >
             <div>
               <dt>GCD</dt>
               <dd>
@@ -69,8 +87,8 @@ export function Inspector({
                   <span
                     className={
                       preview.effects.damage >= evaluation.effects.damage
-                        ? "gear-positive"
-                        : "gear-negative"
+                        ? "gear-positive text-success"
+                        : "gear-negative [&&&&]:[color:var(--ors-color-danger)]!"
                     }
                   >
                     {" "}
@@ -116,9 +134,9 @@ export function Inspector({
                     <td
                       className={
                         delta > 0
-                          ? "gear-positive"
+                          ? "gear-positive text-success"
                           : delta < 0
-                            ? "gear-negative"
+                            ? "gear-negative [&&&&]:[color:var(--ors-color-danger)]!"
                             : ""
                       }
                     >
@@ -149,10 +167,12 @@ export function Inspector({
           </tbody>
         </table>
         {preview && !differences.length && (
-          <p className="gear-muted">属性没有变化。</p>
+          <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
+            属性没有变化。
+          </p>
         )}
         {evaluation?.effects && (
-          <details className="gear-effect-details">
+          <details className="gear-effect-details [&_dl]:grid [&_dl]:gap-[6px] [&_dl]:text-xs [&_dl_>_div]:flex [&_dl_>_div]:justify-between [&_dd]:m-0">
             <summary>详细效果</summary>
             <dl>
               {[
@@ -181,7 +201,11 @@ export function Inspector({
         <details className="gear-consumption">
           <summary>魔晶石用量</summary>
           {!job.combat && (
-            <label className="gear-check">
+            <label
+              className={
+                "gear-check [.gear-filter-options_&]:min-h-[40px] [.gear-filter-options_&]:items-center text-xs [&_input]:w-[15px] [&_input]:h-[15px] [.gear-optimizer_&_input]:w-[15px] [.gear-editor_.gear-source-options_&]:flex [.gear-editor_.gear-source-options_&]:m-0 [.gear-editor_.gear-source-options_&]:items-start [&&&&]:leading-[1.5] [&&&&_input]:[accent-color:var(--ors-color-accent)]"
+              }
+            >
               <input
                 type="checkbox"
                 checked={doc.duplicateToolMateria}
@@ -217,13 +241,18 @@ export function Inspector({
               ))}
             </tbody>
           </table>
-          <p className="gear-muted">
+          <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
             90% / 99% 为完成全部镶嵌的保守备料数量，包含保证孔。
           </p>
         </details>
       )}
       {!!evaluation?.issues.length && (
-        <div className="gear-validation" role="alert">
+        <div
+          className={
+            "gear-validation mt-[12px] p-[12px] bg-selected [&&&&]:leading-[1.7]"
+          }
+          role="alert"
+        >
           <strong>有装备需要修正</strong>
           {evaluation.issues.map((issue, i) => (
             <div key={i}>
@@ -260,7 +289,12 @@ function Optimizer({
     proposal.document &&
     state.proposalRevision === state.revision;
   return (
-    <section className="gear-optimizer" aria-label="最优配装计算">
+    <section
+      className={
+        "gear-optimizer border-b border-solid border-line [&_label:not(.gear-check)]:grid [&_label:not(.gear-check)]:gap-[6px] [&_label:not(.gear-check)]:text-xs [&_input]:w-full [&_select]:w-full [&&&&]:p-[14px_0] [&&&&_label:not(.gear-check)]:m-[10px_0]"
+      }
+      aria-label="最优配装计算"
+    >
       {job.combat ? (
         <>
           <label>
@@ -293,7 +327,11 @@ function Optimizer({
                   <option value="current">优化当前装备</option>
                 </select>
               </label>
-              <div className="gear-target">
+              <div
+                className={
+                  "gear-target grid gap-[8px] [&_>_select]:mb-[10px] [&&&&]:grid-cols-[1fr_1fr] [&&&&]:[align-items:end]"
+                }
+              >
                 <label>
                   目标 GCD
                   <input
@@ -345,10 +383,14 @@ function Optimizer({
         <>
           <details className="gear-scope" open>
             <summary>参与计算的范围</summary>
-            <p className="gear-muted">
+            <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
               初始品级为当前版本推荐范围，可按需调整；不会限制配装页的浏览结果。
             </p>
-            <div className="gear-level-range">
+            <div
+              className={
+                "gear-level-range grid gap-[8px] [&&&&]:grid-cols-[1fr_1fr] [&&&&]:[align-items:end]"
+              }
+            >
               <label>
                 最低品级
                 <input
@@ -381,7 +423,11 @@ function Optimizer({
               value={c.sourceIds}
               onChange={(sourceIds) => vm.setConditions({ sourceIds })}
             />
-            <label className="gear-check">
+            <label
+              className={
+                "gear-check [.gear-filter-options_&]:min-h-[40px] [.gear-filter-options_&]:items-center text-xs [&_input]:w-[15px] [&_input]:h-[15px] [.gear-optimizer_&_input]:w-[15px] [.gear-editor_.gear-source-options_&]:flex [.gear-editor_.gear-source-options_&]:m-0 [.gear-editor_.gear-source-options_&]:items-start [&&&&]:leading-[1.5] [&&&&_input]:[accent-color:var(--ors-color-accent)]"
+              }
+            >
               <input
                 type="checkbox"
                 checked={c.optimizeFood}
@@ -391,7 +437,7 @@ function Optimizer({
               />
               自动选择食物
             </label>
-            <p className="gear-muted">
+            <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
               已锁定的装备不替换；锁定魔晶石后保留其配置。
             </p>
           </details>
@@ -413,7 +459,11 @@ function Optimizer({
                 }
               />
             </label>
-            <div className="gear-level-range">
+            <div
+              className={
+                "gear-level-range grid gap-[8px] [&&&&]:grid-cols-[1fr_1fr] [&&&&]:[align-items:end]"
+              }
+            >
               <label>
                 最低速度
                 <input
@@ -455,7 +505,12 @@ function Optimizer({
         </>
       )}
       {proposal && (
-        <div className="gear-proposal" role="status">
+        <div
+          className={
+            "gear-proposal [&_ul]:pl-[18px] [&&&&]:p-[12px_0] [&&&&]:text-[0.8rem] [&&&&_ul]:leading-[1.8]"
+          }
+          role="status"
+        >
           {validProposal ? (
             <>
               <strong>

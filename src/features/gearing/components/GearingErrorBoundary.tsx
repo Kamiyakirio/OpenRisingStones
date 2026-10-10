@@ -19,7 +19,7 @@ export class GearingErrorBoundary extends Component<
     if (!this.state.failed) return this.props.children;
     return (
       <section className="gearing-load-error" role="alert">
-        <h1>配装加载失败</h1>
+        <h1 className="text-2xl font-bold tracking-tight">配装加载失败</h1>
         <p>请重新加载以读取完整的配装资源。已保存的配装不会被清除。</p>
         <button type="button" onClick={() => window.location.reload()}>
           重新加载

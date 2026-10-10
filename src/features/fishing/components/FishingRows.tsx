@@ -23,6 +23,7 @@ export function FishingRows({
   context,
   showLocation = true,
   showConditions = true,
+  inSpectralCurrent = false,
   showTiming = true,
   spotId,
   showNextCountdown = false,
@@ -32,6 +33,7 @@ export function FishingRows({
   context: RowContext;
   showLocation?: boolean;
   showConditions?: boolean;
+  inSpectralCurrent?: boolean;
   showTiming?: boolean;
   spotId?: number;
   showNextCountdown?: boolean;
@@ -42,9 +44,14 @@ export function FishingRows({
   const selfMooch = useSelfMooch(fish, context.fishById, spotId, true);
   return (
     <FishBaitSourceProvider catalog={context.catalog}>
-      <div className="fish-entry-list">
+      <div className="fish-entry-list border-t border-solid border-line">
         {biteTimes.status === "error" && (
-          <p className="fish-bite-error" role="status">
+          <p
+            className={
+              "fish-bite-error text-muted text-[13px] [&_button]:ml-[6px] [&_button]:text-accent [&&&&]:m-[10px_0] [&&&&]:p-[0_8px] [&&&&_button]:[text-decoration:underline]"
+            }
+            role="status"
+          >
             咬钩时间暂时无法读取。
             <button type="button" onClick={biteTimes.retry}>
               重试
@@ -52,7 +59,12 @@ export function FishingRows({
           </p>
         )}
         {selfMooch.status === "error" && (
-          <p className="fish-bite-error" role="status">
+          <p
+            className={
+              "fish-bite-error text-muted text-[13px] [&_button]:ml-[6px] [&_button]:text-accent [&&&&]:m-[10px_0] [&&&&]:p-[0_8px] [&&&&_button]:[text-decoration:underline]"
+            }
+            role="status"
+          >
             回转记录暂时无法读取。
             <button type="button" onClick={selfMooch.retry}>
               重试
@@ -77,6 +89,7 @@ export function FishingRows({
             idPrefix={idPrefix}
             showLocation={showLocation}
             showConditions={showConditions}
+            inSpectralCurrent={inSpectralCurrent}
             showTiming={showTiming}
             showNextCountdown={showNextCountdown}
             onOpen={context.onOpen}

@@ -2,12 +2,14 @@
 import { defineConfig } from "vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
+import tailwindcss from "@tailwindcss/vite";
 // https://vite.dev/config/
 export default defineConfig(({ command }) => {
   const debugBuild =
     command === "serve" || process.env.TAURI_ENV_DEBUG === "true";
   return {
     plugins: [
+      tailwindcss(),
       react(),
       babel({
         presets: [reactCompilerPreset()],

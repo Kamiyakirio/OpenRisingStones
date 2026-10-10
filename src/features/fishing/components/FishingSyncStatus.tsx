@@ -28,9 +28,16 @@ export function FishingSyncStatus({
     : null;
   if (!vm.desktop) return null;
   return (
-    <div className="fish-sync" role="status">
+    <div
+      className={
+        "fish-sync flex items-center gap-[12px] text-[13px] [&_>_div]:flex [&_>_div]:flex-wrap [&_>_div]:min-w-0 [&_>_div_>_span]:text-muted [.fishing-workspace_&_button]:inline-flex [.fishing-workspace_&_button]:items-center [.fishing-workspace_&_button]:gap-[5px] [.fishing-workspace_&_button]:min-h-[32px] [.fishing-workspace_&_button]:text-accent [.fishing-workspace_&_button]:whitespace-nowrap [&_svg]:w-[16px] [&_svg]:h-[16px] max-[620px]:items-start max-[620px]:flex-wrap max-[620px]:[&_button]:ml-[20px] [&&&&]:p-[10px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)] [&&&&_>_div]:flex-[1] [&&&&_>_div]:gap-[2px_12px] [.fishing-workspace_&&&&_button]:p-[4px_8px] [.fishing-workspace_&&&&_button]:[background:transparent] [.fishing-workspace_&&&&_button]:[border-color:transparent] [@media(max-width:_620px)]:[&&&&_>_div]:[flex-basis:calc(100%_-_20px)]"
+      }
+      role="status"
+    >
       <span
-        className="fish-sync-indicator"
+        className={
+          "fish-sync-indicator w-[8px] h-[8px] bg-muted [&[data-ready=true]]:bg-success [&&&&]:flex-[0_0_8px] [&&&&]:rounded-[50%]"
+        }
         data-ready={vm.gameLogStatus === "ready"}
       />
       <div>

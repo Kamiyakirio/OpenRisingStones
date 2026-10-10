@@ -1,0 +1,162 @@
+/* Standard Tailwind entry shared by desktop, timer windows, and mobile chat. */
+@import "tailwindcss" source("../../");
+@source "../../../index.html";
+@source "../../../mobile.html";
+
+@custom-variant dark (&:where(.theme-dark, .theme-dark *));
+
+@theme inline {
+  --color-canvas: var(--ors-color-canvas);
+  --color-surface: var(--ors-color-surface);
+  --color-hover: var(--ors-color-hover);
+  --color-selected: var(--ors-color-selected);
+  --color-ink: var(--ors-color-text);
+  --color-muted: var(--ors-color-muted);
+  --color-line: var(--ors-color-line);
+  --color-control: var(--ors-color-control-line);
+  --color-accent: var(--ors-color-accent);
+  --color-accent-hover: var(--ors-color-accent-hover);
+  --color-on-accent: var(--ors-color-on-accent);
+  --color-disabled: var(--ors-color-disabled);
+  /* Soft fills reinforce existing role text without replacing neutral page surfaces. */
+  --color-brand: var(--ors-color-brand, #53618a);
+  --color-tool: var(--tool-color, var(--ors-color-accent));
+  --color-tool-soft: color-mix(
+    in srgb,
+    var(--tool-color, var(--ors-color-accent)) 10%,
+    var(--ors-color-surface)
+  );
+  --color-success-soft: color-mix(
+    in srgb,
+    var(--ors-color-success) 10%,
+    var(--ors-color-surface)
+  );
+  --color-warning-soft: color-mix(
+    in srgb,
+    var(--ors-color-warning) 10%,
+    var(--ors-color-surface)
+  );
+  --color-danger-soft: color-mix(
+    in srgb,
+    var(--ors-color-danger) 10%,
+    var(--ors-color-surface)
+  );
+  --color-info-soft: color-mix(
+    in srgb,
+    var(--ors-color-info) 10%,
+    var(--ors-color-surface)
+  );
+  --color-success: var(--ors-color-success);
+  --color-warning: var(--ors-color-warning);
+  --color-danger: var(--ors-color-danger);
+  --color-info: var(--ors-color-info);
+  --font-sans: var(--ors-font-ui);
+}
+
+@theme static {
+  --ors-color-canvas: #fcfcfa;
+  --ors-color-surface: #ffffff;
+  --ors-color-hover: #eeeff3;
+  --ors-color-selected: #eef0f5;
+  --ors-color-text: #202127;
+  --ors-color-muted: #596170;
+  --ors-color-line: #c7cbd3;
+  --ors-color-control-line: #808896;
+  --ors-color-accent: #53618a;
+  --ors-color-accent-hover: #435074;
+  --ors-color-on-accent: #ffffff;
+  --ors-color-disabled: #687183;
+  --ors-color-success: #187552;
+  --ors-color-warning: #9b580c;
+  --ors-color-danger: #bf3548;
+  --ors-color-info: #4a6d91;
+  --ors-color-violet: #716184;
+  --ors-color-pink: #865e76;
+  --ors-color-teal: #466f73;
+  --ors-color-orange: #86684c;
+  --ors-shadow-popover: 0 8px 24px rgb(0 0 0 / 0.12);
+  --ors-shadow-dialog: 0 16px 48px rgb(0 0 0 / 0.2);
+  --ors-radius-control: 8px;
+  --ors-radius-panel: 12px;
+  --ors-radius-overlay: 16px;
+  --ors-radius-pill: 999px;
+  --ors-space-1: 4px;
+  --ors-space-2: 8px;
+  --ors-space-3: 12px;
+  --ors-space-4: 16px;
+  --ors-space-5: 20px;
+  --ors-space-6: 24px;
+  --ors-space-8: 32px;
+  --ors-space-10: 40px;
+  --ors-space-12: 48px;
+  --ors-font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --ors-font-heading: var(--ors-font-ui);
+  --ors-duration-feedback: 120ms;
+  --ors-duration-panel: 180ms;
+  --ors-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  @keyframes loading-page-scan {
+    50% {
+      transform: translateX(100px);
+    }
+  }
+  @keyframes login-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes timer-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes detail-enter {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes skeleton-shimmer {
+    to {
+      background-position-x: -240%;
+    }
+  }
+  @keyframes hero-enter {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes recruit-shimmer {
+    to {
+      background-position: -220% 0;
+    }
+  }
+  @keyframes settings-dialog-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes teleport-shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+  @keyframes mentor-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}

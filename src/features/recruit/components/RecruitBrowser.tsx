@@ -2,7 +2,6 @@
 import { MagnifyingGlass, WarningCircle } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import type { RecruitState } from "../hooks/useRecruit";
-import "./RecruitBrowser.css";
 import { RecruitCard, RecruitDetailView } from "./RecruitEntry";
 import {
   RecruitFeedContinuation,
@@ -39,16 +38,26 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
   }
 
   return (
-    <main className="recruit-page" id="recruit-list">
-      <h1>招募</h1>
+    <main
+      className={
+        "mx-auto w-full max-w-[1600px] px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 recruit-page max-[1199px]:px-[24px] max-[767px]:px-[16px] [&&&&]:w-[min(1280px,_100%)] [&&&&]:m-[0_auto] [&&&&]:p-[20px_20px] [@media(max-width:_760px)]:[&&&&]:p-[26px_16px_48px]"
+      }
+      id="recruit-list"
+    >
       <RecruitFilters viewModel={viewModel} />
       <section
-        className="recruit-results"
+        className="recruit-results mt-[24px] pt-0"
         aria-labelledby="recruit-results-title"
       >
-        <header className="recruit-results-header">
+        <header
+          className={
+            "recruit-results-header flex justify-between gap-[24px] [&_h2]:m-0 [&_p]:m-0 [&_h2]:text-lg [&_p]:mt-[5px] [&_p]:text-muted [&_p]:text-xs max-[760px]:items-start mb-[20px] [&&&&]:[align-items:end] [&&&&_h2]:[letter-spacing:normal]"
+          }
+        >
           <div>
-            <h2 id="recruit-results-title">正在招募的队伍</h2>
+            <h2 className="text-lg font-semibold" id="recruit-results-title">
+              正在招募的队伍
+            </h2>
             <p>
               {viewModel.loading
                 ? "正在读取最新招募"
@@ -58,7 +67,11 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
             </p>
           </div>
           {!viewModel.loading && viewModel.total > 0 && (
-            <span className="recruit-page-indicator">
+            <span
+              className={
+                "recruit-page-indicator text-muted text-xs [&&&&]:[font-family:var(--ors-font-ui)]"
+              }
+            >
               已显示 {viewModel.items.length} / {viewModel.total}
             </span>
           )}
@@ -85,7 +98,11 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
           />
         ) : (
           <>
-            <div className="recruit-grid">
+            <div
+              className={
+                "recruit-grid grid gap-[12px] [&&&&]:grid-cols-[1fr] [@media(max-width:_1120px)]:[&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [@media(max-width:_760px)]:[&&&&]:grid-cols-[1fr] [@media(max-width:_1199px)]:[&&&&]:grid-cols-[1fr]"
+              }
+            >
               {viewModel.items.map((item) => (
                 <RecruitCard
                   key={item.id}

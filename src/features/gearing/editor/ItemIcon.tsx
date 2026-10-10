@@ -26,7 +26,10 @@ export function GameAssetIcon({
     source && source === failedSource ? officialAssetUrl(source) : source;
   const available = assetSourceAvailable(resolved, failedFallback);
   return (
-    <span className={`gear-item-icon ${className}`} aria-hidden="true">
+    <span
+      className={`[&&&&]:flex-[0_0_40px] [&&&&_img]:z-[1] relative grid place-items-center w-[40px] h-[40px] overflow-hidden rounded-[7px] text-muted bg-hover [&_img]:relative [&_img]:block [&_img]:w-[40px] [&_img]:h-[40px] [&_img]:object-cover [&_img[hidden]]:hidden [&_>_svg]:absolute [&_>_svg]:w-[19px] [&_>_svg]:h-[19px] gear-item-icon ${className}`}
+      aria-hidden="true"
+    >
       {available && (
         <img
           src={resolved ?? undefined}

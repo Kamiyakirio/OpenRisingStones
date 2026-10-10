@@ -44,7 +44,12 @@ export function SourcePicker({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
-      <div className="gear-source-shortcuts" aria-label="常用获取途径">
+      <div
+        className={
+          "gear-source-shortcuts flex flex-wrap gap-[6px] [&_>_span]:text-muted [&_>_span]:text-xs [&_button]:min-h-[36px] [&_button[aria-pressed=true]]:border-accent [&_button[aria-pressed=true]]:text-accent [&_button[aria-pressed=true]]:bg-selected [&&&&]:m-[10px_0_4px] [&&&&_>_span]:flex-[1_0_100%] [&&&&_button]:p-[5px_10px]"
+        }
+        aria-label="常用获取途径"
+      >
         <span>常用获取途径</span>
         {quickFilters.map((filter) => (
           <button
@@ -59,7 +64,11 @@ export function SourcePicker({
           </button>
         ))}
       </div>
-      <div className="gear-run">
+      <div
+        className={
+          "gear-run [.gear-unsaved-dialog_&]:justify-end flex flex-wrap gap-[8px] [.gear-optimizer-actions_>_&]:m-0 [.gear-optimizer-actions_>_&]:items-center [.gear-unsaved-dialog_&&&&]:m-[24px_0_0] [&&&&]:m-[12px_0]"
+        }
+      >
         <button type="button" onClick={() => onChange([])}>
           全选
         </button>
@@ -71,18 +80,29 @@ export function SourcePicker({
         (id) =>
           id !== "none" && !orderedSources.some((source) => source.id === id),
       ) && (
-        <p className="gear-muted">
+        <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
           有已选途径不在当前品级范围内。调整品级或点击全选可重新选择。
         </p>
       )}
-      <div className="gear-source-options">
+      <div
+        className={
+          'gear-source-options max-h-[200px] overflow-y-auto grid gap-[8px] [&&&&_input[type="checkbox"]]:flex-[0_0_15px]'
+        }
+      >
         {!orderedSources.some((source) => source.label.includes(search)) && (
-          <p className="gear-muted">没有匹配的获取途径，请修改搜索词。</p>
+          <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
+            没有匹配的获取途径，请修改搜索词。
+          </p>
         )}
         {orderedSources
           .filter((source) => source.label.includes(search))
           .map((source) => (
-            <label className="gear-check" key={source.id}>
+            <label
+              className={
+                "gear-check [.gear-filter-options_&]:min-h-[40px] [.gear-filter-options_&]:items-center text-xs [&_input]:w-[15px] [&_input]:h-[15px] [.gear-optimizer_&_input]:w-[15px] [.gear-editor_.gear-source-options_&]:flex [.gear-editor_.gear-source-options_&]:m-0 [.gear-editor_.gear-source-options_&]:items-start [&&&&]:leading-[1.5] [&&&&_input]:[accent-color:var(--ors-color-accent)]"
+              }
+              key={source.id}
+            >
               <input
                 type="checkbox"
                 checked={selected.has(source.id)}

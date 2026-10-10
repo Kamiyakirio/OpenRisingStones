@@ -1,7 +1,0 @@
-/** Load global and feature styles in a stable order after component styles. */
-@import "./foundation.css";
-@import "../components/navigation.css";
-@import "../../features/settings/components/SettingsDialog.css";
-@import "../../features/auth/components/LoginDialog.css";
-@import "../../features/glamour/styles/glamour.css";
-@import "../../features/glamour/styles/equipment.css";
