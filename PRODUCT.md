@@ -6,90 +6,65 @@
 
 web
 
-The interface uses React, TypeScript, and Vite inside a Tauri desktop application.
-Here, `web` describes its UI technology and design language; the product is a
-desktop tool, not a browser-only service or an OS-native mobile application.
+Repository evidence: React and TypeScript provide the interface, Vite builds it,
+and Tauri hosts the desktop application. A separate mobile web entry serves the
+phone chat client. This describes the implementation, not a newly agreed platform
+support commitment.
 
 ## Users
 
-FF14 players who use desktop tools alongside their game activities. The product
-audience is not restricted to players of a particular regional edition.
+FF14 players.
 
 ## Product Purpose
 
-An unofficial desktop toolkit offering a variety of useful functions for FF14
-players. Its scope can grow beyond the functions currently implemented.
-
-## Positioning
-
-OpenRisingStones brings multiple FF14 utilities into one desktop application.
-It is a community tool, not an official game service. No exclusive capability,
-comparative performance claim, or official endorsement has been established.
+Provide a toolkit for FF14 players.
 
 ## Operating Context
 
-Players enter individual workspaces from the application home. Some functions
-depend on external services, authentication, or a running game, while others use
-locally generated game data. Audience scope does not imply that every function
-supports every region or operating system.
+The current implementation groups tools into feature workspaces. Some workflows
+use remote services or a running game; others use locally generated game data.
+The phone chat client connects to the desktop application's chat service.
 
 ## Capabilities and Constraints
 
-The following inventory reflects the existing repository, not a permanent limit
-on product scope:
+The following is an implementation inventory supported by repository evidence,
+not a fixed long-term product boundary:
 
-- Recruitment browsing and filtering using Rising Stones recruitment data.
-- Glamour discovery, equipment lookup, and owned or equivalent-model item matching.
-- Regional teleport workflows, including destination selection and orders.
-- Gear-set planning, materia selection, statistics, optimization, and share codes.
-- Authentication, light and dark themes, and local-data clearing.
-- Automatic Rising Stones daily check-in after a verified desktop login, with a visible result on the home page.
+- Recruitment browsing and filtering.
+- Glamour discovery, equipment lookup, and owned-item matching.
+- Regional teleport workflows.
+- Gear planning, materia, statistics, optimization, and sharing.
+- Fishing lookup, conditions and windows, timers, and local catch records.
+- Portrait editing assistance.
+- Mentor records and analysis.
+- Desktop chat and a mobile web chat client.
+- Authentication, themes, local-data management, and daily check-in.
 
-Game-process bridging supports Windows only. Preserve explicit user consent for
-process injection and the existing version-validation gates. A desktop build on
-another operating system does not imply support for these bridge capabilities.
-
-Release builds encrypt the local owned-item index using keys derived from an
-authenticated game-login session. Debug builds store readable JSON without
-requiring game-login secrets, while retaining account and character checks. Preserve the distinction between cached,
-potentially stale, unavailable, and empty inventory data.
-
-## Brand Commitments
-
-The confirmed product name is **OpenRisingStones**, used by the shared application
-header and fullscreen authentication boundary.
-Preserve the product's unofficial status.
-
-Use direct, task-specific interface copy in the player's vocabulary. The user
-explicitly rejected generic AI-sounding copy and design. Avoid adventure slogans,
-invented thematic names, decorative English translations, and unsupported claims
-about speed or capability. Headings identify the current feature; actions describe
-their result; status messages explain the actual state and the available next step.
-See `docs/design/interface-copy.md` for the redesign's copy specification and examples.
+The user specified no additional long-term product constraints during this
+initialization. This does not remove existing implementation requirements,
+authorization checks, data handling, or repository instructions.
 
 ## Evidence on Hand
 
-- `README.md`: desktop product overview, development, data generation, and packaging.
-- `src/pages/HomePage.tsx`: current workspace entrypoints and product copy.
-- `src/README.md`: feature ownership and frontend organization.
-- `game-bridge/README.md`: Windows bridge, validation gates, inventory semantics,
-  and local encryption behavior.
-- `src-tauri/tauri.conf.json`: desktop packaging identity and webview configuration.
-- `docs/ffxiv-gearing-integration.md` and `docs/ffxiv-gearing-migration.md`:
-  gear-planning integration evidence and constraints.
+- `README.md`: application overview, development, data generation, and packaging.
+- `src/README.md`: implemented feature ownership and desktop/mobile boundaries.
+- `package.json`: existing stack and development commands.
+- `src-tauri/tauri.conf.json`: desktop host and development entry.
+- `docs/chat-bridge.md`: desktop/mobile chat operation and pairing.
+- `docs/fishing-database.md`: fishing features and data limitations.
 
-These sources establish current implementation context. They do not establish
-universal regional compatibility, production reliability, or user adoption.
+Repository evidence establishes the current implementation. It does not establish
+user adoption, measured benefits, or universal regional and platform support.
 
-## Product Principles
+## Brand Commitments
 
-- Support useful FF14 player workflows within one desktop toolkit.
-- Allow the toolkit to expand beyond its current feature inventory.
-- Make platform, service, authentication, and game-state dependencies explicit.
-- Preserve informed consent and clear handling of locally stored player data.
+The user chose a familiar application layout and named Discord as a design
+reference. The confirmed palette is milk-white in light mode and matte black in
+dark mode, with multiple accent colors and contrasting borders. This is a new
+design commitment; retired visual decisions must not be restored.
 
 ## Open Decisions
 
-No additional audience restrictions or long-term product boundaries were requested.
-Feature-level regional coverage, accessibility targets, and measurable success
-criteria have not been established as durable product requirements.
+Specific player segments, priority workflows, success metrics, regional coverage,
+and product-specific accessibility targets have not been specified. Future work
+should not invent them or restore retired product and design assumptions.

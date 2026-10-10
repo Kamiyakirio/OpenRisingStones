@@ -1,74 +1,87 @@
 ---
-name: "OpenRisingStones"
-description: "A warm, restrained FF14 utility workspace organized around one clear task at a time."
+name: OpenRisingStones
+description: A familiar application workspace for FF14 tools.
 colors:
-  light-canvas: "#F5F2EB"
-  light-surface: "#FCFAF6"
-  light-hover: "#EEE9DF"
-  light-selected: "#EEE7D7"
-  light-text: "#302D28"
-  light-muted: "#686158"
-  light-line: "#DDD6CA"
-  light-control-line: "#8A8175"
-  light-accent: "#7A5816"
-  light-accent-hover: "#6D5014"
-  light-on-accent: "#FFFFFF"
-  light-disabled: "#817A70"
-  light-success: "#246B4C"
-  light-warning: "#795400"
-  light-danger: "#AA3937"
-  light-info: "#355FAD"
-  dark-canvas: "#1F1D1A"
-  dark-surface: "#292621"
-  dark-hover: "#353129"
-  dark-selected: "#3C3424"
-  dark-text: "#F2EEE6"
-  dark-muted: "#C2BAAD"
-  dark-line: "#494238"
-  dark-control-line: "#8F8578"
-  dark-accent: "#D3B36B"
-  dark-accent-hover: "#E4CA8E"
-  dark-on-accent: "#211D16"
-  dark-disabled: "#938B80"
-  dark-success: "#8CC9AA"
-  dark-warning: "#E8C27B"
-  dark-danger: "#F2A39F"
-  dark-info: "#AAC5F3"
+  light-canvas: "#fcfcfa"
+  light-surface: "#ffffff"
+  light-hover: "#eeeff3"
+  light-selected: "#eef0f5"
+  light-text: "#202127"
+  light-muted: "#596170"
+  light-line: "#c7cbd3"
+  light-control-line: "#808896"
+  light-accent: "#53618a"
+  light-accent-hover: "#435074"
+  light-on-accent: "#ffffff"
+  light-disabled: "#687183"
+  light-success: "#187552"
+  light-warning: "#9b580c"
+  light-danger: "#bf3548"
+  light-info: "#4a6d91"
+  light-violet: "#716184"
+  light-pink: "#865e76"
+  light-teal: "#466f73"
+  light-orange: "#86684c"
+  dark-canvas: "#0e0e10"
+  dark-surface: "#18191d"
+  dark-hover: "#26282f"
+  dark-selected: "#2a2d36"
+  dark-text: "#f2f3f5"
+  dark-muted: "#b0b6c3"
+  dark-line: "#383b43"
+  dark-control-line: "#778094"
+  dark-accent: "#a0aacb"
+  dark-accent-hover: "#b6bfd8"
+  dark-on-accent: "#101128"
+  dark-disabled: "#9aa2b2"
+  dark-success: "#70d4a4"
+  dark-warning: "#efba72"
+  dark-danger: "#ff94a5"
+  dark-info: "#9bafc8"
+  dark-violet: "#b2a3c5"
+  dark-pink: "#c2a0b2"
+  dark-teal: "#91b6b8"
+  dark-orange: "#c7ad90"
 typography:
   headline:
     fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
-    fontSize: "1.5rem"
-    fontWeight: 600
-    lineHeight: 1.5
+    fontSize: "24px"
+    fontWeight: 700
+    lineHeight: "32px"
+    letterSpacing: "-0.025em"
   title:
     fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
-    fontSize: "1.125rem"
+    fontSize: "18px"
     fontWeight: 600
-    lineHeight: 1.5
+    lineHeight: "28px"
+  item-title:
+    fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
+    fontSize: "16px"
+    fontWeight: 600
+    lineHeight: "24px"
   body:
     fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
-    fontSize: "0.9375rem"
+    fontSize: "15px"
     fontWeight: 400
-    lineHeight: 1.6
+    lineHeight: 1.625
+  control:
+    fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
+    fontSize: "14px"
+    fontWeight: 500
+    lineHeight: "20px"
   label:
     fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
-    fontSize: "0.9375rem"
+    fontSize: "12px"
     fontWeight: 600
-    lineHeight: 1.5
-  caption:
-    fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
-    fontSize: "0.8125rem"
-    fontWeight: 400
+    lineHeight: "16px"
+  technical-input:
+    fontFamily: '"Cascadia Mono", "SFMono-Regular", Consolas, monospace'
+    fontSize: "12px"
     lineHeight: 1.6
-  data:
-    fontFamily: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
-    fontSize: "0.9375rem"
-    fontWeight: 400
-    lineHeight: 1.5
 rounded:
   control: "8px"
   panel: "12px"
-  overlay: "14px"
+  overlay: "16px"
   pill: "999px"
 spacing:
   "1": "4px"
@@ -81,181 +94,214 @@ spacing:
   "10": "40px"
   "12": "48px"
 components:
-  button-primary-light:
+  button-primary:
     backgroundColor: "{colors.light-accent}"
     textColor: "{colors.light-on-accent}"
-    typography: "{typography.label}"
     rounded: "{rounded.control}"
-    padding: "8px 16px"
-    height: "40px"
+    padding: "8px 12px"
+  button-primary-hover:
+    backgroundColor: "{colors.light-accent-hover}"
   button-primary-dark:
     backgroundColor: "{colors.dark-accent}"
     textColor: "{colors.dark-on-accent}"
-    typography: "{typography.label}"
     rounded: "{rounded.control}"
-    padding: "8px 16px"
-    height: "40px"
-  input-light:
+    padding: "8px 12px"
+  button-secondary:
+    textColor: "{colors.light-accent}"
+    rounded: "{rounded.control}"
+    padding: "8px 12px"
+    typography: "{typography.control}"
+  search-field:
     backgroundColor: "{colors.light-surface}"
     textColor: "{colors.light-text}"
-    typography: "{typography.body}"
+    rounded: "{rounded.control}"
+    padding: "0 12px"
+    height: "44px"
+  navigation-item:
+    textColor: "{colors.light-muted}"
     rounded: "{rounded.control}"
     padding: "8px 12px"
-    height: "40px"
-  input-dark:
-    backgroundColor: "{colors.dark-surface}"
-    textColor: "{colors.dark-text}"
-    typography: "{typography.body}"
-    rounded: "{rounded.control}"
-    padding: "8px 12px"
-    height: "40px"
-  navigation-selected-light:
-    backgroundColor: "{colors.light-selected}"
-    textColor: "{colors.light-accent}"
-    typography: "{typography.label}"
-    rounded: "{rounded.control}"
-    padding: "10px 12px"
-    height: "48px"
-  navigation-selected-dark:
-    backgroundColor: "{colors.dark-selected}"
-    textColor: "{colors.dark-accent}"
-    typography: "{typography.label}"
-    rounded: "{rounded.control}"
-    padding: "10px 12px"
-    height: "48px"
+    typography: "{typography.control}"
+  context-panel:
+    backgroundColor: "{colors.light-surface}"
+    rounded: "{rounded.panel}"
+    padding: "{spacing.4}"
+  tool-row:
+    textColor: "{colors.light-text}"
+    padding: "12px 16px"
+  dialog:
+    backgroundColor: "{colors.light-surface}"
+    textColor: "{colors.light-text}"
+    rounded: "{rounded.overlay}"
 ---
 
 # Design System: OpenRisingStones
 
 ## Overview
 
-**Creative North Star: “The Warm Task Ledger”**
+**Creative North Star: "A familiar multi-tool application"**
 
-OpenRisingStones uses the approved direction C: a quiet utility workspace with warm ivory in light mode, charcoal in dark mode, and restrained gold for focus and selection. Clear structure, readable Chinese text, and stable task context carry the identity without turning the tools into a fantasy-themed dashboard.
+OpenRisingStones uses a familiar application layout for choosing and operating FF14 tools. Discord informs navigation and density: grouped destinations, persistent workspace context, compact controls, and direct task content. The identity comes from neutral surfaces, clear outlines, and a consistent relationship between each tool and its accent.
 
-The shared shell keeps navigation predictable while each feature retains the layout its work requires. At desktop widths the shell is a full-text sidebar. At reduced effective widths it becomes a compact top shell. Dense features reveal one task surface at a time so display scaling does not squeeze the work area.
+Light mode pairs a milk-white canvas with white panels; dark mode pairs a matte-black canvas with neutral dark panels. Both share the same hierarchy and geometry. Actual game imagery belongs to its content; interface decoration does not introduce gradients, glow, or a simulated physical material.
 
-Product facts remain in [PRODUCT.md](PRODUCT.md), exact copy in [interface-copy.md](docs/design/interface-copy.md), and implementation evidence in [verification.md](.impeccable/review/verification.md).
+**Key Characteristics:**
 
-Key characteristics:
-
-- Warm ivory and charcoal surfaces with a restrained gold accent.
-- System sans-serif typography, including headings.
-- A 176px full-text sidebar at widths of 900px and above.
-- A single-row top shell from 620px through 899px and a two-row fallback below 620px.
-- A centered 1280px content measure.
-- One task surface at a time when density would compromise readability.
-- Direct FF14 copy without slogans, invented identity, or decorative subtitles.
+- Grouped application navigation and persistent workspace context.
+- Compact sans typography with readable task density.
+- Milk-white and matte-black grounds with contrasting full outlines.
+- Muted tool accents, restrained motion, and explicit action states.
 
 ## Colors
 
-The palette is warm and low-chroma. Ivory and parchment neutrals define light mode; charcoal and warm brown-black define dark mode. Gold marks deliberate action, current location, focus, and selected state.
+The palette keeps the working surface neutral while tool identity and action states carry color. The frontmatter records the base light and dark values implemented by `src/shared/styles/tailwind.css`, the application theme utilities, and the HTML entrypoint theme utilities. Theme pairs share the same suffix. Components shown with light-mode primitives take their corresponding dark-mode values through the live CSS custom properties. Workspace role bindings in `src/shared/styles/workspaceColors.ts` remap action, hover, focus and selection to the current tool. Selected fills mix 6% tool color with the light surface or 10% with the dark surface; soft tool and semantic fills mix 10% with the surface. These computed workspace values replace the base indigo selection/hover values. Cyan and orange light primitives are deep enough for small text on soft fills.
 
 ### Primary
 
-- **Light Bronze** (`#7A5816`): light-theme links, selected labels, focus, and primary actions.
-- **Dark Antique Gold** (`#D3B36B`): dark-theme links, selected labels, focus, and primary actions.
-- Hover accents deepen to `#6D5014` in light mode and brighten to `#E4CA8E` in dark mode.
+- **Application indigo:** `light-accent` / `dark-accent` remain the brand, home and chat color. Every other tool uses its own hue for primary actions, focus and selection; dark actions use the existing deep on-accent foreground. Brand identity remains independent of the active tool.
+
+### Secondary
+
+- **Tool violet:** recruitment and portrait assistance.
+- **Tool pink:** glamour discovery.
+- **Tool teal:** teleport and mentor records.
+- **Tool orange:** gearing, its benchmark and developer diagnostics.
+- **Tool blue:** fishing uses the info pair.
+
+### Tertiary
+
+- **Success, warning, danger, and info:** feedback, notices, failures, and connection state. Use the appropriate theme pair with visible explanatory text; these roles do not redefine a tool's identity.
+
+Recruitment party slots retain job images, role labels and solid/dashed occupancy outlines. Tank labels and outlines are blue, healer labels green and damage labels red; filled slots receive the corresponding soft surface. Color reinforces role and never substitutes for the slot name or occupancy indication.
 
 ### Neutral
 
-| Semantic role    | Light     | Dark      |
-| ---------------- | --------- | --------- |
-| Canvas           | `#F5F2EB` | `#1F1D1A` |
-| Surface          | `#FCFAF6` | `#292621` |
-| Hover            | `#EEE9DF` | `#353129` |
-| Selected         | `#EEE7D7` | `#3C3424` |
-| Text             | `#302D28` | `#F2EEE6` |
-| Muted text       | `#686158` | `#C2BAAD` |
-| Divider          | `#DDD6CA` | `#494238` |
-| Control boundary | `#8A8175` | `#8F8578` |
+- **Canvas and surface:** application ground and contained workspace panels.
+- **Hover and selected:** quiet interaction fills and selected content.
+- **Text, muted, and disabled:** primary copy, supporting information, and unavailable controls.
+- **Line and control-line:** structural dividers and stronger control outlines.
 
-Success, warning, danger, and information retain semantic colors. Pair them with specific text and, where useful, an icon. Equipment rarity and other game data do not inherit shell gold.
+Home tool symbols mix their assigned accent into the surface (4%) and line (18%) in sRGB. These are derived component treatments, not additional primitive colors. Desktop theme selection overrides the operating system; standalone mobile chat follows the operating system through `prefers-color-scheme`.
 
-**The restrained-gold rule.** Use gold for current state, focus, and one clearly primary commitment. Equal destinations and ordinary containers remain neutral.
+Game chat badges retain their channel colors and contrast foregrounds in both themes. Mentor chart categories remain distinct data series. Login QR frames keep a light scan ground, and pairing QR artwork keeps its required white ground. These are domain-specific exceptions, not alternative application palettes.
 
-**The boundary rule.** Use `line` for nonessential dividers and `control-line` for functional input boundaries.
+**The Tool Identity Rule.** A tool keeps its muted accent in the selected navigation icon, its home symbol, workspace icon, and primary actions; color does not replace labels or action meaning.
 
-Selected sidebar text measures approximately 5.27:1 in light mode and 6.10:1 in dark mode, meeting WCAG AA for normal text. Selection also carries fill, weight, underline, or semantic current/pressed state.
+**The Full Outline Rule.** Use the surface-line token for panels and dividers, the control-line token for fields and outlined controls, and a control-line outline with a quiet selected fill for selected navigation.
 
 ## Typography
 
-Use the local system stack: `Segoe UI`, `PingFang SC`, `Microsoft YaHei`, then `sans-serif`. Headings and controls use the same family; the design has no serif or downloaded-font dependency.
+**UI Font:** Segoe UI, with PingFang SC, Microsoft YaHei, and sans-serif fallbacks.
 
-- **Headline:** 24px, 600 weight, 1.5 line height.
-- **Title:** 18px, 600 weight, 1.5 line height.
-- **Body and label:** 15px base size; body line height is 1.6.
-- **Caption:** 13px with 1.6 line height for supporting metadata and state.
-- **Data:** 15px with `tabular-nums lining-nums` where alignment matters.
+**Technical Input Font:** Cascadia Mono, with SFMono-Regular, Consolas, and monospace fallbacks for raw session and technical text entry.
 
-Honor browser zoom and OS text scaling. Use natural Chinese line breaks and normal letter spacing. Do not add bilingual ornaments or viewport-scaled type. Windows glyph rendering still requires native verification.
+The interface uses a single compact UI sans family for headings, navigation, forms, and body copy. The frontmatter captures reused roles rather than every domain-specific size; there is no separate display role.
+
+### Hierarchy
+
+- **Headline:** home page heading, bold with tight tracking.
+- **Title:** workspace sections and dialog headings.
+- **Item title:** tool names and contextual panel titles.
+- **Body:** application-root reading text with relaxed leading.
+- **Control:** navigation, search, and ordinary control text; emphasized states increase weight.
+- **Label:** group labels, metadata, and concise supporting information.
+- **Technical input:** raw text entry in login forms.
+
+Mobile chat has a compact header, smaller timestamp metadata, and readable wrapped message text. Numeric countdowns and chat timestamps use tabular numerals. Do not promote the mobile metadata sizes into a general body-text scale.
+
+**The Application Type Rule.** Headings and controls use the same UI sans family. Establish hierarchy with size and weight rather than an added display face.
 
 ## Layout
 
-At widths of 900px and above, use a sticky 176px full-height sidebar and flexible workspace. The sidebar contains brand, full-text destinations, theme and settings controls, and truthful account entry. Main content is centered at `min(1280px, 100%)` with 32px padding; padding reduces below 1200px and 768px.
+The desktop shell uses a fixed text sidebar (232px), a flexible workspace column, and a sticky workspace bar (56px). Sidebar identity, grouped navigation, and bottom account/theme/settings controls share one full-height column. Navigation scrolls independently when needed.
 
-From 620px through 899px, brand, horizontally scrollable text navigation, and compact utilities share one sticky top row. Below 620px, brand and utilities remain on the first row while navigation moves to a second scrollable row. Wide layouts keep the sidebar and never stack top navigation.
+At widths below 900px, the shell becomes a vertical document: application identity and compact actions occupy the top row, tool navigation becomes horizontally scrollable, and the workspace bar becomes static (48px). Below 520px, navigation labels and icons become smaller. The base document supports widths from 320px.
 
-Use the 4px spacing rhythm. Controls have a 40px global minimum and at least 44px for coarse pointers. Dense gearing controls may use 36px with coarse-pointer overrides.
+Home has a bounded content width (1600px), desktop horizontal padding (20px) and a 16px column gap, and tool rows beside a context column (320px). Below 1200px the context column narrows (280px); below 1100px it moves under the tools. The context area and PvP entries can share horizontal space until below 620px, when they stack. The search also expands to full width at that compact breakpoint. Horizontal padding drops to 16px below 900px and 12px below 520px.
 
-The home first shows the bound character as `game ID@server`, or a login action when no verified profile is available. A two-column ruled status area shows the current Frontline and Crystalline Conflict maps, each map's game thumbnail, a live countdown, and its next rotation time. The feature directory remains a ruled two-column set of equal whole-row targets with 132px minimum entries; both areas become one column below 768px. No destination becomes a promotional card.
+The spacing tokens use a 4px rhythm. Common gaps are 8px, 12px, 16px, 20px, and 24px; direct JSX/TSX utilities retain geometry required by tables, equipment slots, charts, editors, and scrolling ledgers. Arbitrary values and variants express specialized grids, anchor positioning, and state-dependent dimensions. The shared CSS entry contains Tailwind configuration and animation keyframes only.
 
-Preserve one task surface at a time when simultaneous panes would compete for effective width. Gearing groups equipment and candidates into one editing task, with statistics/comparison and optimization as separate tasks. Wide screens retain equipped context beside candidates; compact screens provide a slot selector and return action. Drafts are saved only through explicit save actions. Local tables may scroll; the page must not overflow horizontally.
+Ordinary desktop controls have a shared minimum height (36px); coarse-pointer controls rise to 44px. Header icon actions and dialog close buttons also preserve a 44px minimum width under coarse pointers. Header identity can truncate when space is limited, while icon actions retain accessible names. Sidebar destinations and home search already use 44px targets. Home destination rows use a minimum height of 64px, 12px by 16px padding, and 36px symbols; real text determines the final row height.
+
+Standalone mobile chat is a viewport-height grid with separate header, status notice, filter area, scrolling ledger, and composer in normal grid flow. Safe-area insets contribute to the top and bottom padding. At 46rem and wider, its maximum-width shell becomes a bordered, rounded panel with 1rem outer vertical margins. When viewport height is at most 32rem, the shell uses automatic height and intrinsic grid rows with document scrolling; its ledger is capped at 40dvh, so controls cannot collapse or clip the composer. Chat popovers adapt below 768px; login and settings dialogs adapt at 700px, retain internal scrolling, and remain within the viewport.
+
+Glamour detail and its loading skeleton choose one or two fluid columns from their own content container, with two columns from 980px of available content width. Advanced recruitment's primary filters use two fluid columns from 780px of workbench width. These thresholds account for the application sidebar and page gutters instead of assuming viewport width equals usable workspace width.
+
+Glamour detail owns a 1480px maximum page width with 20px horizontal gutters, reduced to 16px below 900px and 12px below 520px. Its navigation, content, and detail-specific attribution share those edges. Media and information align at the top with 20px between sections. In single-column mode, the main image explicitly fills the media width and uses a 4:5 frame capped at 720px high. In two-column mode, the media column stretches to match the information column; the image fills the remaining height above the horizontal thumbnail strip. A single image shares the information column's top and bottom edges. Equipment columns respond to the information container: one column below 480px and two columns from 480px. Each slot fills its grid row and aligns its icon and copy at the top, so empty and populated slots keep matching row edges. The loading layout shares the final content grid and image-frame geometry.
+
+The independent fishing timer stacks its title bar and content at every window width. Narrow gearing action groups wrap in their existing task order; the context summary keeps its title and data version intact while its descriptive middle can truncate. Gearing candidates use a 320px equipment column only from 1200px viewport width; narrower workspaces show candidates directly, with a return action and slot selector. Candidate context and filter feedback align to 12px toolbar insets, wrap their actions, and keep the table within a bounded scrolling region. The desktop candidate workspace reserves space for the command bar and context above it. Equipped names, materia, and effective stats occupy separate rows; the parent owns padding, and each stat label/value stays together when wrapping. Unsaved-plan dialogs scroll vertically for long content or short windows. Narrow authentication, footer, mentor-detail, portrait-panel, and diagnostic-list spacing overrides retain the specificity of their desktop rules. Benchmark gutters match the page inset, and its form chooses non-overlapping one-, two-, or four-column ranges. The browser-only debug view renders its runtime error and log fallback rather than allowing a synchronous native guard to unmount the application.
 
 ## Elevation & Depth
 
-Depth comes from canvas/surface contrast and quiet rules. Resting content is flat. Menus and dialogs alone use the warm, neutral shadows in the sidecar. Focus uses an outline rather than glow.
+**The Flat Surface Rule.** Routine workspaces and home panels use borders and tonal separation. Reserve soft depth for temporary overlays; do not add decorative glow.
 
-The fullscreen authentication boundary covers the shell for protected glamour and teleport states. `LoginDialog` opens above it; focus containment, scroll locking, restoration, and innermost Escape handling remain requirements.
+The shared static theme and explicit theme utilities provide the light and dark popover and dialog shadows recorded in the sidecar. Current login and settings dialogs primarily use a full control outline and a dim backdrop (`rgba(10, 15, 26, 0.64)`). The chat-filter popup carries a local soft shadow (`0 8px 24px #302d2826`); it is an observed implementation exception, not a replacement shadow scale. Account popovers use an outlined surface. Do not assume every overlay applies the shared shadow token.
 
-Motion is limited to 120ms feedback and 180ms small-panel changes. Remove movement under reduced-motion preferences.
+Buttons transition color and border feedback over 120ms. The token source also exposes 180ms panel timing and a standard easing curve; feature motion may use its existing local timing. A spinner marks pending operations. The shared reduced-motion rule reduces animations and transitions to 0.01ms, limits animations to one iteration, and restores automatic scrolling.
 
 ## Shapes
 
-Controls use 8px corners, panels 12px, and overlays 14px. Pills are reserved for compact standalone tags. Home directory entries and tab underlines use square structural edges.
+Controls use gently rounded corners (8px), ordinary panels use wider corners (12px), and dialogs use overlay corners (16px). The existing pill radius supports chips and rounded badges; its presence does not make every control pill-shaped. Panel separators and form boundaries are thin full strokes (typically 1px). Tool symbols combine an outlined rounded container with a vector icon. Data visualizations and game content keep their domain-specific silhouettes.
 
-Use 1px rules, a 2px active underline in top-shell navigation, and a 2px focus outline with 2–3px offset. Continue the Phosphor outline icon family. Do not introduce heraldic marks, generated emblems, ornamental rails, or unrelated weather motifs.
+Keyboard focus uses an accent outline (2px) offset from the control (3px); bounded tool rows move the outline inward to avoid clipping. Specialized chat controls use their own 2px offset. Focus is visible in both themes.
 
 ## Components
 
+### Buttons
+
+Workspace bars and home tool names use neutral text and surfaces. Selected navigation and workspace icons, home tool symbols, primary actions, and equipment section headings carry the muted tool color. Authentication icons identify the protected tool; its panel outline stays neutral. Shared login/settings headings use a soft tool fill; risk explanations and phone connection notices use semantic soft fills with text and icons.
+
+Primary actions use the accent fill, matching on-accent text, accent border, and control radius. Mobile send buttons use 8px by 12px padding; login primary buttons use a minimum height of 46px and 18px horizontal padding. Hover uses the established accent treatment. Secondary account actions keep a full outline with accent text and neutral hover fill. Header actions use transparent borders at rest and a quiet hover fill. Unavailable actions retain disabled semantics and visible reduced emphasis.
+
+### Chips
+
+Chat channel badges are compact semantic tags, with 1px by 6px padding and small text. Their channel colors stay independent of tool accents; novice tags use white text, while the other observed channel tags use black text. Keep the channel label visible.
+
+### Cards / Containers
+
+Home context panels use the panel radius, surface fill, structural outline, and 20px padding. The destination directory is one outlined panel with bordered rows, rather than a collection of floating cards. Routine panels do not need shadows.
+
+Recruitment cards keep identity, facts, and party composition in independently sized, top-aligned groups. They use one column below 768px, two columns from 768px, and three columns from 1200px; the footer spans the full card width. Loading placeholders follow the same columns, padding, and footer span without an interactive cursor or a fixed 430px minimum height. Compact party slots stay 56px tall rather than stretching to match adjacent text. Their grid uses four columns below 640px and eight columns from 640px. Expanded detail slots retain job names and a minimum height of 100px, using two, four, and eight columns at the existing detail breakpoints (480px and 1120px). These are recruitment-specific data geometry, not general card heights. Recruitment card labels keep a full structural outline and canvas fill at their existing 28px minimum height, so they remain distinct when the surrounding card takes its hover fill.
+
+### Inputs / Fields
+
+Search is a 44px outlined surface with an inline vector icon and a transparent inner input. Focus within changes its full outline to the accent. Forms use the control outline, surface or canvas fill according to context, and control radius. Placeholder text uses muted foreground. Errors and warnings remain explicit text with their semantic colors. Mobile recipient/select fields use 44px minimum targets; the message textarea retains resizing and wrapped content.
+
+Recruitment checkbox indicators remain square (16px by 16px), with no inherited minimum height or padding. Their associated labels carry the interaction target: at least 36px tall on desktop and 44px with coarse pointers. Preserve this distinction between the visible indicator and its clickable label when extending recruitment preferences and filters.
+
 ### Navigation
 
-At 900px and above, navigation is a 176px full-text sidebar with 48px targets, muted default text, neutral hover fill, and selected fill plus gold text. At 620–899px it shares one top row; below 620px it occupies the second row. Use `aria-current="page"`, keep the active destination visible, and preserve keyboard focus.
+Grouped sidebar destinations combine an icon with a text label. Resting text is muted; hover moves to a neutral fill and primary foreground. The current destination keeps `aria-current="page"`, stronger text, and a full outline in its tool accent. On compact screens the same destinations become horizontal and automatically scroll the selected item into view. Header actions retain accessible names when visible labels are hidden.
 
-### Buttons and fields
+### Tool Directory
 
-Primary buttons use accent fill and on-accent text. Secondary controls use neutral surfaces and control-line borders. Disabled controls remain identifiable and prevent duplicate action. Visible labels sit outside fields; validation uses complete messages and invalid semantics in addition to danger color.
+Each row contains the assigned accent icon container, tool title, short description, and directional icon. Search filters actual destinations and supplies a clear empty state. Selecting a row opens the corresponding tool; it does not substitute demonstration content for the workflow.
 
-### Home directory
+### Teleport Workspace
 
-Use verified profile fields for the home identity, never placeholder character data. Show the automatic Rising Stones check-in result directly below it; success and an already-completed check-in both use a check mark, while failure offers a retry. Calculate PvP status from the documented patch rotation and refresh at the next boundary and when the app regains focus.
+The form and route preview share aligned top and bottom borders at desktop widths. The builder stretches both panels; neither panel scrolls independently. Both headings use the same 28px line box and padding, with 20px desktop and 16px phone insets. Consent and submission stay at the form bottom, while the route explanation anchors the preview bottom.
 
-Keep recruitment, glamour, regional teleport, and gearing as equal whole-row buttons. Each has one icon, direct title, concrete description, and decorative trailing arrow. Shared rules define the 2×2 layout; compact widths stack it to one column.
+The split depends on available workspace width (900px), not the viewport. Form fields become two columns when the form itself has 480px available. Order rows change composition at workspace widths of 600px and 1050px; long identifiers wrap without compressing route names. Controls use a 44px minimum height, including dialog actions. Empty histories use a centered stack, and failed initial requests display unavailable summary values rather than misleading zeros. Busy dialogs retain keyboard focus and short screens scroll to reach all actions.
 
-### Task surfaces
+### Dialogs and Mobile Chat
 
-Feature layouts retain their information model: comparable rows for recruitment, images for glamour, ordered form state for teleport, and aligned equipment/stat data for gearing. Task switching must preserve user context.
-
-### Authentication and dialogs
-
-Signed-out or checking glamour and teleport states share the fullscreen `AuthenticationGate`. Closing it returns home. Login opens above it, and Escape closes the innermost layer first. Account controls show real profile data only when available.
+Dialogs pair a neutral surface and full outline with a dim backdrop, a labeled title, an explicit close action, and scrollable content. Authentication risks and confirmations remain part of the existing interaction. The chat ledger separates channel, sender, timestamp, and message. A development-only phone preview is visibly marked as a demonstration, has a distinct simulated connection state, and cannot send or disconnect through real requests.
 
 ## Do's and Don'ts
 
-### Do
+### Do:
 
-- **Do** build both themes from semantic aliases in `tokens.css`.
-- **Do** preserve the 176px sidebar and its responsive top-shell translations.
-- **Do** preserve the 1280px measure, 15px base type, and 13px captions.
-- **Do** keep one task surface visible when density would squeeze content.
-- **Do** preserve keyboard access, authentication boundaries, local data ownership, optimization semantics, undo, cancellation, and accurate recovery.
-- **Do** write direct Chinese UI copy with established FF14 terminology.
+- **Do** use the shared theme tokens for new surfaces and controls.
+- **Do** preserve visible full borders and keyboard focus.
+- **Do** keep tool accents consistent with the existing feature mapping.
+- **Do** distinguish real connection states, demonstrations, errors, and disabled actions in visible text.
+- **Do** express both domain geometry and shared visual primitives through direct JSX/TSX utilities.
+- **Do** preserve semantic game channel colors, chart category distinctions, and readable QR grounds.
 
-### Don't
+### Don't:
 
-- **Don't** restore the superseded palette or use stacked top navigation on wide layouts.
-- **Don't** add promotional heroes, slogans, decorative bilingual subtitles, or invented identity.
-- **Don't** turn each home destination or field into a floating card.
-- **Don't** use gold as a generic success, warning, rarity, or decoration color.
-- **Don't** shrink text to fit display scaling or allow ordinary page overflow.
-- **Don't** treat generated concepts or browser fixtures as proof of native bridging or authenticated operations.
+- **Don't** introduce gradients, glow, or decorative physical textures into the application chrome.
+- **Don't** use accent color as the only indicator of selection, status, or consent.
+- **Don't** add a separate display font or inflate ordinary tool screens into promotional layouts.
+- **Don't** issue requests from the development phone demonstration or present synthetic messages as a paired session.
+- **Don't** use a Tailwind prefix or @apply; the project uses standard Tailwind v4 utilities and Preflight.
