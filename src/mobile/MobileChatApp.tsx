@@ -1,4 +1,4 @@
-/** Paired phone client for viewing game chat with capability-gated sending. */
+/** Development previews are read-only and do not represent a paired session. */
 import {
   ChatCircleDots,
   LinkBreak,
@@ -25,23 +25,24 @@ import {
   validTellRecipient,
   type ChatSendChannel,
 } from "../features/chat/utils/sendChannels";
-
 type ConnectionState =
   "pairing" | "online" | "reconnecting" | "disconnected" | "error" | "preview";
-
 type MobileState = {
   paired: boolean;
   online: boolean;
   canSend: boolean;
   messages: ChatMessage[];
 };
-
 type MobileEvent =
-  | { kind: "message"; message: ChatMessage }
-  | { kind: "status"; online: boolean };
-
+  | {
+      kind: "message";
+      message: ChatMessage;
+    }
+  | {
+      kind: "status";
+      online: boolean;
+    };
 const encoder = new TextEncoder();
-/** Development previews are read-only and do not represent a paired session. */
 const previewMode =
   import.meta.env.DEV &&
   new URLSearchParams(window.location.search).has("preview");
@@ -74,7 +75,6 @@ const previewMessages: ChatMessage[] = [
     message: "你已进入休息区。",
   },
 ];
-
 export function MobileChatApp() {
   const [connection, setConnection] = useState<ConnectionState>("pairing");
   const [pairingAttempt, setPairingAttempt] = useState(0);
@@ -108,7 +108,6 @@ export function MobileChatApp() {
     window.addEventListener("hashchange", retry);
     return () => window.removeEventListener("hashchange", retry);
   }, []);
-
   useEffect(() => {
     let active = true;
     let sendingAvailable = false;
@@ -137,8 +136,12 @@ export function MobileChatApp() {
             throw reason;
           await request("/api/pair", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              token,
+            }),
           });
           state = await request<MobileState>("/api/state");
         }
@@ -161,9 +164,10 @@ export function MobileChatApp() {
         setNotice(readError(reason, "配对失败，请回到电脑重新生成二维码。"));
       }
     }
-
     function openEventStream() {
-      const source = new EventSource("/api/events", { withCredentials: true });
+      const source = new EventSource("/api/events", {
+        withCredentials: true,
+      });
       eventSource.current = source;
       source.onmessage = (event) => {
         const update = JSON.parse(event.data) as MobileEvent;
@@ -210,7 +214,6 @@ export function MobileChatApp() {
         }
       };
     }
-
     function applyOnlineState(online: boolean, sendingAvailable: boolean) {
       setConnection(online ? "online" : "reconnecting");
       setNotice(
@@ -221,14 +224,12 @@ export function MobileChatApp() {
           : "游戏连接已中断，正在等待恢复。",
       );
     }
-
     void connect();
     return () => {
       active = false;
       eventSource.current?.close();
     };
   }, [pairingAttempt]);
-
   useLayoutEffect(() => {
     // Filter changes start at the latest result; incoming messages preserve history browsing.
     if (previousFilter.current !== filter) {
@@ -239,7 +240,6 @@ export function MobileChatApp() {
       ledger.current.scrollTop = ledger.current.scrollHeight;
     }
   }, [visibleMessages, filter]);
-
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!canSend || connection !== "online" || sending || invalidDraft) return;
@@ -247,7 +247,9 @@ export function MobileChatApp() {
     try {
       await request("/api/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           message: draft,
           channel: sendChannel,
@@ -264,11 +266,12 @@ export function MobileChatApp() {
       setSending(false);
     }
   }
-
   async function disconnect() {
     if (previewMode) return;
     try {
-      await request("/api/disconnect", { method: "POST" });
+      await request("/api/disconnect", {
+        method: "POST",
+      });
     } finally {
       eventSource.current?.close();
       setConnection("disconnected");
@@ -277,36 +280,33 @@ export function MobileChatApp() {
       );
     }
   }
-
   const online = connection === "online";
 
   // Short windows use document scrolling so fixed controls cannot clip the composer.
   return (
-    <main
-      className={
-        "mobile-chat-shell mx-auto grid h-dvh min-h-0 w-full max-w-[46rem] bg-canvas text-ink [@media(min-width:_46rem)]:border [@media(min-width:_46rem)]:border-solid [@media(min-width:_46rem)]:border-line [@media(min-width:_46rem)]:rounded-[12px] [@media(min-width:_46rem)]:overflow-hidden [&&&&]:grid-rows-[auto_auto_auto_minmax(0,_1fr)_auto] [@media(min-width:_46rem)]:[&&&&]:h-[calc(100dvh_-_2rem)] [@media(min-width:_46rem)]:[&&&&]:[margin-block:1rem] [@media(max-height:_32rem)]:[&&&&&]:h-auto [@media(max-height:_32rem)]:[&&&&&]:min-h-dvh [@media(max-height:_32rem)]:[&&&&&]:grid-rows-[auto_auto_auto_auto_auto]"
-      }
-    >
-      <header
-        className={
-          "mobile-chat-header flex items-center justify-between gap-4 border-b border-accent bg-tool-soft px-4 pb-4 [&_h1]:m-0 [&_h1]:text-xl [&_h1]:font-semibold [&_p]:text-muted [&&&&]:[padding-top:calc(1rem_+_env(safe-area-inset-top))] [&&&&_h1]:leading-[1.4] [&&&&_p]:m-[0.1rem_0_0] [&&&&_p]:text-[0.72rem]"
-        }
-      >
+    <main className="mobile-chat-shell mx-auto grid h-dvh min-h-0 w-full max-w-[46rem] grid-rows-[auto_auto_auto_minmax(0,_1fr)_auto] bg-canvas text-ink [@media(max-height:_32rem)]:h-auto [@media(max-height:_32rem)]:min-h-dvh [@media(max-height:_32rem)]:grid-rows-[auto_auto_auto_auto_auto] [@media(min-width:_46rem)]:[margin-block:1rem] [@media(min-width:_46rem)]:h-[calc(100dvh_-_2rem)] [@media(min-width:_46rem)]:overflow-hidden [@media(min-width:_46rem)]:rounded-panel [@media(min-width:_46rem)]:border [@media(min-width:_46rem)]:border-solid [@media(min-width:_46rem)]:border-line">
+      <header className="mobile-chat-header flex items-center justify-between gap-4 border-b border-accent bg-tool-soft px-4 [padding-top:calc(1rem_+_env(safe-area-inset-top))] pb-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">游戏聊天</h1>
-          <p>OpenRisingStones</p>
+          <h1 className="m-0 text-xl leading-[1.4] font-semibold tracking-tight">
+            游戏聊天
+          </h1>
+          <p className="mx-0 mt-[0.1rem] mb-0 text-[0.72rem] text-muted">
+            OpenRisingStones
+          </p>
         </div>
         <ConnectionMark state={connection} />
       </header>
 
       <div
-        className={
-          "mobile-chat-notice border border-warning bg-warning-soft [&[data-state=online]]:bg-success-soft [&[data-state=error]]:bg-danger-soft [&[data-state=disconnected]]:bg-danger-soft [&[data-state=online]]:border-success [&[data-state=online]]:text-success [&[data-state=error]]:border-danger [&[data-state=disconnected]]:border-danger flex gap-[0.6rem] items-start text-warning rounded-[8px] [&[data-state=error]]:text-danger [&[data-state=disconnected]]:text-danger [&_svg]:w-[1rem] [&_svg]:h-[1rem] [&_svg]:mt-[0.12rem] [&&&&]:m-[0.8rem_1rem_0] [&&&&]:p-[0.7rem_0.8rem] [&&&&]:text-[0.78rem] [&&&&]:leading-[1.55] [&&&&_svg]:flex-[0_0_auto]"
-        }
+        className="mobile-chat-notice mx-[1rem] mt-[0.8rem] mb-0 flex items-start gap-[0.6rem] rounded-control border border-warning bg-warning-soft px-[0.8rem] py-[0.7rem] text-[0.78rem] leading-[1.55] text-warning data-[state=disconnected]:border-danger data-[state=disconnected]:bg-danger-soft data-[state=disconnected]:text-danger data-[state=error]:border-danger data-[state=error]:bg-danger-soft data-[state=error]:text-danger data-[state=online]:border-success data-[state=online]:bg-success-soft data-[state=online]:text-success"
         data-state={connection}
         role="status"
       >
-        <WarningCircle weight="fill" aria-hidden="true" />
+        <WarningCircle
+          className="mt-[0.12rem] h-[1rem] w-[1rem] shrink-0"
+          weight="fill"
+          aria-hidden="true"
+        />
         <span>{notice}</span>
       </div>
 
@@ -318,7 +318,7 @@ export function MobileChatApp() {
       />
       <section
         className={
-          'mobile-chat-ledger flex flex-col min-h-0 overflow-y-auto [@media(max-height:_32rem)]:max-h-[40dvh] [&&&&]:p-[0.85rem_1rem_1.4rem] [&&&&]:[overscroll-behavior:contain] [&&&&]:[scrollbar-color:var(--ors-color-control-line)_transparent] [&&&&::before]:[margin-top:auto] [&&&&::before]:[content:""] [&&&&:focus-visible]:[outline:2px_solid_var(--ors-color-accent)] [&&&&:focus-visible]:[outline-offset:-2px]'
+          'mobile-chat-ledger flex min-h-0 [scrollbar-color:var(--ors-color-control-line)_transparent] flex-col overflow-y-auto [overscroll-behavior:contain] px-[1rem] pt-[0.85rem] pb-[1.4rem] before:[margin-top:auto] before:[content:""] focus-visible:[outline:2px_solid_var(--ors-color-accent)] focus-visible:[outline-offset:-2px] [@media(max-height:_32rem)]:max-h-[40dvh]'
         }
         ref={ledger}
         aria-label="游戏聊天记录"
@@ -329,16 +329,15 @@ export function MobileChatApp() {
         }}
       >
         {visibleMessages.length === 0 ? (
-          <div
-            className={
-              "mobile-chat-empty [&_strong]:text-ink grid min-h-0 text-disabled text-center [&_svg]:w-[2rem] [&_svg]:h-[2rem] [&_svg]:text-control [&_span]:mt-[0.25rem] [&_span]:text-xs [&&&&]:flex-[1] [&&&&]:[place-content:center] [&&&&_svg]:m-[0_auto_0.65rem] [&&&&_strong]:text-[0.95rem]"
-            }
-          >
-            <ChatCircleDots aria-hidden="true" />
-            <strong>
+          <div className="mobile-chat-empty grid min-h-0 flex-1 [place-content:center] text-center text-disabled">
+            <ChatCircleDots
+              className="mx-auto mt-0 mb-[0.65rem] h-[2rem] w-[2rem] text-control"
+              aria-hidden="true"
+            />
+            <strong className="text-[0.95rem] text-ink">
               {filter.length === 0 ? "等待新的游戏对话" : "暂无此类消息"}
             </strong>
-            <span>
+            <span className="mt-[0.25rem] text-xs">
               {filter.length === 0
                 ? "连接后产生的消息会显示在这里。"
                 : "可切换到全部消息，或等待新的对话。"}
@@ -347,35 +346,36 @@ export function MobileChatApp() {
         ) : (
           visibleMessages.map((message) => (
             <article
-              className={
-                "mobile-chat-message border-b border-line [&_>_div]:flex [&_>_div]:flex-wrap [&_>_div]:gap-[0.5rem] [&_>_div]:items-baseline [&_>_div]:mb-[0.18rem] [&_strong]:text-accent-hover [&_span:not(.chat-channel-badge)]:text-disabled [&_span:not(.chat-channel-badge)]:tabular-nums [&_time]:text-disabled [&_time]:tabular-nums [&_p]:m-0 [&_p]:text-ink [&_p]:whitespace-pre-wrap [&&&&]:flex-[0_0_auto] [&&&&]:p-[0.68rem_0] [&&&&_strong]:text-[0.8rem] [&&&&_span:not(.chat-channel-badge)]:text-[0.67rem] [&&&&_time]:text-[0.67rem] [&&&&_p]:text-[0.9rem] [&&&&_p]:leading-[1.6] [&&&&_p]:[overflow-wrap:anywhere]"
-              }
+              className="mobile-chat-message shrink-0 border-b border-line px-0 py-[0.68rem]"
               key={message.sequence}
             >
-              <div>
+              <div className="mb-[0.18rem] flex flex-wrap items-baseline gap-[0.5rem]">
                 <ChatChannelBadge logKind={message.logKind} />
-                {message.sender && <strong>{message.sender}</strong>}
-                <time>{formatTime(message.timestamp)}</time>
+                {message.sender && (
+                  <strong className="text-[0.8rem] text-accent-hover">
+                    {message.sender}
+                  </strong>
+                )}
+                <time className="text-[0.67rem] text-disabled tabular-nums">
+                  {formatTime(message.timestamp)}
+                </time>
               </div>
-              <p>{message.message}</p>
+              <p className="m-0 text-[0.9rem] leading-[1.6] [overflow-wrap:anywhere] whitespace-pre-wrap text-ink">
+                {message.message}
+              </p>
             </article>
           ))
         )}
       </section>
 
       <form
-        className={
-          "mobile-chat-composer bg-canvas border-t border-solid border-line [&_>_label]:block [&_>_label]:mb-[0.42rem] [&_>_label]:text-muted [&_>_label]:font-semibold [&&&&]:bottom-[0] [&&&&]:p-[0.8rem_1rem_calc(0.75rem_+_env(safe-area-inset-bottom))] [&&&&_>_label]:text-[0.72rem]"
-        }
+        className="mobile-chat-composer bottom-0 border-t border-solid border-line bg-canvas px-4 pt-[0.8rem] pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]"
         onSubmit={(event) => void submit(event)}
       >
-        <div
-          className={
-            "mobile-chat-send-channel flex items-center gap-[12px] mb-[8px] text-muted text-xs font-semibold [&_select]:min-w-0 [&_select]:min-h-[44px] [&_select]:text-ink [&_select]:bg-surface [&_select]:border [&_select]:border-solid [&_select]:border-control [&_select]:rounded-[8px] [&_select]:w-full [&&&&_select]:p-[8px_10px] [&&&&_select]:[font:inherit] [&&&&_select]:flex-[1] [&&&&_select:focus-visible]:[outline:2px_solid_var(--ors-color-accent)] [&&&&_select:focus-visible]:[outline-offset:2px]"
-          }
-        >
+        <div className="mobile-chat-send-channel mb-2 flex items-center gap-3 text-xs font-semibold text-muted">
           <label htmlFor="chat-send-channel">发送频道</label>
           <select
+            className="min-h-11 w-full min-w-0 flex-1 rounded-control border border-solid border-control bg-surface px-2.5 py-2 text-ink [font:inherit] focus-visible:[outline:2px_solid_var(--ors-color-accent)] focus-visible:[outline-offset:2px]"
             id="chat-send-channel"
             value={sendChannel}
             disabled={!online || !canSend || sending}
@@ -413,13 +413,10 @@ export function MobileChatApp() {
           </select>
         </div>
         {sendChannel === "tell" && (
-          <div
-            className={
-              "mobile-chat-recipient [&_input]:min-w-0 [&_input]:min-h-[44px] [&_input]:text-ink [&_input]:bg-surface [&_input]:border [&_input]:border-solid [&_input]:border-control [&_input]:rounded-[8px] grid items-center mb-[8px] text-muted text-xs [&_p]:m-0 [&_p]:text-danger [&&&&_input]:p-[8px_10px] [&&&&_input]:[font:inherit] [&&&&]:grid-cols-[auto_minmax(0,_1fr)] [&&&&]:gap-[8px_12px] [&&&&_p]:[grid-column:1_/_-1] [&&&&_input:focus-visible]:[outline:2px_solid_var(--ors-color-accent)] [&&&&_input:focus-visible]:[outline-offset:2px]"
-            }
-          >
+          <div className="mobile-chat-recipient mb-2 grid grid-cols-[auto_minmax(0,_1fr)] items-center gap-[8px_12px] text-xs text-muted">
             <label htmlFor="chat-recipient">收件人</label>
             <input
+              className="min-h-11 min-w-0 rounded-control border border-solid border-control bg-surface px-2.5 py-2 text-ink [font:inherit] focus-visible:[outline:2px_solid_var(--ors-color-accent)] focus-visible:[outline-offset:2px]"
               id="chat-recipient"
               value={recipient}
               maxLength={128}
@@ -430,16 +427,15 @@ export function MobileChatApp() {
               aria-invalid={recipient.length > 0 && invalidRecipient}
             />
             {recipient.length > 0 && invalidRecipient && (
-              <p role="alert">请输入正确的角色名@服务器，最多 128 字节。</p>
+              <p className="col-span-full m-0 text-danger" role="alert">
+                请输入正确的角色名@服务器，最多 128 字节。
+              </p>
             )}
           </div>
         )}
-        <div
-          className={
-            "mobile-chat-compose-row grid gap-[0.55rem] items-stretch [&_textarea]:w-full [&_textarea]:min-h-[3rem] [&_textarea]:max-h-[7.5rem] [&_textarea]:text-ink [&_textarea]:bg-surface [&_textarea]:border [&_textarea]:border-solid [&_textarea]:border-control [&_textarea]:rounded-[8px] [&_textarea::placeholder]:text-muted [&_>_button]:grid [&_>_button]:min-w-16 [&_>_button]:place-content-center [&_>_button]:rounded-lg [&_>_button]:border [&_>_button]:border-accent [&_>_button]:bg-accent [&_>_button]:px-3 [&_>_button]:py-2 [&_>_button]:text-on-accent [&_>_button:hover:not(:disabled)]:bg-accent-hover [&_>_button:disabled]:cursor-not-allowed [&_textarea:disabled]:cursor-not-allowed [&_>_button_svg]:w-[1.1rem] [&_>_button_svg]:h-[1.1rem] [&_>_button_span]:font-bold [&&&&]:grid-cols-[minmax(0,_1fr)_auto] [&&&&_textarea]:p-[0.68rem_0.75rem] [&&&&_textarea]:[resize:vertical] [&&&&_textarea]:leading-[1.45] [&&&&_>_button:disabled]:opacity-[0.55] [&&&&_textarea:disabled]:opacity-[0.55] [&&&&_>_button_svg]:m-[0_auto_0.16rem] [&&&&_>_button_span]:text-[0.7rem]"
-          }
-        >
+        <div className="mobile-chat-compose-row grid grid-cols-[minmax(0,_1fr)_auto] items-stretch gap-[0.55rem]">
           <textarea
+            className="max-h-[7.5rem] min-h-[3rem] w-full resize-y rounded-control border border-solid border-control bg-surface px-[0.75rem] py-[0.68rem] leading-[1.45] text-ink placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-55"
             id="chat-message"
             aria-label="聊天消息"
             rows={2}
@@ -462,19 +458,24 @@ export function MobileChatApp() {
             }}
           />
           <button
+            className="grid min-h-9 min-w-16 place-content-center rounded-control border border-accent bg-accent px-3 py-2 text-on-accent transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-55 pointer-coarse:min-h-11"
             type="submit"
             aria-label="发送消息"
             disabled={!online || !canSend || sending || !draft || invalidDraft}
           >
-            <PaperPlaneTilt weight="fill" aria-hidden="true" />
-            <span>{sending ? "发送中" : "发送"}</span>
+            <PaperPlaneTilt
+              className="mx-auto mt-0 mb-[0.16rem] h-[1.1rem] w-[1.1rem]"
+              weight="fill"
+              aria-hidden="true"
+            />
+            <span className="text-[0.7rem] font-bold">
+              {sending ? "发送中" : "发送"}
+            </span>
           </button>
         </div>
         {!canSend && (
           <p
-            className={
-              "mobile-chat-input-note text-warning [&&&&]:m-[0.4rem_0_0] [&&&&]:text-[0.72rem] [&&&&]:leading-[1.5]"
-            }
+            className="mobile-chat-input-note mx-0 mt-[0.4rem] mb-0 text-[0.72rem] leading-[1.5] text-warning"
             role="status"
           >
             当前连接暂不支持发送消息。
@@ -482,23 +483,21 @@ export function MobileChatApp() {
         )}
         {canSend && invalidText && (
           <p
-            className={
-              "mobile-chat-input-error text-danger [&&&&]:m-[0.4rem_0_0] [&&&&]:text-[0.72rem]"
-            }
+            className="mobile-chat-input-error mx-0 mt-[0.4rem] mb-0 text-[0.72rem] text-danger"
             role="alert"
           >
             请输入单行普通文字，不能发送斜杠指令或控制字符。
           </p>
         )}
-        <div
-          className={
-            "mobile-chat-compose-meta flex justify-between gap-[1rem] mt-[0.45rem] text-muted [&_>_span[data-invalid=true]]:text-danger [&_>_span[data-invalid=true]]:font-bold [&_button]:inline-flex [&_button]:gap-[0.3rem] [&_button]:items-center [&_button]:p-0 [&_button]:text-accent-hover [&_button]:border-0 [&_button:disabled]:text-disabled [&_button:disabled]:cursor-not-allowed [&&&&]:text-[0.68rem] [&&&&_button]:[background:transparent] [&&&&_button]:[text-decoration:underline] [&&&&_button]:[text-underline-offset:0.2rem]"
-          }
-        >
-          <span data-invalid={byteCount > byteBudget}>
+        <div className="mobile-chat-compose-meta mt-[0.45rem] flex justify-between gap-[1rem] text-[0.68rem] text-muted">
+          <span
+            className="data-[invalid=true]:font-bold data-[invalid=true]:text-danger"
+            data-invalid={byteCount > byteBudget}
+          >
             {byteCount} / {byteBudget} 字节
           </span>
           <button
+            className="inline-flex min-h-9 items-center gap-[0.3rem] border-0 bg-transparent p-0 text-accent-hover underline [text-underline-offset:0.2rem] transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:text-disabled pointer-coarse:min-h-11"
             type="button"
             disabled={!online}
             onClick={() => void disconnect()}
@@ -511,7 +510,6 @@ export function MobileChatApp() {
     </main>
   );
 }
-
 function ConnectionMark({ state }: { state: ConnectionState }) {
   const labels: Record<ConnectionState, string> = {
     pairing: "正在配对",
@@ -524,7 +522,7 @@ function ConnectionMark({ state }: { state: ConnectionState }) {
   return (
     <span
       className={
-        'mobile-chat-connection inline-flex gap-[0.45rem] items-center text-muted font-semibold [&::before]:w-[0.5rem] [&::before]:h-[0.5rem] [&::before]:bg-warning [&[data-state=online]::before]:bg-success [&[data-state=error]::before]:bg-danger [&[data-state=disconnected]::before]:bg-danger [&&&&]:text-[0.78rem] [&&&&::before]:[content:""] [&&&&::before]:rounded-[50%]'
+        'mobile-chat-connection inline-flex items-center gap-[0.45rem] text-[0.78rem] font-semibold text-muted before:h-[0.5rem] before:w-[0.5rem] before:rounded-[50%] before:bg-warning before:[content:""] data-[state=disconnected]:before:bg-danger data-[state=error]:before:bg-danger data-[state=online]:before:bg-success'
       }
       data-state={state}
     >
@@ -541,7 +539,6 @@ class MobileApiError extends Error {
     this.code = code;
   }
 }
-
 async function request<T = undefined>(path: string, options: RequestInit = {}) {
   const response = await fetch(path, {
     credentials: "same-origin",
@@ -560,7 +557,6 @@ async function request<T = undefined>(path: string, options: RequestInit = {}) {
   }
   return (response.status === 204 ? undefined : await response.json()) as T;
 }
-
 function uniqueMessages(messages: ChatMessage[]) {
   const seen = new Set<number>();
   // Reconnect history can arrive after live events; sequence defines the display order.
@@ -572,7 +568,6 @@ function uniqueMessages(messages: ChatMessage[]) {
     })
     .sort((left, right) => left.sequence - right.sequence);
 }
-
 function readError(reason: unknown, fallback: string) {
   if (reason instanceof MobileApiError) {
     if (reason.code === "pairing_failed")
@@ -582,7 +577,6 @@ function readError(reason: unknown, fallback: string) {
   }
   return reason instanceof Error ? reason.message : fallback;
 }
-
 function formatTime(timestamp: number) {
   const date = timestamp > 0 ? new Date(timestamp * 1_000) : new Date();
   return new Intl.DateTimeFormat("zh-CN", {

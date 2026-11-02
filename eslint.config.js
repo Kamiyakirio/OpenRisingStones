@@ -19,6 +19,25 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/\\[&{2,}/]",
+          message:
+            "Use utilities on the owning element instead of repeating & to raise specificity.",
+        },
+        {
+          selector: "TemplateElement[value.raw=/\\[&{2,}/]",
+          message:
+            "Use utilities on the owning element instead of repeating & to raise specificity.",
+        },
+        {
+          selector:
+            "Literal[value=/\\[&_(?:>_)?(?:button|input|select|textarea)(?=[:\\]\\[])/]",
+          message:
+            "Bind control utilities directly to controls instead of styling them through a parent.",
+        },
+      ],
       "no-restricted-imports": [
         "error",
         {

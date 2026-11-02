@@ -1,4 +1,9 @@
 /** Slot-local browsing filters never change the optimizer's independently stored scope. */
+import clsx from "clsx";
+import {
+  gearingControlClasses,
+  gearingScreenReaderClasses,
+} from "../utilityClasses";
 import {
   MagnifyingGlass,
   Check,
@@ -21,11 +26,23 @@ import { foodUsage } from "./foodUsage";
 import { candidateStats } from "./candidateStats";
 import { PreviewActions } from "./PreviewActions";
 import { useEffect, useRef } from "react";
+
+/** Complete utility strings are shared without adding component CSS rules. */
+const candidateRangeInputClasses =
+  "h-10 min-h-10 w-17 min-w-0 rounded-control border border-solid border-control bg-surface px-3 py-0 text-ink";
+const candidateFilterSelectClasses =
+  "h-10 min-h-10 min-w-0 rounded-control border border-solid border-control bg-surface px-3 py-0 text-ink";
+const candidateHeadingCellClasses =
+  "sticky top-0 z-2 border-b border-b-line bg-surface px-2.5 py-3 text-right text-[13px] font-normal whitespace-nowrap text-muted first:text-left";
+const candidateValueCellClasses =
+  "border-b border-b-line px-2.5 py-3 text-right whitespace-nowrap first:text-left first:text-accent";
+
 export function Candidates({
   vm,
   state,
   title,
   optimizeScope,
+  visible = true,
   onBack,
   onApply,
 }: {
@@ -33,6 +50,8 @@ export function Candidates({
   state: EditorState;
   title: string;
   optimizeScope: boolean;
+  /** The caller owns which editing panel is visible. */
+  visible?: boolean;
   onBack: () => void;
   onApply: () => void;
 }) {
@@ -79,22 +98,23 @@ export function Candidates({
         : null);
   return (
     <section
-      className={
-        'gear-candidates flex flex-col min-[1200px]:[.gear-columns[data-compact=candidates]_>_&]:min-h-0 min-[1200px]:[.gear-columns[data-compact=candidates]_>_&]:overflow-y-auto [@media(min-width:_1200px)]:[.gear-columns[data-compact="candidates"]_&&&&_>_:not(.gear-candidate-table)]:shrink-[0]'
-      }
+      className={clsx(
+        "gear-candidates min-w-0 flex-col bg-surface min-[768px]:min-h-0 min-[1200px]:group-data-[compact=candidates]/gear-columns:min-h-0 min-[1200px]:group-data-[compact=candidates]/gear-columns:overflow-y-auto",
+        visible ? "flex" : "hidden",
+      )}
       aria-label={`${title}候选装备`}
     >
-      <div
-        className={
-          "gear-section-heading bg-tool-soft text-tool flex justify-between items-center gap-[8px] min-h-[44px] border-b border-solid border-line [&_>_span]:text-xs [&_>_span]:text-muted [.gear-inspector_&]:pl-0 [.gear-inspector_&]:pr-0 [.gear-equipped_>_&]:justify-start [.gear-equipped_>_&]:flex-wrap [.gear-candidates_&]:flex-wrap [.gear-candidates_>_&]:pt-[4px] [.gear-candidates_>_&]:pb-[4px] [&&&&]:p-[10px_12px] [.gear-equipped_>_&&&&_h2]:[margin-right:auto] [@media(min-width:_768px)]:[.gear-candidates_>_&&&&]:shrink-[0]"
-        }
-      >
-        <button className="gear-back" onClick={onBack}>
+      <div className="gear-section-heading flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-solid border-line bg-tool-soft px-3 py-2.5 text-tool min-[768px]:shrink-0 min-[1200px]:shrink-0">
+        <button
+          className="gear-back inline-flex min-h-10 items-center justify-center gap-1.5 rounded-control border border-solid border-control bg-surface px-3 py-2 text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-default disabled:text-disabled disabled:opacity-100 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected pointer-coarse:min-h-11"
+          onClick={onBack}
+        >
           {optimizeScope ? "返回优化" : "返回配装"}
         </button>
-        <label>
+        <label className={gearingControlClasses.label}>
           部位
           <select
+            className={gearingControlClasses.select}
             aria-label="选择部位"
             value={state.selection}
             onChange={(event) =>
@@ -108,22 +128,16 @@ export function Candidates({
             ))}
           </select>
         </label>
-        <h2
-          className={
-            "text-lg font-semibold gear-sr-only absolute w-[1px] h-[1px] overflow-hidden whitespace-nowrap [&&&&]:[clip-path:inset(50%)]"
-          }
-        >
+        <h2 className="gear-sr-only absolute h-px w-px overflow-hidden text-lg font-semibold whitespace-nowrap [clip-path:inset(50%)]">
           {title}
         </h2>
-        <span>{state.querying ? "正在查询…" : `${state.total} 件`}</span>
+        <span className="text-xs text-muted">
+          {state.querying ? "正在查询…" : `${state.total} 件`}
+        </span>
       </div>
       {/* Align equipment context and filter feedback with the candidate toolbar. */}
-      <div
-        className={
-          "gear-current-item flex flex-wrap items-center gap-3 border-b border-line p-3 [&&&&_>_span]:flex-[1_1_180px] [&&&&_>_span]:[overflow-wrap:anywhere]"
-        }
-      >
-        <span>
+      <div className="gear-current-item flex flex-wrap items-center gap-3 border-b border-line p-3 min-[1200px]:shrink-0">
+        <span className="flex-[1_1_180px] [overflow-wrap:anywhere]">
           当前：
           <strong>
             {state.evaluation?.slots[state.selection] ? (
@@ -136,8 +150,16 @@ export function Candidates({
             )}
           </strong>
         </span>
-        {equipped && <button onClick={() => vm.remove()}>移除</button>}
+        {equipped && (
+          <button
+            className={gearingControlClasses.button}
+            onClick={() => vm.remove()}
+          >
+            移除
+          </button>
+        )}
         <button
+          className={gearingControlClasses.button}
           disabled={job.slots.at(-1)?.key === state.selection}
           onClick={() => {
             const next =
@@ -154,49 +176,37 @@ export function Candidates({
           data={data}
           busy={state.evaluating}
           label="当前装备生效属性"
+          layout="current-item"
         />
       </div>
-      <div
-        className={
-          "gear-candidate-filters relative grid gap-[8px] items-center p-[12px] border-b border-solid border-line text-xs [&_input[type=number]]:w-[68px] [&&&&]:grid-cols-[minmax(0,_1fr)_auto] [@media(min-width:_768px)]:[&&&&]:shrink-[0]"
-        }
-      >
-        <label
-          className={
-            "gear-search relative [&_svg]:absolute [&_svg]:text-muted [&_input]:w-full [&&&&_svg]:left-[9px] [&&&&_input]:[padding-left:34px]!"
-          }
-        >
-          <MagnifyingGlass />
-          <span
-            className={
-              "gear-sr-only absolute w-[1px] h-[1px] overflow-hidden whitespace-nowrap [&&&&]:[clip-path:inset(50%)]"
-            }
-          >
-            搜索装备名称
-          </span>
+      <div className="gear-candidate-filters relative grid grid-cols-[minmax(0,_1fr)_auto] items-center gap-2 border-b border-solid border-line p-3 text-xs min-[768px]:shrink-0 min-[1200px]:shrink-0">
+        <label className="gear-search relative flex items-center gap-2">
+          <MagnifyingGlass className="absolute left-[9px] h-4.5 w-4.5 shrink-0 text-muted" />
+          <span className={gearingScreenReaderClasses}>搜索装备名称</span>
           <input
+            className="min-h-10 w-full min-w-0 rounded-control border border-solid border-control bg-surface py-2 pr-3 [padding-left:34px]! text-ink pointer-coarse:min-h-11"
             placeholder="搜索装备名称"
             value={query.search}
-            onChange={(e) => vm.filter({ search: e.target.value })}
+            onChange={(e) =>
+              vm.filter({
+                search: e.target.value,
+              })
+            }
           />
         </label>
-        <details
-          className={
-            "gear-filter-details [&_>_summary]:flex [&_>_summary]:items-center [&_>_summary]:gap-[7px] [&_>_summary]:min-h-[40px] [&_>_summary]:border [&_>_summary]:border-solid [&_>_summary]:border-control [&_>_summary]:rounded-[var(--ors-radius-control)] [&_>_summary]:text-ink [&_>_summary::-webkit-details-marker]:hidden [&[open]_>_summary]:text-accent [&[open]_>_summary]:bg-selected [.gear-editor_&]:m-0 [&&&&_>_summary]:p-[7px_11px] [&&&&_>_summary]:[list-style:none] [&&&&[open]]:[grid-column:1_/_-1] [@media(max-width:_767px)]:[&&&&[open]]:[grid-column:1_/_-1]"
-          }
-        >
-          <summary>
-            <FadersHorizontal aria-hidden="true" />
+        <details className="gear-filter-details group/gear-filter-details m-0 open:col-span-full max-[767px]:open:col-span-full">
+          <summary className="flex min-h-10 list-none items-center gap-[7px] rounded-control border border-solid border-control px-[11px] py-[7px] text-ink group-open/gear-filter-details:bg-selected group-open/gear-filter-details:text-accent [&::-webkit-details-marker]:hidden">
+            <FadersHorizontal
+              className={gearingControlClasses.icon}
+              aria-hidden="true"
+            />
             筛选
           </summary>
-          <div
-            className={
-              "gear-filter-options static flex flex-wrap gap-[8px] items-center w-full p-[14px] border border-solid border-line rounded-[var(--ors-radius-panel)] bg-surface mt-[8px] [&_:is(input[type=number],_select)]:h-[40px] [&_:is(input[type=number],_select)]:min-h-[40px] [&_:is(input[type=number],_select)]:py-0 [&_>_label:not(.gear-check)]:min-h-[40px] max-[767px]:static max-[767px]:flex max-[767px]:flex-wrap max-[767px]:w-full max-[767px]:mt-[8px] [@media(max-width:_767px)]:[&&&&]:shadow-[none]"
-            }
-          >
-            <label>
+          <div className="gear-filter-options static mt-2 flex w-full flex-wrap items-center gap-2 rounded-panel border border-solid border-line bg-surface p-3.5 max-[767px]:static max-[767px]:mt-2 max-[767px]:flex max-[767px]:w-full max-[767px]:flex-wrap max-[767px]:shadow-[none]">
+            <label className="flex min-h-10 items-center gap-2">
               品级
               <input
+                className={candidateRangeInputClasses}
                 type="number"
                 aria-label="浏览最低品级"
                 value={query.minLevel || ""}
@@ -204,12 +214,15 @@ export function Candidates({
                 min={0}
                 max={9999}
                 onChange={(e) =>
-                  vm.filter({ minLevel: Number(e.target.value) })
+                  vm.filter({
+                    minLevel: Number(e.target.value),
+                  })
                 }
               />
             </label>
             <span>至</span>
             <input
+              className={candidateRangeInputClasses}
               type="number"
               aria-label="浏览最高品级"
               value={query.maxLevel === 9999 ? "" : query.maxLevel}
@@ -222,19 +235,10 @@ export function Candidates({
                 })
               }
             />
-            <label
-              className={
-                "gear-candidate-source min-w-[120px] [&_select]:w-full [&&&&]:flex-[1] [@media(max-width:_767px)]:[&&&&]:flex-[1_1_100%]"
-              }
-            >
-              <span
-                className={
-                  "gear-sr-only absolute w-[1px] h-[1px] overflow-hidden whitespace-nowrap [&&&&]:[clip-path:inset(50%)]"
-                }
-              >
-                浏览获取途径
-              </span>
+            <label className="gear-candidate-source flex min-h-10 min-w-30 flex-1 items-center gap-2 max-[767px]:flex-[1_1_100%]">
+              <span className={gearingScreenReaderClasses}>浏览获取途径</span>
               <select
+                className="h-10 min-h-10 w-full min-w-0 rounded-control border border-solid border-control bg-surface px-3 py-0 text-ink"
                 value={sourceSelectValue}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -289,18 +293,15 @@ export function Candidates({
                 </optgroup>
               </select>
             </label>
-            <label>
-              <span
-                className={
-                  "gear-sr-only absolute w-[1px] h-[1px] overflow-hidden whitespace-nowrap [&&&&]:[clip-path:inset(50%)]"
-                }
-              >
-                候选排序
-              </span>
+            <label className="flex min-h-10 items-center gap-2">
+              <span className={gearingScreenReaderClasses}>候选排序</span>
               <select
+                className={candidateFilterSelectClasses}
                 value={query.sortStat}
                 onChange={(e) =>
-                  vm.filter({ sortStat: e.target.value as Stat | "" })
+                  vm.filter({
+                    sortStat: e.target.value as Stat | "",
+                  })
                 }
               >
                 <option value="">品级排序</option>
@@ -311,9 +312,10 @@ export function Candidates({
                 ))}
               </select>
             </label>
-            <label>
+            <label className="flex min-h-10 items-center gap-2">
               顺序
               <select
+                className={candidateFilterSelectClasses}
                 aria-label="排序方向"
                 value={query.sortDirection ?? "desc"}
                 onChange={(event) =>
@@ -326,27 +328,24 @@ export function Candidates({
                 <option value="asc">升序（从低到高）</option>
               </select>
             </label>
-            <label
-              className={
-                "gear-check [.gear-filter-options_&]:min-h-[40px] [.gear-filter-options_&]:items-center text-xs [&_input]:w-[15px] [&_input]:h-[15px] [.gear-optimizer_&_input]:w-[15px] [.gear-editor_.gear-source-options_&]:flex [.gear-editor_.gear-source-options_&]:m-0 [.gear-editor_.gear-source-options_&]:items-start [&&&&]:leading-[1.5] [&&&&_input]:[accent-color:var(--ors-color-accent)]"
-              }
-            >
+            <label className="gear-check flex min-h-10 items-center gap-2 text-xs leading-[1.5]">
               <input
+                className="h-[15px] w-[15px] [accent-color:var(--ors-color-accent)]"
                 type="checkbox"
                 checked={query.hideObsolete}
-                onChange={(e) => vm.filter({ hideObsolete: e.target.checked })}
+                onChange={(e) =>
+                  vm.filter({
+                    hideObsolete: e.target.checked,
+                  })
+                }
               />
               隐藏过时装备
             </label>
           </div>
         </details>
       </div>
-      <div
-        className={
-          "gear-filter-summary flex flex-wrap items-center gap-x-3 gap-y-1 text-muted text-[13px] px-3 py-2 [&_button]:border-0 [&_button]:min-h-[32px] [&&&&_>_span]:flex-[1_1_180px] [&&&&_>_span]:[overflow-wrap:anywhere] [&&&&_button]:[background:transparent]"
-        }
-      >
-        <span>
+      <div className="gear-filter-summary flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-[13px] text-muted min-[1200px]:shrink-0">
+        <span className="flex-[1_1_180px] [overflow-wrap:anywhere]">
           {query.minLevel === 0 && query.maxLevel === 9999
             ? "不限品级"
             : query.maxLevel === 9999
@@ -360,7 +359,12 @@ export function Candidates({
             ? ` · ${activeQuickSourceLabel ?? query.sourceIds.map((id) => sourceMap.get(id)).join("、")}`
             : ""}
         </span>
-        <button onClick={() => vm.resetFilters()}>清除搜索和筛选</button>
+        <button
+          className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-control border-0 border-control bg-transparent px-3 py-2 text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-default disabled:text-disabled disabled:opacity-100 aria-pressed:bg-selected aria-pressed:text-accent"
+          onClick={() => vm.resetFilters()}
+        >
+          清除搜索和筛选
+        </button>
       </div>
       {!!query.sourceIds.length &&
         !state.querying &&
@@ -368,39 +372,53 @@ export function Candidates({
           (id) => !state.availableSourceIds.includes(id),
         ) && (
           <p
-            className={
-              "gear-muted gear-source-reset text-muted text-xs [&&&&]:leading-[1.7]"
-            }
+            className="gear-muted gear-source-reset text-xs leading-[1.7] text-muted min-[1200px]:shrink-0"
             role="status"
           >
             已选获取途径没有匹配。可以调整条件或清除获取途径筛选。
-            <button onClick={() => vm.filter({ sourceIds: [] })}>
+            <button
+              className={gearingControlClasses.button}
+              onClick={() =>
+                vm.filter({
+                  sourceIds: [],
+                })
+              }
+            >
               清除获取途径
             </button>
           </p>
         )}
-      <PreviewActions vm={vm} state={state} onApply={onApply} />
+      <PreviewActions
+        vm={vm}
+        state={state}
+        onApply={onApply}
+        layout="candidates"
+      />
+      {/* Keep result space stable while the current-item and preview controls grow. */}
       <div
         ref={table}
-        className={
-          'gear-candidate-table overflow-auto [&_thead_th]:sticky [&_thead_th]:bg-surface min-[1200px]:[.gear-columns[data-compact=candidates]_&]:min-h-[160px] max-[767px]:[&_table]:min-w-[520px] min-h-[320px] [&&&&]:max-h-[max(320px,_50dvh)] [&&&&_table]:[border-collapse:separate] [&&&&_table]:[border-spacing:0] [&&&&_thead_th]:top-[0] [&&&&_thead_th]:z-[2] [@media(min-width:_1200px)]:[.gear-columns[data-compact="candidates"]_&&&&]:flex-[1_1_auto] [@media(min-width:_1200px)]:[.gear-columns[data-compact="candidates"]_&&&&]:max-h-[none] [@media(min-width:_1200px)]:[.gear-columns[data-compact="candidates"]_&&&&]:[scrollbar-gutter:stable]'
-        }
+        className="gear-candidate-table max-h-[max(320px,_50dvh)] min-h-80 overflow-auto min-[1200px]:group-data-[compact=candidates]/gear-columns:h-[clamp(480px,_60dvh,_880px)] min-[1200px]:group-data-[compact=candidates]/gear-columns:max-h-none min-[1200px]:group-data-[compact=candidates]/gear-columns:shrink-0 min-[1200px]:group-data-[compact=candidates]/gear-columns:grow min-[1200px]:group-data-[compact=candidates]/gear-columns:[scrollbar-gutter:stable]"
         tabIndex={0}
         role="region"
         aria-label="候选装备列表"
         aria-busy={state.querying}
       >
-        <table>
+        <table className="w-full [border-collapse:separate] [border-spacing:0] tabular-nums max-[767px]:min-w-130">
           <thead>
             <tr>
-              {optimizeScope && <th>参与</th>}
-              <th className="gear-name-column [.gear-editor_th&]:pl-[10px] [.gear-editor_&]:text-left">
+              {optimizeScope && (
+                <th className={candidateHeadingCellClasses}>参与</th>
+              )}
+              <th className="gear-name-column sticky top-0 z-2 border-b border-b-line bg-surface py-3 pr-2.5 pl-2.5 text-left text-[13px] font-normal whitespace-nowrap text-muted first:text-left">
                 {consumable ? "消耗品" : "装备"}
               </th>
               {stats.map((s) => (
-                <th key={s}>{data.statNames[s]}</th>
+                <th className={candidateHeadingCellClasses} key={s}>
+                  {data.statNames[s]}
+                </th>
               ))}
               <th
+                className={candidateHeadingCellClasses}
                 title={
                   consumable
                     ? "当前配装的实际加成总和 ÷ 加成上限总和"
@@ -422,15 +440,16 @@ export function Candidates({
                   key={item.id}
                   className={
                     state.preview?.id === item.id
-                      ? "is-preview [.gear-candidate-table_tr&]:bg-selected"
+                      ? "is-preview bg-selected"
                       : item.id === equipped
-                        ? "is-equipped [.gear-candidate-table_tr&_td:first-child]:text-accent"
+                        ? "is-equipped"
                         : ""
                   }
                 >
                   {optimizeScope && (
-                    <td>
+                    <td className={candidateValueCellClasses}>
                       <input
+                        className="h-4 w-4"
                         type="checkbox"
                         aria-label={`${item.name}参与优化`}
                         checked={
@@ -448,11 +467,9 @@ export function Candidates({
                       />
                     </td>
                   )}
-                  <td className="gear-name-column [.gear-editor_th&]:pl-[10px] [.gear-editor_&]:text-left">
+                  <td className="gear-name-column border-b border-b-line px-2.5 py-3 text-left whitespace-nowrap first:text-left first:text-accent">
                     <button
-                      className={
-                        "gear-candidate-name [.gear-editor_&]:text-left [.gear-editor_&]:grid [.gear-editor_&]:items-center [.gear-editor_&]:gap-[12px] [.gear-editor_&]:min-w-[210px] [.gear-editor_&]:w-full [.gear-editor_&]:border-0 [.gear-editor_&]:whitespace-normal [.gear-editor_&&&&]:grid-cols-[40px_minmax(155px,_1fr)] [.gear-editor_&&&&]:p-[2px_0] [.gear-editor_&&&&]:[background:transparent]"
-                      }
+                      className="gear-candidate-name grid min-h-10 w-full min-w-52.5 grid-cols-[40px_minmax(155px,_1fr)] items-center justify-center gap-3 rounded-control border-0 border-control bg-transparent px-0 py-0.5 text-left whitespace-normal text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-default disabled:text-disabled disabled:opacity-100 aria-pressed:bg-selected aria-pressed:text-accent pointer-coarse:min-h-11"
                       aria-pressed={state.preview?.id === item.id}
                       disabled={state.querying || item.id === equipped}
                       onClick={() => void vm.preview(item)}
@@ -468,31 +485,22 @@ export function Candidates({
                       }}
                     >
                       <ItemIcon item={item} />
-                      <span
-                        className={
-                          "gear-candidate-copy [&_>_span:first-child]:block [&_>_span:first-child_>_svg]:w-[13px] [&_>_span:first-child_>_svg]:h-[13px] [&_>_span:first-child_>_svg]:mr-[4px] [&&&&_>_span:first-child]:leading-[1.65] [&&&&_>_span:first-child]:[overflow-wrap:anywhere] [&&&&_>_span:first-child_>_svg]:[vertical-align:middle]"
-                        }
-                      >
-                        <span>
+                      <span className="gear-candidate-copy">
+                        <span className="first:block first:leading-[1.65] first:[overflow-wrap:anywhere]">
                           {item.id === equipped && (
-                            <Check aria-label="当前装备" />
+                            <Check
+                              className="mr-1 h-[13px] w-[13px] shrink-0 [vertical-align:middle]"
+                              aria-label="当前装备"
+                            />
                           )}
                           <ItemName item={item} sources={data.sources} />
                           {item.hq && (
-                            <small
-                              className={
-                                "gear-hq font-medium inline-block ml-[6px] text-muted [&&&&]:text-[0.65rem] [&&&&]:[vertical-align:1px]"
-                              }
-                            >
+                            <small className="gear-hq ml-1.5 inline-block [vertical-align:1px] text-[0.65rem] font-medium text-muted">
                               HQ
                             </small>
                           )}
                         </span>
-                        <span
-                          className={
-                            "gear-item-description block text-muted mt-[3px] [&&&&]:text-[0.7rem] [&&&&]:leading-[1.6]"
-                          }
-                        >
+                        <span className="gear-item-description mt-[3px] block text-[0.7rem] leading-[1.6] text-muted first:block first:leading-[1.65] first:[overflow-wrap:anywhere]">
                           i{item.level} ·{" "}
                           {item.sourceId
                             ? sourceMap.get(item.sourceId)
@@ -504,7 +512,7 @@ export function Candidates({
                     </button>
                   </td>
                   {stats.map((s) => (
-                    <td key={s}>
+                    <td className={candidateValueCellClasses} key={s}>
                       {consumable && item.stats[s] !== undefined ? (
                         <span title={`实际加成，上限 ${item.stats[s]}`}>
                           {state.evaluating ? "…" : (usage?.actual[s] ?? "—")}
@@ -514,7 +522,7 @@ export function Candidates({
                       )}
                     </td>
                   ))}
-                  <td>
+                  <td className={candidateValueCellClasses}>
                     {consumable ? (
                       <span
                         className="gear-food-utilization"
@@ -526,17 +534,31 @@ export function Candidates({
                       </span>
                     ) : (
                       <span
-                        className={
-                          "gear-candidate-melds grid gap-[4px] [&_>_span]:w-[8px] [&_>_span]:h-[8px] [&_>_span]:border [&_>_span]:border-solid [&_>_span]:border-control [&&&&]:grid-cols-[repeat(5,_8px)] [&&&&_>_span]:rounded-[50%]"
-                        }
+                        className="gear-candidate-melds grid grid-cols-[repeat(5,_8px)] gap-1"
                         aria-label={`${item.materiaSlot ?? 0} 个保证孔${item.materiaAdvanced ? "，支持禁断" : ""}`}
                       >
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <span
-                            key={i}
-                            className={`${i >= (item.materiaSlot ?? 0) ? "is-advanced [.gear-meld-track_&&&&]:[border-style:dashed] [.gear-candidate-melds_&&&&]:[border-style:dashed]" : ""}  ${i >= (item.materiaAdvanced ? 5 : (item.materiaSlot ?? 0)) ? "is-absent [.gear-meld-track_&&&&]:[visibility:hidden] [.gear-candidate-melds_&&&&]:[visibility:hidden]" : ""}`}
-                          />
-                        ))}
+                        {Array.from(
+                          {
+                            length: 5,
+                          },
+                          (_, i) => (
+                            <span
+                              key={i}
+                              className={clsx(
+                                "h-2 w-2 rounded-[50%] border border-solid border-control",
+                                i >= (item.materiaSlot ?? 0)
+                                  ? "is-advanced [border-style:dashed]"
+                                  : "",
+                                i >=
+                                  (item.materiaAdvanced
+                                    ? 5
+                                    : (item.materiaSlot ?? 0))
+                                  ? "is-absent [visibility:hidden]"
+                                  : "",
+                              )}
+                            />
+                          ),
+                        )}
                       </span>
                     )}
                   </td>
@@ -546,26 +568,21 @@ export function Candidates({
           </tbody>
         </table>
         {!state.items.length && !state.querying && (
-          <p
-            className={
-              "gear-empty text-muted [&&&&]:p-[32px_16px] [&&&&]:leading-[1.8]"
-            }
-          >
+          <p className="gear-empty px-4 py-8 leading-[1.8] text-muted">
             {query.minLevel > query.maxLevel
               ? "最低品级不能高于最高品级。"
               : "没有匹配的装备。修改名称或筛选条件。"}
           </p>
         )}
       </div>
-      <div
-        className={
-          "gear-pagination flex items-center justify-between gap-[8px] p-[12px] text-xs [&&&&]:[margin-top:auto] [@media(min-width:_768px)]:[&&&&]:shrink-[0]"
-        }
-      >
+      <div className="gear-pagination [margin-top:auto] flex items-center justify-between gap-2 p-3 text-xs min-[768px]:shrink-0 min-[1200px]:shrink-0">
         <button
+          className={gearingControlClasses.button}
           disabled={query.offset === 0 || state.querying}
           onClick={() =>
-            vm.filter({ offset: Math.max(0, query.offset - query.limit) })
+            vm.filter({
+              offset: Math.max(0, query.offset - query.limit),
+            })
           }
         >
           上一页
@@ -577,8 +594,13 @@ export function Candidates({
           / {state.total}
         </span>
         <button
+          className={gearingControlClasses.button}
           disabled={query.offset + query.limit >= state.total || state.querying}
-          onClick={() => vm.filter({ offset: query.offset + query.limit })}
+          onClick={() =>
+            vm.filter({
+              offset: query.offset + query.limit,
+            })
+          }
         >
           下一页
         </button>

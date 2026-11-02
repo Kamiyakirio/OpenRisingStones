@@ -5,6 +5,144 @@
 
 @custom-variant dark (&:where(.theme-dark, .theme-dark *));
 
+/* Browser affordances are a low-priority baseline, never workspace control geometry. */
+@layer base {
+  /* One palette definition serves app shells, portals, and the phone entry. */
+  :root,
+  :where(.theme-light) {
+    --ors-color-canvas: var(--ors-light-color-canvas);
+    --ors-color-surface: var(--ors-light-color-surface);
+    --ors-color-hover: var(--ors-light-color-hover);
+    --ors-color-selected: var(--ors-light-color-selected);
+    --ors-color-text: var(--ors-light-color-text);
+    --ors-color-muted: var(--ors-light-color-muted);
+    --ors-color-line: var(--ors-light-color-line);
+    --ors-color-control-line: var(--ors-light-color-control-line);
+    --ors-color-accent: var(--ors-light-color-accent);
+    --ors-color-accent-hover: var(--ors-light-color-accent-hover);
+    --ors-color-on-accent: var(--ors-light-color-on-accent);
+    --ors-color-disabled: var(--ors-light-color-disabled);
+    --ors-color-success: var(--ors-light-color-success);
+    --ors-color-warning: var(--ors-light-color-warning);
+    --ors-color-danger: var(--ors-light-color-danger);
+    --ors-color-info: var(--ors-light-color-info);
+    --ors-color-violet: var(--ors-light-color-violet);
+    --ors-color-pink: var(--ors-light-color-pink);
+    --ors-color-teal: var(--ors-light-color-teal);
+    --ors-color-orange: var(--ors-light-color-orange);
+    --ors-shadow-popover: var(--ors-light-shadow-popover);
+    --ors-shadow-dialog: var(--ors-light-shadow-dialog);
+    --ors-color-brand: var(--ors-light-color-brand);
+    color-scheme: light;
+  }
+  :where(.theme-dark) {
+    --ors-color-canvas: var(--ors-dark-color-canvas);
+    --ors-color-surface: var(--ors-dark-color-surface);
+    --ors-color-hover: var(--ors-dark-color-hover);
+    --ors-color-selected: var(--ors-dark-color-selected);
+    --ors-color-text: var(--ors-dark-color-text);
+    --ors-color-muted: var(--ors-dark-color-muted);
+    --ors-color-line: var(--ors-dark-color-line);
+    --ors-color-control-line: var(--ors-dark-color-control-line);
+    --ors-color-accent: var(--ors-dark-color-accent);
+    --ors-color-accent-hover: var(--ors-dark-color-accent-hover);
+    --ors-color-on-accent: var(--ors-dark-color-on-accent);
+    --ors-color-disabled: var(--ors-dark-color-disabled);
+    --ors-color-success: var(--ors-dark-color-success);
+    --ors-color-warning: var(--ors-dark-color-warning);
+    --ors-color-danger: var(--ors-dark-color-danger);
+    --ors-color-info: var(--ors-dark-color-info);
+    --ors-color-violet: var(--ors-dark-color-violet);
+    --ors-color-pink: var(--ors-dark-color-pink);
+    --ors-color-teal: var(--ors-dark-color-teal);
+    --ors-color-orange: var(--ors-dark-color-orange);
+    --ors-shadow-popover: var(--ors-dark-shadow-popover);
+    --ors-shadow-dialog: var(--ors-dark-shadow-dialog);
+    --ors-color-brand: var(--ors-dark-color-brand);
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ors-color-canvas: var(--ors-dark-color-canvas);
+      --ors-color-surface: var(--ors-dark-color-surface);
+      --ors-color-hover: var(--ors-dark-color-hover);
+      --ors-color-selected: var(--ors-dark-color-selected);
+      --ors-color-text: var(--ors-dark-color-text);
+      --ors-color-muted: var(--ors-dark-color-muted);
+      --ors-color-line: var(--ors-dark-color-line);
+      --ors-color-control-line: var(--ors-dark-color-control-line);
+      --ors-color-accent: var(--ors-dark-color-accent);
+      --ors-color-accent-hover: var(--ors-dark-color-accent-hover);
+      --ors-color-on-accent: var(--ors-dark-color-on-accent);
+      --ors-color-disabled: var(--ors-dark-color-disabled);
+      --ors-color-success: var(--ors-dark-color-success);
+      --ors-color-warning: var(--ors-dark-color-warning);
+      --ors-color-danger: var(--ors-dark-color-danger);
+      --ors-color-info: var(--ors-dark-color-info);
+      --ors-color-violet: var(--ors-dark-color-violet);
+      --ors-color-pink: var(--ors-dark-color-pink);
+      --ors-color-teal: var(--ors-dark-color-teal);
+      --ors-color-orange: var(--ors-dark-color-orange);
+      --ors-shadow-popover: var(--ors-dark-shadow-popover);
+      --ors-shadow-dialog: var(--ors-dark-shadow-dialog);
+      --ors-color-brand: var(--ors-dark-color-brand);
+      color-scheme: dark;
+    }
+  }
+  body {
+    min-width: 320px;
+    background: var(--ors-color-canvas);
+    color: var(--ors-color-text);
+    font-family: var(--ors-font-ui);
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  :where(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+  }
+  :where(button, a, summary) {
+    -webkit-tap-highlight-color: transparent;
+  }
+  :where(button:not(:disabled), summary) {
+    cursor: pointer;
+  }
+  :where(button:disabled) {
+    cursor: not-allowed;
+  }
+  :where(input, select, textarea) {
+    caret-color: var(--ors-color-accent);
+    accent-color: var(--ors-color-accent);
+  }
+  :where(input, textarea)::placeholder {
+    color: var(--ors-color-muted);
+    opacity: 1;
+  }
+  :where(:focus-visible) {
+    outline: 2px solid var(--ors-color-accent);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: var(--ors-color-selected);
+    color: var(--ors-color-text);
+  }
+  :where(*) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ors-color-control-line) var(--ors-color-canvas);
+  }
+}
+
 @theme inline {
   --color-canvas: var(--ors-color-canvas);
   --color-surface: var(--ors-color-surface);
@@ -51,31 +189,34 @@
   --color-danger: var(--ors-color-danger);
   --color-info: var(--ors-color-info);
   --font-sans: var(--ors-font-ui);
+  --radius-control: var(--ors-radius-control);
+  --radius-panel: var(--ors-radius-panel);
+  --radius-overlay: var(--ors-radius-overlay);
 }
 
 @theme static {
-  --ors-color-canvas: #fcfcfa;
-  --ors-color-surface: #ffffff;
-  --ors-color-hover: #eeeff3;
-  --ors-color-selected: #eef0f5;
-  --ors-color-text: #202127;
-  --ors-color-muted: #596170;
-  --ors-color-line: #c7cbd3;
-  --ors-color-control-line: #808896;
-  --ors-color-accent: #53618a;
-  --ors-color-accent-hover: #435074;
-  --ors-color-on-accent: #ffffff;
-  --ors-color-disabled: #687183;
-  --ors-color-success: #187552;
-  --ors-color-warning: #9b580c;
-  --ors-color-danger: #bf3548;
-  --ors-color-info: #4a6d91;
-  --ors-color-violet: #716184;
-  --ors-color-pink: #865e76;
-  --ors-color-teal: #466f73;
-  --ors-color-orange: #86684c;
-  --ors-shadow-popover: 0 8px 24px rgb(0 0 0 / 0.12);
-  --ors-shadow-dialog: 0 16px 48px rgb(0 0 0 / 0.2);
+  --ors-light-color-canvas: #fcfcfa;
+  --ors-light-color-surface: #ffffff;
+  --ors-light-color-hover: #eeeff3;
+  --ors-light-color-selected: #eef0f5;
+  --ors-light-color-text: #202127;
+  --ors-light-color-muted: #596170;
+  --ors-light-color-line: #c7cbd3;
+  --ors-light-color-control-line: #808896;
+  --ors-light-color-accent: #53618a;
+  --ors-light-color-accent-hover: #435074;
+  --ors-light-color-on-accent: #ffffff;
+  --ors-light-color-disabled: #687183;
+  --ors-light-color-success: #187552;
+  --ors-light-color-warning: #9b580c;
+  --ors-light-color-danger: #bf3548;
+  --ors-light-color-info: #4a6d91;
+  --ors-light-color-violet: #716184;
+  --ors-light-color-pink: #865e76;
+  --ors-light-color-teal: #466f73;
+  --ors-light-color-orange: #86684c;
+  --ors-light-shadow-popover: 0 8px 24px rgb(0 0 0 / 0.12);
+  --ors-light-shadow-dialog: 0 16px 48px rgb(0 0 0 / 0.2);
   --ors-radius-control: 8px;
   --ors-radius-panel: 12px;
   --ors-radius-overlay: 16px;
@@ -159,4 +300,28 @@
       transform: rotate(360deg);
     }
   }
+  --ors-dark-color-canvas: #0e0e10;
+  --ors-dark-color-surface: #18191d;
+  --ors-dark-color-hover: #26282f;
+  --ors-dark-color-selected: #2a2d36;
+  --ors-dark-color-text: #f2f3f5;
+  --ors-dark-color-muted: #b0b6c3;
+  --ors-dark-color-line: #383b43;
+  --ors-dark-color-control-line: #778094;
+  --ors-dark-color-accent: #a0aacb;
+  --ors-dark-color-accent-hover: #b6bfd8;
+  --ors-dark-color-on-accent: #101128;
+  --ors-dark-color-disabled: #9aa2b2;
+  --ors-dark-color-success: #70d4a4;
+  --ors-dark-color-warning: #efba72;
+  --ors-dark-color-danger: #ff94a5;
+  --ors-dark-color-info: #9bafc8;
+  --ors-dark-color-violet: #b2a3c5;
+  --ors-dark-color-pink: #c2a0b2;
+  --ors-dark-color-teal: #91b6b8;
+  --ors-dark-color-orange: #c7ad90;
+  --ors-dark-shadow-popover: 0 8px 24px rgb(0 0 0 / 0.4);
+  --ors-dark-shadow-dialog: 0 16px 48px rgb(0 0 0 / 0.55);
+  --ors-dark-color-brand: var(--ors-dark-color-accent);
+  --ors-light-color-brand: var(--ors-light-color-accent);
 }

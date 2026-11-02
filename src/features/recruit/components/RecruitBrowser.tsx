@@ -9,11 +9,9 @@ import {
   RecruitStatus,
 } from "./RecruitFeedback";
 import { RecruitFilters } from "./RecruitFilters";
-
 type RecruitBrowserProps = {
   viewModel: RecruitState;
 };
-
 export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
   const jobsById = useMemo(
     () =>
@@ -22,7 +20,6 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
       ),
     [viewModel.config],
   );
-
   if (viewModel.selectedRecruit) {
     return (
       <RecruitDetailView
@@ -36,29 +33,25 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
       />
     );
   }
-
   return (
     <main
-      className={
-        "mx-auto w-full max-w-[1600px] px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 recruit-page max-[1199px]:px-[24px] max-[767px]:px-[16px] [&&&&]:w-[min(1280px,_100%)] [&&&&]:m-[0_auto] [&&&&]:p-[20px_20px] [@media(max-width:_760px)]:[&&&&]:p-[26px_16px_48px]"
-      }
+      className="recruit-page mx-auto w-full max-w-320 p-5 max-[760px]:px-4 max-[760px]:pt-6.5 max-[760px]:pb-12"
       id="recruit-list"
     >
       <RecruitFilters viewModel={viewModel} />
       <section
-        className="recruit-results mt-[24px] pt-0"
+        className="recruit-results mt-6 pt-0"
         aria-labelledby="recruit-results-title"
       >
-        <header
-          className={
-            "recruit-results-header flex justify-between gap-[24px] [&_h2]:m-0 [&_p]:m-0 [&_h2]:text-lg [&_p]:mt-[5px] [&_p]:text-muted [&_p]:text-xs max-[760px]:items-start mb-[20px] [&&&&]:[align-items:end] [&&&&_h2]:[letter-spacing:normal]"
-          }
-        >
+        <header className="recruit-results-header mb-5 flex items-end justify-between gap-6 max-[760px]:items-start">
           <div>
-            <h2 className="text-lg font-semibold" id="recruit-results-title">
+            <h2
+              className="m-0 text-lg font-semibold tracking-normal"
+              id="recruit-results-title"
+            >
               正在招募的队伍
             </h2>
-            <p>
+            <p className="m-0 mt-[5px] text-xs text-muted">
               {viewModel.loading
                 ? "正在读取最新招募"
                 : viewModel.activeFilterCount
@@ -67,11 +60,7 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
             </p>
           </div>
           {!viewModel.loading && viewModel.total > 0 && (
-            <span
-              className={
-                "recruit-page-indicator text-muted text-xs [&&&&]:[font-family:var(--ors-font-ui)]"
-              }
-            >
+            <span className="recruit-page-indicator font-sans text-xs text-muted">
               已显示 {viewModel.items.length} / {viewModel.total}
             </span>
           )}
@@ -81,7 +70,12 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
           <RecruitSkeleton />
         ) : viewModel.error ? (
           <RecruitStatus
-            icon={<WarningCircle weight="duotone" />}
+            icon={
+              <WarningCircle
+                className="h-10.5 w-10.5 text-accent"
+                weight="duotone"
+              />
+            }
             title="招募列表暂时无法读取"
             description="请重新加载。"
             technicalDetails={viewModel.error}
@@ -98,11 +92,7 @@ export function RecruitBrowser({ viewModel }: RecruitBrowserProps) {
           />
         ) : (
           <>
-            <div
-              className={
-                "recruit-grid grid gap-[12px] [&&&&]:grid-cols-[1fr] [@media(max-width:_1120px)]:[&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [@media(max-width:_760px)]:[&&&&]:grid-cols-[1fr] [@media(max-width:_1199px)]:[&&&&]:grid-cols-[1fr]"
-              }
-            >
+            <div className="recruit-grid grid grid-cols-[1fr] gap-3 max-[1199px]:grid-cols-[1fr] max-[1120px]:grid-cols-2 max-[760px]:grid-cols-[1fr]">
               {viewModel.items.map((item) => (
                 <RecruitCard
                   key={item.id}

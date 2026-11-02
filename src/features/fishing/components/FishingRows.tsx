@@ -1,9 +1,15 @@
 /** Share the fish row and its spot-specific bite data across fishing tasks. */
+
+import { fishingBiteErrorClasses } from "../utilityClasses";
 import { FishingRow } from "./FishingRow";
 import { FishBaitSourceProvider } from "./FishBaitSource";
 import { useBiteTimes } from "../hooks/useBiteTimes";
 import { useSelfMooch } from "../hooks/useSelfMooch";
 import type { Fish, FishCatalog, FishProgress } from "../types";
+
+/** Complete utility strings are shared without adding component CSS rules. */
+const rowsRetryButtonClasses =
+  "ml-1.5 min-h-10 rounded-control border border-solid border-control bg-surface px-3.5 py-2 text-accent underline transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected pointer-coarse:min-h-11";
 
 export type RowContext = {
   catalog: FishCatalog;
@@ -16,7 +22,6 @@ export type RowContext = {
   onOpen: (fish: Fish, triggerId: string, spotId?: number) => void;
   onToggleSaved: (id: number) => void;
 };
-
 export function FishingRows({
   fish,
   idPrefix,
@@ -27,6 +32,7 @@ export function FishingRows({
   showTiming = true,
   spotId,
   showNextCountdown = false,
+  layout,
 }: {
   fish: Fish[];
   idPrefix: string;
@@ -37,6 +43,7 @@ export function FishingRows({
   showTiming?: boolean;
   spotId?: number;
   showNextCountdown?: boolean;
+  layout?: "now-aside" | "spot-page";
 }) {
   const caught = new Set(context.progress.caught);
   const saved = new Set(context.progress.saved);
@@ -46,27 +53,25 @@ export function FishingRows({
     <FishBaitSourceProvider catalog={context.catalog}>
       <div className="fish-entry-list border-t border-solid border-line">
         {biteTimes.status === "error" && (
-          <p
-            className={
-              "fish-bite-error text-muted text-[13px] [&_button]:ml-[6px] [&_button]:text-accent [&&&&]:m-[10px_0] [&&&&]:p-[0_8px] [&&&&_button]:[text-decoration:underline]"
-            }
-            role="status"
-          >
+          <p className={fishingBiteErrorClasses} role="status">
             咬钩时间暂时无法读取。
-            <button type="button" onClick={biteTimes.retry}>
+            <button
+              className={rowsRetryButtonClasses}
+              type="button"
+              onClick={biteTimes.retry}
+            >
               重试
             </button>
           </p>
         )}
         {selfMooch.status === "error" && (
-          <p
-            className={
-              "fish-bite-error text-muted text-[13px] [&_button]:ml-[6px] [&_button]:text-accent [&&&&]:m-[10px_0] [&&&&]:p-[0_8px] [&&&&_button]:[text-decoration:underline]"
-            }
-            role="status"
-          >
+          <p className={fishingBiteErrorClasses} role="status">
             回转记录暂时无法读取。
-            <button type="button" onClick={selfMooch.retry}>
+            <button
+              className={rowsRetryButtonClasses}
+              type="button"
+              onClick={selfMooch.retry}
+            >
               重试
             </button>
           </p>
@@ -94,6 +99,7 @@ export function FishingRows({
             showNextCountdown={showNextCountdown}
             onOpen={context.onOpen}
             onToggleSaved={context.onToggleSaved}
+            layout={layout}
           />
         ))}
       </div>

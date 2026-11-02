@@ -1,4 +1,3 @@
-/** Debug-only workspace for payload lifecycle control and session log inspection. */
 import {
   Bug,
   PlugsConnected,
@@ -19,6 +18,12 @@ import type {
 } from "../shared/game-bridge/types";
 import { LogManagerPage } from "./LogManagerPage";
 
+/** Reused presentation strings stay static and are allocated once for this module. */
+const debugSummaryCellClasses =
+  "min-w-0 border-r border-solid border-line px-4 py-3 last:[border-right:0] max-[1120px]:nth-[-n_+_2]:border-b max-[1120px]:nth-[-n_+_2]:border-solid max-[1120px]:nth-[-n_+_2]:border-line max-[1120px]:nth-[2]:[border-right:0]";
+const debugSummaryValueClasses =
+  "mx-0 mt-[3px] mb-0 overflow-hidden text-[14px] font-semibold text-ellipsis whitespace-nowrap tabular-nums data-[phase=faulted]:text-danger data-[phase=ready]:text-success";
+
 const PHASE_LABELS: Record<BridgePhase, string> = {
   disconnected: "未连接",
   connecting: "正在连接",
@@ -26,14 +31,12 @@ const PHASE_LABELS: Record<BridgePhase, string> = {
   faulted: "连接故障",
   shutting_down: "正在关闭",
 };
-
 export function DebugPage() {
   const [status, setStatus] = useState<GameBridgeStatus | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [unloading, setUnloading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     let disposed = false;
     let stop: (() => void) | undefined;
@@ -57,7 +60,6 @@ export function DebugPage() {
       stop?.();
     };
   }, []);
-
   const unloadPayload = async () => {
     setUnloading(true);
     setNotice(null);
@@ -77,74 +79,72 @@ export function DebugPage() {
       setUnloading(false);
     }
   };
-
   return (
-    <main className="mx-auto w-full px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 debug-page grid gap-[28px] max-w-[1280px]">
-      <header
-        className={
-          "debug-page-heading flex justify-between gap-[20px] pb-[18px] border-b border-solid border-line [&_h1]:m-0 [&_p]:m-0 [&_p]:text-muted [&_>_div_>_p]:mt-[3px] [&_>_span]:inline-flex [&_>_span]:gap-[6px] [&_>_span]:items-center [&_>_span]:text-muted [&_>_span]:whitespace-nowrap [&_>_span_svg]:w-[17px] [&_>_span_svg]:h-[17px] max-[560px]:items-start max-[560px]:flex-col [&&&&]:[align-items:end] [&&&&_p]:text-[13px] [&&&&_>_span]:text-[13px]"
-        }
-      >
+    <main className="debug-page mx-auto grid w-full max-w-320 gap-7 px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4">
+      <header className="debug-page-heading flex items-end justify-between gap-5 border-b border-solid border-line pb-4.5 max-[560px]:flex-col max-[560px]:items-start">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">调试</h1>
-          <p>检查本次运行，并处理游戏桥接的开发状态。</p>
+          <h1 className="m-0 text-2xl font-bold tracking-tight">调试</h1>
+          <p className="m-0 mt-[3px] text-[13px] text-muted">
+            检查本次运行，并处理游戏桥接的开发状态。
+          </p>
         </div>
-        <span>
-          <Bug aria-hidden="true" /> 仅 Debug 构建
+        <span className="inline-flex items-center gap-1.5 text-[13px] whitespace-nowrap text-muted">
+          <Bug className="h-[17px] w-[17px]" aria-hidden="true" /> 仅 Debug 构建
         </span>
       </header>
 
       <section
-        className={
-          "debug-payload grid gap-[18px] [&&&&]:p-[20px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)]"
-        }
+        className="debug-payload grid gap-4.5 px-0 py-5 [border-block:1px_solid_var(--ors-color-line)]"
         aria-labelledby="payload-tools-title"
       >
-        <div
-          className={
-            "debug-payload-heading [&_h2]:m-0 [&_p]:m-0 [&_p]:text-muted flex gap-[14px] items-start [&_p]:mt-[3px] [&&&&_p]:text-[13px] [&&&&_h2]:text-[18px]"
-          }
-        >
+        <div className="debug-payload-heading flex items-start gap-3.5">
           <span
-            className={
-              "debug-payload-icon grid w-[38px] h-[38px] text-accent place-items-center [&_svg]:w-[28px] [&_svg]:h-[28px] [&&&&]:flex-[0_0_auto]"
-            }
+            className="debug-payload-icon grid h-9.5 w-9.5 shrink-0 place-items-center text-accent"
             aria-hidden="true"
           >
-            <PlugsConnected weight="duotone" />
+            <PlugsConnected className="h-7 w-7" weight="duotone" />
           </span>
           <div>
-            <h2 className="text-lg font-semibold" id="payload-tools-title">
+            <h2
+              className="m-0 text-lg text-[18px] font-semibold"
+              id="payload-tools-title"
+            >
               Payload 生命周期
             </h2>
-            <p>
+            <p className="m-0 mt-[3px] text-[13px] text-muted">
               受控卸载会先停止手机聊天，再关闭 Hook 和命令处理，最后释放 DLL。
             </p>
           </div>
         </div>
 
-        <dl
-          className={
-            "debug-payload-status grid [&_>_div]:min-w-0 [&_>_div]:border-r [&_>_div]:border-solid [&_>_div]:border-line [&_dt]:text-muted [&_dd]:overflow-hidden [&_dd]:tabular-nums [&_dd]:font-semibold [&_dd]:whitespace-nowrap [&_dd[data-phase=ready]]:text-success [&_dd[data-phase=faulted]]:text-danger max-[1120px]:[&_>_div:nth-child(-n_+_2)]:border-b max-[1120px]:[&_>_div:nth-child(-n_+_2)]:border-solid max-[1120px]:[&_>_div:nth-child(-n_+_2)]:border-line max-[560px]:ml-0 [&&&&]:grid-cols-[repeat(4,_minmax(0,_1fr))] [&&&&]:m-[0_0_0_52px] [&&&&]:[border-block:1px_solid_var(--ors-color-line)] [&&&&_>_div]:p-[12px_16px] [&&&&_>_div:last-child]:[border-right:0] [&&&&_dt]:text-[12px] [&&&&_dd]:m-[3px_0_0] [&&&&_dd]:text-[14px] [&&&&_dd]:[text-overflow:ellipsis] [@media(max-width:_1120px)]:[&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [@media(max-width:_1120px)]:[&&&&_>_div:nth-child(2)]:[border-right:0]"
-          }
-        >
-          <div>
-            <dt>桥接状态</dt>
-            <dd data-phase={status?.phase ?? "disconnected"}>
+        <dl className="debug-payload-status my-0 mr-0 ml-13 grid grid-cols-4 [border-block:1px_solid_var(--ors-color-line)] max-[1120px]:grid-cols-2 max-[560px]:ml-0">
+          <div className={debugSummaryCellClasses}>
+            <dt className="text-[12px] text-muted">桥接状态</dt>
+            <dd
+              className={debugSummaryValueClasses}
+              data-phase={status?.phase ?? "disconnected"}
+            >
               {status ? PHASE_LABELS[status.phase] : "正在读取"}
             </dd>
           </div>
-          <div>
-            <dt>游戏进程</dt>
-            <dd>{status?.processId ?? "未检测"}</dd>
+          <div className={debugSummaryCellClasses}>
+            <dt className="text-[12px] text-muted">游戏进程</dt>
+            <dd className={debugSummaryValueClasses}>
+              {status?.processId ?? "未检测"}
+            </dd>
           </div>
-          <div>
-            <dt>Payload 版本</dt>
-            <dd>{status?.payloadVersion ?? "未知"}</dd>
+          <div className={debugSummaryCellClasses}>
+            <dt className="text-[12px] text-muted">Payload 版本</dt>
+            <dd className={debugSummaryValueClasses}>
+              {status?.payloadVersion ?? "未知"}
+            </dd>
           </div>
-          <div>
-            <dt>最近错误</dt>
-            <dd title={status?.errorMessage ?? undefined}>
+          <div className={debugSummaryCellClasses}>
+            <dt className="text-[12px] text-muted">最近错误</dt>
+            <dd
+              className={debugSummaryValueClasses}
+              title={status?.errorMessage ?? undefined}
+            >
               {status?.errorCode ?? "无"}
             </dd>
           </div>
@@ -152,25 +152,24 @@ export function DebugPage() {
 
         {confirming ? (
           <div
-            className={
-              "debug-unload-confirmation [&_p]:m-0 [&_p]:text-muted grid gap-[12px] items-center ml-[52px] text-danger bg-surface rounded-[var(--ors-radius-control)] [&_>_svg]:w-[20px] [&_>_svg]:h-[20px] [&_p]:mt-[3px] max-[560px]:ml-0 [&&&&_p]:text-[13px] [&&&&]:grid-cols-[auto_minmax(0,_1fr)_auto] [&&&&]:p-[14px_16px] [&&&&]:[border:1px_solid_color-mix(in_srgb,_var(--ors-color-danger)_45%,_transparent)] [@media(max-width:_1120px)]:[&&&&]:grid-cols-[auto_minmax(0,_1fr)]"
-            }
+            className="debug-unload-confirmation ml-13 grid grid-cols-[auto_minmax(0,_1fr)_auto] items-center gap-3 rounded-control bg-surface px-4 py-3.5 text-danger [border:1px_solid_color-mix(in_srgb,_var(--ors-color-danger)_45%,_transparent)] max-[1120px]:grid-cols-[auto_minmax(0,_1fr)] max-[560px]:ml-0"
             role="alert"
           >
-            <WarningCircle weight="fill" aria-hidden="true" />
+            <WarningCircle
+              className="h-5 w-5"
+              weight="fill"
+              aria-hidden="true"
+            />
             <div>
               <strong>确定卸载游戏中的 Payload？</strong>
-              <p>
+              <p className="m-0 mt-[3px] text-[13px] text-muted">
                 所有桥接功能会立即断开。如果另一个调试实例正在使用同一
                 Payload，它也会失去连接。
               </p>
             </div>
-            <div
-              className={
-                "debug-unload-actions [&_button_svg]:w-[17px] [&_button_svg]:h-[17px] [&_button]:inline-flex [&_button]:min-h-[40px] [&_button]:items-center [&_button]:justify-center [&_button]:gap-[7px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-danger [&_button]:bg-surface [&_button]:font-semibold [&_button:hover:not(:disabled)]:bg-hover flex gap-[8px] [&_button:first-child]:text-ink [&_button:disabled]:cursor-not-allowed max-[1120px]:justify-end [&&&&_button]:p-[0_14px] [&&&&_button]:text-[13px] [&&&&_button:disabled]:opacity-[0.6] [@media(max-width:_1120px)]:[&&&&]:[grid-column:1_/_-1]"
-              }
-            >
+            <div className="debug-unload-actions flex gap-2 max-[1120px]:col-span-full max-[1120px]:justify-end">
               <button
+                className="inline-flex min-h-10 items-center justify-center gap-[7px] rounded-control border border-solid border-control bg-surface px-3.5 py-0 text-[13px] font-semibold text-danger transition-[background-color,color,border-color] duration-120 ease-[ease] first:text-ink enabled:hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60"
                 type="button"
                 disabled={unloading}
                 onClick={() => setConfirming(false)}
@@ -178,9 +177,7 @@ export function DebugPage() {
                 取消
               </button>
               <button
-                className={
-                  "debug-unload-confirm [.debug-unload-actions_&]:text-on-accent [.debug-unload-actions_&]:bg-danger [.debug-unload-actions_&]:border-danger [.debug-unload-actions_&&&&:hover:not(:disabled)]:[background:color-mix(in_srgb,_var(--ors-color-danger)_88%,_black)]"
-                }
+                className="debug-unload-confirm inline-flex min-h-10 items-center justify-center gap-[7px] rounded-control border border-solid border-control bg-surface px-3.5 py-0 text-[13px] font-semibold text-danger transition-[background-color,color,border-color] duration-120 ease-[ease] first:text-ink enabled:hover:bg-[color-mix(in_srgb,_var(--ors-color-danger)_88%,_black)] disabled:cursor-not-allowed disabled:opacity-60"
                 type="button"
                 disabled={unloading}
                 onClick={() => void unloadPayload()}
@@ -188,16 +185,14 @@ export function DebugPage() {
                 {unloading ? (
                   <>
                     <SpinnerGap
-                      className={
-                        "spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"
-                      }
+                      className="spin h-[17px] w-[17px] animate-[login-spin_900ms_linear_infinite]"
                       aria-hidden="true"
                     />
                     正在卸载
                   </>
                 ) : (
                   <>
-                    <Power aria-hidden="true" />
+                    <Power className="h-[17px] w-[17px]" aria-hidden="true" />
                     确认卸载
                   </>
                 )}
@@ -205,13 +200,12 @@ export function DebugPage() {
             </div>
           </div>
         ) : (
-          <div
-            className={
-              "debug-payload-action [&_p]:m-0 [&_p]:text-muted [&_button_svg]:w-[17px] [&_button_svg]:h-[17px] flex items-center justify-between gap-[20px] ml-[52px] [&_button]:inline-flex [&_button]:min-h-[40px] [&_button]:items-center [&_button]:justify-center [&_button]:gap-[7px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-danger [&_button]:bg-surface [&_button]:font-semibold [&_button:hover]:bg-hover max-[560px]:ml-0 max-[560px]:items-stretch max-[560px]:flex-col max-[560px]:[&_button]:w-full [&&&&_p]:text-[13px] [&&&&_button]:p-[0_14px] [&&&&_button]:text-[13px]"
-            }
-          >
-            <p>用于清理应用崩溃或热重启后留在游戏进程中的 Payload。</p>
+          <div className="debug-payload-action ml-13 flex items-center justify-between gap-5 max-[560px]:ml-0 max-[560px]:flex-col max-[560px]:items-stretch">
+            <p className="m-0 text-[13px] text-muted">
+              用于清理应用崩溃或热重启后留在游戏进程中的 Payload。
+            </p>
             <button
+              className="inline-flex min-h-10 items-center justify-center gap-[7px] rounded-control border border-solid border-control bg-surface px-3.5 py-0 text-[13px] font-semibold text-danger transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-hover max-[560px]:w-full"
               type="button"
               onClick={() => {
                 setConfirming(true);
@@ -219,7 +213,7 @@ export function DebugPage() {
                 setError(null);
               }}
             >
-              <Power aria-hidden="true" />
+              <Power className="h-[17px] w-[17px]" aria-hidden="true" />
               卸载 Payload
             </button>
           </div>
@@ -227,9 +221,7 @@ export function DebugPage() {
 
         {notice && (
           <p
-            className={
-              "debug-payload-notice text-success max-[560px]:ml-0 [&&&&]:m-[-4px_0_0_52px] [&&&&]:text-[13px]"
-            }
+            className="debug-payload-notice mt-[-4px] mr-0 mb-0 ml-13 text-[13px] text-success max-[560px]:ml-0"
             role="status"
           >
             {notice}
@@ -237,9 +229,7 @@ export function DebugPage() {
         )}
         {error && (
           <p
-            className={
-              "debug-payload-error text-danger max-[560px]:ml-0 [&&&&]:m-[-4px_0_0_52px] [&&&&]:text-[13px]"
-            }
+            className="debug-payload-error mt-[-4px] mr-0 mb-0 ml-13 text-[13px] text-danger max-[560px]:ml-0"
             role="alert"
           >
             {error}

@@ -1,4 +1,10 @@
 /** A spot replaces the directory view; fish details return here first. */
+
+import {
+  fishingSectionHeadingClasses,
+  fishingSectionDescriptionClasses,
+  fishingEmptyClasses,
+} from "../utilityClasses";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { FishingRows, type RowContext } from "./FishingRows";
@@ -8,6 +14,10 @@ import type {
   FishingRegionGroup,
   FishingSpotGroup,
 } from "../utils/workspace";
+
+/** Complete utility strings are shared without adding component CSS rules. */
+const spotViewToggleClasses =
+  "min-h-9 rounded-control border border-solid border-control bg-surface px-3 py-[5px] text-[13px] text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected";
 
 export function FishingSpotPage({
   region,
@@ -31,39 +41,40 @@ export function FishingSpotPage({
   onBack: () => void;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => heading.current?.focus({ preventScroll: true }), [spot.id]);
+  useEffect(
+    () =>
+      heading.current?.focus({
+        preventScroll: true,
+      }),
+    [spot.id],
+  );
   const caughtIds = new Set(context.progress.caught);
   const remaining = spot.fish.filter((fish) => !caughtIds.has(fish.id));
   const visible = showAll ? spot.fish : remaining;
   return (
-    <div className="fish-spot-page max-w-[1120px]">
+    <div className="fish-spot-page max-w-280">
       <button
-        className={
-          "fish-back [.fishing-workspace_&]:inline-flex [.fishing-workspace_&]:items-center [.fishing-workspace_&]:gap-[8px] [.fishing-workspace_&]:mb-[20px] [.fishing-workspace_&]:pl-0 [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:text-accent [&_svg]:w-[19px] [&_svg]:h-[19px] [.fishing-workspace_&&&&]:[background:transparent]"
-        }
+        className="fish-back mb-5 inline-flex min-h-10 items-center gap-2 rounded-control border-0 border-control bg-transparent py-2 pr-3.5 pl-0 text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent pointer-coarse:min-h-11"
         type="button"
         onClick={onBack}
       >
-        <ArrowLeft aria-hidden="true" /> {backLabel}
+        <ArrowLeft className="h-[19px] w-[19px]" aria-hidden="true" />{" "}
+        {backLabel}
       </button>
-      <header
-        className={
-          "fish-spot-page-heading flex justify-between flex-wrap mb-[20px] [&_p]:m-0 [&_p]:text-muted [&_p]:text-[13px] [&_>_p]:tabular-nums [&&&&]:[align-items:end] [&&&&]:gap-[10px_24px] [&&&&_h1]:m-[4px_0_0]"
-        }
-      >
+      <header className="fish-spot-page-heading mb-5 flex flex-wrap items-end justify-between gap-[10px_24px]">
         <div>
-          <p>
+          <p className="m-0 text-[13px] text-muted">
             {region.name} / {map.name}
           </p>
           <h1
-            className="text-2xl font-bold tracking-tight"
+            className="mx-0 mt-1 mb-0 text-2xl font-bold tracking-tight"
             ref={heading}
             tabIndex={-1}
           >
             {spot.name || "钓场待补"}
           </h1>
         </div>
-        <p>
+        <p className="m-0 text-[13px] text-muted tabular-nums">
           已记录 {spot.caught} / {spot.fish.length}
         </p>
       </header>
@@ -71,24 +82,21 @@ export function FishingSpotPage({
       {spot.fish.some((fish) => fish.method !== "spear") && (
         <SpotCatchStats spotId={spot.id} context={context} />
       )}
-      <section className="fish-spot-page-fish mt-[28px]" aria-label="钓场鱼类">
-        <header
-          className={
-            "fish-section-heading [&_p]:text-muted flex items-baseline justify-between flex-wrap mb-[14px] [&_h2]:m-0 [&_h2]:text-lg [&_p]:text-[13px] [.fish-ocean-fish-section_&_h3]:m-0 [.fish-ocean-fish-section_&_h3]:text-lg [&&&&]:gap-[8px_20px] [&&&&_p]:m-[2px_0_0] [&&&&_p]:leading-[1.5]"
-          }
-        >
+      <section className="fish-spot-page-fish mt-7" aria-label="钓场鱼类">
+        <header className={fishingSectionHeadingClasses}>
           <div>
-            <h2 className="text-lg font-semibold">鱼类</h2>
-            <p>按图鉴记录顺序排列；图鉴外的鱼排在最后。</p>
+            <h2 className="m-0 text-lg font-semibold">鱼类</h2>
+            <p className={fishingSectionDescriptionClasses}>
+              按图鉴记录顺序排列；图鉴外的鱼排在最后。
+            </p>
           </div>
           <div
-            className={
-              "fish-spot-view-controls inline-flex flex-wrap gap-[6px] [.fishing-workspace_&_button]:min-h-[36px] [.fishing-workspace_&_button]:text-[13px] [.fishing-workspace_&&&&_button]:p-[5px_12px]"
-            }
+            className="fish-spot-view-controls inline-flex flex-wrap gap-1.5"
             role="group"
             aria-label="鱼类范围"
           >
             <button
+              className={spotViewToggleClasses}
               type="button"
               aria-pressed={!showAll}
               onClick={() => onShowAll(false)}
@@ -96,6 +104,7 @@ export function FishingSpotPage({
               未记录 {remaining.length}
             </button>
             <button
+              className={spotViewToggleClasses}
               type="button"
               aria-pressed={showAll}
               onClick={() => onShowAll(true)}
@@ -111,13 +120,10 @@ export function FishingSpotPage({
             context={context}
             showLocation={false}
             spotId={spot.id}
+            layout="spot-page"
           />
         ) : (
-          <p
-            className={
-              "fish-inline-empty m-0 text-muted [&&&&]:p-[24px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)]"
-            }
-          >
+          <p className={fishingEmptyClasses}>
             这里的鱼都已记录。可切换到“全部”查看。
           </p>
         )}

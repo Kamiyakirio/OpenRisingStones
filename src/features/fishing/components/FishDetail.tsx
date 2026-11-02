@@ -1,4 +1,9 @@
 /** One fish, one preparation path: window, destination, bait, then full conditions. */
+
+import {
+  fishingBiteErrorClasses,
+  fishingSectionDescriptionClasses,
+} from "../utilityClasses";
 import {
   ArrowLeft,
   ArrowRight,
@@ -30,6 +35,25 @@ import type {
   FishingLocation,
 } from "../types";
 
+/** Complete utility strings are shared without adding component CSS rules. */
+const detailContextButtonClasses =
+  "inline-flex min-h-10 items-center gap-[7px] rounded-control border border-solid border-control bg-surface px-3.5 py-2 text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected pointer-coarse:min-h-11";
+const detailRetryButtonClasses =
+  "ml-1.5 min-h-10 rounded-control border border-solid border-control bg-surface px-3.5 py-2 text-accent underline transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected pointer-coarse:min-h-11";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+const detailFactHeadingClasses =
+  "mx-0 mt-0 mb-2.5 text-lg text-[13px] font-semibold text-muted";
+const detailFactHintClasses = "mx-0 mt-[5px] mb-0 text-[13px] text-muted";
+const detailFactColumnClasses =
+  "min-w-0 border-r border-solid border-line px-4.5 py-5 first:pl-0 last:pr-0 last:[border-right:0] max-[850px]:border-b max-[850px]:border-solid max-[850px]:border-line max-[850px]:px-0 max-[850px]:py-[15px] max-[850px]:[border-right:0] max-[850px]:first:border-b max-[850px]:first:border-solid max-[850px]:first:border-line max-[850px]:first:px-0 max-[850px]:first:py-[15px] max-[850px]:first:[border-right:0] max-[850px]:last:border-b max-[850px]:last:border-solid max-[850px]:last:border-line max-[850px]:last:px-0 max-[850px]:last:py-[15px] max-[850px]:last:[border-bottom:0] max-[850px]:last:[border-right:0]";
+const detailFactValueClasses =
+  "block text-lg leading-[1.4] [overflow-wrap:anywhere]";
+const detailSectionClasses =
+  "fish-detail-section min-w-0 border-t border-solid border-line pt-4";
+const detailPropertyRowClasses =
+  "grid grid-cols-[112px_minmax(0,_1fr)] gap-3 border-b border-solid border-line px-0 py-[9px]";
+
 const localTime = (time: number) =>
   new Date(time).toLocaleString("zh-CN", {
     month: "numeric",
@@ -38,8 +62,11 @@ const localTime = (time: number) =>
     minute: "2-digit",
     hour12: false,
   });
-const methodLabels = { rod: "垂钓", spear: "刺鱼", ocean: "海钓" };
-
+const methodLabels = {
+  rod: "垂钓",
+  spear: "刺鱼",
+  ocean: "海钓",
+};
 export function WindowStatus({
   fish,
   catalog,
@@ -69,15 +96,14 @@ export function WindowStatus({
     <span
       className={
         open === true
-          ? "fish-open text-success font-semibold"
-          : "fish-muted text-muted [.fish-forecast_>_div_>_&]:text-[13px] [.fish-forecast_>_div_>_&]:tabular-nums"
+          ? "fish-open font-semibold text-success"
+          : "fish-muted text-muted"
       }
     >
       {text}
     </span>
   );
 }
-
 export function FishDetail({
   fish,
   initialSpotId,
@@ -150,36 +176,31 @@ export function FishDetail({
       <div className="fish-detail">
         <button
           type="button"
-          className={
-            "fish-back [.fishing-workspace_&]:inline-flex [.fishing-workspace_&]:items-center [.fishing-workspace_&]:gap-[8px] [.fishing-workspace_&]:mb-[20px] [.fishing-workspace_&]:pl-0 [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:text-accent [&_svg]:w-[19px] [&_svg]:h-[19px] [.fishing-workspace_&&&&]:[background:transparent]"
-          }
+          className="fish-back mb-5 inline-flex min-h-10 items-center gap-2 rounded-control border-0 border-control bg-transparent py-2 pr-3.5 pl-0 text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent pointer-coarse:min-h-11"
           onClick={onBack}
         >
           <ArrowLeft aria-hidden="true" /> 返回钓鱼任务
         </button>
-        <header className="fish-detail-heading flex items-center flex-wrap gap-[14px] pb-[16px]">
-          <FishIcon fish={fish} />
-          <div
-            className={
-              "fish-detail-title min-w-0 [&_h1]:m-0 [&_p]:text-muted [&_p]:text-[13px] [&&&&]:flex-[1_1_230px] [&&&&_p]:m-[3px_0_0]"
-            }
-          >
+        <header className="fish-detail-heading flex flex-wrap items-center gap-3.5 pb-4">
+          <FishIcon size="detail" fish={fish} />
+          <div className="fish-detail-title min-w-0 flex-[1_1_230px]">
             <h1
-              className="text-2xl font-bold tracking-tight"
+              className="m-0 text-2xl font-bold tracking-tight"
               ref={heading}
               tabIndex={-1}
             >
               {fish.name}
             </h1>
-            <p>
+            <p className="mx-0 mt-[3px] mb-0 text-[13px] text-muted">
               {methodLabels[fish.method]} · {fish.zone || "区域未收录"}
               {fish.kind !== "normal" &&
                 fish.kind !== "unknown" &&
                 ` · ${kindLabels[fish.kind]}`}
             </p>
           </div>
-          <div className="fish-detail-actions flex items-center flex-wrap gap-[8px] [&_button]:inline-flex [&_button]:items-center [&_button]:gap-[7px] [&_svg]:w-[18px] [&_svg]:h-[18px] max-[620px]:w-full">
+          <div className="fish-detail-actions flex flex-wrap items-center gap-2 max-[620px]:w-full">
             <button
+              className={detailContextButtonClasses}
               type="button"
               aria-pressed={saved}
               onClick={() => onToggle(fish.id, "saved")}
@@ -192,7 +213,7 @@ export function FishDetail({
             </button>
             {gameManaged ? (
               <span
-                className="fish-detail-record inline-flex items-center gap-[7px] [&_svg]:w-[18px] [&_svg]:h-[18px] p-[8px] text-muted text-[13px] [&[data-caught=true]]:text-success"
+                className="fish-detail-record inline-flex items-center gap-[7px] p-2 text-[13px] text-muted data-[caught=true]:text-success"
                 data-caught={caught}
               >
                 {caught && <Check aria-hidden="true" weight="bold" />}
@@ -200,6 +221,7 @@ export function FishDetail({
               </span>
             ) : (
               <button
+                className={detailContextButtonClasses}
                 type="button"
                 aria-pressed={caught}
                 onClick={() => onToggle(fish.id, "caught")}
@@ -212,20 +234,20 @@ export function FishDetail({
         </header>
         {gameLogNotice}
         {gameLogActive && !gameManaged && (
-          <p className="fish-detail-note text-muted text-[13px]">
+          <p className="fish-detail-note text-[13px] text-muted">
             这条任务鱼不在游戏钓鱼图鉴中，过去是否钓获无法自动读取。
           </p>
         )}
         <section
-          className={
-            "fish-plan grid mt-[24px] [&_>_div]:min-w-0 [&_>_div]:border-r [&_>_div]:border-solid [&_>_div]:border-line [&_>_div:first-child]:pl-0 [&_>_div:last-child]:pr-0 [&_h2]:text-muted [&_h2]:text-[13px] [&_h2]:font-semibold [&_strong]:block [&_strong]:text-lg [&_p]:text-muted [&_p]:text-[13px] max-[850px]:[&_>_div]:border-b max-[850px]:[&_>_div]:border-solid max-[850px]:[&_>_div]:border-line max-[850px]:[&_>_div:first-child]:border-b max-[850px]:[&_>_div:first-child]:border-solid max-[850px]:[&_>_div:first-child]:border-line max-[850px]:[&_>_div:last-child]:border-b max-[850px]:[&_>_div:last-child]:border-solid max-[850px]:[&_>_div:last-child]:border-line [&&&&]:grid-cols-[1.1fr_1fr_1fr] [&&&&]:[border-block:1px_solid_var(--ors-color-line)] [&&&&_>_div]:p-[20px_18px] [&&&&_>_div:last-child]:[border-right:0] [&&&&_h2]:m-[0_0_10px] [&&&&_strong]:leading-[1.4] [&&&&_strong]:[overflow-wrap:anywhere] [&&&&_p]:m-[5px_0_0] [@media(max-width:_850px)]:[&&&&]:grid-cols-[minmax(0,_1fr)] [@media(max-width:_850px)]:[&&&&_>_div]:p-[15px_0] [@media(max-width:_850px)]:[&&&&_>_div]:[border-right:0] [@media(max-width:_850px)]:[&&&&_>_div:first-child]:p-[15px_0] [@media(max-width:_850px)]:[&&&&_>_div:first-child]:[border-right:0] [@media(max-width:_850px)]:[&&&&_>_div:last-child]:p-[15px_0] [@media(max-width:_850px)]:[&&&&_>_div:last-child]:[border-right:0] [@media(max-width:_850px)]:[&&&&_>_div:last-child]:[border-bottom:0]"
-          }
+          className="fish-plan mt-6 grid grid-cols-[1.1fr_1fr_1fr] [border-block:1px_solid_var(--ors-color-line)] max-[850px]:grid-cols-1"
           aria-label="本次钓鱼准备"
         >
-          <div className="fish-plan-primary [&_strong]:text-accent">
-            <h2 className="text-lg font-semibold">时间窗口</h2>
-            <strong>{timingHeadline}</strong>
-            <p>
+          <div className="fish-plan-primary min-w-0 border-r border-solid border-line px-4.5 py-5 first:pl-0 last:pr-0 last:[border-right:0] max-[850px]:border-b max-[850px]:border-solid max-[850px]:border-line max-[850px]:px-0 max-[850px]:py-[15px] max-[850px]:[border-right:0] max-[850px]:first:border-b max-[850px]:first:border-solid max-[850px]:first:border-line max-[850px]:first:px-0 max-[850px]:first:py-[15px] max-[850px]:first:[border-right:0] max-[850px]:last:border-b max-[850px]:last:border-solid max-[850px]:last:border-line max-[850px]:last:px-0 max-[850px]:last:py-[15px] max-[850px]:last:[border-bottom:0] max-[850px]:last:[border-right:0]">
+            <h2 className={detailFactHeadingClasses}>时间窗口</h2>
+            <strong className="block text-lg leading-[1.4] [overflow-wrap:anywhere] text-accent">
+              {timingHeadline}
+            </strong>
+            <p className={detailFactHintClasses}>
               {fish.method === "ocean"
                 ? "当前航次的时段与幻海流需在游戏中确认。"
                 : open && currentWindow && !unrestricted
@@ -235,39 +257,39 @@ export function FishDetail({
                     : `艾欧泽亚时间 ${timeRequirement(fish)}`}
             </p>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold">钓点</h2>
+          <div className={detailFactColumnClasses}>
+            <h2 className={detailFactHeadingClasses}>钓点</h2>
             {activeSpot ? (
               <button
                 type="button"
-                className={
-                  "fish-plan-spot-link [.fishing-workspace_&]:inline-flex [.fishing-workspace_&]:items-center [.fishing-workspace_&]:gap-[8px] [.fishing-workspace_&]:min-h-0 [.fishing-workspace_&]:p-0 [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:text-accent [.fishing-workspace_&]:text-left [&_svg]:w-[16px] [&_svg]:h-[16px] [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline] [.fishing-workspace_&&&&:hover]:[text-underline-offset:3px] [&&&&_strong]:[color:inherit] [&&&&_svg]:flex-[0_0_16px]"
-                }
+                className="fish-plan-spot-link inline-flex min-h-0 items-center gap-2 rounded-control border-0 border-control bg-transparent p-0 text-left text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-transparent hover:underline hover:[text-underline-offset:3px] disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent"
                 onClick={() => onOpenSpot(activeSpot)}
                 aria-label={`查看${activeSpot.name || "此钓场"}的鱼类`}
               >
-                <strong>{activeSpot.name || "钓点待补充"}</strong>
+                <strong className="block text-lg leading-[1.4] [overflow-wrap:anywhere] text-[inherit]">
+                  {activeSpot.name || "钓点待补充"}
+                </strong>
                 <ArrowRight aria-hidden="true" />
               </button>
             ) : (
-              <strong>钓点待补充</strong>
+              <strong className={detailFactValueClasses}>钓点待补充</strong>
             )}
-            <p>
+            <p className={detailFactHintClasses}>
               {activeSpot?.zone || fish.zone || "区域待补充"}
               {activeSpot?.coords &&
                 ` · X:${activeSpot.coords[0].toFixed(1)} Y:${activeSpot.coords[1].toFixed(1)}`}
             </p>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold">
+          <div className={detailFactColumnClasses}>
+            <h2 className={detailFactHeadingClasses}>
               {fish.method === "spear" ? "鱼影" : "鱼饵"}
             </h2>
             {fish.method === "spear" ? (
-              <strong>
+              <strong className={detailFactValueClasses}>
                 {gigLabels[condition?.gig || ""] || "鱼影大小待补充"}
               </strong>
             ) : baitIds.length ? (
-              <strong className="fish-plan-baits">
+              <strong className="fish-plan-baits block text-lg leading-[1.4] [overflow-wrap:anywhere]">
                 {baitIds.map((id, index) => (
                   <span key={id}>
                     {index > 0 && " / "}
@@ -278,19 +300,22 @@ export function FishDetail({
                 ))}
               </strong>
             ) : (
-              <strong>推荐鱼饵待补充</strong>
+              <strong className={detailFactValueClasses}>推荐鱼饵待补充</strong>
             )}
-            {Boolean(condition?.predators.length) && <p>还需先钓前置鱼</p>}
+            {Boolean(condition?.predators.length) && (
+              <p className={detailFactHintClasses}>还需先钓前置鱼</p>
+            )}
             {fish.method !== "spear" && activeSpot && (
               <button
                 type="button"
-                className={
-                  "fish-plan-bait-link [.fishing-workspace_&]:inline-flex [.fishing-workspace_&]:items-center [.fishing-workspace_&]:gap-[5px] [.fishing-workspace_&]:min-h-[32px] [.fishing-workspace_&]:mt-[8px] [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:text-accent [.fishing-workspace_&]:text-[13px] [&_svg]:w-[15px] [&_svg]:h-[15px] [.fishing-workspace_&&&&]:p-[3px_0] [.fishing-workspace_&&&&]:[background:transparent]"
-                }
+                className="fish-plan-bait-link mt-2 inline-flex min-h-8 items-center gap-[5px] rounded-control border-0 border-control bg-transparent px-0 py-[3px] text-[13px] text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent"
                 onClick={() =>
                   document
                     .getElementById("fish-bait-comparison")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                    ?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    })
                 }
               >
                 比较不同鱼饵的咬钩时间 <ArrowRight aria-hidden="true" />
@@ -299,11 +324,7 @@ export function FishDetail({
           </div>
         </section>
         {fish.description && (
-          <p
-            className={
-              "fish-description [&&&&]:max-w-[75ch] [&&&&]:m-[24px_0] [&&&&]:leading-[1.7]"
-            }
-          >
+          <p className="fish-description mx-0 my-6 max-w-[75ch] leading-[1.7]">
             {fish.description.replace(/<[^>]*>/g, "")}
           </p>
         )}
@@ -315,37 +336,25 @@ export function FishDetail({
             onSelectSpot={setSpotId}
           />
         )}
-        <div
-          className={
-            "fish-detail-layout grid gap-[30px] mt-[34px] [&&&&]:grid-cols-[minmax(0,_1fr)_minmax(0,_1fr)] [@media(max-width:_850px)]:[&&&&]:grid-cols-[minmax(0,_1fr)]"
-          }
-        >
-          <section
-            className={
-              "fish-detail-section [&_header_p]:text-muted [&_h2]:m-0 [&_h2]:text-lg [&_header_p]:text-[13px] min-w-0 pt-[16px] border-t border-solid border-line [&_header]:mb-[16px] [&_h3]:text-base [&&&&_header_p]:m-[2px_0_0] [&&&&_header_p]:leading-[1.5] [&&&&_h3]:m-[24px_0_12px]"
-            }
-          >
-            <header>
-              <h2 className="text-lg font-semibold">钓获条件</h2>
+        <div className="fish-detail-layout mt-8.5 grid grid-cols-[minmax(0,_1fr)_minmax(0,_1fr)] gap-7.5 max-[850px]:grid-cols-1">
+          <section className={detailSectionClasses}>
+            <header className="mb-4">
+              <h2 className="m-0 text-lg font-semibold">钓获条件</h2>
             </header>
             {!condition ? (
-              <p className="fish-muted text-muted [.fish-forecast_>_div_>_&]:text-[13px] [.fish-forecast_>_div_>_&]:tabular-nums">
-                鱼饵与天气条件尚未收录。
-              </p>
+              <p className="fish-muted text-muted">鱼饵与天气条件尚未收录。</p>
             ) : (
               <>
-                <dl
-                  className={
-                    "fish-facts m-0 [&_>_div]:grid [&_>_div]:gap-[12px] [&_>_div]:border-b [&_>_div]:border-solid [&_>_div]:border-line [&_dt]:text-muted [&_dd]:m-0 [&&&&_>_div]:grid-cols-[112px_minmax(0,_1fr)] [&&&&_>_div]:p-[9px_0] [&&&&_dd]:[overflow-wrap:anywhere]"
-                  }
-                >
-                  <div>
-                    <dt>艾欧泽亚时间</dt>
-                    <dd>{timeRequirement(fish)}</dd>
+                <dl className="fish-facts m-0">
+                  <div className={detailPropertyRowClasses}>
+                    <dt className="text-muted">艾欧泽亚时间</dt>
+                    <dd className="m-0 [overflow-wrap:anywhere]">
+                      {timeRequirement(fish)}
+                    </dd>
                   </div>
-                  <div>
-                    <dt>前置天气</dt>
-                    <dd>
+                  <div className={detailPropertyRowClasses}>
+                    <dt className="text-muted">前置天气</dt>
+                    <dd className="m-0 [overflow-wrap:anywhere]">
                       <WeatherSet
                         ids={condition.previousWeather}
                         catalog={catalog}
@@ -353,42 +362,50 @@ export function FishDetail({
                       />
                     </dd>
                   </div>
-                  <div>
-                    <dt>当前天气</dt>
-                    <dd>
+                  <div className={detailPropertyRowClasses}>
+                    <dt className="text-muted">当前天气</dt>
+                    <dd className="m-0 [overflow-wrap:anywhere]">
                       <WeatherSet ids={condition.weather} catalog={catalog} />
                     </dd>
                   </div>
                   {condition.tug && (
-                    <div>
-                      <dt>咬钩</dt>
-                      <dd>{tugLabels[condition.tug] || "未收录"}</dd>
+                    <div className={detailPropertyRowClasses}>
+                      <dt className="text-muted">咬钩</dt>
+                      <dd className="m-0 [overflow-wrap:anywhere]">
+                        {tugLabels[condition.tug] || "未收录"}
+                      </dd>
                     </div>
                   )}
                   {condition.hookset && (
-                    <div>
-                      <dt>提钩</dt>
-                      <dd>{hooksetLabels[condition.hookset] || "未收录"}</dd>
+                    <div className={detailPropertyRowClasses}>
+                      <dt className="text-muted">提钩</dt>
+                      <dd className="m-0 [overflow-wrap:anywhere]">
+                        {hooksetLabels[condition.hookset] || "未收录"}
+                      </dd>
                     </div>
                   )}
                   {fish.method !== "spear" &&
                     !condition.tug &&
                     !condition.hookset && (
-                      <div>
-                        <dt>咬钩 / 提钩</dt>
-                        <dd>资料待补</dd>
+                      <div className={detailPropertyRowClasses}>
+                        <dt className="text-muted">咬钩 / 提钩</dt>
+                        <dd className="m-0 [overflow-wrap:anywhere]">
+                          资料待补
+                        </dd>
                       </div>
                     )}
                   {condition.snagging && (
-                    <div>
-                      <dt>额外要求</dt>
-                      <dd>开启钓组</dd>
+                    <div className={detailPropertyRowClasses}>
+                      <dt className="text-muted">额外要求</dt>
+                      <dd className="m-0 [overflow-wrap:anywhere]">开启钓组</dd>
                     </div>
                   )}
                 </dl>
                 {fish.method !== "spear" && (
-                  <div className="fish-detail-subsection mt-[22px]">
-                    <h3 className="text-base font-semibold">鱼饵与以小钓大</h3>
+                  <div className="fish-detail-subsection mt-5.5">
+                    <h3 className="mx-0 mt-6 mb-3 text-base font-semibold">
+                      鱼饵与以小钓大
+                    </h3>
                     {condition.bait.length ? (
                       <>
                         <FishingTechnique
@@ -399,59 +416,52 @@ export function FishDetail({
                           selfMooch={selfMooch.confirmed}
                           spotId={activeSpot?.id}
                           showBaitSources
+                          layout="detail-subsection"
                         />
                         {biteTimes.status === "error" && (
-                          <p
-                            className={
-                              "fish-bite-error text-muted text-[13px] [&_button]:ml-[6px] [&_button]:text-accent [&&&&]:m-[10px_0] [&&&&]:p-[0_8px] [&&&&_button]:[text-decoration:underline]"
-                            }
-                            role="status"
-                          >
+                          <p className={fishingBiteErrorClasses} role="status">
                             咬钩时间暂时无法读取。
-                            <button type="button" onClick={biteTimes.retry}>
+                            <button
+                              className={detailRetryButtonClasses}
+                              type="button"
+                              onClick={biteTimes.retry}
+                            >
                               重试
                             </button>
                           </p>
                         )}
                         {selfMooch.status === "error" && (
-                          <p
-                            className={
-                              "fish-bite-error text-muted text-[13px] [&_button]:ml-[6px] [&_button]:text-accent [&&&&]:m-[10px_0] [&&&&]:p-[0_8px] [&&&&_button]:[text-decoration:underline]"
-                            }
-                            role="status"
-                          >
+                          <p className={fishingBiteErrorClasses} role="status">
                             回转记录暂时无法读取。
-                            <button type="button" onClick={selfMooch.retry}>
+                            <button
+                              className={detailRetryButtonClasses}
+                              type="button"
+                              onClick={selfMooch.retry}
+                            >
                               重试
                             </button>
                           </p>
                         )}
                       </>
                     ) : (
-                      <p className="fish-muted text-muted [.fish-forecast_>_div_>_&]:text-[13px] [.fish-forecast_>_div_>_&]:tabular-nums">
-                        推荐鱼饵待补充
-                      </p>
+                      <p className="fish-muted text-muted">推荐鱼饵待补充</p>
                     )}
                   </div>
                 )}
                 {condition.predators.length > 0 && (
-                  <div className="fish-detail-subsection mt-[22px]">
-                    <h3 className="text-base font-semibold">
+                  <div className="fish-detail-subsection mt-5.5">
+                    <h3 className="mx-0 mt-6 mb-3 text-base font-semibold">
                       {fish.method === "spear" ? "鱼群前置" : "鱼识前置"}
                     </h3>
-                    <ul
-                      className={
-                        "fish-predators m-0 pl-[20px] [&&&&_li]:p-[3px_0]"
-                      }
-                    >
+                    <ul className="fish-predators m-0 pl-5">
                       {condition.predators.map(([id, count]) => (
-                        <li key={id}>
+                        <li className="px-0 py-[3px]" key={id}>
                           {name(id)} × {count}
                         </li>
                       ))}
                     </ul>
                     {condition.intuitionLength && (
-                      <p className="fish-muted text-muted [.fish-forecast_>_div_>_&]:text-[13px] [.fish-forecast_>_div_>_&]:tabular-nums">
+                      <p className="fish-muted text-muted">
                         鱼识持续 {condition.intuitionLength} 秒
                       </p>
                     )}
@@ -460,19 +470,17 @@ export function FishDetail({
               </>
             )}
             {fish.specialConditions && !condition?.predators.length && (
-              <p className="fish-muted text-muted [.fish-forecast_>_div_>_&]:text-[13px] [.fish-forecast_>_div_>_&]:tabular-nums">
+              <p className="fish-muted text-muted">
                 游戏图鉴标记了额外条件，具体要求尚未收录。
               </p>
             )}
           </section>
-          <section
-            className={
-              "fish-detail-section [&_header_p]:text-muted [&_h2]:m-0 [&_h2]:text-lg [&_header_p]:text-[13px] min-w-0 pt-[16px] border-t border-solid border-line [&_header]:mb-[16px] [&_h3]:text-base [&&&&_header_p]:m-[2px_0_0] [&&&&_header_p]:leading-[1.5] [&&&&_h3]:m-[24px_0_12px]"
-            }
-          >
-            <header>
-              <h2 className="text-lg font-semibold">窗口与天气</h2>
-              <p>窗口时间按本机时区显示</p>
+          <section className={detailSectionClasses}>
+            <header className="mb-4">
+              <h2 className="m-0 text-lg font-semibold">窗口与天气</h2>
+              <p className={fishingSectionDescriptionClasses}>
+                窗口时间按本机时区显示
+              </p>
             </header>
             {condition && fish.method !== "ocean" && open !== null ? (
               <FishWindowPlanner
@@ -488,15 +496,11 @@ export function FishDetail({
             ) : (
               windowStatus
             )}
-            <p
-              className={
-                "fish-window-caveat text-muted text-[13px] [&&&&]:leading-[1.6]"
-              }
-            >
+            <p className="fish-window-caveat text-[13px] leading-[1.6] text-muted">
               窗口只按已收录时间与天气计算；鱼识、任务和属性要求需另行确认。
               {fishEyes && "鱼眼计算仅忽略支持该技能的鱼的时间限制。"}
             </p>
-            <h3 className="text-base font-semibold">钓点天气</h3>
+            <h3 className="mx-0 mt-6 mb-3 text-base font-semibold">钓点天气</h3>
             <WeatherForecast
               fish={fish}
               catalog={catalog}
@@ -506,27 +510,28 @@ export function FishDetail({
             />
           </section>
         </div>
-        <section
-          className={
-            "fish-location-section [&_header_p]:text-muted [&_h2]:m-0 [&_h2]:text-lg [&_header_p]:text-[13px] min-w-0 pt-[16px] border-t border-solid border-line [&_header]:mb-[16px] mt-[34px] [&&&&_header_p]:m-[2px_0_0] [&&&&_header_p]:leading-[1.5]"
-          }
-        >
-          <header>
-            <h2 className="text-lg font-semibold">钓点与图鉴资料</h2>
-            {fish.locations.length > 1 && <p>可在多个钓点钓获</p>}
+        <section className="fish-location-section mt-8.5 min-w-0 border-t border-solid border-line pt-4">
+          <header className="mb-4">
+            <h2 className="m-0 text-lg font-semibold">钓点与图鉴资料</h2>
+            {fish.locations.length > 1 && (
+              <p className={fishingSectionDescriptionClasses}>
+                可在多个钓点钓获
+              </p>
+            )}
           </header>
           {fish.locations.length ? (
-            <ul
-              className={
-                "fish-locations grid m-0 p-0 [&_li]:flex [&_li]:flex-wrap [&_li]:border-b [&_li]:border-solid [&_li]:border-line [&_strong]:w-full [&_span]:text-muted [&_span]:text-[13px] [&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [&&&&]:gap-[0_20px] [&&&&]:[list-style:none] [&&&&_li]:gap-[4px_12px] [&&&&_li]:p-[12px_0] [@media(max-width:_620px)]:[&&&&]:grid-cols-[minmax(0,_1fr)]"
-              }
-            >
+            <ul className="fish-locations m-0 grid list-none grid-cols-2 gap-[0_20px] p-0 max-[620px]:grid-cols-1">
               {fish.locations.map((spot) => (
-                <li key={spot.id}>
-                  <strong>{spot.name}</strong>
-                  <span>{spot.zone || fish.zone}</span>
+                <li
+                  className="flex flex-wrap gap-[4px_12px] border-b border-solid border-line px-0 py-3"
+                  key={spot.id}
+                >
+                  <strong className="w-full">{spot.name}</strong>
+                  <span className="text-[13px] text-muted">
+                    {spot.zone || fish.zone}
+                  </span>
                   {spot.coords && (
-                    <span>
+                    <span className="text-[13px] text-muted">
                       X:{spot.coords[0].toFixed(1)} Y:
                       {spot.coords[1].toFixed(1)}
                     </span>
@@ -535,15 +540,9 @@ export function FishDetail({
               ))}
             </ul>
           ) : (
-            <p className="fish-muted text-muted [.fish-forecast_>_div_>_&]:text-[13px] [.fish-forecast_>_div_>_&]:tabular-nums">
-              具体钓点尚未收录。
-            </p>
+            <p className="fish-muted text-muted">具体钓点尚未收录。</p>
           )}
-          <p
-            className={
-              "fish-fine-print text-muted text-[13px] mt-[22px] [&&&&]:leading-[1.6]"
-            }
-          >
+          <p className="fish-fine-print mt-5.5 text-[13px] leading-[1.6] text-muted">
             {fish.level != null && `Lv. ${fish.level} · `}
             {fish.patch != null && `版本 ${fish.patch} · `}
             物品 ID {fish.id}

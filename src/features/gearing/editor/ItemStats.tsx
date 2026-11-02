@@ -1,18 +1,21 @@
 /** Effective item stats split capped materia gains from the remaining value. */
+import clsx from "clsx";
 import type { Bootstrap, Evaluation, Stat } from "./types";
-
 export function ItemStats({
   item,
   data,
   busy,
   label,
   inline = false,
+  layout,
 }: {
   item: Evaluation["slots"]["mainHand"];
   data: Bootstrap;
   busy: boolean;
   label: string;
   inline?: boolean;
+  /** Explicit layout variants keep this component independent of ancestor classes. */
+  layout?: "current-item" | "equipped-select";
 }) {
   if (!item?.stats) return null;
   // Equipment buttons only allow phrasing content; detail panels retain a definition list.
@@ -23,9 +26,11 @@ export function ItemStats({
   // The enclosing equipment row or context strip owns the inset; do not pad twice.
   return (
     <List
-      className={
-        "gear-equipped-stats flex flex-wrap m-0 text-[13px] [&_>_:is(div,_span)]:flex [&_>_:is(div,_span)]:gap-[6px] [&_>_:is(div,_span)]:items-baseline [&_>_:is(div,_span)]:whitespace-nowrap [.gear-equipped-select_>_&]:p-0 [.gear-equipped-select_>_&]:mt-[8px] [.gear-equipped-select_>_&]:text-left [.gear-current-item_>_&]:p-0 [&&&&]:gap-[6px_20px] [&&&&]:p-0 [.gear-equipped-select_>_&&&&]:[grid-column:1_/_-1] [.gear-current-item_>_&&&&]:[flex-basis:100%]"
-      }
+      className={clsx(
+        "gear-equipped-stats m-0 flex flex-wrap gap-[6px_20px] p-0 text-[13px]",
+        layout === "current-item" && "basis-full p-0",
+        layout === "equipped-select" && "col-span-full mt-2 p-0 text-left",
+      )}
       aria-label={label}
       aria-busy={busy}
     >
@@ -37,11 +42,14 @@ export function ItemStats({
         .map(([stat, value]) => {
           const bonus = item.materiaStats?.[stat as Stat] ?? 0;
           return (
-            <Entry key={stat}>
-              <Label className="gear-stat-label [.gear-equipped-stats_&]:text-muted">
+            <Entry
+              key={stat}
+              className="flex items-baseline gap-1.5 whitespace-nowrap"
+            >
+              <Label className="gear-stat-label text-muted">
                 {data.statNames[stat as Stat] ?? stat}
               </Label>
-              <Value className="gear-stat-value [.gear-equipped-stats_&]:m-0 [.gear-equipped-stats_&]:tabular-nums">
+              <Value className="gear-stat-value m-0 tabular-nums">
                 {busy ? (
                   "…"
                 ) : (
@@ -49,7 +57,7 @@ export function ItemStats({
                     {value - bonus}
                     {bonus > 0 && (
                       <span
-                        className="gear-materia-bonus text-success font-semibold whitespace-nowrap"
+                        className="gear-materia-bonus font-semibold whitespace-nowrap text-success"
                         title="魔晶石实际加成"
                       >
                         {" "}

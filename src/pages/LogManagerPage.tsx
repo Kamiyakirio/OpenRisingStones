@@ -1,4 +1,5 @@
 /** Debug-only session log browser with operation details and native export. */
+import clsx from "clsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CaretDown,
@@ -26,9 +27,24 @@ import {
   type LogGroup,
 } from "../features/diagnostics/utils/grouping";
 
+/** Reused presentation strings stay static and are allocated once for this module. */
+const logFilterInputClasses =
+  "min-h-10 w-full rounded-control border border-solid border-control bg-surface px-3 py-0";
+const logActionClasses =
+  "transition-[background-color,color,border-color] duration-120 ease-[ease] inline-flex min-h-10 items-center justify-center gap-1.5 rounded-control border border-solid border-control bg-surface px-[11px] py-0 text-[13px] whitespace-nowrap hover:bg-hover";
+const logDangerActionClasses = `${logActionClasses} first:border-danger first:text-danger`;
+const logEmptyClasses = "log-empty m-0 px-5 py-8 text-[13px] text-muted";
+const logPropertyRowClasses =
+  "grid grid-cols-[minmax(110px,_1fr)_minmax(0,_2fr)] gap-2.5 border-b border-solid border-line px-0 py-[7px] text-[12px]";
+const logDetailNoteClasses =
+  "log-detail-note mx-0 mt-[5px] mb-0 text-[12px] text-muted";
+const logSectionHeadingClasses =
+  "mx-0 mt-0 mb-2 text-base text-[14px] font-semibold";
+const logCompactActionClasses =
+  "transition-[background-color,color,border-color] duration-120 ease-[ease] min-h-8 rounded-control border border-solid border-control bg-surface px-[9px] py-0 text-[12px] hover:bg-hover";
+
 type DetailTab =
   "headers" | "params" | "request" | "response" | "input" | "output";
-
 export function LogManagerPage() {
   const [logs, setLogs] = useState<LogSummary[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -52,10 +68,12 @@ export function LogManagerPage() {
       ) ?? null,
     [groups, selectedId],
   );
-
   const refresh = useCallback(async () => {
     try {
-      const batch = await listLogs({ search, kind: kind || undefined });
+      const batch = await listLogs({
+        search,
+        kind: kind || undefined,
+      });
       setLogs(batch);
       setHasMore(batch.length === 100);
       if (batch.length === 0) setDetail(null);
@@ -71,10 +89,12 @@ export function LogManagerPage() {
       setLoading(false);
     }
   }, [kind, search]);
-
   useEffect(() => {
     let disposed = false;
-    void listLogs({ search, kind: kind || undefined })
+    void listLogs({
+      search,
+      kind: kind || undefined,
+    })
       .then((batch) => {
         if (disposed) return;
         setLogs(batch);
@@ -99,7 +119,6 @@ export function LogManagerPage() {
       disposed = true;
     };
   }, [kind, search]);
-
   useEffect(() => {
     let disposed = false;
     let stop: (() => void) | undefined;
@@ -129,7 +148,6 @@ export function LogManagerPage() {
       stop?.();
     };
   }, [kind, paused, search]);
-
   useEffect(() => {
     let disposed = false;
     let stop: (() => void) | undefined;
@@ -149,7 +167,6 @@ export function LogManagerPage() {
       stop?.();
     };
   }, []);
-
   useEffect(() => {
     if (selectedId === null) return;
     let disposed = false;
@@ -166,7 +183,6 @@ export function LogManagerPage() {
       disposed = true;
     };
   }, [selectedId]);
-
   const loadMore = async () => {
     const beforeId = logs.at(-1)?.id;
     if (!beforeId || loadingMore) return;
@@ -190,7 +206,6 @@ export function LogManagerPage() {
       setLoadingMore(false);
     }
   };
-
   const exportSession = async () => {
     try {
       setExportPath(await exportLogs());
@@ -199,7 +214,6 @@ export function LogManagerPage() {
       setError("导出失败，请检查下载文件夹是否可写。");
     }
   };
-
   const clearSession = async () => {
     try {
       await clearLogs();
@@ -213,49 +227,34 @@ export function LogManagerPage() {
       setError("清空失败，请稍后重试。");
     }
   };
-
   return (
     <section
-      className={
-        "log-manager grid gap-[20px] max-w-[1280px] [&&&&]:[font-variant-numeric:tabular-nums_lining-nums]"
-      }
+      className="log-manager grid max-w-320 gap-5 [font-variant-numeric:tabular-nums_lining-nums]"
       aria-labelledby="debug-log-title"
     >
-      <header
-        className={
-          "log-manager-heading flex justify-between gap-[20px] border-b border-solid border-line pb-[18px] [&_p]:m-0 [&_p]:text-muted max-[620px]:flex-col [&&&&]:[align-items:end] [&&&&_h2]:m-[0_0_2px] [&&&&_p]:text-[13px] [@media(max-width:_620px)]:[&&&&]:[align-items:start]"
-        }
-      >
+      <header className="log-manager-heading flex items-end justify-between gap-5 border-b border-solid border-line pb-4.5 max-[620px]:flex-col max-[620px]:items-start">
         <div>
-          <h2 className="text-lg font-semibold" id="debug-log-title">
+          <h2
+            className="mx-0 mt-0 mb-0.5 text-lg font-semibold"
+            id="debug-log-title"
+          >
             运行日志
           </h2>
-          <p>
+          <p className="m-0 text-[13px] text-muted">
             仅记录本次 Debug 运行；退出后自动删除。原始内容可能含有账号凭据。
           </p>
         </div>
-        <span
-          className={
-            "log-session-count m-0 text-muted whitespace-nowrap [&&&&]:text-[13px]"
-          }
-        >
+        <span className="log-session-count m-0 text-[13px] whitespace-nowrap text-muted">
           当前列表 {logs.length} 条
           {groups.length !== logs.length ? ` / ${groups.length} 组` : ""}
         </span>
       </header>
 
-      <div
-        className={
-          "log-toolbar flex flex-wrap gap-[12px] [&&&&]:[align-items:end]"
-        }
-      >
-        <label
-          className={
-            "log-search grid gap-[5px] [&_span]:text-muted [&_input]:w-full [&_input]:min-h-[40px] [&_input]:border [&_input]:border-solid [&_input]:border-control [&_input]:rounded-[var(--ors-radius-control)] [&_input]:bg-surface [&&&&]:text-[13px] [&&&&]:flex-[1_1_250px] [&&&&_input]:p-[0_12px]"
-          }
-        >
-          <span>搜索命令或 URL</span>
+      <div className="log-toolbar flex flex-wrap items-end gap-3">
+        <label className="log-search grid flex-[1_1_250px] gap-[5px] text-[13px]">
+          <span className="text-muted">搜索命令或 URL</span>
           <input
+            className={logFilterInputClasses}
             value={search}
             onChange={(event) => {
               setLoading(true);
@@ -264,13 +263,10 @@ export function LogManagerPage() {
             placeholder="输入命令名或地址"
           />
         </label>
-        <label
-          className={
-            "log-kind-filter grid gap-[5px] [&_span]:text-muted [&_select]:w-full [&_select]:min-h-[40px] [&_select]:border [&_select]:border-solid [&_select]:border-control [&_select]:rounded-[var(--ors-radius-control)] [&_select]:bg-surface [&&&&]:text-[13px] [&&&&]:flex-[0_0_150px] [&&&&_select]:p-[0_12px]"
-          }
-        >
-          <span>来源类型</span>
+        <label className="log-kind-filter grid flex-[0_0_150px] gap-[5px] text-[13px]">
+          <span className="text-muted">来源类型</span>
           <select
+            className={logFilterInputClasses}
             value={kind}
             onChange={(event) => {
               setLoading(true);
@@ -283,12 +279,9 @@ export function LogManagerPage() {
             <option value="bridge">游戏桥接</option>
           </select>
         </label>
-        <div
-          className={
-            "log-actions [&_svg]:w-[16px] [&_svg]:h-[16px] flex items-center gap-[8px] [&_>_button]:inline-flex [&_>_button]:items-center [&_>_button]:justify-center [&_>_button]:gap-[6px] [&_>_button]:min-h-[40px] [&_>_button]:border [&_>_button]:border-solid [&_>_button]:border-control [&_>_button]:rounded-[var(--ors-radius-control)] [&_>_button]:bg-surface [&_>_button]:whitespace-nowrap [&_button:hover]:bg-hover max-[620px]:flex-wrap [&&&&_>_button]:p-[0_11px] [&&&&_>_button]:text-[13px]"
-          }
-        >
+        <div className="log-actions flex items-center gap-2 max-[620px]:flex-wrap">
           <button
+            className={logActionClasses}
             type="button"
             onClick={() => {
               setPaused((current) => !current);
@@ -296,50 +289,56 @@ export function LogManagerPage() {
             }}
           >
             {paused ? (
-              <Play aria-hidden="true" />
+              <Play className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <Pause aria-hidden="true" />
+              <Pause className="h-4 w-4" aria-hidden="true" />
             )}
             {paused ? "继续显示" : "暂停显示"}
           </button>
-          <button type="button" onClick={() => void exportSession()}>
-            <DownloadSimple aria-hidden="true" /> 导出
+          <button
+            className={logActionClasses}
+            type="button"
+            onClick={() => void exportSession()}
+          >
+            <DownloadSimple className="h-4 w-4" aria-hidden="true" /> 导出
           </button>
           {clearing ? (
-            <span
-              className={
-                "log-clear-confirm flex items-center gap-[8px] [&_button]:inline-flex [&_button]:items-center [&_button]:justify-center [&_button]:gap-[6px] [&_button]:min-h-[40px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-surface [&_button]:whitespace-nowrap [&_button:first-child]:border-danger [&_button:first-child]:text-danger [&&&&_button]:p-[0_11px] [&&&&_button]:text-[13px]"
-              }
-            >
-              <button type="button" onClick={() => void clearSession()}>
+            <span className="log-clear-confirm flex items-center gap-2">
+              <button
+                className={logDangerActionClasses}
+                type="button"
+                onClick={() => void clearSession()}
+              >
                 确认清空
               </button>
-              <button type="button" onClick={() => setClearing(false)}>
+              <button
+                className={logDangerActionClasses}
+                type="button"
+                onClick={() => setClearing(false)}
+              >
                 取消
               </button>
             </span>
           ) : (
-            <button type="button" onClick={() => setClearing(true)}>
-              <Trash aria-hidden="true" /> 清空
+            <button
+              className={logActionClasses}
+              type="button"
+              onClick={() => setClearing(true)}
+            >
+              <Trash className="h-4 w-4" aria-hidden="true" /> 清空
             </button>
           )}
         </div>
       </div>
 
       {exportPath && (
-        <p
-          className={
-            "log-export-note m-0 rounded-[var(--ors-radius-control)] text-success bg-surface [&&&&]:p-[10px_12px] [&&&&]:[overflow-wrap:anywhere] [&&&&]:text-[13px]"
-          }
-        >
+        <p className="log-export-note m-0 rounded-control bg-surface px-3 py-2.5 text-[13px] [overflow-wrap:anywhere] text-success">
           已导出到：{exportPath}
         </p>
       )}
       {error && (
         <p
-          className={
-            "log-error m-0 rounded-[var(--ors-radius-control)] text-danger bg-surface [&&&&]:p-[10px_12px] [&&&&]:[overflow-wrap:anywhere] [&&&&]:text-[13px]"
-          }
+          className="log-error m-0 rounded-control bg-surface px-3 py-2.5 text-[13px] [overflow-wrap:anywhere] text-danger"
           role="alert"
         >
           {error}
@@ -347,67 +346,40 @@ export function LogManagerPage() {
       )}
       {captureFailures > 0 && (
         <p
-          className={
-            "log-capture-warning m-0 rounded-[var(--ors-radius-control)] text-warning bg-surface [&&&&]:p-[10px_12px] [&&&&]:[overflow-wrap:anywhere] [&&&&]:text-[13px]"
-          }
+          className="log-capture-warning m-0 rounded-control bg-surface px-3 py-2.5 text-[13px] [overflow-wrap:anywhere] text-warning"
           role="alert"
         >
           有 {captureFailures} 条记录未能保存；本次日志可能不完整。
         </p>
       )}
 
-      <div
-        className={
-          "log-workspace grid min-h-[540px] border border-solid border-line rounded-[var(--ors-radius-panel)] overflow-hidden bg-surface [&&&&]:grid-cols-[minmax(290px,_0.95fr)_minmax(0,_1.25fr)] [@media(max-width:_1120px)]:[&&&&]:grid-cols-[minmax(0,_1fr)]"
-        }
-      >
+      <div className="log-workspace grid min-h-135 grid-cols-[minmax(290px,_0.95fr)_minmax(0,_1.25fr)] overflow-hidden rounded-panel border border-solid border-line bg-surface max-[1120px]:grid-cols-1">
         <section
-          className={
-            "log-list min-w-0 border-r border-solid border-line max-[1120px]:border-b max-[1120px]:border-solid max-[1120px]:border-line [@media(max-width:_1120px)]:[&&&&]:[border-right:0]"
-          }
+          className="log-list min-w-0 border-r border-solid border-line max-[1120px]:border-b max-[1120px]:border-solid max-[1120px]:border-line max-[1120px]:[border-right:0]"
           aria-label="日志列表"
         >
-          <div
-            className={
-              "log-list-heading grid items-center gap-[10px] min-h-[42px] border-b border-solid border-line text-muted max-[620px]:gap-[6px] [@media(max-width:_620px)]:[&&&&]:px-[10px] [&&&&]:grid-cols-[105px_minmax(0,_1fr)_50px] [&&&&]:p-[0_14px] [&&&&]:text-[12px] [@media(max-width:_620px)]:[&&&&]:grid-cols-[80px_minmax(0,_1fr)_42px]"
-            }
-          >
+          <div className="log-list-heading grid min-h-10.5 grid-cols-[105px_minmax(0,_1fr)_50px] items-center gap-2.5 border-b border-solid border-line px-3.5 py-0 text-[12px] text-muted max-[620px]:grid-cols-[80px_minmax(0,_1fr)_42px] max-[620px]:gap-1.5 max-[620px]:px-2.5">
             <span>时间 / 来源</span>
             <span>操作</span>
             <span>结果</span>
           </div>
           {loading && logs.length === 0 ? (
-            <p
-              className={
-                "log-empty m-0 text-muted [&&&&]:p-[32px_20px] [&&&&]:text-[13px]"
-              }
-              role="status"
-            >
+            <p className={logEmptyClasses} role="status">
               正在读取本次运行的日志…
             </p>
           ) : logs.length === 0 ? (
-            <p
-              className={
-                "log-empty m-0 text-muted [&&&&]:p-[32px_20px] [&&&&]:text-[13px]"
-              }
-            >
+            <p className={logEmptyClasses}>
               暂无匹配记录。执行操作后，记录会出现在这里。
             </p>
           ) : (
-            <div
-              className={
-                "log-list-rows overflow-y-auto [@media(max-width:_1120px)]:[&&&&]:max-h-[270px] [&&&&]:max-h-[min(68dvh,_780px)]"
-              }
-            >
+            <div className="log-list-rows max-h-[min(68dvh,_780px)] overflow-y-auto max-[1120px]:max-h-67.5">
               {groups.map((group) => {
                 const entry = group.primary;
                 return (
                   <button
                     key={entry.id}
                     type="button"
-                    className={
-                      "log-row grid items-center gap-[10px] w-full min-h-[58px] border-0 border-b border-solid border-line text-left [&:hover]:bg-hover [&[aria-current=true]]:bg-selected max-[620px]:gap-[6px] [@media(max-width:_620px)]:[&&&&]:px-[10px] [&&&&]:grid-cols-[105px_minmax(0,_1fr)_50px] [&&&&]:p-[8px_14px] [&&&&]:[background:transparent] [&&&&]:text-[13px] [@media(max-width:_620px)]:[&&&&]:grid-cols-[80px_minmax(0,_1fr)_42px]"
-                    }
+                    className="log-row grid min-h-14.5 w-full grid-cols-[105px_minmax(0,_1fr)_50px] items-center gap-2.5 border-0 border-b border-solid border-line bg-transparent px-3.5 py-2 text-left text-[13px] transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-hover aria-current:bg-selected max-[620px]:grid-cols-[80px_minmax(0,_1fr)_42px] max-[620px]:gap-1.5 max-[620px]:px-2.5"
                     aria-current={
                       group.occurrences.some((item) => item.id === selectedId)
                         ? "true"
@@ -418,35 +390,30 @@ export function LogManagerPage() {
                       setSelectedId(entry.id);
                     }}
                   >
-                    <span
-                      className={
-                        "log-row-meta grid [&_small]:text-muted [&&&&]:leading-[1.35] [&&&&_small]:text-[11px]"
-                      }
-                    >
+                    <span className="log-row-meta grid leading-[1.35]">
                       <time>
                         {new Date(entry.timestampMs).toLocaleTimeString()}
                       </time>
-                      <small>{sourceLabel(entry.source)}</small>
+                      <small className="text-[11px] text-muted">
+                        {sourceLabel(entry.source)}
+                      </small>
                     </span>
                     <span
-                      className={
-                        "log-row-name overflow-hidden whitespace-nowrap [&&&&]:[text-overflow:ellipsis]"
-                      }
+                      className="log-row-name overflow-hidden text-ellipsis whitespace-nowrap"
                       title={entry.url ?? entry.name}
                     >
                       {entry.name}
                       {group.occurrences.length > 1 && (
-                        <small
-                          className={
-                            "log-repeat-count inline-block ml-[7px] rounded-[var(--ors-radius-pill)] text-accent bg-surface font-bold [&&&&]:p-[1px_6px] [&&&&]:text-[11px]"
-                          }
-                        >
+                        <small className="log-repeat-count ml-[7px] inline-block rounded-full bg-surface px-1.5 py-[1px] text-[11px] font-bold text-accent">
                           ×{group.occurrences.length}
                         </small>
                       )}
                     </span>
                     <span
-                      className={`[&&&&]:text-[12px] text-right [&.success]:text-success log-outcome ${entry.outcome}`}
+                      className={clsx(
+                        "log-outcome text-right text-[12px] [&.success]:text-success",
+                        entry.outcome,
+                      )}
                     >
                       {entry.statusCode ??
                         (entry.outcome === "success" ? "成功" : "失败")}
@@ -456,9 +423,7 @@ export function LogManagerPage() {
               })}
               {hasMore && (
                 <button
-                  className={
-                    "log-load-more w-full min-h-[42px] border-0 text-accent [&&&&]:[background:transparent] [&&&&]:text-[13px]"
-                  }
+                  className="log-load-more min-h-10.5 w-full border-0 bg-transparent text-[13px] text-accent transition-[background-color,color,border-color] duration-120 ease-[ease]"
                   type="button"
                   disabled={loadingMore}
                   onClick={() => void loadMore()}
@@ -480,11 +445,7 @@ export function LogManagerPage() {
               onTabChange={setTab}
             />
           ) : (
-            <div
-              className={
-                "log-detail-empty m-0 text-muted [&&&&]:p-[32px_20px] [&&&&]:text-[13px]"
-              }
-            >
+            <div className="log-detail-empty m-0 px-5 py-8 text-[13px] text-muted">
               选择一条记录，查看输入和输出。
             </div>
           )}
@@ -493,7 +454,6 @@ export function LogManagerPage() {
     </section>
   );
 }
-
 function matchesSearch(entry: LogSummary, search: string) {
   const query = search.toLowerCase();
   return (
@@ -502,14 +462,12 @@ function matchesSearch(entry: LogSummary, search: string) {
     entry.url?.toLowerCase().includes(query)
   );
 }
-
 function sourceLabel(source: string) {
   if (source === "webview") return "前端";
   if (source === "python") return "Python";
   if (source === "game-bridge") return "游戏桥接";
   return source;
 }
-
 function LogDetail({
   entry,
   group,
@@ -539,26 +497,23 @@ function LogDetail({
   const response = asRecord(entry.response);
   return (
     <>
-      <div
-        className={
-          "log-detail-heading [&_h2]:m-0 [&_p]:text-muted [&&&&]:p-[17px_20px_12px] [&&&&_h2]:[overflow-wrap:anywhere] [&&&&_h2]:text-[17px] [&&&&_p]:m-[5px_0_0] [&&&&_p]:text-[12px]"
-        }
-      >
-        <h2 className="text-lg font-semibold">{entry.name}</h2>
-        <p>
+      <div className="log-detail-heading px-5 pt-[17px] pb-3">
+        <h2 className="m-0 text-lg text-[17px] font-semibold [overflow-wrap:anywhere]">
+          {entry.name}
+        </h2>
+        <p className="mx-0 mt-[5px] mb-0 text-[12px] text-muted">
           {new Date(entry.timestampMs).toLocaleString()} ·{" "}
           {sourceLabel(entry.source)} · {entry.durationMs?.toFixed(0) ?? "—"} ms
         </p>
         {group && group.occurrences.length > 1 && (
           <div
-            className={
-              "log-occurrences flex items-center flex-wrap gap-[6px] mt-[10px] text-muted [&_button]:min-h-[30px] [&_button]:border [&_button]:border-solid [&_button]:border-line [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-surface [&_button[aria-current=true]]:border-accent [&_button[aria-current=true]]:text-accent [&_button[aria-current=true]]:bg-selected [&&&&]:text-[12px] [&&&&_button]:p-[0_8px] [&&&&_button]:text-[12px]"
-            }
+            className="log-occurrences mt-2.5 flex flex-wrap items-center gap-1.5 text-[12px] text-muted"
             aria-label="相同调用的原始记录"
           >
             <span>相同调用折叠为 {group.occurrences.length} 条：</span>
             {group.occurrences.map((occurrence, index) => (
               <button
+                className="min-h-7.5 rounded-control border border-solid border-line bg-surface px-2 py-0 text-[12px] transition-[background-color,color,border-color] duration-120 ease-[ease] aria-current:border-accent aria-current:bg-selected aria-current:text-accent"
                 key={occurrence.id}
                 type="button"
                 aria-current={occurrence.id === entry.id ? "true" : undefined}
@@ -572,14 +527,13 @@ function LogDetail({
         )}
       </div>
       <div
-        className={
-          'log-detail-tabs flex overflow-x-auto border-b border-solid border-line [&_button]:min-h-[42px] [&_button]:border-0 [&_button]:text-muted [&_button[aria-selected=true]]:text-accent [&_button[aria-selected=true]]:font-semibold [&&&&]:p-[0_12px] [&&&&_button]:flex-[0_0_auto] [&&&&_button]:[border-bottom:2px_solid_transparent] [&&&&_button]:p-[0_10px] [&&&&_button]:[background:transparent] [&&&&_button]:text-[13px] [&&&&_button[aria-selected="true"]]:[border-bottom-color:var(--ors-color-accent)]'
-        }
+        className="log-detail-tabs flex overflow-x-auto border-b border-solid border-line px-3 py-0"
         role="tablist"
         aria-label="详情类别"
       >
         {tabs.map(([key, label]) => (
           <button
+            className="min-h-10.5 shrink-0 border-0 bg-transparent px-2.5 py-0 text-[13px] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] [border-bottom:2px_solid_transparent] aria-selected:[border-bottom-color:var(--ors-color-accent)] aria-selected:font-semibold aria-selected:text-accent"
             key={key}
             type="button"
             role="tab"
@@ -591,48 +545,44 @@ function LogDetail({
         ))}
       </div>
       <div
-        className={
-          "log-detail-content overflow-auto [@media(max-width:_620px)]:[&&&&]:px-[12px] [&&&&]:max-h-[min(62dvh,_720px)] [&&&&]:p-[18px_20px_24px]"
-        }
+        className="log-detail-content max-h-[min(62dvh,_720px)] overflow-auto px-5 pt-4.5 pb-6 max-[620px]:px-3"
         role="tabpanel"
       >
         {network && tab === "headers" && (
           <>
-            <dl
-              className={
-                "log-general m-0 [&_div]:grid [&_div]:gap-[10px] [&_div]:border-b [&_div]:border-solid [&_div]:border-line [&_dt]:text-muted [&_dd]:m-0 [&&&&_div]:grid-cols-[minmax(110px,_1fr)_minmax(0,_2fr)] [&&&&_div]:p-[7px_0] [&&&&_div]:text-[12px] [&&&&_dt]:[overflow-wrap:anywhere] [&&&&_dd]:[overflow-wrap:anywhere] [&&&&_dd]:[font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace]"
-              }
-            >
-              <div>
-                <dt>请求地址</dt>
-                <dd>{String(request.url ?? "—")}</dd>
+            <dl className="log-general m-0">
+              <div className={logPropertyRowClasses}>
+                <dt className="[overflow-wrap:anywhere] text-muted">
+                  请求地址
+                </dt>
+                <dd className="m-0 [font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] [overflow-wrap:anywhere]">
+                  {String(request.url ?? "—")}
+                </dd>
               </div>
-              <div>
-                <dt>请求方法</dt>
-                <dd>{String(request.method ?? "—")}</dd>
+              <div className={logPropertyRowClasses}>
+                <dt className="[overflow-wrap:anywhere] text-muted">
+                  请求方法
+                </dt>
+                <dd className="m-0 [font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] [overflow-wrap:anywhere]">
+                  {String(request.method ?? "—")}
+                </dd>
               </div>
-              <div>
-                <dt>状态码</dt>
-                <dd>{String(response.status ?? "—")}</dd>
+              <div className={logPropertyRowClasses}>
+                <dt className="[overflow-wrap:anywhere] text-muted">状态码</dt>
+                <dd className="m-0 [font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] [overflow-wrap:anywhere]">
+                  {String(response.status ?? "—")}
+                </dd>
               </div>
             </dl>
             <HeaderList title="请求头" value={request.headers} />
             <HeaderList title="响应头" value={response.headers} />
             {entry.source === "webview" && (
-              <p
-                className={
-                  "log-detail-note text-muted [&&&&]:m-[5px_0_0] [&&&&]:text-[12px]"
-                }
-              >
+              <p className={logDetailNoteClasses}>
                 前端仅能记录浏览器向应用代码开放的请求和响应头。
               </p>
             )}
             {entry.source === "python" && (
-              <p
-                className={
-                  "log-detail-note text-muted [&&&&]:m-[5px_0_0] [&&&&]:text-[12px]"
-                }
-              >
+              <p className={logDetailNoteClasses}>
                 请求头由 Python 客户端提供；底层自动添加的字段可能不在其中。
               </p>
             )}
@@ -653,32 +603,23 @@ function LogDetail({
     </>
   );
 }
-
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
 }
-
 function HeaderList({ title, value }: { title: string; value: unknown }) {
   const [revealed, setRevealed] = useState(false);
   const pairs = asPairs(value);
   return (
-    <section
-      className={
-        "log-pair-section mt-[22px] [&&&&_h3]:m-[0_0_8px] [&&&&_h3]:text-[14px]"
-      }
-    >
-      <div
-        className={
-          "log-pair-heading [&_button:hover]:bg-hover flex items-center justify-between gap-[12px] [&_button]:min-h-[32px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-surface [&&&&_button]:p-[0_9px] [&&&&_button]:text-[12px]"
-        }
-      >
-        <h3 className="text-base font-semibold">{title}</h3>
+    <section className="log-pair-section mt-5.5">
+      <div className="log-pair-heading flex items-center justify-between gap-3">
+        <h3 className={logSectionHeadingClasses}>{title}</h3>
         {pairs.some(([name]) =>
           /authorization|cookie|token|secret|key/i.test(name),
         ) && (
           <button
+            className={logCompactActionClasses}
             type="button"
             onClick={() => setRevealed((current) => !current)}
           >
@@ -697,41 +638,30 @@ function HeaderList({ title, value }: { title: string; value: unknown }) {
     </section>
   );
 }
-
 function PairList({ title, value }: { title: string; value: unknown }) {
   return (
-    <section
-      className={
-        "log-pair-section mt-[22px] [&&&&_h3]:m-[0_0_8px] [&&&&_h3]:text-[14px]"
-      }
-    >
-      <h3 className="text-base font-semibold">{title}</h3>
+    <section className="log-pair-section mt-5.5">
+      <h3 className={logSectionHeadingClasses}>{title}</h3>
       <PairRows pairs={asPairs(value)} />
     </section>
   );
 }
-
 function PairRows({ pairs }: { pairs: Array<[string, string]> }) {
   if (pairs.length === 0)
-    return (
-      <p className={"log-no-data m-0 text-muted [&&&&]:text-[13px]"}>无数据</p>
-    );
+    return <p className="log-no-data m-0 text-[13px] text-muted">无数据</p>;
   return (
-    <dl
-      className={
-        "log-pair-rows m-0 [&_div]:grid [&_div]:gap-[10px] [&_div]:border-b [&_div]:border-solid [&_div]:border-line [&_dt]:text-muted [&_dd]:m-0 [&&&&_div]:grid-cols-[minmax(110px,_1fr)_minmax(0,_2fr)] [&&&&_div]:p-[7px_0] [&&&&_div]:text-[12px] [&&&&_dt]:[overflow-wrap:anywhere] [&&&&_dd]:[overflow-wrap:anywhere] [&&&&_dd]:[font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace]"
-      }
-    >
+    <dl className="log-pair-rows m-0">
       {pairs.map(([name, value], index) => (
-        <div key={`${name}-${index}`}>
-          <dt>{name}</dt>
-          <dd>{value}</dd>
+        <div className={logPropertyRowClasses} key={`${name}-${index}`}>
+          <dt className="[overflow-wrap:anywhere] text-muted">{name}</dt>
+          <dd className="m-0 [font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] [overflow-wrap:anywhere]">
+            {value}
+          </dd>
         </div>
       ))}
     </dl>
   );
 }
-
 function asPairs(value: unknown): Array<[string, string]> {
   if (Array.isArray(value)) {
     return value
@@ -743,31 +673,24 @@ function asPairs(value: unknown): Array<[string, string]> {
     String(item),
   ]);
 }
-
 function DataViewer({ value }: { value: unknown }) {
   const [raw, setRaw] = useState(false);
   if (value === null || value === undefined)
-    return (
-      <p className={"log-no-data m-0 text-muted [&&&&]:text-[13px]"}>无数据</p>
-    );
+    return <p className="log-no-data m-0 text-[13px] text-muted">无数据</p>;
   const parsed = typeof value === "string" ? tryParseJson(value) : value;
   return (
-    <div
-      className={
-        "log-data-viewer [&_pre]:m-0 [&_pre]:overflow-auto [&_pre]:border [&_pre]:border-solid [&_pre]:border-line [&_pre]:rounded-[var(--ors-radius-control)] [&_pre]:p-[12px] [&_pre]:bg-canvas [&_pre]:whitespace-pre-wrap [&&&&_pre]:[font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] [&&&&_pre]:text-[12px] [&&&&_pre]:[overflow-wrap:anywhere]"
-      }
-    >
-      <div
-        className={
-          "log-data-actions [&_button:hover]:bg-hover [&_button]:min-h-[32px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-surface flex justify-end mb-[10px] [&&&&_button]:p-[0_9px] [&&&&_button]:text-[12px]"
-        }
-      >
-        <button type="button" onClick={() => setRaw((current) => !current)}>
+    <div className="log-data-viewer">
+      <div className="log-data-actions mb-2.5 flex justify-end">
+        <button
+          className={logCompactActionClasses}
+          type="button"
+          onClick={() => setRaw((current) => !current)}
+        >
           {raw ? "结构化" : "原文"}
         </button>
       </div>
       {raw ? (
-        <pre>
+        <pre className="m-0 overflow-auto rounded-control border border-solid border-line bg-canvas p-3 [font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] text-[12px] [overflow-wrap:anywhere] whitespace-pre-wrap">
           {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
         </pre>
       ) : (
@@ -776,7 +699,6 @@ function DataViewer({ value }: { value: unknown }) {
     </div>
   );
 }
-
 function tryParseJson(value: string): unknown {
   try {
     return JSON.parse(value);
@@ -784,7 +706,6 @@ function tryParseJson(value: string): unknown {
     return value;
   }
 }
-
 function JsonNode({
   label,
   value,
@@ -803,10 +724,10 @@ function JsonNode({
   if (value === null || typeof value !== "object") {
     return (
       <div
-        className={
-          "log-json-leaf min-h-[25px] [&&&&]:[font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] [&&&&]:text-[12px] [&&&&]:[overflow-wrap:anywhere]"
-        }
-        style={{ paddingLeft: depth * 16 }}
+        className="log-json-leaf min-h-[25px] [font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] text-[12px] [overflow-wrap:anywhere]"
+        style={{
+          paddingLeft: depth * 16,
+        }}
       >
         {label !== null && (
           <span className="log-json-key text-info">{label}: </span>
@@ -820,17 +741,17 @@ function JsonNode({
     <div className="log-json-branch">
       <button
         type="button"
-        className={
-          "log-json-toggle min-h-[25px] w-full border-0 text-left [&:hover]:bg-hover [&_svg]:w-[12px] [&_svg]:h-[12px] [&_svg]:mr-[5px] [&&&&]:[font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] [&&&&]:text-[12px] [&&&&]:[overflow-wrap:anywhere] [&&&&]:[background:transparent]"
-        }
-        style={{ paddingLeft: depth * 16 }}
+        className="log-json-toggle min-h-[25px] w-full border-0 bg-transparent text-left [font-family:ui-monospace,_SFMono-Regular,_Consolas,_monospace] text-[12px] [overflow-wrap:anywhere] transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-hover"
+        style={{
+          paddingLeft: depth * 16,
+        }}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
         {open ? (
-          <CaretDown aria-hidden="true" />
+          <CaretDown className="mr-[5px] h-3 w-3" aria-hidden="true" />
         ) : (
-          <CaretRight aria-hidden="true" />
+          <CaretRight className="mr-[5px] h-3 w-3" aria-hidden="true" />
         )}
         {label !== null && (
           <span className="log-json-key text-info">{label}: </span>
@@ -846,9 +767,7 @@ function JsonNode({
           ))}
           {entries.length > visible && (
             <button
-              className={
-                "log-json-more min-h-[32px] border-0 text-accent [&&&&]:[background:transparent] [&&&&]:text-[12px]"
-              }
+              className="log-json-more min-h-8 border-0 bg-transparent text-[12px] text-accent transition-[background-color,color,border-color] duration-120 ease-[ease]"
               type="button"
               onClick={() => setVisible((count) => count + 100)}
             >
@@ -860,7 +779,6 @@ function JsonNode({
     </div>
   );
 }
-
 function BinaryAttachment({
   label,
   value,
@@ -874,23 +792,21 @@ function BinaryAttachment({
   const contentType = String(value.contentType ?? "application/octet-stream");
   const dataUrl = `data:${contentType};base64,${String(value.value)}`;
   return (
-    <div
-      className={
-        "log-binary grid gap-[8px] border border-solid border-line rounded-[var(--ors-radius-control)] p-[12px] [&_span]:text-muted [&_img]:max-h-[280px] [&_img]:object-contain [&&&&]:[justify-items:start] [&&&&]:text-[12px] [&&&&_img]:max-w-[min(100%,_360px)]"
-      }
-    >
+    <div className="log-binary justify-items-[start] grid gap-2 rounded-control border border-solid border-line p-3 text-[12px]">
       <strong>{label ?? "二进制内容"}</strong>
-      <span>
+      <span className="text-muted">
         {contentType} · {String(value.byteLength ?? "未知")} 字节
       </span>
       {contentType.startsWith("image/") && (
-        <img src={dataUrl} alt="响应图片预览" />
+        <img
+          className="max-h-70 max-w-[min(100%,_360px)] object-contain"
+          src={dataUrl}
+          alt="响应图片预览"
+        />
       )}
       <button
         type="button"
-        className={
-          "log-binary-download [&_svg]:w-[16px] [&_svg]:h-[16px] inline-flex items-center gap-[6px] border-0 text-accent [&&&&]:[background:transparent] [&&&&:disabled]:[cursor:wait] [&&&&:disabled]:opacity-[0.55]"
-        }
+        className="log-binary-download inline-flex min-h-9 items-center gap-1.5 border-0 bg-transparent text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:[cursor:wait] disabled:opacity-55 pointer-coarse:min-h-11"
         disabled={saving}
         onClick={() => {
           setSaving(true);
@@ -903,11 +819,15 @@ function BinaryAttachment({
             .finally(() => setSaving(false));
         }}
       >
-        <DownloadSimple aria-hidden="true" />
+        <DownloadSimple className="h-4 w-4" aria-hidden="true" />
         {saving ? "正在保存…" : "保存附件"}
       </button>
-      {savedPath && <span>已保存到：{savedPath}</span>}
-      {error && <span role="alert">{error}</span>}
+      {savedPath && <span className="text-muted">已保存到：{savedPath}</span>}
+      {error && (
+        <span className="text-muted" role="alert">
+          {error}
+        </span>
+      )}
     </div>
   );
 }

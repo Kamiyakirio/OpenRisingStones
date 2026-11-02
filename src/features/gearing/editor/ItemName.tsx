@@ -1,7 +1,6 @@
 /** Match Asvel's source-first name colors using the existing owned color rules. */
 import colors from "../../../../scripts/gearing/config/colors.json";
 import type { Bootstrap, Item } from "./types";
-
 export function ItemName({
   item,
   sources,
@@ -20,7 +19,7 @@ export function ItemName({
   return (
     <span
       className={
-        'gear-item-name text-ink [&[data-color=red]]:text-danger [&[data-color=green]]:text-success [&[data-color=blue]]:text-info [&&&&[data-color="purple"]]:[color:#7950a0] [.theme-dark_&&&&[data-color="purple"]]:[color:#d4b0ed]'
+        'gear-item-name text-ink data-[color="purple"]:text-[#7950a0] data-[color=blue]:text-info data-[color=green]:text-success data-[color=red]:text-danger dark:data-[color="purple"]:text-[#d4b0ed]'
       }
       data-color={color}
     >

@@ -68,7 +68,7 @@ const defaultQuery: Query = {
 const defaultConditions: Conditions = {
   kind: "combat",
   mode: "all",
-  targetGcd: 2.4,
+  targetGcd: 2.5,
   exactGcd: true,
   speedRange: null,
   progressionWeeks: null,

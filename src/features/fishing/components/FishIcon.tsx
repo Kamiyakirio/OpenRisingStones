@@ -1,27 +1,63 @@
-/** Shared XIVAPI item image with a deterministic fallback. */
+/** Explicit icon sizes keep shared fish images independent of their surrounding page. */
+import clsx from "clsx";
 import { useState } from "react";
 import { FishSimple } from "@phosphor-icons/react";
 import type { Fish } from "../types";
 import { xivIconUrl } from "../utils/iconUrl";
-
-export function FishIcon({ fish }: { fish: Pick<Fish, "icon"> }) {
+const iconSizes = {
+  row: {
+    frame: "size-11",
+    image: "size-10",
+    fallback: "size-6.5",
+  },
+  detail: {
+    frame: "size-14",
+    image: "size-14",
+    fallback: "size-6.5",
+  },
+  voyage: {
+    frame: "size-6",
+    image: "size-6",
+    fallback: "size-6.5",
+  },
+  stats: {
+    frame: "size-7",
+    image: "size-7",
+    fallback: "size-6.5",
+  },
+  catch: {
+    frame: "size-9",
+    image: "size-9",
+    fallback: "size-9",
+  },
+} as const;
+export function FishIcon({
+  fish,
+  size = "row",
+}: {
+  fish: Pick<Fish, "icon">;
+  size?: keyof typeof iconSizes;
+}) {
   const [failed, setFailed] = useState(false);
+  const classes = iconSizes[size];
   return (
     <span
-      className={
-        "fish-icon grid place-items-center w-[44px] h-[44px] [&_img]:w-[40px] [&_img]:h-[40px] [&_img]:object-contain [&_svg]:w-[26px] [&_svg]:h-[26px] [&_svg]:text-muted [.fish-spot-stats-fish_&]:w-[28px] [.fish-spot-stats-fish_&]:h-[28px] [.fish-spot-stats-fish_&_img]:w-[28px] [.fish-spot-stats-fish_&_img]:h-[28px] [.fish-ocean-departure-target_&]:w-[24px] [.fish-ocean-departure-target_&]:h-[24px] [.fish-ocean-departure-target_&_img]:w-[24px] [.fish-ocean-departure-target_&_img]:h-[24px] [.fish-detail-heading_>_&]:w-[56px] [.fish-detail-heading_>_&]:h-[56px] [.fish-detail-heading_>_&_img]:w-[56px] [.fish-detail-heading_>_&_img]:h-[56px] [.timer-catch_&]:w-[36px] [.timer-catch_&]:h-[36px] [.timer-catch_&]:object-contain [.timer-catch_&_img]:w-[36px] [.timer-catch_&_img]:h-[36px] [.timer-catch_&_img]:object-contain [.timer-catch_&_svg]:w-[36px] [.timer-catch_&_svg]:h-[36px] [.timer-catch_&_svg]:object-contain [&&&&]:shrink-[0] [.timer-catch_&&&&]:shrink-[0] [.timer-catch_&&&&_img]:shrink-[0] [.timer-catch_&&&&_svg]:shrink-[0]"
-      }
+      className={clsx(
+        "fish-icon grid shrink-0 place-items-center",
+        classes.frame,
+      )}
       aria-hidden="true"
     >
       {!failed && fish.icon ? (
         <img
+          className={clsx("shrink-0 object-contain", classes.image)}
           src={xivIconUrl(fish.icon)}
           alt=""
           loading="lazy"
           onError={() => setFailed(true)}
         />
       ) : (
-        <FishSimple />
+        <FishSimple className={clsx("shrink-0 text-muted", classes.fallback)} />
       )}
     </span>
   );

@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { FishIcon } from "../components/FishIcon";
 import type { Fish, FishCatalog } from "../types";
-
 export function CaughtFish({
   itemId,
   sequence,
@@ -27,17 +26,23 @@ export function CaughtFish({
   const fish = catalog?.find((entry) => entry.id === itemId);
   return (
     <div
-      className={
-        "timer-catch flex items-center gap-[10px] pt-[10px] border-t border-solid border-line [&_>_div]:min-w-0 [&_>_div_>_span]:block [&_>_div_>_span]:mb-[3px] [&_>_div_>_span]:text-muted [&&&&]:m-[12px_0] [&&&&_>_div_>_span]:text-[11px] [&&&&_strong]:[overflow-wrap:anywhere]"
-      }
+      className="timer-catch mx-0 my-3 flex items-center gap-2.5 border-t border-solid border-line pt-2.5"
       role="status"
       aria-live="polite"
       aria-atomic="true"
     >
-      <FishIcon key={itemId} fish={{ icon: fish?.icon ?? "" }} />
-      <div key={sequence}>
-        <span>刚刚钓获</span>
-        <strong>{fish?.name ?? `物品 #${itemId}`}</strong>
+      <FishIcon
+        size="catch"
+        key={itemId}
+        fish={{
+          icon: fish?.icon ?? "",
+        }}
+      />
+      <div className="min-w-0" key={sequence}>
+        <span className="mb-[3px] block text-[11px] text-muted">刚刚钓获</span>
+        <strong className="[overflow-wrap:anywhere]">
+          {fish?.name ?? `物品 #${itemId}`}
+        </strong>
       </div>
     </div>
   );

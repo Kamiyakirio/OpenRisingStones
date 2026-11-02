@@ -1,4 +1,7 @@
 /** XIVAPI serves cached game icons; the local fallback keeps offline rows stable. */
+
+import clsx from "clsx";
+
 import { useState } from "react";
 import { Cube } from "@phosphor-icons/react";
 import type { Item } from "./types";
@@ -7,18 +10,18 @@ import {
   itemIconUrl,
   officialAssetUrl,
 } from "./xivapiAssets";
-
 export function ItemIcon({ item }: { item: Pick<Item, "iconId" | "name"> }) {
   const source = item.iconId ? itemIconUrl(item.iconId) : null;
   return <GameAssetIcon source={source} />;
 }
-
 export function GameAssetIcon({
   source,
   className = "",
+  size = "item",
 }: {
   source: string | null;
   className?: string;
+  size?: "item" | "job";
 }) {
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const [failedFallback, setFailedFallback] = useState<string | null>(null);
@@ -27,11 +30,21 @@ export function GameAssetIcon({
   const available = assetSourceAvailable(resolved, failedFallback);
   return (
     <span
-      className={`[&&&&]:flex-[0_0_40px] [&&&&_img]:z-[1] relative grid place-items-center w-[40px] h-[40px] overflow-hidden rounded-[7px] text-muted bg-hover [&_img]:relative [&_img]:block [&_img]:w-[40px] [&_img]:h-[40px] [&_img]:object-cover [&_img[hidden]]:hidden [&_>_svg]:absolute [&_>_svg]:w-[19px] [&_>_svg]:h-[19px] gear-item-icon ${className}`}
+      className={clsx(
+        "gear-item-icon relative grid shrink-0 place-items-center overflow-hidden rounded-[7px] text-muted",
+        size === "job"
+          ? "size-6 basis-6 bg-transparent"
+          : "size-10 basis-10 bg-hover",
+        className,
+      )}
       aria-hidden="true"
     >
       {available && (
         <img
+          className={clsx(
+            "relative z-1 block object-cover",
+            size === "job" ? "size-6" : "size-10",
+          )}
           src={resolved ?? undefined}
           alt=""
           loading="lazy"
@@ -42,7 +55,7 @@ export function GameAssetIcon({
           }}
         />
       )}
-      <Cube />
+      <Cube className="absolute h-[19px] w-[19px] shrink-0" />
     </span>
   );
 }

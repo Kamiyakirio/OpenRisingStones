@@ -1,4 +1,6 @@
 /** Share one Wiki acquisition popup across all bait labels in a fish detail. */
+
+import { fishingControlClasses } from "../utilityClasses";
 import {
   createContext,
   useCallback,
@@ -13,8 +15,10 @@ import { createPortal } from "react-dom";
 import { isTauriRuntime } from "../../../shared/utils/runtime";
 import { useWikiItem } from "../../../shared/wiki/useWikiItem";
 import type { FishCatalog } from "../types";
-
-type ActiveBait = { key: string; id: number };
+type ActiveBait = {
+  key: string;
+  id: number;
+};
 type BaitSourceContextValue = {
   catalog: FishCatalog;
   active: ActiveBait | null;
@@ -23,9 +27,7 @@ type BaitSourceContextValue = {
   keepOpen: () => void;
   dismiss: () => void;
 };
-
 const BaitSourceContext = createContext<BaitSourceContextValue | null>(null);
-
 export function FishBaitSourceProvider({
   catalog,
   children,
@@ -48,7 +50,6 @@ export function FishBaitSourceProvider({
   );
   const desktop = isTauriRuntime();
   const name = active ? catalog.items[active.id] || String(active.id) : "";
-
   const updatePosition = useCallback(() => {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -71,7 +72,6 @@ export function FishBaitSourceProvider({
       maxHeight,
     });
   }, []);
-
   function keepOpen() {
     clearTimeout(closeTimer.current);
   }
@@ -83,10 +83,12 @@ export function FishBaitSourceProvider({
     triggerRef.current = trigger;
     updatePosition();
     if (active?.key === key) return;
-    setActive({ key, id });
+    setActive({
+      key,
+      id,
+    });
     if (desktop) void wiki.load(catalog.items[id] || String(id), id);
   }
-
   useEffect(() => {
     if (!active) return;
     const onEscape = (event: KeyboardEvent) => {
@@ -102,19 +104,23 @@ export function FishBaitSourceProvider({
     };
   }, [active, updatePosition]);
   useEffect(() => () => clearTimeout(closeTimer.current), []);
-
   return (
     <BaitSourceContext.Provider
-      value={{ catalog, active, panelId, show, keepOpen, dismiss }}
+      value={{
+        catalog,
+        active,
+        panelId,
+        show,
+        keepOpen,
+        dismiss,
+      }}
     >
       {children}
       {active &&
         createPortal(
           <aside
             id={panelId}
-            className={
-              "fish-bait-source fixed overflow-auto p-[16px] rounded-[var(--ors-radius-panel)] bg-surface text-[13px] [&_header]:flex [&_header]:justify-between [&_header]:gap-[12px] [&&&&]:z-[100] [&&&&]:shadow-[var(--ors-shadow-popover)] [&&&&_h4]:m-[18px_0_5px]"
-            }
+            className="fish-bait-source fixed z-100 overflow-auto rounded-panel bg-surface p-4 text-[13px] shadow-[var(--ors-shadow-popover)]"
             aria-label={`${name}获取方式`}
             style={position}
             onMouseEnter={keepOpen}
@@ -124,9 +130,10 @@ export function FishBaitSourceProvider({
               if (!event.currentTarget.contains(event.relatedTarget)) dismiss();
             }}
           >
-            <header>
+            <header className="flex justify-between gap-3">
               <strong>{name} · 获取方式</strong>
               <button
+                className={fishingControlClasses.button}
                 type="button"
                 onClick={() => setActive(null)}
                 aria-label="关闭获取方式"
@@ -135,22 +142,24 @@ export function FishBaitSourceProvider({
               </button>
             </header>
             {!desktop ? (
-              <p>桌面客户端可读取获取方式；也可打开 Wiki 查看。</p>
+              <p className="">桌面客户端可读取获取方式；也可打开 Wiki 查看。</p>
             ) : wiki.status === "ready" ? (
               <>
-                {wiki.item?.unobtainable && <p>此物品目前无法获取。</p>}
+                {wiki.item?.unobtainable && (
+                  <p className="">此物品目前无法获取。</p>
+                )}
                 {wiki.item?.acquisitions.length ? (
                   wiki.item.acquisitions.map((source, index) => (
                     <section key={index}>
-                      <h4>{source.label}</h4>
-                      <p>{source.summary}</p>
+                      <h4 className="mx-0 mt-4.5 mb-[5px]">{source.label}</h4>
+                      <p className="">{source.summary}</p>
                       {source.details.map((detail, i) => (
                         <div
                           key={i}
-                          className="fish-bait-source-detail pt-[8px] border-t border-solid border-line"
+                          className="fish-bait-source-detail border-t border-solid border-line pt-2"
                         >
                           <strong>{detail.title}</strong>
-                          <p>
+                          <p className="">
                             {[
                               detail.description,
                               detail.location,
@@ -160,7 +169,7 @@ export function FishBaitSourceProvider({
                               .join(" · ")}
                           </p>
                           {detail.items.length > 0 && (
-                            <p>
+                            <p className="">
                               {detail.items
                                 .map(
                                   (item) =>
@@ -174,13 +183,16 @@ export function FishBaitSourceProvider({
                     </section>
                   ))
                 ) : (
-                  <p>Wiki 暂无可解析的获取方式，可打开原页查看。</p>
+                  <p className="">
+                    Wiki 暂无可解析的获取方式，可打开原页查看。
+                  </p>
                 )}
               </>
             ) : wiki.status === "error" ? (
               <div role="alert">
-                <p>获取方式读取失败，请重试或打开 Wiki。</p>
+                <p className="">获取方式读取失败，请重试或打开 Wiki。</p>
                 <button
+                  className={fishingControlClasses.button}
                   type="button"
                   onClick={() => void wiki.load(name, active.id)}
                 >
@@ -189,13 +201,14 @@ export function FishBaitSourceProvider({
               </div>
             ) : (
               <div role="status">
-                <p>
+                <p className="">
                   {wiki.status === "interaction_required"
                     ? "Wiki 需要验证后继续读取。"
                     : "正在读取 Wiki 获取方式…"}
                 </p>
                 {wiki.status === "interaction_required" && (
                   <button
+                    className={fishingControlClasses.button}
                     type="button"
                     onClick={() => void wiki.showVerification()}
                   >
@@ -204,6 +217,7 @@ export function FishBaitSourceProvider({
                 )}
                 {wiki.status === "background_verification" && (
                   <button
+                    className={fishingControlClasses.button}
                     type="button"
                     onClick={() => {
                       void wiki.cancelVerification();
@@ -228,7 +242,6 @@ export function FishBaitSourceProvider({
     </BaitSourceContext.Provider>
   );
 }
-
 export function FishBaitSource({
   baitId,
   children,
@@ -243,14 +256,12 @@ export function FishBaitSource({
   const expanded = source.active?.key === key;
   return (
     <span
-      className="fish-bait-source-anchor relative inline-flex items-center min-w-0"
+      className="fish-bait-source-anchor relative inline-flex min-w-0 items-center"
       onMouseLeave={source.dismiss}
     >
       <button
         type="button"
-        className={
-          "fish-bait-source-trigger [.fishing-workspace_&]:inline-flex [.fishing-workspace_&]:items-center [.fishing-workspace_&]:gap-[4px] [.fishing-workspace_&]:min-h-0 [.fishing-workspace_&]:p-0 [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:rounded-none [.fishing-workspace_&]:text-left [.fishing-workspace_&:hover]:text-accent [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&]:[color:inherit] [.fishing-workspace_&&&&]:[font:inherit] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline] [.fishing-workspace_&&&&:hover]:[text-underline-offset:3px]"
-        }
+        className="fish-bait-source-trigger inline-flex min-h-0 items-center gap-1 rounded-none border-0 border-control bg-transparent p-0 text-left text-[inherit] transition-[background-color,color,border-color] duration-120 ease-[ease] [font:inherit] hover:bg-transparent hover:text-accent hover:underline hover:[text-underline-offset:3px] disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent"
         aria-label={`查看${name}的获取方式`}
         aria-expanded={expanded}
         aria-controls={expanded ? source.panelId : undefined}

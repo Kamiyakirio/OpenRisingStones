@@ -1,3 +1,23 @@
 {
-  "buildPath": "code"
+  "buildPath": "code",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "cascadia_mono",
+        "files": ["src/features/auth/components/LoginDialog.tsx"],
+        "createdAt": "2026-10-13T02:48:13.566Z",
+        "reason": "Agent: DESIGN.md technical-input explicitly specifies Cascadia Mono; the existing raw session input encodes that documented family with Tailwind underscores."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "_sfmono-regular",
+        "files": ["src/pages/LogManagerPage.tsx"],
+        "createdAt": "2026-10-13T02:48:13.737Z",
+        "reason": "Agent: DESIGN.md documents SFMono-Regular as a technical text fallback; the existing log and JSON views use that family with Tailwind separators."
+      }
+    ]
+  }
 }

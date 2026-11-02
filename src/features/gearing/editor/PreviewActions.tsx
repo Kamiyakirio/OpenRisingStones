@@ -1,16 +1,22 @@
 /** Keep the replacement decision and its numerical consequences in the browsing context. */
+import clsx from "clsx";
+import { gearingControlClasses, gearingHintClasses } from "../utilityClasses";
 import type { EditorState } from "./Editor";
 import type { GearingViewModel } from "./ViewModel";
 import { useEffect, useRef } from "react";
 import { ItemName } from "./ItemName";
+
 export function PreviewActions({
   vm,
   state,
   onApply,
+  layout,
 }: {
   vm: GearingViewModel;
   state: EditorState;
   onApply: () => void;
+  /** Explicit layout variants keep this component independent of ancestor classes. */
+  layout?: "candidates";
 }) {
   const {
     preview,
@@ -23,7 +29,9 @@ export function PreviewActions({
   useEffect(() => {
     // A candidate near the end of a long list must still reveal the apply decision.
     if (ref.current?.getClientRects().length)
-      ref.current.scrollIntoView({ block: "nearest" });
+      ref.current.scrollIntoView({
+        block: "nearest",
+      });
   }, [preview?.id]);
   if (!preview || !data || !doc) return null;
   const job = data.jobs.find((entry) => entry.id === doc.job)!;
@@ -34,18 +42,15 @@ export function PreviewActions({
   return (
     <section
       ref={ref}
-      className={
-        "gear-preview-action relative grid items-center flex-wrap gap-[12px] bg-surface p-[12px] border border-solid border-line [&_>_span:first-child]:min-w-[200px] [&_>_span:nth-child(2)]:text-xs [&_>_span:nth-child(2)]:text-muted max-[767px]:[&_>_span:first-child]:min-w-[150px] [&&&&]:grid-cols-[minmax(0,_1fr)_auto] [&&&&]:z-[2] [&&&&_>_span:first-child]:flex-[1] [&&&&_>_details]:[grid-column:1_/_-1] [@media(max-width:_600px)]:[&&&&]:grid-cols-[minmax(0,_1fr)]"
-      }
+      className={clsx(
+        "gear-preview-action relative z-2 grid grid-cols-[minmax(0,_1fr)_auto] flex-wrap items-center gap-3 border border-solid border-line bg-surface p-3 max-[600px]:grid-cols-1",
+        layout === "candidates" && "min-[1200px]:shrink-0",
+      )}
       aria-label="替换预览"
       aria-busy={state.previewing}
     >
-      <div
-        className={
-          "gear-preview-identity grid gap-[4px] [&&&&]:flex-[1_1_240px] [&&&&]:[overflow-wrap:anywhere]"
-        }
-      >
-        <span className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
+      <div className="gear-preview-identity grid flex-[1_1_240px] gap-1 [overflow-wrap:anywhere]">
+        <span className={gearingHintClasses}>
           {before ? (
             <>
               替换 <ItemName item={before} sources={data.sources} />
@@ -59,9 +64,7 @@ export function PreviewActions({
         </strong>
       </div>
       <div
-        className={
-          "gear-preview-deltas flex flex-wrap text-[13px] tabular-nums [&&&&]:flex-[1_1_100%] [&&&&]:gap-[8px_20px] [&&&&]:[grid-column:1_/_-1]"
-        }
+        className="gear-preview-deltas col-span-full flex flex-[1_1_100%] flex-wrap gap-[8px_20px] text-[13px] tabular-nums"
         role="status"
       >
         {state.previewing ? (
@@ -78,7 +81,7 @@ export function PreviewActions({
                     className={
                       delta > 0
                         ? "gear-positive text-success"
-                        : "gear-negative [&&&&]:[color:var(--ors-color-danger)]!"
+                        : "gear-negative text-danger"
                     }
                   >
                     {delta > 0 ? "+" : ""}
@@ -95,11 +98,7 @@ export function PreviewActions({
               </span>
             )}
             {!!next.issues.length && (
-              <span
-                className={
-                  "gear-negative [&&&&]:[color:var(--ors-color-danger)]!"
-                }
-              >
+              <span className="gear-negative text-danger">
                 装备存在冲突，暂时无法应用。请检查下方详情。
               </span>
             )}
@@ -109,7 +108,7 @@ export function PreviewActions({
         )}
       </div>
       {!!next?.issues.length && (
-        <details>
+        <details className="col-span-full">
           <summary>冲突详情</summary>
           {next.issues.map((issue, index) => (
             <p key={index}>
@@ -119,14 +118,17 @@ export function PreviewActions({
           ))}
         </details>
       )}
-      <div
-        className={
-          "gear-preview-buttons flex gap-[8px] [&&&&]:[margin-left:auto] [&&&&]:[grid-column:2] [&&&&]:[grid-row:1] [@media(max-width:_600px)]:[&&&&]:[grid-column:1] [@media(max-width:_600px)]:[&&&&]:[grid-row:auto]"
-        }
-      >
-        <button onClick={() => vm.cancelPreview()}>取消预览</button>
+      <div className="gear-preview-buttons col-start-2 row-start-1 [margin-left:auto] flex gap-2 max-[600px]:col-start-1 max-[600px]:row-auto">
         <button
-          className="gear-primary [.gear-editor_&]:bg-accent [.gear-editor_&]:text-on-accent [.gear-editor_&]:border-accent [.gear-editor_&:hover:not(:disabled)]:bg-accent-hover [.gear-editor_&:disabled]:bg-surface [.gear-editor_&:disabled]:border-line"
+          className={gearingControlClasses.button}
+          onClick={() => vm.cancelPreview()}
+        >
+          取消预览
+        </button>
+        <button
+          className={
+            "gear-primary inline-flex min-h-10 items-center justify-center gap-1.5 rounded-control border border-solid border-accent bg-accent px-3 py-2 text-on-accent transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-accent-hover disabled:cursor-default disabled:border-line disabled:bg-surface disabled:text-disabled disabled:opacity-100 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected pointer-coarse:min-h-11"
+          }
           disabled={!next || !!next.issues.length || state.previewing}
           onClick={onApply}
         >

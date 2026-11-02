@@ -1,21 +1,16 @@
 /** Explain fishing catalog coverage, live data, and source attribution. */
 import type { FishCatalog } from "../types";
-
 export function FishingSource({ catalog }: { catalog: FishCatalog }) {
   return (
-    <details
-      className={
-        "fish-source mt-[48px] pt-[12px] border-t border-solid border-line text-muted text-[13px] [&_summary]:cursor-pointer [&&&&_summary]:p-[8px_0] [&&&&_p]:max-w-[80ch]"
-      }
-    >
-      <summary>数据来源与覆盖范围</summary>
-      <p>
+    <details className="fish-source mt-12 border-t border-solid border-line pt-3 text-[13px] text-muted">
+      <summary className="cursor-pointer px-0 py-2">数据来源与覆盖范围</summary>
+      <p className="max-w-[80ch]">
         本地收录 {catalog.fish.length} 条鱼类资料，生成于{" "}
         {new Date(catalog.generatedAt).toLocaleDateString("zh-CN")}。
         时间与天气仅用于规划窗口；海钓班次按游戏航线轮换推算，出发前请在游戏中核对。
         鱼识和未收录条件也需在游戏中确认。 图鉴外的任务鱼无法读取历史钓获状态。
       </p>
-      <p>
+      <p className="max-w-[80ch]">
         资料来自{" "}
         <a
           href="https://github.com/icykoneko/ff14-fish-tracker-app"
@@ -50,7 +45,7 @@ export function FishingSource({ catalog }: { catalog: FishCatalog }) {
         </a>
         ；图标通过 XIVAPI 加载。本机标记会随“清除本地数据”一起删除。
       </p>
-      <p>
+      <p className="max-w-[80ch]">
         咬钩时间实时读取 Teamcraft 社区记录，按鱼、钓场和鱼饵匹配。
         显示的是样本中间 90% 的范围和记录次数；技能与装备会影响实际时间。
       </p>

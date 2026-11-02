@@ -1,4 +1,6 @@
 /** Character identity, current PvP rotations, and the shared feature directory. */
+import { featureColorClasses } from "../shared/styles/workspaceColors";
+import clsx from "clsx";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -23,7 +25,6 @@ import {
   type PvpMap,
   type PvpRotation,
 } from "../shared/utils/pvpMap";
-
 type HomePageProps = {
   profile: LoginProfile | null;
   loginChecking: boolean;
@@ -39,7 +40,6 @@ type HomePageProps = {
   onOpenPortrait: () => void;
   onOpenMentor: () => void;
 };
-
 export function HomePage({
   profile,
   loginChecking,
@@ -86,7 +86,6 @@ export function HomePage({
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [nowMs, frontlineNextAt, crystallineConflictNextAt]);
-
   const features = [
     {
       id: "recruit",
@@ -147,18 +146,24 @@ export function HomePage({
   ];
   return (
     <main
-      className="product-home mx-auto w-full max-w-[1600px] px-5 py-5 min-h-[calc(100dvh-56px)] max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4"
+      className="product-home mx-auto min-h-[calc(100dvh-56px)] w-full max-w-400 px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4"
       id="top"
     >
-      <header className="home-heading mb-5 flex flex-wrap items-center justify-between gap-3 [&_h1]:m-0 [&_h1]:text-2xl [&_h1]:font-bold [&_p]:mt-1 [&_p]:text-sm [&_p]:text-muted max-[619px]:mb-5 max-[619px]:gap-4">
+      <header className="home-heading mb-5 flex flex-wrap items-center justify-between gap-3 max-[619px]:mb-5 max-[619px]:gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">所有工具</h1>
-          <p>选择需要的工具，开始当前任务。</p>
+          <h1 className="m-0 text-2xl font-bold tracking-tight">所有工具</h1>
+          <p className="mt-1 text-sm text-muted">
+            选择需要的工具，开始当前任务。
+          </p>
         </div>
-        <label className="home-search flex h-11 w-full max-w-80 items-center gap-3 rounded-lg border border-control bg-surface px-3 focus-within:border-accent [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-muted [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-0 [&_input]:bg-transparent [&_input]:text-sm [&_input]:outline-none max-[619px]:max-w-none">
-          <MagnifyingGlass aria-hidden="true" />
+        <label className="home-search flex h-11 w-full max-w-80 items-center gap-3 rounded-control border border-control bg-surface px-3 focus-within:border-accent max-[619px]:max-w-none">
+          <MagnifyingGlass
+            className="size-5 shrink-0 text-muted"
+            aria-hidden="true"
+          />
           <span className="sr-only">搜索工具</span>
           <input
+            className="min-h-9 min-w-0 flex-1 border-0 bg-transparent text-sm outline-none pointer-coarse:min-h-11"
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -168,14 +173,17 @@ export function HomePage({
       </header>
       <div className="home-layout grid grid-cols-[minmax(0,1fr)_320px] items-start gap-4 max-[1199px]:grid-cols-[minmax(0,1fr)_280px] max-[1199px]:gap-4 max-[1099px]:grid-cols-1">
         <section
-          className="home-tools min-w-0 [&_>_h2]:mb-3 [&_>_h2]:text-sm [&_>_h2]:font-semibold [&_>_h2]:text-muted"
+          className="home-tools min-w-0"
           aria-labelledby="home-tools-title"
         >
-          <h2 className="text-lg font-semibold" id="home-tools-title">
+          <h2
+            className="mb-3 text-sm font-semibold text-muted"
+            id="home-tools-title"
+          >
             工具
           </h2>
           <div
-            className="feature-directory overflow-hidden rounded-xl border border-line bg-surface"
+            className="feature-directory overflow-hidden rounded-panel border border-line bg-surface"
             aria-label="应用功能"
           >
             {features
@@ -187,18 +195,22 @@ export function HomePage({
                   key={id}
                   data-feature={id}
                   type="button"
-                  className="feature-entry flex min-h-16 w-full items-center gap-3 border-0 border-b border-line px-4 py-3 text-left text-ink last:border-b-0 hover:bg-hover focus-visible:relative focus-visible:z-1 focus-visible:outline-offset-[-3px] max-[619px]:gap-3 max-[619px]:px-4"
+                  className={clsx(
+                    "feature-entry flex min-h-16 w-full items-center gap-3 border-0 border-b border-line px-4 py-3 text-left text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] last:border-b-0 hover:bg-hover focus-visible:relative focus-visible:z-1 focus-visible:outline-offset-[-3px] max-[619px]:gap-3 max-[619px]:px-4",
+                    featureColorClasses,
+                  )}
                   onClick={open}
                 >
-                  <span
-                    className={
-                      "feature-entry-symbol grid size-9 shrink-0 place-items-center rounded-lg border [&_svg]:size-5 max-[619px]:size-9 [&&&&]:[color:var(--tool-color)] [&&&&]:[border-color:color-mix(_in_srgb,_var(--tool-color)_18%,_var(--ors-color-line)_)] [&&&&]:[background:color-mix(_in_srgb,_var(--tool-color)_4%,_var(--ors-color-surface)_)]"
-                    }
-                  >
-                    <Icon aria-hidden="true" />
+                  <span className="feature-entry-symbol grid size-9 shrink-0 place-items-center rounded-control border border-[color-mix(_in_srgb,_var(--tool-color)_18%,_var(--ors-color-line)_)] bg-[color-mix(_in_srgb,_var(--tool-color)_4%,_var(--ors-color-surface)_)] text-tool max-[619px]:size-9">
+                    <Icon
+                      className="size-5 shrink-0 text-tool"
+                      aria-hidden="true"
+                    />
                   </span>
-                  <span className="feature-entry-copy flex min-w-0 flex-1 flex-col gap-1 [&_strong]:text-base [&_strong]:font-semibold [&_strong]:text-ink">
-                    <strong>{name}</strong>
+                  <span className="feature-entry-copy flex min-w-0 flex-1 flex-col gap-1">
+                    <strong className="text-base font-semibold text-ink">
+                      {name}
+                    </strong>
                     <span className="feature-description text-sm text-muted max-[619px]:text-xs max-[619px]:leading-relaxed">
                       {description}
                     </span>
@@ -226,8 +238,8 @@ export function HomePage({
           className="home-context grid min-w-0 gap-3 max-[1099px]:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] max-[619px]:grid-cols-1"
           aria-label="角色与对战信息"
         >
-          <header className="home-identity rounded-xl border border-line bg-surface p-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:break-words [&_p]:mt-1 [&_p]:text-sm [&_p]:text-muted [&_button]:mt-3 [&_button]:rounded-lg [&_button]:border [&_button]:border-control [&_button]:px-3 [&_button]:py-2 [&_button]:text-sm [&_button]:text-accent [&_button]:hover:bg-hover">
-            <h2 className="text-lg font-semibold">
+          <header className="home-identity rounded-panel border border-line bg-surface p-4">
+            <h2 className="text-base font-semibold break-words">
               {characterName && serverName
                 ? `${characterName}@${serverName}`
                 : profile
@@ -237,22 +249,28 @@ export function HomePage({
                     : "未登录角色"}
             </h2>
             {!profile && !loginChecking && (
-              <button type="button" onClick={onOpenLogin}>
+              <button
+                className="mt-3 min-h-9 rounded-control border border-control px-3 py-2 text-sm text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-hover pointer-coarse:min-h-11"
+                type="button"
+                onClick={onOpenLogin}
+              >
                 登录后显示游戏 ID@服务器
               </button>
             )}
             {profile && (!characterName || !serverName) && (
-              <p>当前账号未提供完整的游戏 ID 和服务器信息。</p>
+              <p className="mt-1 text-sm text-muted">
+                当前账号未提供完整的游戏 ID 和服务器信息。
+              </p>
             )}
             {profile && (
               <div
-                className="home-signin mt-3 flex flex-wrap items-center gap-2 text-xs text-muted [&_svg]:size-4 [&_button]:m-0"
+                className="home-signin mt-3 flex flex-wrap items-center gap-2 text-xs text-muted"
                 role="status"
               >
                 {signInStatus === "signed" ||
                 signInStatus === "already_signed" ? (
                   <>
-                    <CheckCircle className="" aria-hidden="true" />
+                    <CheckCircle className="size-4" aria-hidden="true" />
                     <span>
                       {signInStatus === "signed"
                         ? "石之家自动签到成功"
@@ -261,9 +279,13 @@ export function HomePage({
                   </>
                 ) : signInStatus === "failed" ? (
                   <>
-                    <WarningCircle className="" aria-hidden="true" />
+                    <WarningCircle className="size-4" aria-hidden="true" />
                     <span>石之家自动签到失败</span>
-                    <button type="button" onClick={onRetrySignIn}>
+                    <button
+                      className="m-0 min-h-9 rounded-control border border-control px-3 py-2 text-sm text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-hover pointer-coarse:min-h-11"
+                      type="button"
+                      onClick={onRetrySignIn}
+                    >
                       重试签到
                     </button>
                   </>
@@ -275,10 +297,13 @@ export function HomePage({
           </header>
 
           <section
-            className="home-pvp overflow-hidden rounded-xl border border-line bg-surface [&_>_h2]:border-b [&_>_h2]:border-line [&_>_h2]:px-4 [&_>_h2]:py-3 [&_>_h2]:text-sm [&_>_h2]:font-semibold"
+            className="home-pvp overflow-hidden rounded-panel border border-line bg-surface"
             aria-labelledby="home-pvp-title"
           >
-            <h2 className="text-lg font-semibold" id="home-pvp-title">
+            <h2
+              className="border-b border-line px-4 py-3 text-sm font-semibold"
+              id="home-pvp-title"
+            >
               当前对战地图
             </h2>
             <div className="home-pvp-rotations grid max-[1099px]:grid-cols-2 max-[619px]:grid-cols-1">
@@ -294,7 +319,6 @@ export function HomePage({
     </main>
   );
 }
-
 function PvpMapStatus({
   title,
   rotation,
@@ -309,23 +333,23 @@ function PvpMapStatus({
     minute: "2-digit",
     hour12: false,
   }).format(rotation.nextRotationAt);
-
   return (
-    <div className="home-pvp-rotation flex min-w-0 flex-col gap-2 border-b border-line p-4 last:border-b-0 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:text-muted [&_strong]:text-base [&_strong]:font-semibold [&_time]:text-xs [&_time]:text-muted max-[1099px]:border-b-0 max-[1099px]:[.home-pvp-rotation_+_&]:border-l max-[1099px]:[.home-pvp-rotation_+_&]:border-line max-[619px]:[.home-pvp-rotation_+_&]:border-t max-[619px]:[.home-pvp-rotation_+_&]:border-l-0 max-[619px]:[.home-pvp-rotation_+_&]:border-line">
-      <h3 className="text-base font-semibold">{title}</h3>
+    <div className="home-pvp-rotation flex min-w-0 flex-col gap-2 border-b border-line p-4 last:border-b-0 max-[1099px]:border-b-0 max-[1099px]:not-first:border-l max-[1099px]:not-first:border-line max-[619px]:not-first:border-t max-[619px]:not-first:border-l-0 max-[619px]:not-first:border-line">
+      <h3 className="text-xs font-semibold text-muted">{title}</h3>
       <PvpMapArtwork key={rotation.map.imageId} map={rotation.map} />
-      <strong>{rotation.map.name}</strong>
+      <strong className="text-base font-semibold">{rotation.map.name}</strong>
       <PvpCountdown nextRotationAt={rotation.nextRotationAt} />
-      <time dateTime={rotation.nextRotationAt.toISOString()}>
+      <time
+        className="text-xs text-muted"
+        dateTime={rotation.nextRotationAt.toISOString()}
+      >
         下次轮换 {nextRotationLabel}
       </time>
     </div>
   );
 }
-
 function PvpCountdown({ nextRotationAt }: { nextRotationAt: Date }) {
   const [nowMs, setNowMs] = useState(Date.now);
-
   useEffect(() => {
     const update = () => setNowMs(Date.now());
     let timer: number | undefined = document.hidden
@@ -346,30 +370,26 @@ function PvpCountdown({ nextRotationAt }: { nextRotationAt: Date }) {
       window.removeEventListener("focus", update);
     };
   }, []);
-
   return (
     <span className="home-pvp-countdown text-sm font-semibold tabular-nums">
       距离轮换 {formatPvpCountdown(nextRotationAt.getTime() - nowMs)}
     </span>
   );
 }
-
 function PvpMapArtwork({ map }: { map: PvpMap }) {
   const [source, setSource] = useState<"mirror" | "official" | "unavailable">(
     "mirror",
   );
-
   if (source === "unavailable") {
     return (
-      <div className="home-pvp-artwork home-pvp-artwork-fallback my-1 aspect-[47/15] w-full rounded-lg border border-line bg-hover object-cover grid place-items-center px-4 text-center text-xs text-muted">
+      <div className="home-pvp-artwork home-pvp-artwork-fallback my-1 grid aspect-[47/15] w-full place-items-center rounded-control border border-line bg-hover object-cover px-4 text-center text-xs text-muted">
         地图图片暂不可用
       </div>
     );
   }
-
   return (
     <img
-      className="home-pvp-artwork my-1 block aspect-[47/15] w-full rounded-lg border border-line bg-hover object-cover"
+      className="home-pvp-artwork my-1 block aspect-[47/15] w-full rounded-control border border-line bg-hover object-cover"
       src={pvpMapImageUrl(map, source)}
       alt=""
       loading="eager"

@@ -1,4 +1,6 @@
 /** Single-item materia and custom-stat editing stays separate from gearset totals. */
+import clsx from "clsx";
+import { gearingControlClasses, gearingHintClasses } from "../utilityClasses";
 import {
   ArrowLeft,
   CaretRight,
@@ -20,6 +22,7 @@ export function MeldEditor({
   onOpenMateria,
   onCloseMateria,
   onRemove,
+  layout,
 }: {
   vm: GearingViewModel;
   state: EditorState;
@@ -27,6 +30,8 @@ export function MeldEditor({
   onOpenMateria: (index: number) => void;
   onCloseMateria: () => void;
   onRemove: () => void;
+  /** Explicit layout variants keep this component independent of ancestor classes. */
+  layout?: "meld-layout";
 }) {
   const fieldRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const previousMateriaIndex = useRef(activeMateriaIndex);
@@ -54,10 +59,12 @@ export function MeldEditor({
       ...job.stats.filter((stat) => data.materias[stat]),
     ]),
   ].filter((stat) => stat !== "main" && stat !== "secondary") as Stat[];
-
   const configureMateria = (
     index: number,
-    materia?: { stat: Stat; grade: number },
+    materia?: {
+      stat: Stat;
+      grade: number;
+    },
   ) => {
     vm.configure(state.selection as Slot, (current) => {
       while (current.materias.length <= index) current.materias.push({});
@@ -65,7 +72,6 @@ export function MeldEditor({
     });
     onCloseMateria();
   };
-
   if (activeMateriaIndex !== null) {
     const grades = selected.allowedGrades?.[activeMateriaIndex] ?? [];
     const guaranteedSlots = selected.item.materiaSlot ?? 0;
@@ -76,55 +82,51 @@ export function MeldEditor({
     const current = gear.materias[activeMateriaIndex];
     return (
       <div
-        className={
-          "gear-meld-editor gear-materia-picker p-[20px] [.gear-meld-layout_>_&]:min-h-0 [.gear-meld-layout_>_&]:overflow-y-auto max-[767px]:p-[16px] [&_button_small]:text-muted [&_button_small]:text-xs [.gear-meld-layout_>_&&&&]:flex-[1_1_auto]"
-        }
+        className={clsx(
+          "gear-meld-editor gear-materia-picker p-5 max-[767px]:p-4",
+          layout === "meld-layout" && "min-h-0 flex-[1_1_auto] overflow-y-auto",
+        )}
       >
-        <header
-          className={
-            "gear-materia-picker-heading flex items-center gap-[12px] pb-[16px] border-b border-solid border-line [&_>_button]:inline-flex [&_>_button]:items-center [&_>_button]:gap-[6px] [&_>_button]:min-h-[40px] [&_>_span]:grid [&_>_span]:gap-[2px] [&_h2]:m-0 [&_h2]:text-base [&_small]:text-muted [&_small]:text-xs max-[767px]:items-start max-[767px]:flex-wrap max-[767px]:[&_>_span]:min-w-[140px] [&&&&_>_button]:p-[6px_10px] [&&&&_>_span]:flex-[1]"
-          }
-        >
+        <header className="gear-materia-picker-heading flex items-center gap-3 border-b border-solid border-line pb-4 max-[767px]:flex-wrap max-[767px]:items-start">
           <button
+            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-control border border-solid border-control bg-surface px-2.5 py-1.5 text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-default disabled:text-disabled disabled:opacity-100 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected"
             type="button"
             aria-label="返回镶嵌面板"
             onClick={onCloseMateria}
           >
-            <ArrowLeft />
+            <ArrowLeft className={gearingControlClasses.icon} />
             返回
           </button>
-          <span>
-            <h2 className="text-lg font-semibold">选择魔晶石</h2>
-            <small>
+          <span className="grid flex-1 gap-0.5 max-[767px]:min-w-35">
+            <h2 className="m-0 text-base font-semibold">选择魔晶石</h2>
+            <small className="text-xs text-muted">
               {slotName} · {slotLabel}
             </small>
           </span>
           <button
             type="button"
-            className={
-              "gear-materia-clear min-h-[40px] [&:hover]:bg-hover [&[aria-pressed=true]]:text-accent [&[aria-pressed=true]]:bg-selected [&[aria-pressed=true]]:font-semibold [&&&&]:flex-[0_0_auto] [&&&&]:p-[6px_10px]"
-            }
+            className="gear-materia-clear inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-control border border-solid border-control bg-surface px-2.5 py-1.5 text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-hover disabled:cursor-default disabled:text-disabled disabled:opacity-100 aria-pressed:bg-selected aria-pressed:font-semibold aria-pressed:text-accent"
             aria-pressed={!current?.stat}
             onClick={() => configureMateria(activeMateriaIndex)}
           >
             清空此孔
           </button>
         </header>
-        <div
-          className={
-            "gear-materia-picker-groups [&_button]:grid [&_button]:items-center [&_button]:gap-[8px] [&_button]:min-h-[44px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-left [&_button:hover]:bg-hover [&_button[aria-pressed=true]]:text-accent [&_button[aria-pressed=true]]:bg-selected [&_button[aria-pressed=true]]:font-semibold [&_button_strong]:text-sm [&_button_strong]:tabular-nums [&_button_small]:whitespace-nowrap grid gap-0 mt-[12px] [&_section]:grid [&_section]:gap-[12px] [&_section]:items-center [&_section]:border-b [&_section]:border-solid [&_section]:border-line [&_h3]:m-0 [&_h3]:text-muted [&_h3]:text-xs [&_h3]:font-semibold [&_section_>_div]:flex [&_section_>_div]:gap-[8px] [&_section_>_div]:min-w-0 [&_section_>_div]:overflow-x-auto [&_section_>_div]:p-[2px] [&&&&_button]:grid-cols-[18px_auto_auto_16px] [&&&&_button]:flex-[0_0_108px] [&&&&_button]:p-[8px_10px] [&&&&_button]:[background:transparent] [&&&&_section]:grid-cols-[88px_minmax(0,_1fr)] [&&&&_section]:p-[10px_0] [@media(max-width:_767px)]:[&&&&_section]:grid-cols-[68px_minmax(0,_1fr)]"
-          }
-        >
+        <div className="gear-materia-picker-groups mt-3 grid gap-0">
           {job.stats
             .filter((stat) => data.materias[stat])
             .map((stat) => (
-              <section key={stat}>
-                <h3 className="text-base font-semibold">
+              <section
+                className="grid grid-cols-[88px_minmax(0,_1fr)] items-center gap-3 border-b border-solid border-line px-0 py-2.5 max-[767px]:grid-cols-[68px_minmax(0,_1fr)]"
+                key={stat}
+              >
+                <h3 className="m-0 text-xs font-semibold text-muted">
                   {data.statNames[stat]}
                 </h3>
-                <div>
+                <div className="flex min-w-0 gap-2 overflow-x-auto p-0.5">
                   {grades.map((grade) => (
                     <button
+                      className="grid min-h-11 flex-[0_0_108px] grid-cols-[18px_auto_auto_16px] items-center justify-center gap-2 rounded-control border border-solid border-control bg-transparent px-2.5 py-2 text-left text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-hover disabled:cursor-default disabled:text-disabled disabled:opacity-100 aria-pressed:bg-selected aria-pressed:font-semibold aria-pressed:text-accent"
                       key={grade}
                       type="button"
                       aria-label={`${data.statNames[stat]} +${data.materias[stat]![grade - 1]}，${data.materiaGradeNames[grade - 1]}`}
@@ -133,11 +135,14 @@ export function MeldEditor({
                       }
                       title={`${data.statNames[stat]} +${data.materias[stat]![grade - 1]} · ${data.materiaGradeNames[grade - 1]}`}
                       onClick={() =>
-                        configureMateria(activeMateriaIndex, { stat, grade })
+                        configureMateria(activeMateriaIndex, {
+                          stat,
+                          grade,
+                        })
                       }
                     >
                       <Diamond
-                        className="gear-materia-gem text-accent"
+                        className="gear-materia-gem h-4.5 w-4.5 shrink-0 text-accent"
                         weight={
                           current?.stat === stat && current.grade === grade
                             ? "fill"
@@ -145,11 +150,15 @@ export function MeldEditor({
                         }
                         aria-hidden="true"
                       />
-                      <strong>+{data.materias[stat]![grade - 1]}</strong>
-                      <small>{data.materiaGradeNames[grade - 1]}</small>
+                      <strong className="text-sm tabular-nums">
+                        +{data.materias[stat]![grade - 1]}
+                      </strong>
+                      <small className="text-xs whitespace-nowrap text-muted">
+                        {data.materiaGradeNames[grade - 1]}
+                      </small>
                       {current?.stat === stat && current.grade === grade && (
                         <Check
-                          className="gear-materia-check text-accent"
+                          className="gear-materia-check h-4.5 w-4.5 shrink-0 text-accent"
                           weight="bold"
                         />
                       )}
@@ -162,29 +171,26 @@ export function MeldEditor({
       </div>
     );
   }
-
   return (
     <div
-      className={
-        "gear-meld-editor p-[20px] [.gear-meld-layout_>_&]:min-h-0 [.gear-meld-layout_>_&]:overflow-y-auto max-[767px]:p-[16px] [.gear-meld-layout_>_&&&&]:flex-[1_1_auto]"
-      }
+      className={clsx(
+        "gear-meld-editor p-5 max-[767px]:p-4",
+        layout === "meld-layout" && "min-h-0 flex-[1_1_auto] overflow-y-auto",
+      )}
       id="gearing-meld-editor"
     >
-      <div
-        className={
-          "gear-meld-identity grid items-center gap-[12px] border-b border-solid border-line [&_>_span:nth-child(2)]:grid [&_>_span:nth-child(2)]:min-w-0 [&_small]:text-muted [&_small]:text-xs [&_small]:font-normal [&&&&]:grid-cols-[40px_minmax(0,_1fr)_auto] [&&&&]:p-[0_0_16px] [&&&&_strong]:[overflow-wrap:anywhere]"
-        }
-      >
+      <div className="gear-meld-identity grid grid-cols-[40px_minmax(0,_1fr)_auto] items-center gap-3 border-b border-solid border-line px-0 pt-0 pb-4">
         <ItemIcon item={selected.item} />
-        <span>
-          <strong>
+        <span className="nth-[2]:grid nth-[2]:min-w-0">
+          <strong className="[overflow-wrap:anywhere]">
             <ItemName item={selected.item} sources={data.sources} />
           </strong>
-          <small>
+          <small className="text-xs font-normal text-muted">
             {slotName} · i{selected.item.level}
           </small>
         </span>
         <button
+          className={gearingControlClasses.button}
           aria-pressed={gear.materiaLocked}
           title="优化时保留当前魔晶石和自定义属性"
           onClick={() =>
@@ -193,28 +199,23 @@ export function MeldEditor({
             })
           }
         >
-          <LockSimple weight={gear.materiaLocked ? "fill" : "regular"} />
+          <LockSimple
+            className={gearingControlClasses.icon}
+            weight={gear.materiaLocked ? "fill" : "regular"}
+          />
           {gear.materiaLocked ? "已锁定镶嵌" : "锁定镶嵌"}
         </button>
       </div>
       {selected.synced && (
-        <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
-          品级同步中，魔晶石不计入属性。
-        </p>
+        <p className={gearingHintClasses}>品级同步中，魔晶石不计入属性。</p>
       )}
-      <h2
-        className={
-          "font-semibold gear-meld-heading text-base [&&&&]:m-[20px_0_0]"
-        }
-      >
+      <h2 className="gear-meld-heading mx-0 mt-5 mb-0 text-base font-semibold">
         魔晶石与自定义属性
       </h2>
-      <div className="gear-meld-fields flex gap-[10px] mt-[12px] pb-[4px] overflow-x-auto">
+      <div className="gear-meld-fields mt-3 flex gap-2.5 overflow-x-auto pb-1">
         {selected.allowedGrades?.map((_, index) => (
           <div
-            className={
-              "gear-meld-field [.gear-meld-fields_&]:grid [.gear-meld-fields_&]:gap-[6px] [.gear-meld-fields_&]:text-xs [&_>_button]:flex [&_>_button]:items-center [&_>_button]:justify-between [&_>_button]:gap-[12px] [&_>_button]:min-h-[64px] [&_>_button]:text-left [&_>_button_>_span]:grid [&_>_button_>_span]:gap-[2px] [&_>_button_small]:text-muted [&_>_button_small]:text-xs [.gear-meld-fields_&&&&]:flex-[1_0_140px] [.gear-meld-fields_&&&&]:[align-content:start] [&&&&_>_button]:p-[8px_12px] [&&&&_>_button_svg]:flex-[0_0_auto] [@media(max-width:_767px)]:[.gear-meld-fields_&&&&]:[flex-basis:150px]"
-            }
+            className="gear-meld-field grid flex-[1_0_140px] content-start gap-1.5 text-xs max-[767px]:basis-37.5"
             key={index}
           >
             <span>
@@ -223,6 +224,7 @@ export function MeldEditor({
                 : `禁断 ${index + 1 - (selected.item.materiaSlot ?? 0)}`}
             </span>
             <button
+              className="flex min-h-16 items-center justify-between gap-3 rounded-control border border-solid border-control bg-surface px-3 py-2 text-left text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-default disabled:text-disabled disabled:opacity-100 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected"
               ref={(element) => {
                 fieldRefs.current[index] = element;
               }}
@@ -230,12 +232,9 @@ export function MeldEditor({
               aria-label={`魔晶石孔 ${index + 1}`}
               onClick={() => onOpenMateria(index)}
             >
-              <span
-                className={
-                  "gear-meld-value items-center [&_>_svg]:text-accent [&&&&]:grid-cols-[18px_minmax(0,_1fr)] [&&&&_>_svg]:[grid-row:1_/_span_2] [&&&&_>_small]:[grid-column:2]"
-                }
-              >
+              <span className="gear-meld-value grid grid-cols-[18px_minmax(0,_1fr)] items-center gap-0.5">
                 <Diamond
+                  className="row-[1_/_span_2] h-4.5 w-4.5 shrink-0 text-accent"
                   weight={gear.materias[index]?.stat ? "fill" : "regular"}
                   aria-hidden="true"
                 />
@@ -245,7 +244,7 @@ export function MeldEditor({
                     : "空"}
                 </strong>
                 {gear.materias[index]?.stat && (
-                  <small>
+                  <small className="col-start-2 text-xs text-muted">
                     +
                     {
                       data.materias[gear.materias[index].stat!]![
@@ -258,14 +257,14 @@ export function MeldEditor({
                   </small>
                 )}
               </span>
-              <CaretRight aria-hidden="true" />
+              <CaretRight className="h-4.5 w-4.5 shrink-0" aria-hidden="true" />
             </button>
           </div>
         ))}
       </div>
       {selected.item.customizable && (
-        <div className="gear-custom-stats grid gap-[8px] mt-[12px] [&_label]:justify-between [&_input]:w-[100px]">
-          <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
+        <div className="gear-custom-stats mt-3 grid gap-2">
+          <p className={gearingHintClasses}>
             {selected.customRule
               ? `分配：两项 ${selected.customRule.major}，另一项 ${selected.customRule.minor}`
               : "手动填写已确认的自定义属性。"}
@@ -274,9 +273,13 @@ export function MeldEditor({
             selected.customRule?.stats ??
             job.stats.filter((stat) => data.materias[stat])
           ).map((stat) => (
-            <label key={stat}>
+            <label
+              className="flex items-center justify-between gap-2"
+              key={stat}
+            >
               {data.statNames[stat]}
               <input
+                className="min-h-10 w-25 min-w-0 rounded-control border border-solid border-control bg-surface px-3 py-2 text-ink pointer-coarse:min-h-11"
                 type="number"
                 min={0}
                 max={1000}
@@ -298,35 +301,37 @@ export function MeldEditor({
         </div>
       )}
       {!selected.allowedGrades?.length && !selected.item.customizable && (
-        <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
-          此装备没有可编辑的魔晶石孔。
-        </p>
+        <p className={gearingHintClasses}>此装备没有可编辑的魔晶石孔。</p>
       )}
-      <details className="gear-meld-stat-details pt-[12px] border-t border-solid border-line [&_>_summary]:font-semibold">
-        <summary>查看装备属性</summary>
+      <details className="gear-meld-stat-details border-t border-solid border-line pt-3">
+        <summary className="font-semibold">查看装备属性</summary>
         <section
-          className="gear-meld-stats mt-[12px] overflow-x-auto"
+          className="gear-meld-stats mt-3 overflow-x-auto"
           aria-label="此装备属性"
           aria-busy={state.evaluating}
         >
-          <table>
+          <table className={gearingControlClasses.table}>
             <thead>
               <tr>
-                <th>属性</th>
-                <th>基础</th>
-                <th>当前生效</th>
-                <th>镶嵌上限</th>
+                <th className={gearingControlClasses.th}>属性</th>
+                <th className={gearingControlClasses.th}>基础</th>
+                <th className={gearingControlClasses.th}>当前生效</th>
+                <th className={gearingControlClasses.th}>镶嵌上限</th>
               </tr>
             </thead>
             <tbody>
               {detailStats.map((stat) => (
                 <tr key={stat}>
-                  <th>{data.statNames[stat] ?? stat}</th>
-                  <td>{selected.item.stats[stat] ?? 0}</td>
-                  <td>
+                  <th className={gearingControlClasses.th}>
+                    {data.statNames[stat] ?? stat}
+                  </th>
+                  <td className={gearingControlClasses.td}>
+                    {selected.item.stats[stat] ?? 0}
+                  </td>
+                  <td className={gearingControlClasses.td}>
                     {state.evaluating ? "…" : (selected.stats?.[stat] ?? 0)}
                   </td>
-                  <td>
+                  <td className={gearingControlClasses.td}>
                     {!selected.synced && data.materias[stat]
                       ? (selected.caps?.[stat] ?? "—")
                       : "—"}
@@ -335,13 +340,13 @@ export function MeldEditor({
               ))}
             </tbody>
           </table>
-          <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
+          <p className={gearingHintClasses}>
             当前生效包含自定义属性、魔晶石与品级同步的影响。同步时魔晶石不生效。
           </p>
         </section>
       </details>
       <button
-        className="gear-remove [.gear-editor_&]:mt-[16px]"
+        className="gear-remove mt-4 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-control border border-solid border-control bg-surface px-3 py-2 text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-default disabled:text-disabled disabled:opacity-100 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected pointer-coarse:min-h-11"
         onClick={onRemove}
       >
         移除当前装备

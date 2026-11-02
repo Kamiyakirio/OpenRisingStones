@@ -11,7 +11,6 @@ import { SiteFooter } from "../app/components/SiteFooter";
 import { WikiVerificationStatus } from "../features/glamour/components/WikiVerificationStatus";
 import type { LoginProfile } from "../features/auth/types";
 import { useGlamourWorkspace } from "../features/glamour/hooks/useGlamourWorkspace";
-
 type GlamourPageProps = {
   dark: boolean;
   loginOpen: boolean;
@@ -26,7 +25,6 @@ type GlamourPageProps = {
   onLoginSuccess: (profile: LoginProfile) => void;
   onLogout: () => Promise<void>;
 };
-
 export function GlamourPage({
   loginOpen,
   loginChecking,
@@ -43,7 +41,6 @@ export function GlamourPage({
     onLoginSuccess,
   });
   const { discovery, wiki } = viewModel;
-
   return (
     <>
       {loginChecking || !profile ? (
@@ -84,11 +81,11 @@ export function GlamourPage({
       ) : (
         <main
           id="top"
-          className={
-            "mx-auto w-full max-w-[1600px] px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 glamour-workspace [&&&&_>_h1]:m-[0_0_24px]"
-          }
+          className="glamour-workspace mx-auto w-full max-w-400 px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4"
         >
-          <h1 className="text-2xl font-bold tracking-tight">幻化</h1>
+          <h1 className="mx-0 mt-0 mb-6 text-2xl font-bold tracking-tight">
+            幻化
+          </h1>
           <DiscoveryFilters
             searchMode={discovery.searchMode}
             query={discovery.query}
@@ -179,7 +176,7 @@ export function GlamourPage({
             "组件只读取当前角色的物品 ID，不会修改游戏数据或操作物品。",
           ]}
           description={
-            <p>
+            <p className="m-0">
               读取结果会加密保存在本机，只有登录有效时才能解密。“清除本地数据”会一并删除这些记录。
             </p>
           }

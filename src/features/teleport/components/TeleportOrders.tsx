@@ -1,5 +1,11 @@
 /** Official order history, return availability, and active-order progress. */
 
+import clsx from "clsx";
+import {
+  teleportProgressOverlayClasses,
+  teleportProgressSpinnerClasses,
+  teleportFactRowClasses,
+} from "../utilityClasses";
 import { useId } from "react";
 import { useDialogFocus } from "../../../shared/hooks/useDialogFocus";
 import {
@@ -12,6 +18,12 @@ import {
 import type { TeleportOrder } from "../types";
 import type { TeleportWorkspaceState } from "../hooks/useTeleportWorkspace";
 
+/** Complete utility strings are shared without adding component CSS rules. */
+const orderActionClasses =
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-control border border-solid border-control bg-surface px-[13px] py-0 text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:border-accent enabled:hover:bg-selected";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+
 export function OrderHistory({
   viewModel,
 }: {
@@ -19,22 +31,25 @@ export function OrderHistory({
 }) {
   return (
     <section
-      className={
-        "teleport-orders [&_h2]:text-lg mt-8 [&_>_header]:flex [&_>_header]:items-end [&_>_header]:justify-between [&_>_header]:gap-[20px] [&_>_header]:mb-[20px] [&_>_header_>_strong]:text-muted [&_>_header_>_strong]:text-xs [&&&&_h2]:m-[7px_0_0] [&&&&_h2]:leading-[1.12] [&&&&_h2]:[letter-spacing:normal] [&&&&]:[scroll-margin-top:94px] [&&&&_>_header_>_strong]:[font-family:var(--ors-font-ui)]"
-      }
+      className="teleport-orders mt-8 [scroll-margin-top:94px]"
       id="teleport-orders"
       aria-labelledby="orders-title"
     >
-      <header>
+      <header className="mb-5 flex items-end justify-between gap-5">
         <div>
-          <h2 className="text-lg font-semibold" id="orders-title">
+          <h2
+            className="mx-0 mt-[7px] mb-0 text-lg leading-[1.12] font-semibold tracking-normal"
+            id="orders-title"
+          >
             传送记录
           </h2>
         </div>
-        <strong>{viewModel.totalOrders.toLocaleString("zh-CN")} 条</strong>
+        <strong className="font-sans text-xs text-muted">
+          {viewModel.totalOrders.toLocaleString("zh-CN")} 条
+        </strong>
       </header>
       {viewModel.orders.length ? (
-        <div className="order-list overflow-hidden border border-solid border-line rounded-[var(--ors-radius-control)] bg-surface">
+        <div className="order-list overflow-hidden rounded-control border border-solid border-line bg-surface">
           {viewModel.orders.map((order) => (
             <OrderRow
               key={order.orderId}
@@ -45,34 +60,33 @@ export function OrderHistory({
           ))}
         </div>
       ) : (
-        <div
-          className={
-            "teleport-orders-empty grid justify-items-center gap-2 text-center border border-solid border-line rounded-[var(--ors-radius-control)] text-muted bg-surface text-xs [&_svg]:w-[38px] [&_svg]:h-[38px] [&_svg]:mb-[5px] [&_svg]:text-accent [&&&&]:p-[32px_20px] [&_strong]:text-sm [&_strong]:text-ink"
-          }
-        >
-          <Ticket weight="duotone" />
-          <strong>暂无传送记录</strong>
+        <div className="teleport-orders-empty grid justify-items-center gap-2 rounded-control border border-solid border-line bg-surface px-5 py-8 text-center text-xs text-muted">
+          <Ticket
+            className="mb-[5px] h-9.5 w-9.5 text-accent"
+            weight="duotone"
+          />
+          <strong className="text-sm text-ink">暂无传送记录</strong>
           <span>提交后的官方订单会显示在这里。</span>
         </div>
       )}
       {viewModel.totalOrderPages > 1 && (
         <nav
-          className={
-            "order-pagination [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:text-ink [&_button]:bg-surface [&_button:hover:not(:disabled)]:border-accent [&_button:hover:not(:disabled)]:bg-selected flex items-center justify-center gap-[14px] mt-[18px] [&_button]:min-h-[36px] [&_span]:text-muted [&_span]:text-xs [&&&&_button]:p-[0_13px] [&&&&_span]:[font-family:var(--ors-font-ui)]"
-          }
+          className="order-pagination mt-4.5 flex items-center justify-center gap-3.5"
           aria-label="订单分页"
         >
           <button
+            className={orderActionClasses}
             type="button"
             disabled={viewModel.loading || viewModel.ordersPage <= 1}
             onClick={() => void viewModel.loadOrders(viewModel.ordersPage - 1)}
           >
             上一页
           </button>
-          <span>
+          <span className="font-sans text-xs text-muted">
             {viewModel.ordersPage} / {viewModel.totalOrderPages}
           </span>
           <button
+            className={orderActionClasses}
             type="button"
             disabled={
               viewModel.loading ||
@@ -87,7 +101,6 @@ export function OrderHistory({
     </section>
   );
 }
-
 function OrderRow({
   order,
   busy,
@@ -102,47 +115,34 @@ function OrderRow({
     order.migrationStatus === 5 &&
     order.travelStatus === 1;
   return (
-    <article
-      className={
-        "order-row grid min-w-0 grid-cols-1 items-center gap-3 border-line p-4 [&_>_button]:border [&_>_button]:border-accent [&_>_button]:bg-tool-soft [&_>_button]:px-3 [&_>_button]:text-accent [&_>_button]:w-full [.order-row_+_&]:border-t @min-[600px]/teleport:grid-cols-[70px_minmax(0,_1fr)_auto] @min-[600px]/teleport:[&_>_button]:col-start-3 @min-[600px]/teleport:[&_>_button]:row-start-1 @min-[600px]/teleport:[&_>_button]:row-span-2 @min-[600px]/teleport:[&_>_button]:w-auto @min-[1050px]/teleport:grid-cols-[76px_minmax(0,_1fr)_minmax(160px,_240px)_auto] @min-[1050px]/teleport:[&_>_button]:col-start-4 @min-[1050px]/teleport:[&_>_button]:row-span-1"
-      }
-    >
-      <div
-        className={
-          "order-kind flex items-center gap-[8px] text-accent text-xs [&_svg]:w-[20px] [&_svg]:h-[20px] [&&&&]:[font-weight:740]"
-        }
-      >
+    <article className="order-row grid min-w-0 grid-cols-1 items-center gap-3 border-line p-4 @min-[600px]/teleport:grid-cols-[70px_minmax(0,_1fr)_auto] @min-[1050px]/teleport:grid-cols-[76px_minmax(0,_1fr)_minmax(160px,_240px)_auto]">
+      <div className="order-kind flex items-center gap-2 text-xs font-[740] text-accent">
         {order.migrationType === 5 ? (
-          <ArrowUUpLeft weight="duotone" />
+          <ArrowUUpLeft className="h-5 w-5" weight="duotone" />
         ) : (
-          <AirplaneTilt weight="duotone" />
+          <AirplaneTilt className="h-5 w-5" weight="duotone" />
         )}
         <span>{order.migrationType === 5 ? "返回" : "出发"}</span>
       </div>
-      <div
-        className={
-          "order-route flex min-w-0 flex-col items-start gap-2 [&_strong]:min-w-0 [&_strong]:text-sm [&_strong]:[overflow-wrap:anywhere] [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:rotate-90 [&_svg]:text-muted @min-[600px]/teleport:flex-row @min-[600px]/teleport:items-center @min-[600px]/teleport:[&_svg]:rotate-0"
-        }
-      >
-        <strong>
+      <div className="order-route flex min-w-0 flex-col items-start gap-2 @min-[600px]/teleport:flex-row @min-[600px]/teleport:items-center">
+        <strong className="min-w-0 text-sm [overflow-wrap:anywhere]">
           {order.areaName} / {order.groupName}
         </strong>
-        <ArrowRight />
-        <strong>
+        <ArrowRight className="size-4 shrink-0 rotate-90 text-muted @min-[600px]/teleport:rotate-0" />
+        <strong className="min-w-0 text-sm [overflow-wrap:anywhere]">
           {order.targetAreaName} / {order.targetGroupName}
         </strong>
       </div>
-      <div
-        className={
-          "order-meta grid min-w-0 gap-1 text-xs [overflow-wrap:anywhere] [&_span]:font-semibold [&_span]:text-accent [&_time]:text-muted [&_code]:text-muted @min-[600px]/teleport:col-start-2 @min-[600px]/teleport:row-start-2 @min-[1050px]/teleport:col-start-3 @min-[1050px]/teleport:row-start-1"
-        }
-      >
-        <span>{order.migrationStatusDesc || "处理中"}</span>
-        <time>{order.createTime}</time>
-        <code>{order.orderId}</code>
+      <div className="order-meta grid min-w-0 gap-1 text-xs [overflow-wrap:anywhere] @min-[600px]/teleport:col-start-2 @min-[600px]/teleport:row-start-2 @min-[1050px]/teleport:col-start-3 @min-[1050px]/teleport:row-start-1">
+        <span className="font-semibold text-accent">
+          {order.migrationStatusDesc || "处理中"}
+        </span>
+        <time className="text-muted">{order.createTime}</time>
+        <code className="text-muted">{order.orderId}</code>
       </div>
       {canReturn && (
         <button
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control border border-accent bg-tool-soft px-3 text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] @min-[600px]/teleport:col-start-3 @min-[600px]/teleport:row-span-2 @min-[600px]/teleport:row-start-1 @min-[600px]/teleport:w-auto @min-[1050px]/teleport:col-start-4 @min-[1050px]/teleport:row-span-1"
           type="button"
           disabled={busy}
           onClick={() => void onReturn(order)}
@@ -153,7 +153,6 @@ function OrderRow({
     </article>
   );
 }
-
 export function OrderProgress({
   viewModel,
 }: {
@@ -168,52 +167,61 @@ export function OrderProgress({
       tabIndex={-1}
       aria-modal="true"
       aria-labelledby={titleId}
-      className={
-        "teleport-progress-overlay fixed grid place-items-center p-[20px] [&&&&]:z-[40] [&&&&]:inset-[0] [&&&&]:[background:rgba(10,_15,_26,_0.64)]"
-      }
+      className={teleportProgressOverlayClasses}
       role="dialog"
     >
-      <div
-        className={
-          "teleport-progress-panel grid min-w-0 max-h-[calc(100dvh-40px)] overflow-y-auto break-words p-6 [overflow-wrap:anywhere] border border-solid border-line rounded-[var(--ors-radius-control)] text-ink bg-surface text-center [&_>_svg]:w-[42px] [&_>_svg]:h-[42px] [&_>_svg]:mb-[17px] [&_>_svg]:text-accent [&_>_span]:text-accent [&_>_span]:text-xs [&_h2]:text-lg [&_code]:text-muted [&_code]:text-xs [&_p]:text-muted [&_p]:text-xs [&&&&]:[justify-items:center] [&&&&]:w-[min(440px,_100%)] [&&&&]:shadow-[none] [&&&&_>_span]:[font-weight:760] [&&&&_>_span]:[letter-spacing:normal] [&&&&_h2]:m-[8px_0] [&&&&_p]:m-[14px_0_0] [&&&&_p]:leading-[1.6]"
-        }
-      >
-        <SpinnerGap
-          className={"spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"}
-        />
-        <span>官方订单处理中</span>
-        <h2 className="text-lg font-semibold" id={titleId} aria-live="polite">
+      <div className="teleport-progress-panel grid max-h-[calc(100dvh-40px)] w-[min(440px,_100%)] min-w-0 justify-items-center overflow-y-auto rounded-control border border-solid border-line bg-surface p-6 text-center [overflow-wrap:anywhere] text-ink shadow-[none]">
+        <SpinnerGap className={teleportProgressSpinnerClasses} />
+        <span className="text-xs font-[760] tracking-normal text-accent">
+          官方订单处理中
+        </span>
+        <h2
+          className="mx-0 my-2 text-lg font-semibold"
+          id={titleId}
+          aria-live="polite"
+        >
           {orderProgressText(viewModel.activeOrderStatus)}
         </h2>
-        <code>{viewModel.activeOrderId}</code>
-        <p>页面会每 3 秒查询一次订单状态，请保持应用开启。</p>
+        <code className="text-xs text-muted">{viewModel.activeOrderId}</code>
+        <p className="mx-0 mt-3.5 mb-0 text-xs leading-[1.6] text-muted">
+          页面会每 3 秒查询一次订单状态，请保持应用开启。
+        </p>
       </div>
     </section>
   );
 }
-
 export function StatusMessages({
   status,
+  layout,
 }: {
   status: TeleportWorkspaceState["activeOrderStatus"];
+  /** Explicit layout variants keep this component independent of ancestor classes. */
+  layout?: "dialog-body";
 }) {
-  if (!status?.messages.length) return <p>角色预检通过，可以继续传送。</p>;
+  if (!status?.messages.length)
+    return (
+      <p
+        className={clsx(
+          layout === "dialog-body" &&
+            "mx-0 mt-0 mb-4.5 text-[12px] leading-[1.6] text-muted",
+        )}
+      >
+        角色预检通过，可以继续传送。
+      </p>
+    );
   return (
-    <div
-      className={
-        "status-message-list grid gap-[1px] overflow-hidden border border-solid border-line rounded-[var(--ors-radius-control)] bg-line [&_>_div]:grid [&_>_div]:gap-[12px] [&_>_div]:bg-canvas [&_span]:text-muted [&_span]:text-xs max-[700px]:[&_>_div]:gap-[4px] [&&&&_>_div]:grid-cols-[120px_minmax(0,_1fr)] [&&&&_>_div]:p-[13px_14px] [&&&&_strong]:text-[12px] [@media(max-width:_700px)]:[&&&&_>_div]:grid-cols-[1fr]"
-      }
-    >
+    <div className="status-message-list grid gap-[1px] overflow-hidden rounded-control border border-solid border-line bg-line">
       {status.messages.map((message) => (
-        <div key={message.roleId}>
-          <strong>{message.roleName}</strong>
-          <span>{message.checkMsg || message.migrationMsg || "预检通过"}</span>
+        <div className={teleportFactRowClasses} key={message.roleId}>
+          <strong className="text-[12px]">{message.roleName}</strong>
+          <span className="text-xs text-muted">
+            {message.checkMsg || message.migrationMsg || "预检通过"}
+          </span>
         </div>
       ))}
     </div>
   );
 }
-
 function orderProgressText(
   status: TeleportWorkspaceState["activeOrderStatus"],
 ) {

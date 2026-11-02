@@ -1,8 +1,8 @@
 /** Show live or saved game-log status and provide a manual refresh action. */
+
 import { ArrowsClockwise } from "@phosphor-icons/react";
 import { restartAsAdministrator } from "../../../shared/game-bridge/api";
 import type { useFishing } from "../hooks/useFishing";
-
 export function FishingSyncStatus({
   vm,
   catalogLength,
@@ -29,24 +29,20 @@ export function FishingSyncStatus({
   if (!vm.desktop) return null;
   return (
     <div
-      className={
-        "fish-sync flex items-center gap-[12px] text-[13px] [&_>_div]:flex [&_>_div]:flex-wrap [&_>_div]:min-w-0 [&_>_div_>_span]:text-muted [.fishing-workspace_&_button]:inline-flex [.fishing-workspace_&_button]:items-center [.fishing-workspace_&_button]:gap-[5px] [.fishing-workspace_&_button]:min-h-[32px] [.fishing-workspace_&_button]:text-accent [.fishing-workspace_&_button]:whitespace-nowrap [&_svg]:w-[16px] [&_svg]:h-[16px] max-[620px]:items-start max-[620px]:flex-wrap max-[620px]:[&_button]:ml-[20px] [&&&&]:p-[10px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)] [&&&&_>_div]:flex-[1] [&&&&_>_div]:gap-[2px_12px] [.fishing-workspace_&&&&_button]:p-[4px_8px] [.fishing-workspace_&&&&_button]:[background:transparent] [.fishing-workspace_&&&&_button]:[border-color:transparent] [@media(max-width:_620px)]:[&&&&_>_div]:[flex-basis:calc(100%_-_20px)]"
-      }
+      className="fish-sync flex items-center gap-3 px-0 py-2.5 text-[13px] [border-block:1px_solid_var(--ors-color-line)] max-[620px]:flex-wrap max-[620px]:items-start"
       role="status"
     >
       <span
-        className={
-          "fish-sync-indicator w-[8px] h-[8px] bg-muted [&[data-ready=true]]:bg-success [&&&&]:flex-[0_0_8px] [&&&&]:rounded-[50%]"
-        }
+        className="fish-sync-indicator h-2 w-2 flex-[0_0_8px] rounded-[50%] bg-muted data-[ready=true]:bg-success"
         data-ready={vm.gameLogStatus === "ready"}
       />
-      <div>
+      <div className="flex min-w-0 flex-1 flex-wrap gap-[2px_12px] max-[620px]:basis-[calc(100%_-_20px)]">
         <strong>
           {vm.gameLog
             ? `${vm.gameLog.characterName} · ${vm.gameLogStatus === "ready" || vm.gameLogStorageError ? "游戏图鉴" : "已保存的游戏图鉴"}`
             : "游戏图鉴"}
         </strong>
-        <span>
+        <span className="text-muted">
           {vm.gameLogStatus === "ready"
             ? `已从游戏读取 ${vm.gameCaughtCount} 条已钓记录；${vm.gameLogStorageError ? "保存失败" : "已保存到本机"}。${gameUnmapped} 条图鉴外鱼需手动记录。`
             : vm.gameLogStatus === "unsupported"
@@ -75,6 +71,7 @@ export function FishingSyncStatus({
       </div>
       {!debugAccessDenied && (
         <button
+          className="inline-flex min-h-8 items-center gap-[5px] rounded-control border border-solid border-[transparent] bg-transparent px-2 py-1 whitespace-nowrap text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent max-[620px]:ml-5"
           type="button"
           onClick={() => {
             if (vm.gameLogStatus === "access-denied") {
@@ -90,7 +87,7 @@ export function FishingSyncStatus({
             vm.gameLogStatus === "syncing" || vm.gameLogStatus === "unsupported"
           }
         >
-          <ArrowsClockwise aria-hidden="true" />
+          <ArrowsClockwise className="h-4 w-4" aria-hidden="true" />
           {vm.gameLogStatus === "access-denied"
             ? "以管理员身份重启"
             : "重新读取"}

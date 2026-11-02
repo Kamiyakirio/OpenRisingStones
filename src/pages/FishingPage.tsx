@@ -1,4 +1,6 @@
 /** Fishing tasks share one catalog, including ocean voyages and their catch plans. */
+
+import { fishingControlClasses } from "../features/fishing/utilityClasses";
 import { useMemo, useState } from "react";
 import {
   CompletionView,
@@ -44,19 +46,45 @@ import type {
 } from "../features/fishing/types";
 import { useListDetailScroll } from "../shared/hooks/useListDetailScroll";
 
+/** Reused presentation strings stay static and are allocated once for this module. */
+const fishingAlertClasses = "fish-alert bg-surface px-4 py-3 text-danger";
+
 type Mode = "now" | "completion" | "voyage" | "lookup";
-type SelectedVoyage = { at: number; triggerId: string };
+type SelectedVoyage = {
+  at: number;
+  triggerId: string;
+};
 type SpotOrigin = {
   fishId: number;
   spot: SpotSelection | null;
   voyage: SelectedVoyage | null;
   mode: Mode;
 };
-const modes: { id: Mode; label: string; description: string }[] = [
-  { id: "now", label: "可钓时间", description: "现在与下一窗口" },
-  { id: "completion", label: "补图鉴", description: "地区 → 地图 → 钓场" },
-  { id: "voyage", label: "海钓航线", description: "海域鱼种与钓法" },
-  { id: "lookup", label: "查鱼", description: "按名称或条件查找" },
+const modes: {
+  id: Mode;
+  label: string;
+  description: string;
+}[] = [
+  {
+    id: "now",
+    label: "可钓时间",
+    description: "现在与下一窗口",
+  },
+  {
+    id: "completion",
+    label: "补图鉴",
+    description: "地区 → 地图 → 钓场",
+  },
+  {
+    id: "voyage",
+    label: "海钓航线",
+    description: "海域鱼种与钓法",
+  },
+  {
+    id: "lookup",
+    label: "查鱼",
+    description: "按名称或条件查找",
+  },
 ];
 export function FishingPage() {
   const vm = useFishing();
@@ -134,7 +162,11 @@ export function FishingPage() {
     try {
       localStorage.setItem(
         FISHING_FILTERS_KEY,
-        JSON.stringify({ version: 1, search: nextSearch, facets: nextFacets }),
+        JSON.stringify({
+          version: 1,
+          search: nextSearch,
+          facets: nextFacets,
+        }),
       );
       setFilterStorageError(false);
     } catch {
@@ -150,7 +182,13 @@ export function FishingPage() {
     />
   );
   function changeSearch(change: Partial<FishingSearch>) {
-    saveFilters({ ...search, ...change }, facets);
+    saveFilters(
+      {
+        ...search,
+        ...change,
+      },
+      facets,
+    );
     setSearchLimit(30);
   }
   function changeNowScope(scope: NowFishScope) {
@@ -163,7 +201,10 @@ export function FishingPage() {
     }
   }
   function changeFacets(change: Partial<FishingFacets>) {
-    saveFilters(search, { ...facets, ...change });
+    saveFilters(search, {
+      ...facets,
+      ...change,
+    });
     setSearchLimit(30);
   }
   function resetLookup() {
@@ -182,11 +223,14 @@ export function FishingPage() {
   /** Keep task shortcuts and the mode navigation at the same visible destination. */
   function showMode(next: Mode) {
     setMode(next);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({
+      top: 0,
+      behavior: "instant",
+    });
     requestAnimationFrame(() =>
-      document
-        .getElementById(`fish-mode-${next}`)
-        ?.focus({ preventScroll: true }),
+      document.getElementById(`fish-mode-${next}`)?.focus({
+        preventScroll: true,
+      }),
     );
   }
   function browse(
@@ -194,8 +238,14 @@ export function FishingPage() {
     facetChange: Partial<FishingFacets> = {},
   ) {
     saveFilters(
-      { ...initialFishingSearch, ...change },
-      { ...initialFishingFacets, ...facetChange },
+      {
+        ...initialFishingSearch,
+        ...change,
+      },
+      {
+        ...initialFishingFacets,
+        ...facetChange,
+      },
     );
     setSearchLimit(30);
     showMode("lookup");
@@ -214,7 +264,9 @@ export function FishingPage() {
         document.getElementById(lastTrigger ?? "") ??
         document.querySelector<HTMLElement>(".fish-spot-page .fish-back") ??
         document.getElementById(`fish-mode-${mode}`)
-      )?.focus({ preventScroll: true }),
+      )?.focus({
+        preventScroll: true,
+      }),
     );
   }
   function openSpot(selection: SpotSelection) {
@@ -248,7 +300,10 @@ export function FishingPage() {
     setSelectedVoyage(null);
     setMode("completion");
     setOpenedFishSpotId(spot.id);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({
+      top: 0,
+      behavior: "instant",
+    });
     spotScroll.captureListPosition();
     vm.setSelectedId(null);
   }
@@ -264,15 +319,18 @@ export function FishingPage() {
       variantId: route.id,
       stopIndex: 0,
     });
-    setSelectedVoyage({ at, triggerId });
+    setSelectedVoyage({
+      at,
+      triggerId,
+    });
   }
   function goBackToSchedule() {
     voyageScroll.requestListPositionRestore();
     setSelectedVoyage(null);
     requestAnimationFrame(() =>
-      document
-        .getElementById(selectedVoyage?.triggerId ?? "")
-        ?.focus({ preventScroll: true }),
+      document.getElementById(selectedVoyage?.triggerId ?? "")?.focus({
+        preventScroll: true,
+      }),
     );
   }
   function goBackToSpots() {
@@ -282,7 +340,9 @@ export function FishingPage() {
     setSelectedSpot(null);
     setSpotOrigin(null);
     requestAnimationFrame(() =>
-      document.getElementById(triggerId ?? "")?.focus({ preventScroll: true }),
+      document.getElementById(triggerId ?? "")?.focus({
+        preventScroll: true,
+      }),
     );
   }
   function goBackToFishFromSpot() {
@@ -306,34 +366,31 @@ export function FishingPage() {
   };
   return (
     <main
-      className={
-        "mx-auto w-full max-w-[1600px] px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 fishing-workspace min-w-0 [&_button]:min-h-[40px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-surface [&_button]:text-ink [&_button]:cursor-pointer [&_button:hover]:bg-hover [&_button:disabled]:cursor-not-allowed [&_button[aria-pressed=true]]:bg-selected [&_button[aria-pressed=true]]:text-accent [&_::selection]:bg-selected [&_::selection]:text-ink [&_:is(a,_.fish-text-action)]:text-accent [@media(pointer:_coarse)]:[&_button]:min-h-[44px] [@media(pointer:_coarse)]:[&_select]:min-h-[44px] [@media(pointer:_coarse)]:[&_input:not([type=checkbox])]:min-h-[44px] [&&&&_button]:p-[8px_14px] [&&&&_button:disabled]:opacity-[0.5] [&&&&_:focus-visible]:[outline:2px_solid_var(--ors-color-accent)] [&&&&_:focus-visible]:[outline-offset:3px] [&&&&_:is(input,_select)]:[accent-color:var(--ors-color-accent)] [&&&&_:is(input,_select)]:[caret-color:var(--ors-color-accent)] [&&&&_:is(a,_.fish-text-action)]:[text-underline-offset:3px] [&&&&_:is(h1,_h2,_h3)]:[text-wrap:balance]"
-      }
+      className="fishing-workspace mx-auto w-full max-w-400 min-w-0 px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4"
       id="top"
     >
       {vm.storageError && (
-        <p
-          className={"fish-alert text-danger bg-surface [&&&&]:p-[12px_16px]"}
-          role="alert"
-        >
+        <p className={fishingAlertClasses} role="alert">
           无法保存本机数据；这次修改仅在当前页面有效。请检查本地存储设置。
         </p>
       )}
       {filterStorageError && (
-        <p
-          className={"fish-alert text-danger bg-surface [&&&&]:p-[12px_16px]"}
-          role="alert"
-        >
+        <p className={fishingAlertClasses} role="alert">
           无法保存筛选条件；下次打开时可能需要重新设置。
         </p>
       )}
       {!catalog ? (
-        <div className="fish-loading min-h-[220px] [&_h1]:mt-0">
-          <h1 className="text-2xl font-bold tracking-tight">钓鱼</h1>
+        <div className="fish-loading min-h-55">
+          <h1 className="mt-0 text-2xl font-bold tracking-tight">钓鱼</h1>
           {vm.error ? (
             <div role="alert">
               <p>鱼类资料加载失败。</p>
-              <button onClick={vm.retry}>重新加载</button>
+              <button
+                className={fishingControlClasses.button}
+                onClick={vm.retry}
+              >
+                重新加载
+              </button>
             </div>
           ) : (
             <p role="status">正在加载鱼类资料…</p>
@@ -381,41 +438,38 @@ export function FishingPage() {
         />
       ) : (
         <>
-          <header
-            className={
-              "fish-page-heading [&_p]:text-muted mb-4 flex flex-wrap items-center justify-between gap-3 [&_h1]:m-0 [&_p]:text-[13px] [&&&&_p]:m-[2px_0_0]"
-            }
-          >
+          <header className="fish-page-heading mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">钓鱼</h1>
-              <p>鱼类资料 {catalog.fish.length} 条 · 窗口按本机时间计算</p>
+              <h1 className="m-0 text-2xl font-bold tracking-tight">钓鱼</h1>
+              <p className="mx-0 mt-0.5 mb-0 text-[13px] text-muted">
+                鱼类资料 {catalog.fish.length} 条 · 窗口按本机时间计算
+              </p>
             </div>
-            <div
-              className={
-                "fish-heading-tools flex items-center flex-wrap max-[620px]:w-full max-[620px]:justify-between [&&&&]:gap-[8px_12px]"
-              }
-            >
+            <div className="fish-heading-tools flex flex-wrap items-center gap-[8px_12px] max-[620px]:w-full max-[620px]:justify-between">
               <FishClock />
               <TimerLauncher />
             </div>
           </header>
           {gameLogNotice}
           <nav
-            className={
-              "fish-mode-nav my-3 grid grid-cols-4 gap-1 rounded-xl border border-line bg-surface p-1 [.fishing-workspace_&_button]:grid [.fishing-workspace_&_button]:min-h-16 [.fishing-workspace_&_button]:min-w-0 [.fishing-workspace_&_button]:gap-1 [.fishing-workspace_&_button]:rounded-lg [.fishing-workspace_&_button]:border [.fishing-workspace_&_button]:border-transparent [.fishing-workspace_&_button]:bg-transparent [.fishing-workspace_&_button]:px-3 [.fishing-workspace_&_button]:py-3 [.fishing-workspace_&_button]:text-left [.fishing-workspace_&_button]:text-muted [.fishing-workspace_&_button:hover]:bg-hover [.fishing-workspace_&_button[aria-pressed=true]]:border-control [.fishing-workspace_&_button[aria-pressed=true]]:bg-selected [.fishing-workspace_&_button[aria-pressed=true]]:text-accent [&_strong]:text-base [&_strong]:font-semibold [&_span]:text-muted [&_span]:text-[13px] max-[620px]:mb-4 max-[620px]:[.fishing-workspace_&_button]:min-h-[52px] max-[620px]:[.fishing-workspace_&_button]:text-center max-[620px]:[&_strong]:text-sm max-[620px]:[&_span]:hidden [@media(max-width:_620px)]:[.fishing-workspace_&&&&_button]:p-[8px_5px]"
-            }
+            className="fish-mode-nav my-3 grid grid-cols-4 gap-1 rounded-panel border border-line bg-surface p-1 max-[620px]:mb-4"
             aria-label="钓鱼任务"
           >
             {modes.map((item) => (
               <button
+                className="grid min-h-16 min-w-0 gap-1 rounded-control border border-transparent bg-transparent px-3 py-3 text-left text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:border-control aria-pressed:bg-selected aria-pressed:text-accent max-[620px]:min-h-13 max-[620px]:px-[5px] max-[620px]:py-2 max-[620px]:text-center"
                 id={`fish-mode-${item.id}`}
                 key={item.id}
                 type="button"
                 aria-pressed={mode === item.id}
                 onClick={() => showMode(item.id)}
               >
-                <strong>{item.label}</strong>
-                <span>{item.description}</span>
+                <strong className="text-base font-semibold max-[620px]:text-sm">
+                  {item.label}
+                </strong>
+                <span className="text-[13px] text-muted max-[620px]:hidden">
+                  {item.description}
+                </span>
               </button>
             ))}
           </nav>

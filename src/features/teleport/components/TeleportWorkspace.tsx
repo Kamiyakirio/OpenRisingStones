@@ -1,4 +1,6 @@
 /** Composes travel selection, automatic mode, orders, and guarded confirmations. */
+
+import { teleportControlClasses } from "../utilityClasses";
 import { useState } from "react";
 import { AuthenticationGate } from "../../auth/components/AuthenticationGate";
 import {
@@ -17,7 +19,6 @@ import {
   UserCircle,
   WarningCircle,
 } from "@phosphor-icons/react";
-
 import type { TeleportWorkspaceState } from "../hooks/useTeleportWorkspace";
 import { RiskDialog } from "../../../shared/components/RiskDialog";
 import {
@@ -29,12 +30,45 @@ import {
 import { AutomaticSource, AutomaticProgress } from "./AutomaticTeleport";
 import { OrderHistory, OrderProgress, StatusMessages } from "./TeleportOrders";
 
+/** Complete utility strings are shared without adding component CSS rules. */
+const spinClasses =
+  "spin h-4 w-4 shrink-0 animate-[login-spin_900ms_linear_infinite]";
+const teleportHeaderGroupClasses =
+  "first:grid first:gap-[3px] last:flex last:gap-1.5 last:rounded-control last:bg-canvas last:p-1 max-[700px]:last:flex-1";
+const teleportTabClasses =
+  "inline-flex min-h-9 items-center justify-center gap-[7px] rounded-control bg-transparent px-[13px] py-0 text-xs font-[730] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] [border:1px_solid_transparent] disabled:cursor-not-allowed disabled:opacity-55 aria-pressed:border-accent aria-pressed:bg-selected aria-pressed:text-accent max-[700px]:flex-1 max-[700px]:justify-center";
+const teleportCharacterIconClasses =
+  "last:h-4.5 last:w-4.5 last:text-transparent first-of-type:h-[29px] first-of-type:w-[29px] first-of-type:text-accent";
+const teleportDialogActionClasses =
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-solid border-control bg-surface px-4 py-0 text-[12px] font-[720] text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] max-[700px]:w-full";
+const isPrimaryClasses =
+  "is-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-solid border-control bg-surface px-4 py-0 text-[12px] font-[720] text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] max-[700px]:w-full dark:text-canvas";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+
+const teleportFieldGridClasses =
+  "teleport-field-grid grid min-w-0 grid-cols-1 gap-4 @min-[480px]/teleport-form:grid-cols-2";
+const teleportDialogWarningClasses =
+  "dialog-warning mt-[15px] flex items-center gap-2 text-xs font-bold text-danger";
+const teleportDialogCopyClasses =
+  "mx-0 mt-0 mb-4.5 text-[12px] leading-[1.6] text-muted";
+const teleportFactCardClasses =
+  "grid min-w-0 grid-cols-[20px_minmax(0,_1fr)] gap-x-2 bg-surface p-3";
+const teleportFactIconClasses = "row-span-2 size-5 self-center text-accent";
+const teleportFactValueClasses =
+  "m-0 mt-1 text-base font-semibold tabular-nums";
+const teleportRouteMarkerClasses =
+  "route-marker mt-1 block h-[15px] w-[15px] rounded-[50%] bg-accent text-xs text-muted shadow-[none] [border:4px_solid_var(--ors-color-surface)]";
+const teleportRouteNameClasses =
+  "overflow-hidden text-[18px] text-ellipsis whitespace-nowrap";
+const teleportSkeletonClasses =
+  "h-24 rounded-control bg-[linear-gradient(_100deg,_var(--ors-color-hover)_20%,_var(--ors-color-surface)_44%,_var(--ors-color-hover)_68%_)] [background-size:200%_100%] last:col-span-full last:h-105";
+
 type TeleportWorkspaceProps = {
   viewModel: TeleportWorkspaceState;
   onOpenLogin: () => void;
   onGoHome: () => void;
 };
-
 export function TeleportWorkspace({
   viewModel,
   onOpenLogin,
@@ -50,7 +84,6 @@ export function TeleportWorkspace({
     viewModel.termsAccepted &&
     !viewModel.actionLoading,
   );
-
   if (viewModel.loginChecking || !viewModel.authenticated) {
     return (
       <AuthenticationGate
@@ -62,34 +95,25 @@ export function TeleportWorkspace({
       />
     );
   }
-
   return (
     <main
-      className={
-        "teleport-page @container/teleport mx-auto w-full max-w-[1280px] min-w-0 px-5 py-5 max-[767px]:px-4 [&_button]:inline-flex [&_button]:items-center [&_button]:justify-center [&_button]:gap-2 [&_button]:rounded-lg [&_button_svg]:size-4 [&_button_svg]:shrink-0 [&_button:disabled]:cursor-not-allowed [&&&&&&&&_button]:min-h-11 [&&&&&&&&_select]:min-h-11"
-      }
+      className="teleport-page @container/teleport mx-auto w-full max-w-320 min-w-0 px-5 py-5 max-[767px]:px-4"
       id="top"
     >
-      <header
-        className={
-          "teleport-hero flex justify-between gap-4 border-b border-solid border-line items-center [&_h1]:text-2xl [&_h1]:m-0 [&_p]:text-muted max-[700px]:items-start max-[399px]:flex-wrap [&&&&]:pb-4 [&&&&_h1]:[font-family:var(--ors-font-heading)] [&&&&_h1]:[font-weight:670] [&&&&_h1]:leading-[1.5] [&&&&_h1]:[letter-spacing:normal] [&&&&_p]:m-[18px_0_0] [&&&&_p]:text-[14px] [&&&&_p]:leading-[1.65] [@media(max-width:_767px)]:[&&&&]:pb-4"
-        }
-      >
+      <header className="teleport-hero flex items-center justify-between gap-4 border-b border-solid border-line pb-4 max-[767px]:pb-4 max-[700px]:items-start max-[399px]:flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">超域传送</h1>
+          <h1 className="m-0 [font-family:var(--ors-font-heading)] text-2xl leading-[1.5] font-[670] tracking-normal">
+            超域传送
+          </h1>
         </div>
         <button
-          className="teleport-refresh shrink-0 px-3 py-2 text-sm border border-solid border-control text-ink bg-surface [&:hover:not(:disabled)]:border-accent [&:hover:not(:disabled)]:bg-selected"
+          className="teleport-refresh inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control border border-solid border-control bg-surface px-3 py-2 text-sm text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:border-accent enabled:hover:bg-selected"
           type="button"
           disabled={viewModel.loading || !viewModel.authenticated}
           onClick={() => void viewModel.refresh()}
         >
           <ArrowClockwise
-            className={
-              viewModel.loading
-                ? "spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"
-                : ""
-            }
+            className={viewModel.loading ? spinClasses : "h-4 w-4 shrink-0"}
           />
           刷新数据
         </button>
@@ -97,12 +121,10 @@ export function TeleportWorkspace({
 
       {viewModel.error && (
         <div
-          className={
-            "teleport-alert is-error break-words flex items-center gap-[12px] mt-4 border border-solid border-line rounded-[var(--ors-radius-control)] [&_>_svg]:w-[21px] [&_>_svg]:h-[21px] [&_>_div]:grid [&_>_div]:gap-[2px] [.curl-import-message&]:text-danger [.theme-dark_.curl-import-message&]:text-danger [.teleport-alert&]:border-danger [.teleport-alert&]:text-danger [.teleport-alert&]:bg-danger-soft [&&&&]:p-[14px_16px] [&&&&]:text-[12px] [&&&&]:leading-[1.55] [&&&&_>_svg]:flex-[0_0_auto] [&&&&]:[color:var(--ors-color-danger)]!"
-          }
+          className="teleport-alert is-error mt-4 flex items-center gap-3 rounded-control border border-solid border-danger bg-danger-soft px-4 py-3.5 text-[12px] leading-[1.55] break-words text-danger"
           role="alert"
         >
-          <WarningCircle weight="fill" />
+          <WarningCircle className="h-[21px] w-[21px] shrink-0" weight="fill" />
           <span>{viewModel.error}</span>
         </div>
       )}
@@ -114,58 +136,63 @@ export function TeleportWorkspace({
           <ServiceSummary viewModel={viewModel} />
 
           <section
-            className={
-              "teleport-mode-switch flex items-center justify-between gap-4 mt-4 border border-solid border-line rounded-[var(--ors-radius-control)] bg-surface [&_>_div:first-child]:grid [&_>_div:first-child]:gap-[3px] [&_span]:text-muted [&_span]:text-xs [&_small]:text-muted [&_small]:text-xs [&_>_div:last-child]:flex [&_>_div:last-child]:gap-[6px] [&_>_div:last-child]:p-[4px] [&_>_div:last-child]:rounded-[var(--ors-radius-control)] [&_>_div:last-child]:bg-canvas [&_button]:inline-flex [&_button]:items-center [&_button]:gap-[7px] [&_button]:min-h-[36px] [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-muted [&_button]:text-xs [&_button:disabled]:cursor-not-allowed [&_button_svg]:w-[17px] [&_button_svg]:h-[17px] max-[700px]:items-stretch max-[700px]:flex-col max-[700px]:[&_button]:justify-center [&&&&]:p-[17px_18px] [&&&&_strong]:text-[15px] [&&&&_button]:p-[0_13px] [&&&&_button]:[border:1px_solid_transparent] [&&&&_button]:[background:transparent] [&&&&_button]:[font-weight:730] [&&&&_button:disabled]:opacity-[0.55] [&&&&&_button[aria-pressed=true]]:border-accent [&&&&&_button[aria-pressed=true]]:bg-selected [&&&&&_button[aria-pressed=true]]:text-accent [@media(max-width:_700px)]:[&&&&_>_div:last-child]:flex-[1] [@media(max-width:_700px)]:[&&&&_button]:flex-[1]"
-            }
+            className="teleport-mode-switch mt-4 flex items-center justify-between gap-4 rounded-control border border-solid border-line bg-surface px-4.5 py-[17px] max-[700px]:flex-col max-[700px]:items-stretch"
             aria-label="传送操作模式"
           >
-            <div>
-              <span>操作模式</span>
-              <strong>
+            <div className={teleportHeaderGroupClasses}>
+              <span className="text-xs text-muted">操作模式</span>
+              <strong className="text-[15px]">
                 {viewModel.mode === "manual" ? "手动模式" : "自动模式"}
               </strong>
-              <small>
+              <small className="text-xs text-muted">
                 {viewModel.mode === "manual"
                   ? "通过官方接口提交，不读取游戏进程。"
                   : "读取当前角色，完成后准备目标大区连接。"}
               </small>
             </div>
-            <div role="group" aria-label="选择操作模式">
+            <div
+              className={teleportHeaderGroupClasses}
+              role="group"
+              aria-label="选择操作模式"
+            >
               <button
+                className={teleportTabClasses}
                 type="button"
                 aria-pressed={viewModel.mode === "manual"}
                 disabled={viewModel.actionLoading}
                 onClick={() => viewModel.requestMode("manual")}
               >
-                <ToggleLeft />
+                <ToggleLeft className="h-[17px] w-[17px] shrink-0" />
                 手动
               </button>
               <button
+                className={teleportTabClasses}
                 type="button"
                 aria-pressed={viewModel.mode === "automatic"}
                 disabled={viewModel.actionLoading}
                 onClick={() => viewModel.requestMode("automatic")}
               >
-                <ToggleRight />
+                <ToggleRight className="h-[17px] w-[17px] shrink-0" />
                 自动
               </button>
             </div>
           </section>
 
           <div
-            className={
-              "teleport-alert is-warning break-words flex items-center gap-[12px] mt-4 border border-solid border-line rounded-[var(--ors-radius-control)] [&_>_svg]:w-[21px] [&_>_svg]:h-[21px] [&_>_div]:grid [&_>_div]:gap-[2px] [.teleport-alert&]:text-warning [.teleport-alert&]:bg-warning-soft [.teleport-alert&_span]:text-warning [&&&&]:p-[14px_16px] [&&&&]:text-[12px] [&&&&]:leading-[1.55] [&&&&_>_svg]:flex-[0_0_auto] [.teleport-alert&&&&]:border-warning"
-            }
+            className="teleport-alert is-warning mt-4 flex items-center gap-3 rounded-control border border-solid border-warning bg-warning-soft px-4 py-3.5 text-[12px] leading-[1.55] break-words text-warning"
             role="note"
           >
-            <ShieldWarning weight="fill" />
-            <div>
+            <ShieldWarning
+              className="h-[21px] w-[21px] shrink-0"
+              weight="fill"
+            />
+            <div className="grid gap-0.5">
               <strong>
                 {viewModel.mode === "manual"
                   ? "提交前请完全退出游戏客户端"
                   : "提交后桌面端可能自动登出当前角色"}
               </strong>
-              <span>
+              <span className="text-warning">
                 {viewModel.mode === "manual"
                   ? "传送期间重新登录可能导致角色数据异常，请等待订单完成。"
                   : "执行前会再次请求确认；订单完成前请勿重新登录。"}
@@ -175,34 +202,23 @@ export function TeleportWorkspace({
 
           {/* Available width controls the split; stretched panels keep both edges aligned. */}
           <section
-            className={
-              "teleport-builder grid min-w-0 grid-cols-1 items-stretch gap-5 mt-5 scroll-mt-24 @min-[900px]/teleport:grid-cols-[minmax(0,_1fr)_300px]"
-            }
+            className="teleport-builder mt-5 grid min-w-0 scroll-mt-24 grid-cols-1 items-stretch gap-5 @min-[900px]/teleport:grid-cols-[minmax(0,_1fr)_300px]"
             id="teleport-departure"
             aria-labelledby="journey-title"
           >
-            <div
-              className={
-                "teleport-form-panel @container/teleport-form flex min-w-0 flex-col border border-solid border-line rounded-[var(--ors-radius-control)] bg-surface p-5 max-[519px]:p-4 [&&&&]:shadow-[none]"
-              }
-            >
-              <div
-                className={
-                  "teleport-section-heading min-h-7 [&_h2]:text-lg mb-5 [&&&&_h2]:m-0 [&&&&_h2]:leading-snug [&&&&_h2]:[letter-spacing:normal]"
-                }
-              >
-                <h2 className="text-lg font-semibold" id="journey-title">
+            <div className="teleport-form-panel @container/teleport-form flex min-w-0 flex-col rounded-control border border-solid border-line bg-surface p-5 shadow-[none] max-[519px]:p-4">
+              <div className="teleport-section-heading mb-5 min-h-7">
+                <h2
+                  className="m-0 text-lg leading-snug font-semibold tracking-normal"
+                  id="journey-title"
+                >
                   选择角色与目标大区
                 </h2>
               </div>
 
               {viewModel.mode === "manual" ? (
                 <>
-                  <div
-                    className={
-                      "teleport-field-grid grid min-w-0 grid-cols-1 gap-4 @min-[480px]/teleport-form:grid-cols-2"
-                    }
-                  >
+                  <div className={teleportFieldGridClasses}>
                     <SelectField
                       label="当前大区"
                       value={viewModel.selectedSourceAreaId}
@@ -229,7 +245,7 @@ export function TeleportWorkspace({
                   </div>
 
                   <button
-                    className="teleport-secondary-action self-start px-3 py-2 text-sm border border-solid border-control text-ink bg-surface [&:hover:not(:disabled)]:border-accent [&:hover:not(:disabled)]:bg-selected mt-[14px]"
+                    className="teleport-secondary-action mt-3.5 inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-control border border-solid border-control bg-surface px-3 py-2 text-sm text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:border-accent enabled:hover:bg-selected"
                     type="button"
                     disabled={
                       !viewModel.selectedSourceArea ||
@@ -239,28 +255,26 @@ export function TeleportWorkspace({
                     onClick={() => void viewModel.findRolesAndTargets()}
                   >
                     {viewModel.selectionLoading ? (
-                      <SpinnerGap
-                        className={
-                          "spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"
-                        }
-                      />
+                      <SpinnerGap className={spinClasses} />
                     ) : (
-                      <UserCircle />
+                      <UserCircle className={teleportControlClasses.icon} />
                     )}
                     查找角色与可用目标
                   </button>
 
                   {viewModel.roles.length > 0 && (
-                    <fieldset
-                      className={
-                        "teleport-role-picker min-w-0 p-0 border-0 [&_legend]:mb-[10px] [&_legend]:text-muted [&_legend]:text-xs [&_legend]:font-bold [&_>_div]:grid [&_>_div]:gap-[10px] [&_label]:relative [&_label]:grid [&_label]:items-center [&_label]:gap-[11px] [&_label]:min-w-0 [&_label]:p-[14px] [&_label]:border [&_label]:border-solid [&_label]:border-line [&_label]:rounded-[var(--ors-radius-control)] [&_label]:bg-canvas [&_label]:cursor-pointer [&_label:has(input:checked)]:border-accent [&_label:has(input:checked)]:bg-selected [&_input]:absolute [&_label_>_svg:first-of-type]:w-[29px] [&_label_>_svg:first-of-type]:h-[29px] [&_label_>_svg:first-of-type]:text-accent [&_label_>_svg:last-child]:w-[18px] [&_label_>_svg:last-child]:h-[18px] [&_label:has(input:checked)_>_svg:last-child]:text-accent [&_label_>_span]:grid [&_label_>_span]:min-w-0 [&_label_>_span]:gap-[4px] [&_strong]:overflow-hidden [&_strong]:whitespace-nowrap [&_small]:overflow-hidden [&_small]:whitespace-nowrap [&_strong]:text-sm [&_small]:text-muted [&_small]:text-xs [&&&&]:mt-5 [&&&&_>_div]:grid-cols-1 @min-[480px]/teleport-form:[&&&&_>_div]:grid-cols-2 [&&&&_label]:grid-cols-[auto_minmax(0,_1fr)_auto] [&&&&_input]:opacity-[0] [&&&&_label_>_svg:last-child]:text-transparent [&&&&_label:has(input:checked)_>_svg:last-child]:text-accent [&_label:focus-within]:outline-2 [&_label:focus-within]:outline-offset-2 [&_label:focus-within]:outline-accent [&&&&_strong]:[text-overflow:ellipsis] [&&&&_small]:[text-overflow:ellipsis] [&&&&_small]:[font-family:var(--ors-font-ui)]"
-                      }
-                    >
-                      <legend>选择角色</legend>
-                      <div>
+                    <fieldset className="teleport-role-picker mt-5 min-w-0 border-0 p-0">
+                      <legend className="mb-2.5 text-xs font-bold text-muted">
+                        选择角色
+                      </legend>
+                      <div className="grid grid-cols-1 gap-2.5 @min-[480px]/teleport-form:grid-cols-2">
                         {viewModel.roles.map((role) => (
-                          <label key={role.roleId}>
+                          <label
+                            className="relative grid min-w-0 cursor-pointer grid-cols-[auto_minmax(0,_1fr)_auto] items-center gap-[11px] rounded-control border border-solid border-line bg-canvas p-3.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent has-checked:border-accent has-checked:bg-selected"
+                            key={role.roleId}
+                          >
                             <input
+                              className="absolute h-4 w-4 opacity-[0]"
                               type="radio"
                               name="teleport-role"
                               checked={viewModel.selectedRoleId === role.roleId}
@@ -268,12 +282,22 @@ export function TeleportWorkspace({
                                 viewModel.setSelectedRoleId(role.roleId)
                               }
                             />
-                            <UserCircle weight="duotone" />
-                            <span>
-                              <strong>{role.roleName}</strong>
-                              <small>{role.roleId}</small>
+                            <UserCircle
+                              className={teleportCharacterIconClasses}
+                              weight="duotone"
+                            />
+                            <span className="grid min-w-0 gap-1">
+                              <strong className="overflow-hidden text-sm text-ellipsis whitespace-nowrap">
+                                {role.roleName}
+                              </strong>
+                              <small className="overflow-hidden font-sans text-xs text-ellipsis whitespace-nowrap text-muted">
+                                {role.roleId}
+                              </small>
                             </span>
-                            <CheckCircle weight="fill" />
+                            <CheckCircle
+                              className={teleportCharacterIconClasses}
+                              weight="fill"
+                            />
                           </label>
                         ))}
                       </div>
@@ -282,11 +306,7 @@ export function TeleportWorkspace({
 
                   {viewModel.roles.length === 0 &&
                     viewModel.targetAreas.length > 0 && (
-                      <div
-                        className={
-                          "teleport-inline-empty mt-[20px] p-[14px] rounded-[var(--ors-radius-control)] text-muted bg-canvas [&&&&]:text-[12px]"
-                        }
-                      >
+                      <div className="teleport-inline-empty mt-5 rounded-control bg-canvas p-3.5 text-[12px] text-muted">
                         当前服务器没有可用于超域传送的角色。
                       </div>
                     )}
@@ -296,12 +316,8 @@ export function TeleportWorkspace({
               )}
 
               {viewModel.targetAreas.length > 0 && (
-                <div className="teleport-target-fields mt-6 pt-6 border-t border-solid border-line">
-                  <div
-                    className={
-                      "teleport-field-grid grid min-w-0 grid-cols-1 gap-4 @min-[480px]/teleport-form:grid-cols-2"
-                    }
-                  >
+                <div className="teleport-target-fields mt-6 border-t border-solid border-line pt-6">
+                  <div className={teleportFieldGridClasses}>
                     <SelectField
                       label="目标大区"
                       value={viewModel.selectedTargetAreaId}
@@ -330,8 +346,8 @@ export function TeleportWorkspace({
                     />
                   </div>
                   {viewModel.selectedTargetGroup && (
-                    <div className="teleport-queue-note flex items-center gap-[7px] mt-[11px] text-muted text-xs [&_svg]:w-[16px] [&_svg]:h-[16px] [&_svg]:text-accent">
-                      <Clock />
+                    <div className="teleport-queue-note mt-[11px] flex items-center gap-[7px] text-xs text-muted">
+                      <Clock className="h-4 w-4 text-accent" />
                       {viewModel.queueMinutes === null
                         ? "当前排队时间暂无法估算"
                         : `预计等待约 ${roundQueueMinutes(viewModel.queueMinutes)} 分钟`}
@@ -340,12 +356,9 @@ export function TeleportWorkspace({
                 </div>
               )}
 
-              <label
-                className={
-                  "teleport-terms flex min-h-11 items-center gap-2.5 mt-auto pt-5 text-muted cursor-pointer [&_input]:w-[17px] [&_input]:h-[17px] [&&&&]:text-[12px] [&&&&]:leading-[1.55] [&&&&_input]:flex-[0_0_auto] [&&&&_input]:m-[1px_0_0] [&&&&_input]:[accent-color:var(--ors-color-accent)]"
-                }
-              >
+              <label className="teleport-terms mt-auto flex min-h-11 cursor-pointer items-center gap-2.5 pt-5 text-[12px] leading-[1.55] text-muted">
                 <input
+                  className="mx-0 mt-[1px] mb-0 h-[17px] w-[17px] shrink-0 [accent-color:var(--ors-color-accent)]"
                   type="checkbox"
                   checked={viewModel.termsAccepted}
                   onChange={(event) =>
@@ -360,14 +373,15 @@ export function TeleportWorkspace({
               </label>
 
               <button
-                className={
-                  "teleport-primary-action w-full mt-4 border border-accent bg-accent px-4 py-3 text-sm font-semibold text-on-accent enabled:hover:bg-accent-hover disabled:border-line disabled:bg-hover disabled:text-muted"
-                }
+                className="teleport-primary-action mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control border border-accent bg-accent px-4 py-3 text-sm font-semibold text-on-accent transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-accent-hover disabled:border-line disabled:bg-hover disabled:text-muted"
                 type="button"
                 disabled={!canSubmit}
                 onClick={() => setReviewOpen(true)}
               >
-                <AirplaneTilt weight="fill" />
+                <AirplaneTilt
+                  className={teleportControlClasses.icon}
+                  weight="fill"
+                />
                 核对并提交
               </button>
             </div>
@@ -385,11 +399,15 @@ export function TeleportWorkspace({
           onClose={() => setReviewOpen(false)}
           actions={
             <>
-              <button type="button" onClick={() => setReviewOpen(false)}>
+              <button
+                className={teleportDialogActionClasses}
+                type="button"
+                onClick={() => setReviewOpen(false)}
+              >
                 返回修改
               </button>
               <button
-                className="is-primary [.teleport-dialog_>_footer_button&]:border-accent [.teleport-dialog_>_footer_button&]:text-on-accent [.teleport-dialog_>_footer_button&]:bg-accent [.theme-dark_.teleport-dialog_>_footer_button&]:text-canvas"
+                className={isPrimaryClasses}
                 type="button"
                 disabled={viewModel.actionLoading}
                 onClick={() => {
@@ -403,7 +421,7 @@ export function TeleportWorkspace({
           }
         >
           <JourneyReview viewModel={viewModel} />
-          <div className="dialog-warning flex items-center gap-[8px] mt-[15px] text-danger text-xs font-bold [&_svg]:w-[18px] [&_svg]:h-[18px]">
+          <div className={teleportDialogWarningClasses}>
             <WarningCircle weight="fill" />
             {viewModel.mode === "manual"
               ? "请再次确认游戏客户端已经完全退出。"
@@ -422,6 +440,7 @@ export function TeleportWorkspace({
           actions={
             <>
               <button
+                className={teleportDialogActionClasses}
                 type="button"
                 disabled={viewModel.actionLoading}
                 onClick={() => void viewModel.resolveOrderConfirmation(false)}
@@ -429,7 +448,7 @@ export function TeleportWorkspace({
                 放弃传送
               </button>
               <button
-                className="is-primary [.teleport-dialog_>_footer_button&]:border-accent [.teleport-dialog_>_footer_button&]:text-on-accent [.teleport-dialog_>_footer_button&]:bg-accent [.theme-dark_.teleport-dialog_>_footer_button&]:text-canvas"
+                className={isPrimaryClasses}
                 type="button"
                 disabled={viewModel.actionLoading}
                 onClick={() => void viewModel.resolveOrderConfirmation(true)}
@@ -439,8 +458,13 @@ export function TeleportWorkspace({
             </>
           }
         >
-          <p>官方接口要求在角色预检后再次确认，请检查以下结果。</p>
-          <StatusMessages status={viewModel.activeOrderStatus} />
+          <p className={teleportDialogCopyClasses}>
+            官方接口要求在角色预检后再次确认，请检查以下结果。
+          </p>
+          <StatusMessages
+            status={viewModel.activeOrderStatus}
+            layout="dialog-body"
+          />
         </ActionDialog>
       )}
 
@@ -454,7 +478,9 @@ export function TeleportWorkspace({
             "进程注入可能被视为使用外部辅助程序，使用后果由你自行承担。",
             "提交前会显示角色和目标大区，退出游戏前还会再次确认。",
           ]}
-          description={<p>不接受上述风险时，请使用手动模式。</p>}
+          description={
+            <p className="m-0">不接受上述风险时，请使用手动模式。</p>
+          }
           confirmLabel="确认使用自动模式"
           onConfirm={viewModel.confirmAutomaticRisk}
           onCancel={viewModel.cancelAutomaticRisk}
@@ -468,13 +494,14 @@ export function TeleportWorkspace({
           actions={
             <>
               <button
+                className={teleportDialogActionClasses}
                 type="button"
                 onClick={() => void viewModel.resolveLogoutConfirmation(false)}
               >
                 取消
               </button>
               <button
-                className="is-primary [.teleport-dialog_>_footer_button&]:border-accent [.teleport-dialog_>_footer_button&]:text-on-accent [.teleport-dialog_>_footer_button&]:bg-accent [.theme-dark_.teleport-dialog_>_footer_button&]:text-canvas"
+                className={isPrimaryClasses}
                 type="button"
                 onClick={() => void viewModel.resolveLogoutConfirmation(true)}
               >
@@ -483,8 +510,10 @@ export function TeleportWorkspace({
             </>
           }
         >
-          <p>已读取并核对当前角色。继续操作将自动退出登录并等待标题画面。</p>
-          <div className="dialog-warning flex items-center gap-[8px] mt-[15px] text-danger text-xs font-bold [&_svg]:w-[18px] [&_svg]:h-[18px]">
+          <p className={teleportDialogCopyClasses}>
+            已读取并核对当前角色。继续操作将自动退出登录并等待标题画面。
+          </p>
+          <div className={teleportDialogWarningClasses}>
             <WarningCircle weight="fill" />
             若角色处于战斗、任务或过场等无法登出的状态，本次操作会停止并提示错误。
           </div>
@@ -497,7 +526,7 @@ export function TeleportWorkspace({
           onClose={viewModel.dismissCompletion}
           actions={
             <button
-              className="is-primary [.teleport-dialog_>_footer_button&]:border-accent [.teleport-dialog_>_footer_button&]:text-on-accent [.teleport-dialog_>_footer_button&]:bg-accent [.theme-dark_.teleport-dialog_>_footer_button&]:text-canvas"
+              className={isPrimaryClasses}
               type="button"
               onClick={viewModel.dismissCompletion}
             >
@@ -505,7 +534,9 @@ export function TeleportWorkspace({
             </button>
           }
         >
-          <p>{viewModel.completionMessage}</p>
+          <p className={teleportDialogCopyClasses}>
+            {viewModel.completionMessage}
+          </p>
         </ActionDialog>
       )}
 
@@ -518,131 +549,107 @@ export function TeleportWorkspace({
     </main>
   );
 }
-
 function ServiceSummary({ viewModel }: { viewModel: TeleportWorkspaceState }) {
   // A failed initial request must not turn defaults into apparent account data.
   const unavailable = Boolean(viewModel.error && !viewModel.sourceAreas.length);
   return (
-    <dl
-      className={
-        "teleport-summary grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line mt-5 @min-[860px]/teleport:grid-cols-4 [&_>_div]:grid [&_>_div]:min-w-0 [&_>_div]:grid-cols-[20px_minmax(0,_1fr)] [&_>_div]:gap-x-2 [&_>_div]:bg-surface [&_>_div]:p-3 [&_svg]:row-span-2 [&_svg]:size-5 [&_svg]:self-center [&_svg]:text-accent [&_dt]:text-xs [&_dt]:text-muted [&_dd]:m-0 [&_dd]:mt-1 [&_dd]:text-base [&_dd]:font-semibold [&_dd]:tabular-nums"
-      }
-    >
-      <div>
-        <Coins />
-        <dt>账户余额</dt>
-        <dd>
+    <dl className="teleport-summary mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-control border border-line bg-line @min-[860px]/teleport:grid-cols-4">
+      <div className={teleportFactCardClasses}>
+        <Coins className={teleportFactIconClasses} />
+        <dt className="text-xs text-muted">账户余额</dt>
+        <dd className={teleportFactValueClasses}>
           {unavailable ? "\u2014" : viewModel.balance.toLocaleString("zh-CN")}
         </dd>
       </div>
-      <div>
-        <Clock />
-        <dt>基础间隔</dt>
-        <dd>
+      <div className={teleportFactCardClasses}>
+        <Clock className={teleportFactIconClasses} />
+        <dt className="text-xs text-muted">基础间隔</dt>
+        <dd className={teleportFactValueClasses}>
           {unavailable ? "\u2014" : `${viewModel.serviceLimitDays} \u5929`}
         </dd>
       </div>
-      <div>
-        <Ticket />
-        <dt>当前限制</dt>
-        <dd>{unavailable ? "\u2014" : viewModel.migrationLimitDays || "无"}</dd>
+      <div className={teleportFactCardClasses}>
+        <Ticket className={teleportFactIconClasses} />
+        <dt className="text-xs text-muted">当前限制</dt>
+        <dd className={teleportFactValueClasses}>
+          {unavailable ? "\u2014" : viewModel.migrationLimitDays || "无"}
+        </dd>
       </div>
-      <div>
-        <MapPin />
-        <dt>可选大区</dt>
-        <dd>{unavailable ? "\u2014" : viewModel.sourceAreas.length}</dd>
+      <div className={teleportFactCardClasses}>
+        <MapPin className={teleportFactIconClasses} />
+        <dt className="text-xs text-muted">可选大区</dt>
+        <dd className={teleportFactValueClasses}>
+          {unavailable ? "\u2014" : viewModel.sourceAreas.length}
+        </dd>
       </div>
     </dl>
   );
 }
-
 function JourneyRoute({ viewModel }: { viewModel: TeleportWorkspaceState }) {
   return (
     <aside
-      className={
-        "journey-route border border-solid border-line rounded-[var(--ors-radius-control)] bg-surface flex min-w-0 flex-col overflow-hidden p-5 max-[519px]:p-4 [&_>_p]:text-muted [&_>_p]:text-xs [&_>_p]:pt-[18px] [&_>_p]:border-t [&_>_p]:border-solid [&_>_p]:border-line [&&&&]:shadow-[none] [&&&&_>_p]:m-0 [&&&&_>_p]:mt-auto [&&&&_>_p]:leading-[1.6]"
-      }
+      className="journey-route flex min-w-0 flex-col overflow-hidden rounded-control border border-solid border-line bg-surface p-5 shadow-[none] max-[519px]:p-4"
       aria-label="传送路线预览"
     >
-      <div
-        className={
-          "route-caption flex min-h-7 items-center justify-between mb-5 text-ink [&_h2]:m-0 [&_h2]:text-lg [&_h2]:leading-snug [&_h2]:font-semibold [&_svg]:w-[28px] [&_svg]:h-[28px] [&_svg]:text-accent [&&&&]:[font-weight:720]"
-        }
-      >
-        <h2>路线预览</h2>
-        <AirplaneTilt weight="duotone" />
+      <div className="route-caption mb-5 flex min-h-7 items-center justify-between font-[720] text-ink">
+        <h2 className="m-0 text-lg leading-snug font-semibold">路线预览</h2>
+        <AirplaneTilt className="h-7 w-7 text-accent" weight="duotone" />
       </div>
-      <div
-        className={
-          "route-stop is-source relative grid gap-[14px] [&_>_div]:grid [&_>_div]:gap-[4px] [&_small]:text-muted [&_small]:text-xs [&_span]:text-muted [&_span]:text-xs [&_strong]:overflow-hidden [&_strong]:whitespace-nowrap [&&&&]:grid-cols-[auto_minmax(0,_1fr)] [&&&&_strong]:text-[18px] [&&&&_strong]:[text-overflow:ellipsis]"
-        }
-      >
-        <span
-          className={
-            "route-marker block w-[15px] h-[15px] mt-[4px] bg-accent text-on-accent [&&&&]:[border:4px_solid_var(--ors-color-surface)] [&&&&]:rounded-[50%] [&&&&]:shadow-[none]"
-          }
-        />
-        <div>
-          <small>当前服务器</small>
-          <strong>
+      <div className="route-stop is-source relative grid grid-cols-[auto_minmax(0,_1fr)] gap-3.5">
+        <span className={teleportRouteMarkerClasses} />
+        <div className="grid gap-1">
+          <small className="text-xs text-muted">当前服务器</small>
+          <strong className={teleportRouteNameClasses}>
             {viewModel.selectedSourceGroup?.groupName ?? "尚未选择"}
           </strong>
-          <span>
+          <span className="text-xs text-muted">
             {viewModel.selectedSourceArea?.areaName ?? "选择出发大区"}
           </span>
         </div>
       </div>
       <div
         className={
-          'route-line relative flex items-center gap-[8px] min-h-[88px] ml-[7px] pl-[27px] text-accent [&::before]:absolute [&_svg]:w-[18px] [&_svg]:h-[18px] [&_span]:text-muted [&_span]:text-xs [&&&&::before]:[content:""] [&&&&::before]:top-[0] [&&&&::before]:bottom-[0] [&&&&::before]:left-[0] [&&&&::before]:[border-left:1px_dashed_var(--ors-color-accent)]'
+          'route-line relative ml-[7px] flex min-h-22 items-center gap-2 pl-[27px] text-accent before:absolute before:top-0 before:bottom-0 before:left-0 before:[content:""] before:[border-left:1px_dashed_var(--ors-color-accent)]'
         }
       >
-        <ArrowRight />
-        <span>{viewModel.selectedRole?.roleName ?? "等待角色"}</span>
+        <ArrowRight className="h-4.5 w-4.5" />
+        <span className="text-xs text-muted">
+          {viewModel.selectedRole?.roleName ?? "等待角色"}
+        </span>
       </div>
-      <div
-        className={
-          "route-stop is-target relative grid gap-[14px] pb-7 [&_>_div]:grid [&_>_div]:gap-[4px] [&_small]:text-muted [&_small]:text-xs [&_span]:text-muted [&_span]:text-xs [&_strong]:overflow-hidden [&_strong]:whitespace-nowrap [&&&&]:grid-cols-[auto_minmax(0,_1fr)] [&&&&_strong]:text-[18px] [&&&&_strong]:[text-overflow:ellipsis]"
-        }
-      >
-        <span
-          className={
-            "route-marker block w-[15px] h-[15px] mt-[4px] bg-accent text-on-accent [&&&&]:[border:4px_solid_var(--ors-color-surface)] [&&&&]:rounded-[50%] [&&&&]:shadow-[none]"
-          }
-        />
-        <div>
-          <small>目标服务器</small>
-          <strong>
+      <div className="route-stop is-target relative grid grid-cols-[auto_minmax(0,_1fr)] gap-3.5 pb-7">
+        <span className={teleportRouteMarkerClasses} />
+        <div className="grid gap-1">
+          <small className="text-xs text-muted">目标服务器</small>
+          <strong className={teleportRouteNameClasses}>
             {viewModel.selectedTargetGroup?.groupName ??
               (viewModel.selectedTargetArea ? "系统自动选择" : "尚未选择")}
           </strong>
-          <span>
+          <span className="text-xs text-muted">
             {viewModel.selectedTargetArea?.areaName ?? "选择目标大区"}
           </span>
         </div>
       </div>
-      <p>目标服务器状态和排队时间均来自本次实时请求。</p>
+      <p className="m-0 mt-auto border-t border-solid border-line pt-4.5 text-xs leading-[1.6] text-muted">
+        目标服务器状态和排队时间均来自本次实时请求。
+      </p>
     </aside>
   );
 }
-
 function TeleportSkeleton() {
   return (
     <div
-      className={
-        "teleport-skeleton grid gap-[14px] mt-[30px] [&_div]:h-[96px] [&_div]:rounded-[var(--ors-radius-control)] [&_div:last-child]:h-[420px] [&&&&]:grid-cols-2 @min-[860px]/teleport:[&&&&]:grid-cols-4 [&&&&_div]:[background:linear-gradient(_100deg,_var(--ors-color-hover)_20%,_var(--ors-color-surface)_44%,_var(--ors-color-hover)_68%_)] [&&&&_div]:[background-size:200%_100%] [&&&&_div:last-child]:[grid-column:1_/_-1] [@media(prefers-reduced-motion:_no-preference)]:[&&&&_div]:animate-[teleport-shimmer_1.5s_ease-in-out_infinite]"
-      }
+      className="teleport-skeleton mt-7.5 grid grid-cols-2 gap-3.5 @min-[860px]/teleport:grid-cols-4"
       aria-label="正在读取超域传送数据"
     >
-      <div />
-      <div />
-      <div />
-      <div />
-      <div />
+      <div className={teleportSkeletonClasses} />
+      <div className={teleportSkeletonClasses} />
+      <div className={teleportSkeletonClasses} />
+      <div className={teleportSkeletonClasses} />
+      <div className={teleportSkeletonClasses} />
     </div>
   );
 }
-
 function roundQueueMinutes(minutes: number) {
   return Math.max(30, (Math.floor(minutes / 30) + 1) * 30);
 }

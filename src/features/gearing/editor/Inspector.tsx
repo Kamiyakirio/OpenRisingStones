@@ -1,9 +1,32 @@
 /** Compact numeric comparisons and native task controls share a stable inspector column. */
+import clsx from "clsx";
+import { gearingControlClasses, gearingHintClasses } from "../utilityClasses";
 import { SourcePicker } from "./SourcePicker";
 import { ItemName } from "./ItemName";
 import type { GearingViewModel } from "./ViewModel";
 import type { EditorState } from "./Editor";
 import type { Slot, Stat } from "./types";
+
+/** Complete utility strings are shared without adding component CSS rules. */
+const gearCheckClasses =
+  "gear-check flex items-center gap-2 text-xs leading-[1.5]";
+const inspectorHeadingCellClasses =
+  "border-b border-b-line px-0 py-[7px] text-right text-[13px] font-normal whitespace-nowrap text-muted first:text-left";
+const inspectorValueCellClasses =
+  "border-b border-b-line px-0 py-[7px] text-right whitespace-nowrap first:text-left";
+const inspectorAttributeFieldClasses =
+  "mx-0 my-2.5 grid items-center gap-1.5 text-xs";
+const inspectorAttributeSelectClasses =
+  "min-h-10 w-full min-w-0 rounded-control border border-solid border-control bg-surface px-3 py-2 text-ink pointer-coarse:min-h-11";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+const inspectorCheckboxClasses =
+  "h-[15px] w-[15px] [accent-color:var(--ors-color-accent)]";
+const inspectorHeadingClasses =
+  "flex flex-wrap items-baseline justify-between gap-2";
+const levelRangeClasses =
+  "gear-level-range grid grid-cols-[1fr_1fr] items-end gap-2";
+
 const number = (value: number | undefined, digits = 0) =>
   value === undefined
     ? "—"
@@ -33,30 +56,24 @@ export function Inspector({
   );
   return (
     <div
-      className={`[&&&&]:p-[8px_24px_24px] [&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [&&&&]:w-[min(900px,_100%)] [&&&&.is-stats]:m-[0_auto] [@media(max-width:_900px)]:[&&&&]:grid-cols-[1fr] grid gap-[32px] [&.is-stats]:block [&.is-stats]:max-w-[760px] [&_>_section]:mt-0 max-[767px]:block gear-inspector-body is-${panel}`}
+      className={clsx(
+        "gear-inspector-body grid w-[min(900px,_100%)] grid-cols-2 gap-8 pt-2 pr-6 pb-6 pl-6 max-[900px]:grid-cols-[1fr] max-[767px]:block [&.is-stats]:mt-0 [&.is-stats]:mr-auto [&.is-stats]:mb-0 [&.is-stats]:ml-auto [&.is-stats]:block [&.is-stats]:max-w-190",
+        `is-${panel}`,
+      )}
     >
       {panel === "optimize" && <Optimizer vm={vm} state={state} />}
       <section
-        className={
-          "gear-statistics w-full [&&&&_table_td]:p-[7px_0] [&&&&_table_th]:p-[7px_0]"
-        }
+        className="gear-statistics mt-0 w-full"
         aria-label="配装属性"
         aria-busy={state.evaluating}
       >
-        <div
-          className={
-            "gear-section-heading flex justify-between items-center gap-[8px] min-h-[44px] border-b border-solid border-line [&_>_span]:text-xs [&_>_span]:text-muted [.gear-inspector_&]:pl-0 [.gear-inspector_&]:pr-0 [.gear-equipped_>_&]:justify-start [.gear-equipped_>_&]:flex-wrap [.gear-candidates_&]:flex-wrap [.gear-candidates_>_&]:pt-[4px] [.gear-candidates_>_&]:pb-[4px] [&&&&]:p-[10px_12px] [.gear-equipped_>_&&&&_h2]:[margin-right:auto] [@media(min-width:_768px)]:[.gear-candidates_>_&&&&]:shrink-[0]"
-          }
-        >
+        <div className="gear-section-heading flex min-h-11 items-center justify-between gap-2 border-b border-solid border-line px-3 py-2.5 pr-0 pl-0">
           <h2 className="text-lg font-semibold">
             {preview ? "方案比较" : "配装属性"}
           </h2>
-          <label
-            className={
-              "gear-check [.gear-filter-options_&]:min-h-[40px] [.gear-filter-options_&]:items-center text-xs [&_input]:w-[15px] [&_input]:h-[15px] [.gear-optimizer_&_input]:w-[15px] [.gear-editor_.gear-source-options_&]:flex [.gear-editor_.gear-source-options_&]:m-0 [.gear-editor_.gear-source-options_&]:items-start [&&&&]:leading-[1.5] [&&&&_input]:[accent-color:var(--ors-color-accent)]"
-            }
-          >
+          <label className={gearCheckClasses}>
             <input
+              className={inspectorCheckboxClasses}
               type="checkbox"
               checked={state.tiers}
               onChange={(e) => vm.setTiers(e.target.checked)}
@@ -65,31 +82,31 @@ export function Inspector({
           </label>
         </div>
         {evaluation?.effects && (
-          <dl
-            className={
-              "gear-key-stats m-0 grid gap-[12px] [&_>_div]:flex [&_>_div]:justify-between [&_>_div]:items-baseline [&_>_div]:gap-[8px] [&_>_div]:flex-wrap [&_dt]:text-muted [&_dt]:text-xs [&_dd]:m-0 [&_dd]:tabular-nums [&_dd_span]:text-xs [&&&&]:p-[14px_0_8px]"
-            }
-          >
-            <div>
-              <dt>GCD</dt>
-              <dd>
+          <dl className="gear-key-stats m-0 grid gap-3 px-0 pt-3.5 pb-2">
+            <div className={inspectorHeadingClasses}>
+              <dt className="text-xs text-muted">GCD</dt>
+              <dd className="m-0 tabular-nums">
                 {number(evaluation.effects.gcd, 2)}s
                 {preview?.effects && (
-                  <span> → {number(preview.effects.gcd, 2)}s</span>
+                  <span className="text-xs">
+                    {" "}
+                    → {number(preview.effects.gcd, 2)}s
+                  </span>
                 )}
               </dd>
             </div>
-            <div>
-              <dt>每威力伤害期望</dt>
-              <dd>
+            <div className={inspectorHeadingClasses}>
+              <dt className="text-xs text-muted">每威力伤害期望</dt>
+              <dd className="m-0 tabular-nums">
                 {number(evaluation.effects.damage, 5)}
                 {preview?.effects && (
                   <span
-                    className={
+                    className={clsx(
+                      "text-xs",
                       preview.effects.damage >= evaluation.effects.damage
                         ? "gear-positive text-success"
-                        : "gear-negative [&&&&]:[color:var(--ors-color-danger)]!"
-                    }
+                        : "gear-negative text-danger",
+                    )}
                   >
                     {" "}
                     {preview.effects.damage - evaluation.effects.damage >= 0
@@ -105,16 +122,16 @@ export function Inspector({
             </div>
           </dl>
         )}
-        <table>
+        <table className={gearingControlClasses.table}>
           <thead>
             <tr>
-              <th>属性</th>
-              <th>当前</th>
-              {preview && <th>变化</th>}
+              <th className={inspectorHeadingCellClasses}>属性</th>
+              <th className={inspectorHeadingCellClasses}>当前</th>
+              {preview && <th className={inspectorHeadingCellClasses}>变化</th>}
               {state.tiers && (
                 <>
-                  <th>前一档</th>
-                  <th>后一档</th>
+                  <th className={inspectorHeadingCellClasses}>前一档</th>
+                  <th className={inspectorHeadingCellClasses}>后一档</th>
                 </>
               )}
             </tr>
@@ -126,18 +143,20 @@ export function Inspector({
                 : 0;
               return (
                 <tr key={stat}>
-                  <th>{data.statNames[stat]}</th>
-                  <td>
+                  <th className={inspectorHeadingCellClasses}>
+                    {data.statNames[stat]}
+                  </th>
+                  <td className={inspectorValueCellClasses}>
                     {state.evaluating ? "…" : number(evaluation?.stats[stat])}
                   </td>
                   {preview && (
                     <td
                       className={
                         delta > 0
-                          ? "gear-positive text-success"
+                          ? "gear-positive border-b border-b-line px-0 py-[7px] text-right whitespace-nowrap text-success first:text-left"
                           : delta < 0
-                            ? "gear-negative [&&&&]:[color:var(--ors-color-danger)]!"
-                            : ""
+                            ? "gear-negative border-b border-b-line px-0 py-[7px] text-right whitespace-nowrap text-danger first:text-left"
+                            : inspectorValueCellClasses
                       }
                     >
                       {delta ? (delta > 0 ? "+" : "") + number(delta) : "—"}
@@ -145,14 +164,20 @@ export function Inspector({
                   )}
                   {state.tiers && (
                     <>
-                      <td title="降至前一档所需减少的属性值">
+                      <td
+                        className={inspectorValueCellClasses}
+                        title="降至前一档所需减少的属性值"
+                      >
                         {state.evaluating
                           ? "…"
                           : number(
                               evaluation?.tiers[stat]?.previous ?? undefined,
                             )}
                       </td>
-                      <td title="升至后一档所需增加的属性值">
+                      <td
+                        className={inspectorValueCellClasses}
+                        title="升至后一档所需增加的属性值"
+                      >
                         {state.evaluating
                           ? "…"
                           : evaluation?.tiers[stat]?.next != null
@@ -167,14 +192,12 @@ export function Inspector({
           </tbody>
         </table>
         {preview && !differences.length && (
-          <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
-            属性没有变化。
-          </p>
+          <p className={gearingHintClasses}>属性没有变化。</p>
         )}
         {evaluation?.effects && (
-          <details className="gear-effect-details [&_dl]:grid [&_dl]:gap-[6px] [&_dl]:text-xs [&_dl_>_div]:flex [&_dl_>_div]:justify-between [&_dd]:m-0">
+          <details className="gear-effect-details">
             <summary>详细效果</summary>
-            <dl>
+            <dl className="grid gap-1.5 text-xs">
               {[
                 ["暴击率", number(evaluation.effects.crtChance * 100, 1) + "%"],
                 ["暴击倍率", number(evaluation.effects.crtDamage, 3)],
@@ -188,9 +211,9 @@ export function Inspector({
                 ["生命值", number(evaluation.effects.hp)],
                 ["MP / 3s", number(evaluation.effects.mp)],
               ].map(([label, value]) => (
-                <div key={label}>
+                <div className="flex justify-between" key={label}>
                   <dt>{label}</dt>
-                  <dd>{value}</dd>
+                  <dd className="m-0">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -201,12 +224,9 @@ export function Inspector({
         <details className="gear-consumption">
           <summary>魔晶石用量</summary>
           {!job.combat && (
-            <label
-              className={
-                "gear-check [.gear-filter-options_&]:min-h-[40px] [.gear-filter-options_&]:items-center text-xs [&_input]:w-[15px] [&_input]:h-[15px] [.gear-optimizer_&_input]:w-[15px] [.gear-editor_.gear-source-options_&]:flex [.gear-editor_.gear-source-options_&]:m-0 [.gear-editor_.gear-source-options_&]:items-start [&&&&]:leading-[1.5] [&&&&_input]:[accent-color:var(--ors-color-accent)]"
-              }
-            >
+            <label className={gearCheckClasses}>
               <input
+                className={inspectorCheckboxClasses}
                 type="checkbox"
                 checked={doc.duplicateToolMateria}
                 onChange={(e) =>
@@ -218,39 +238,41 @@ export function Inspector({
               计入同配置的其他职业工具
             </label>
           )}
-          <table>
+          <table className={gearingControlClasses.table}>
             <thead>
               <tr>
-                <th>魔晶石</th>
-                <th>期望</th>
-                <th>90%</th>
-                <th>99%</th>
+                <th className={gearingControlClasses.th}>魔晶石</th>
+                <th className={gearingControlClasses.th}>期望</th>
+                <th className={gearingControlClasses.th}>90%</th>
+                <th className={gearingControlClasses.th}>99%</th>
               </tr>
             </thead>
             <tbody>
               {evaluation.consumption.map((row) => (
                 <tr key={`${row.stat}:${row.grade}`}>
-                  <th>
+                  <th className={gearingControlClasses.th}>
                     {data.statNames[row.stat]}{" "}
                     {data.materiaGradeNames[row.grade - 1]}
                   </th>
-                  <td>{row.expected}</td>
-                  <td>{row.confidence90}</td>
-                  <td>{row.confidence99}</td>
+                  <td className={gearingControlClasses.td}>{row.expected}</td>
+                  <td className={gearingControlClasses.td}>
+                    {row.confidence90}
+                  </td>
+                  <td className={gearingControlClasses.td}>
+                    {row.confidence99}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
+          <p className={gearingHintClasses}>
             90% / 99% 为完成全部镶嵌的保守备料数量，包含保证孔。
           </p>
         </details>
       )}
       {!!evaluation?.issues.length && (
         <div
-          className={
-            "gear-validation mt-[12px] p-[12px] bg-selected [&&&&]:leading-[1.7]"
-          }
+          className="gear-validation mt-3 bg-selected p-3 leading-[1.7]"
           role="alert"
         >
           <strong>有装备需要修正</strong>
@@ -266,7 +288,12 @@ export function Inspector({
                 <summary>详情</summary>
                 {issue.message}
               </details>
-              <button onClick={() => vm.remove(issue.slot)}>移除该装备</button>
+              <button
+                className={gearingControlClasses.button}
+                onClick={() => vm.remove(issue.slot)}
+              >
+                移除该装备
+              </button>
             </div>
           ))}
         </div>
@@ -290,16 +317,15 @@ function Optimizer({
     state.proposalRevision === state.revision;
   return (
     <section
-      className={
-        "gear-optimizer border-b border-solid border-line [&_label:not(.gear-check)]:grid [&_label:not(.gear-check)]:gap-[6px] [&_label:not(.gear-check)]:text-xs [&_input]:w-full [&_select]:w-full [&&&&]:p-[14px_0] [&&&&_label:not(.gear-check)]:m-[10px_0]"
-      }
+      className="gear-optimizer border-b border-solid border-line px-0 py-3.5"
       aria-label="最优配装计算"
     >
       {job.combat ? (
         <>
-          <label>
+          <label className={inspectorAttributeFieldClasses}>
             计算内容
             <select
+              className={inspectorAttributeSelectClasses}
               value={c.kind}
               onChange={(e) =>
                 vm.setConditions({
@@ -313,9 +339,10 @@ function Optimizer({
           </label>
           {c.kind === "combat" && (
             <>
-              <label>
+              <label className={inspectorAttributeFieldClasses}>
                 选装方式
                 <select
+                  className={inspectorAttributeSelectClasses}
                   value={c.mode}
                   onChange={(e) =>
                     vm.setConditions({
@@ -327,29 +354,31 @@ function Optimizer({
                   <option value="current">优化当前装备</option>
                 </select>
               </label>
-              <div
-                className={
-                  "gear-target grid gap-[8px] [&_>_select]:mb-[10px] [&&&&]:grid-cols-[1fr_1fr] [&&&&]:[align-items:end]"
-                }
-              >
-                <label>
+              <div className="gear-target grid grid-cols-[1fr_1fr] items-end gap-2">
+                <label className={inspectorAttributeFieldClasses}>
                   目标 GCD
                   <input
+                    className={inspectorAttributeSelectClasses}
                     type="number"
                     min={1.8}
                     max={2.5}
                     step={0.01}
                     value={c.targetGcd}
                     onChange={(e) =>
-                      vm.setConditions({ targetGcd: Number(e.target.value) })
+                      vm.setConditions({
+                        targetGcd: Number(e.target.value),
+                      })
                     }
                   />
                 </label>
                 <select
+                  className="mb-2.5 min-h-10 w-full min-w-0 rounded-control border border-solid border-control bg-surface px-3 py-2 text-ink pointer-coarse:min-h-11"
                   aria-label="GCD 目标方式"
                   value={c.exactGcd ? "exact" : "maximum"}
                   onChange={(e) =>
-                    vm.setConditions({ exactGcd: e.target.value === "exact" })
+                    vm.setConditions({
+                      exactGcd: e.target.value === "exact",
+                    })
                   }
                 >
                   <option value="exact">精确等于</option>
@@ -362,16 +391,20 @@ function Optimizer({
       ) : (
         <div className="gear-production-targets">
           {job.stats.map((stat) => (
-            <label key={stat}>
+            <label className={inspectorAttributeFieldClasses} key={stat}>
               {data.statNames[stat]}目标
               <input
+                className={inspectorAttributeSelectClasses}
                 type="number"
                 min={0}
                 max={100000}
                 value={c.targets[stat] ?? 0}
                 onChange={(e) =>
                   vm.setConditions({
-                    targets: { ...c.targets, [stat]: Number(e.target.value) },
+                    targets: {
+                      ...c.targets,
+                      [stat]: Number(e.target.value),
+                    },
                   })
                 }
               />
@@ -383,35 +416,37 @@ function Optimizer({
         <>
           <details className="gear-scope" open>
             <summary>参与计算的范围</summary>
-            <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
+            <p className={gearingHintClasses}>
               初始品级为当前版本推荐范围，可按需调整；不会限制配装页的浏览结果。
             </p>
-            <div
-              className={
-                "gear-level-range grid gap-[8px] [&&&&]:grid-cols-[1fr_1fr] [&&&&]:[align-items:end]"
-              }
-            >
-              <label>
+            <div className={levelRangeClasses}>
+              <label className={inspectorAttributeFieldClasses}>
                 最低品级
                 <input
+                  className={inspectorAttributeSelectClasses}
                   type="number"
                   value={c.minLevel}
                   min={0}
                   max={9999}
                   onChange={(e) =>
-                    vm.setConditions({ minLevel: Number(e.target.value) })
+                    vm.setConditions({
+                      minLevel: Number(e.target.value),
+                    })
                   }
                 />
               </label>
-              <label>
+              <label className={inspectorAttributeFieldClasses}>
                 最高品级
                 <input
+                  className={inspectorAttributeSelectClasses}
                   type="number"
                   value={c.maxLevel}
                   min={0}
                   max={9999}
                   onChange={(e) =>
-                    vm.setConditions({ maxLevel: Number(e.target.value) })
+                    vm.setConditions({
+                      maxLevel: Number(e.target.value),
+                    })
                   }
                 />
               </label>
@@ -421,31 +456,35 @@ function Optimizer({
                 state.optimizationSourceIds.includes(source.id),
               )}
               value={c.sourceIds}
-              onChange={(sourceIds) => vm.setConditions({ sourceIds })}
-            />
-            <label
-              className={
-                "gear-check [.gear-filter-options_&]:min-h-[40px] [.gear-filter-options_&]:items-center text-xs [&_input]:w-[15px] [&_input]:h-[15px] [.gear-optimizer_&_input]:w-[15px] [.gear-editor_.gear-source-options_&]:flex [.gear-editor_.gear-source-options_&]:m-0 [.gear-editor_.gear-source-options_&]:items-start [&&&&]:leading-[1.5] [&&&&_input]:[accent-color:var(--ors-color-accent)]"
+              onChange={(sourceIds) =>
+                vm.setConditions({
+                  sourceIds,
+                })
               }
-            >
+            />
+            <label className={gearCheckClasses}>
               <input
+                className={inspectorCheckboxClasses}
                 type="checkbox"
                 checked={c.optimizeFood}
                 onChange={(e) =>
-                  vm.setConditions({ optimizeFood: e.target.checked })
+                  vm.setConditions({
+                    optimizeFood: e.target.checked,
+                  })
                 }
               />
               自动选择食物
             </label>
-            <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
+            <p className={gearingHintClasses}>
               已锁定的装备不替换；锁定魔晶石后保留其配置。
             </p>
           </details>
           <details>
             <summary>高级约束</summary>
-            <label>
+            <label className={inspectorAttributeFieldClasses}>
               准备周数（留空不限制）
               <input
+                className={inspectorAttributeSelectClasses}
                 type="number"
                 min={0}
                 max={100}
@@ -459,14 +498,11 @@ function Optimizer({
                 }
               />
             </label>
-            <div
-              className={
-                "gear-level-range grid gap-[8px] [&&&&]:grid-cols-[1fr_1fr] [&&&&]:[align-items:end]"
-              }
-            >
-              <label>
+            <div className={levelRangeClasses}>
+              <label className={inspectorAttributeFieldClasses}>
                 最低速度
                 <input
+                  className={inspectorAttributeSelectClasses}
                   type="number"
                   min={0}
                   value={c.speedRange?.min ?? ""}
@@ -482,9 +518,10 @@ function Optimizer({
                   }
                 />
               </label>
-              <label>
+              <label className={inspectorAttributeFieldClasses}>
                 最高速度
                 <input
+                  className={inspectorAttributeSelectClasses}
                   type="number"
                   min={0}
                   value={c.speedRange?.max ?? ""}
@@ -505,12 +542,7 @@ function Optimizer({
         </>
       )}
       {proposal && (
-        <div
-          className={
-            "gear-proposal [&_ul]:pl-[18px] [&&&&]:p-[12px_0] [&&&&]:text-[0.8rem] [&&&&_ul]:leading-[1.8]"
-          }
-          role="status"
-        >
+        <div className="gear-proposal px-0 py-3 text-[0.8rem]" role="status">
           {validProposal ? (
             <>
               <strong>
@@ -524,7 +556,7 @@ function Optimizer({
                   件装备：配置不兼容或缺少分配规则。
                 </p>
               )}
-              <ul>
+              <ul className="pl-4.5 leading-[1.8]">
                 {Object.entries(proposal.document!.equipment)
                   .filter(
                     ([slot, g]) =>
@@ -562,9 +594,10 @@ function Optimizer({
                 )}
               </ul>
               {(proposal.alternatives?.length ?? 0) > 1 && (
-                <label>
+                <label className={inspectorAttributeFieldClasses}>
                   备选分配
                   <select
+                    className={inspectorAttributeSelectClasses}
                     onChange={(e) =>
                       vm.chooseAlternative(Number(e.target.value))
                     }

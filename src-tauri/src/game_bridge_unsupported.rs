@@ -110,6 +110,11 @@ impl GameBridgeState {
   pub(crate) fn manager(&self) -> Arc<BridgeManager> {
     Arc::clone(&self.manager)
   }
+
+  /// Keep the desktop monitor interface available while rejecting unsupported platforms.
+  pub(crate) fn prepare_for_monitor(&self) -> Result<BridgeStatus, String> {
+    Err(UNSUPPORTED_MESSAGE.to_owned())
+  }
 }
 
 fn unsupported<T>() -> ApiResult<T> {
@@ -254,12 +259,25 @@ pub async fn game_bridge_debug_unload_payload(
 
 #[cfg(test)]
 mod tests {
-  use super::{unsupported, UNSUPPORTED_MESSAGE};
+  use super::{unsupported, GameBridgeState, UNSUPPORTED_MESSAGE};
+  use game_bridge_host::BridgeManager;
 
   #[test]
   fn unsupported_commands_return_a_stable_hint() {
     let error = unsupported::<()>().expect_err("the platform must be rejected");
     assert_eq!(error.code, "unsupported_platform");
     assert_eq!(error.message, UNSUPPORTED_MESSAGE);
+  }
+
+  #[test]
+  fn monitor_preparation_rejects_unsupported_platforms() {
+    let state = GameBridgeState {
+      manager: BridgeManager::new(),
+    };
+
+    let error = state
+      .prepare_for_monitor()
+      .expect_err("monitoring must not prepare a game bridge on this platform");
+    assert_eq!(error, UNSUPPORTED_MESSAGE);
   }
 }

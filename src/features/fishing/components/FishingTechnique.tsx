@@ -1,4 +1,5 @@
 /** Show the short bait, bite, and hookset cues used while scanning fish rows. */
+import clsx from "clsx";
 import {
   ArrowClockwise,
   Clock,
@@ -16,12 +17,19 @@ import { selfMoochKey } from "../utils/selfMooch";
 import type { Fish, FishCatalog } from "../types";
 import type { useBiteTimes } from "../hooks/useBiteTimes";
 
+/** Reused presentation strings stay static and are allocated once for this module. */
+const techniqueFieldClasses =
+  "fish-technique-field inline-flex min-w-0 flex-wrap items-center gap-1";
+const techniqueIconClasses =
+  "inline-grid h-4.5 w-4.5 flex-[0_0_18px] place-items-center text-muted";
+const techniqueItemClasses =
+  "fish-technique-item inline-flex min-w-0 flex-wrap items-center gap-1";
+
 // Action sheet icon IDs for the two Fisher hookset skills.
 const hooksetIcons: Record<string, number> = {
   Powerful: 1115,
   Precision: 1116,
 };
-
 function TechniqueIcon({
   icon,
   fallback,
@@ -32,13 +40,12 @@ function TechniqueIcon({
   const [failed, setFailed] = useState(false);
   return (
     <span
-      className={
-        "fish-technique-icon place-items-center w-[18px] h-[18px] text-muted [&_img]:w-[18px] [&_img]:h-[18px] [&_img]:object-contain [&_svg]:w-[18px] [&_svg]:h-[18px] [&_svg]:object-contain [&&&&]:[display:inline-grid] [&&&&]:flex-[0_0_18px]"
-      }
+      className="fish-technique-icon inline-grid h-4.5 w-4.5 flex-[0_0_18px] place-items-center text-muted"
       aria-hidden="true"
     >
       {icon && !failed ? (
         <img
+          className="h-4.5 w-4.5 object-contain"
           src={xivIconUrl(icon)}
           alt=""
           loading="lazy"
@@ -50,7 +57,6 @@ function TechniqueIcon({
     </span>
   );
 }
-
 export function FishingTechnique({
   fish,
   catalog,
@@ -60,6 +66,7 @@ export function FishingTechnique({
   spotId,
   showAlternatives = true,
   showBaitSources = false,
+  layout,
 }: {
   fish: Fish;
   catalog: FishCatalog;
@@ -69,23 +76,33 @@ export function FishingTechnique({
   spotId?: number;
   showAlternatives?: boolean;
   showBaitSources?: boolean;
+  /** Explicit layout variants keep this component independent of ancestor classes. */
+  layout?: "detail-subsection" | "now-aside" | "spot-page";
 }) {
   const condition = fish.conditions;
+  // Select complete inset sets so detail resets never compete with row padding utilities.
+  const insetClasses =
+    layout === "detail-subsection"
+      ? "p-0"
+      : layout === "now-aside"
+        ? "pt-0 pr-0 pb-2.5 pl-13"
+        : "pt-0 pr-2 pb-2.5 pl-14 max-[620px]:pt-1 max-[620px]:pr-0 max-[620px]:pb-1.5 max-[620px]:pl-12";
   if (fish.method === "spear") {
     return (
       <div
-        className={
-          'fish-entry-technique grid gap-[5px] min-w-0 text-[13px] [.fish-now-aside_&]:pl-[46px] [.fish-detail-subsection_&]:p-0 [&&&&]:[grid-column:1_/_-1] [&&&&]:[grid-row:3] [&&&&]:p-[0_8px_10px_56px] [&&&&]:leading-[1.45] [.fish-entry[data-conditions="false"]_&&&&]:[grid-row:2] [@media(max-width:_620px)]:[&&&&]:[grid-column:1] [@media(max-width:_620px)]:[&&&&]:[grid-row:3] [@media(max-width:_620px)]:[&&&&]:p-[4px_0_6px_48px] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-column:1_/_-1] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-row:3]'
-        }
+        className={clsx(
+          "fish-entry-technique col-span-full row-start-3 grid min-w-0 gap-[5px] text-[13px] leading-[1.45] group-data-[conditions=false]/fish-entry:row-start-2 max-[620px]:col-start-1 max-[620px]:row-start-3",
+          insetClasses,
+          layout === "spot-page" &&
+            "[@media(min-width:_480px)_and_(max-width:_620px)]:col-span-full [@media(min-width:_480px)_and_(max-width:_620px)]:row-start-3",
+        )}
       >
-        <span
-          className={
-            "fish-technique-field inline-flex items-center flex-wrap gap-[4px] min-w-0 [&_>_svg]:place-items-center [&_>_svg]:w-[18px] [&_>_svg]:h-[18px] [&_>_svg]:text-muted [&_strong]:font-semibold [&&&&_>_svg]:[display:inline-grid] [&&&&_>_svg]:flex-[0_0_18px]"
-          }
-        >
-          <FishSimple aria-hidden="true" />
+        <span className={techniqueFieldClasses}>
+          <FishSimple className={techniqueIconClasses} aria-hidden="true" />
           <span className="fish-technique-label text-muted">鱼影</span>
-          <strong>{gigLabels[condition?.gig || ""] || "大小未收录"}</strong>
+          <strong className="font-semibold">
+            {gigLabels[condition?.gig || ""] || "大小未收录"}
+          </strong>
         </span>
         <span className="fish-technique-note text-muted">
           刺鱼不使用鱼饵或提钩
@@ -93,14 +110,16 @@ export function FishingTechnique({
       </div>
     );
   }
-
   const steps = fishingCatchSteps(fish, fishById);
   const hasMoochChain = steps.some((step) => step.kind === "mooch");
   return (
     <div
-      className={
-        'fish-entry-technique grid gap-[5px] min-w-0 text-[13px] [.fish-now-aside_&]:pl-[46px] [.fish-detail-subsection_&]:p-0 [&&&&]:[grid-column:1_/_-1] [&&&&]:[grid-row:3] [&&&&]:p-[0_8px_10px_28px] [&&&&]:leading-[1.45] [.fish-entry[data-conditions="false"]_&&&&]:[grid-row:2] [@media(max-width:_620px)]:[&&&&]:[grid-column:1] [@media(max-width:_620px)]:[&&&&]:[grid-row:3] [@media(max-width:_620px)]:[&&&&]:p-[4px_0_6px_48px] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-column:1_/_-1] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-row:3]'
-      }
+      className={clsx(
+        "fish-entry-technique col-span-full row-start-3 grid min-w-0 gap-[5px] text-[13px] leading-[1.45] group-data-[conditions=false]/fish-entry:row-start-2 max-[620px]:col-start-1 max-[620px]:row-start-3",
+        insetClasses,
+        layout === "spot-page" &&
+          "[@media(min-width:_480px)_and_(max-width:_620px)]:col-span-full [@media(min-width:_480px)_and_(max-width:_620px)]:row-start-3",
+      )}
     >
       {steps.map((step, index) => {
         const sourceIds = showAlternatives
@@ -128,9 +147,10 @@ export function FishingTechnique({
         }));
         return (
           <span
-            className={
-              "fish-technique-step flex items-center flex-wrap min-w-0 [&&&&]:gap-[5px_16px] [.fish-now-aside_&&&&]:gap-[5px_8px]"
-            }
+            className={clsx(
+              "fish-technique-step flex min-w-0 flex-wrap items-center gap-y-[5px]",
+              layout === "now-aside" ? "gap-x-2" : "gap-x-4",
+            )}
             key={`${index}-${step.targetId}`}
           >
             <span className="fish-technique-label text-muted">
@@ -140,7 +160,7 @@ export function FishingTechnique({
                   ? "鱼饵"
                   : "推荐鱼饵"}
             </span>
-            <span className="fish-technique-catch inline-flex items-center flex-wrap gap-[4px] min-w-0">
+            <span className="fish-technique-catch inline-flex min-w-0 flex-wrap items-center gap-1">
               {sourceIds.length ? (
                 sourceIds.map((id, sourceIndex) => {
                   const baitLabel = (
@@ -157,10 +177,7 @@ export function FishingTechnique({
                     </>
                   );
                   return (
-                    <span
-                      className="fish-technique-item inline-flex items-center flex-wrap gap-[4px] min-w-0 [&_strong]:font-semibold"
-                      key={id}
-                    >
+                    <span className={techniqueItemClasses} key={id}>
                       {sourceIndex > 0 && (
                         <span className="fish-technique-divider text-muted">
                           /
@@ -173,17 +190,22 @@ export function FishingTechnique({
                       )}
                       {referenceSpot &&
                         selfMooch.has(
-                          selfMoochKey({ fishId: id, spotId: referenceSpot }),
+                          selfMoochKey({
+                            fishId: id,
+                            spotId: referenceSpot,
+                          }),
                         ) && (
                           <span
-                            className={
-                              "fish-technique-loop place-items-center w-[20px] h-[20px] bg-selected text-accent [&_svg]:w-[14px] [&_svg]:h-[14px] [&&&&]:[display:inline-grid] [&&&&]:flex-[0_0_20px] [&&&&]:rounded-[50%]"
-                            }
+                            className="fish-technique-loop inline-grid h-5 w-5 flex-[0_0_20px] place-items-center rounded-[50%] bg-selected text-accent"
                             role="img"
                             aria-label={`${catalog.items[id] || fishById.get(id)?.name || id}可回转钓起自身`}
                             title="可回转钓起自身"
                           >
-                            <ArrowClockwise weight="bold" aria-hidden="true" />
+                            <ArrowClockwise
+                              className="h-3.5 w-3.5"
+                              weight="bold"
+                              aria-hidden="true"
+                            />
                           </span>
                         )}
                     </span>
@@ -197,15 +219,17 @@ export function FishingTechnique({
               {showCatchTarget && (
                 <>
                   <span className="fish-technique-divider text-muted">钓</span>
-                  <span className="fish-technique-item inline-flex items-center flex-wrap gap-[4px] min-w-0 [&_strong]:font-semibold">
+                  <span className={techniqueItemClasses}>
                     <TechniqueIcon
                       icon={
                         Number(step.target?.icon) ||
                         catalog.itemIcons[step.targetId]
                       }
-                      fallback={<FishSimple />}
+                      fallback={
+                        <FishSimple className="h-4.5 w-4.5 object-contain" />
+                      }
                     />
-                    <strong>
+                    <strong className="font-semibold">
                       {step.target?.name ||
                         catalog.items[step.targetId] ||
                         step.targetId}
@@ -215,14 +239,12 @@ export function FishingTechnique({
               )}
             </span>
             <span
-              className={
-                "fish-technique-field fish-technique-time inline-flex items-center flex-wrap gap-[4px] min-w-0 [&_>_svg]:place-items-center [&_>_svg]:w-[18px] [&_>_svg]:h-[18px] [&_>_svg]:text-muted [&_strong]:font-semibold [&_>_strong]:inline-flex [&_>_strong]:flex-col [&_>_strong]:gap-[2px] [&_>_strong]:min-w-0 [&_>_strong]:tabular-nums [&&&&_>_svg]:[display:inline-grid] [&&&&_>_svg]:flex-[0_0_18px]"
-              }
+              className="fish-technique-field fish-technique-time inline-flex min-w-0 flex-wrap items-center gap-1"
               title="Teamcraft 社区同钓场、同鱼饵的实测记录；常见范围取样本中间 90%，技能和装备可能影响时间"
             >
-              <Clock aria-hidden="true" />
+              <Clock className={techniqueIconClasses} aria-hidden="true" />
               <span className="fish-technique-label text-muted">咬钩时间</span>
-              <strong>
+              <strong className="inline-flex min-w-0 flex-col gap-0.5 font-semibold tabular-nums">
                 {!referenceSpot || !observations.length
                   ? "暂无可比数据"
                   : biteTimes.status === "error"
@@ -236,10 +258,10 @@ export function FishingTechnique({
                             `${catalog.items[baitId] || fishById.get(baitId)?.name || baitId} `}
                           {
                             /*range
-                            ? `${formatBiteTimeRange(range)} · ${range.samples.toLocaleString("zh-CN")} 次记录`
-                            : biteTimes.status === "loading"
-                              ? "读取中"
-                              : "此钓场暂无样本"*/
+              ? `${formatBiteTimeRange(range)} · ${range.samples.toLocaleString("zh-CN")} 次记录`
+              : biteTimes.status === "loading"
+              ? "读取中"
+              : "此钓场暂无样本"*/
                             range
                               ? `${formatBiteTimeRange(range)}`
                               : biteTimes.status === "loading"
@@ -256,28 +278,25 @@ export function FishingTechnique({
               </span>
             ) : (
               <>
-                <span
-                  className={
-                    "fish-technique-field inline-flex items-center flex-wrap gap-[4px] min-w-0 [&_>_svg]:place-items-center [&_>_svg]:w-[18px] [&_>_svg]:h-[18px] [&_>_svg]:text-muted [&_strong]:font-semibold [&&&&_>_svg]:[display:inline-grid] [&&&&_>_svg]:flex-[0_0_18px]"
-                  }
-                >
-                  <WaveSine aria-hidden="true" />
+                <span className={techniqueFieldClasses}>
+                  <WaveSine
+                    className={techniqueIconClasses}
+                    aria-hidden="true"
+                  />
                   <span className="fish-technique-label text-muted">咬钩</span>
-                  <strong>
+                  <strong className="font-semibold">
                     {tugLabels[targetCondition?.tug || ""] || "待补"}
                   </strong>
                 </span>
-                <span
-                  className={
-                    "fish-technique-field inline-flex items-center flex-wrap gap-[4px] min-w-0 [&_>_svg]:place-items-center [&_>_svg]:w-[18px] [&_>_svg]:h-[18px] [&_>_svg]:text-muted [&_strong]:font-semibold [&&&&_>_svg]:[display:inline-grid] [&&&&_>_svg]:flex-[0_0_18px]"
-                  }
-                >
+                <span className={techniqueFieldClasses}>
                   <TechniqueIcon
                     icon={hooksetIcons[hookset]}
-                    fallback={<Hand />}
+                    fallback={<Hand className="h-4.5 w-4.5 object-contain" />}
                   />
                   <span className="fish-technique-label text-muted">提钩</span>
-                  <strong>{hooksetLabels[hookset] || "待补"}</strong>
+                  <strong className="font-semibold">
+                    {hooksetLabels[hookset] || "待补"}
+                  </strong>
                 </span>
               </>
             )}

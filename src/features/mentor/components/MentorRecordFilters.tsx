@@ -1,4 +1,6 @@
 /** Labeled history filters expose common choices without hiding active conditions. */
+
+import { mentorControlClasses } from "../utilityClasses";
 import { ArrowClockwise } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import type { MentorRecord } from "../api/mentorApi";
@@ -9,7 +11,6 @@ import {
   mentorDateRangeInvalid,
   type MentorRecordFilters as Filters,
 } from "../utils/recordFilters";
-
 export function MentorRecordFilters({
   records,
   filters,
@@ -51,18 +52,18 @@ export function MentorRecordFilters({
       DEFAULT_MENTOR_FILTERS[key as keyof Filters],
   );
   const update = <K extends keyof Filters>(key: K, value: Filters[K]) =>
-    onChange({ ...filters, [key]: value });
+    onChange({
+      ...filters,
+      [key]: value,
+    });
   const invalid = mentorDateRangeInvalid(filters);
   return (
-    <div className={"mentor-history-filters [&&&&]:m-[22px_0_26px]"}>
-      <div
-        className={
-          "mentor-filter-search grid gap-[10px] [&_button]:w-[42px] [&_button]:p-0 [&&&&]:grid-cols-[minmax(0,_1fr)_42px] [&&&&]:[align-items:end]"
-        }
-      >
-        <label>
+    <div className="mentor-history-filters mx-0 mt-5.5 mb-6.5">
+      <div className="mentor-filter-search grid grid-cols-[minmax(0,_1fr)_42px] items-end gap-2.5">
+        <label className={mentorControlClasses.label}>
           关键词
           <input
+            className={mentorControlClasses.input}
             type="search"
             placeholder="搜索副本、角色、职业或备注"
             value={filters.search}
@@ -70,22 +71,20 @@ export function MentorRecordFilters({
           />
         </label>
         <button
+          className="inline-flex min-h-10 w-10.5 items-center justify-center gap-2 rounded-control border border-solid border-control bg-surface p-0 text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-55 pointer-coarse:min-h-11"
           type="button"
           aria-label="刷新记录"
           title="刷新记录"
           onClick={onRefresh}
         >
-          <ArrowClockwise />
+          <ArrowClockwise className={mentorControlClasses.icon} />
         </button>
       </div>
-      <div
-        className={
-          "mentor-filter-grid grid mt-[16px] [&&&&]:grid-cols-[repeat(3,_minmax(0,_1fr))] [&&&&]:gap-[12px_16px] [@media(max-width:_600px)]:[&&&&]:grid-cols-[1fr]"
-        }
-      >
-        <label>
+      <div className="mentor-filter-grid mt-4 grid grid-cols-3 gap-[12px_16px] max-[600px]:grid-cols-[1fr]">
+        <label className={mentorControlClasses.label}>
           时间范围
           <select
+            className={mentorControlClasses.select}
             value={filters.period}
             onChange={(event) =>
               update("period", event.target.value as Filters["period"])
@@ -98,9 +97,10 @@ export function MentorRecordFilters({
             <option value="custom">自定义日期</option>
           </select>
         </label>
-        <label>
+        <label className={mentorControlClasses.label}>
           角色
           <select
+            className={mentorControlClasses.select}
             value={filters.character}
             onChange={(event) => update("character", event.target.value)}
           >
@@ -112,9 +112,10 @@ export function MentorRecordFilters({
             ))}
           </select>
         </label>
-        <label>
+        <label className={mentorControlClasses.label}>
           职业
           <select
+            className={mentorControlClasses.select}
             value={filters.job}
             onChange={(event) => update("job", event.target.value)}
           >
@@ -133,9 +134,10 @@ export function MentorRecordFilters({
             </optgroup>
           </select>
         </label>
-        <label>
+        <label className={mentorControlClasses.label}>
           副本类型
           <select
+            className={mentorControlClasses.select}
             value={filters.dutyType}
             onChange={(event) =>
               update("dutyType", event.target.value as Filters["dutyType"])
@@ -150,9 +152,10 @@ export function MentorRecordFilters({
             <option value="unknown">未识别</option>
           </select>
         </label>
-        <label>
+        <label className={mentorControlClasses.label}>
           结果
           <select
+            className={mentorControlClasses.select}
             value={filters.result}
             onChange={(event) =>
               update("result", event.target.value as Filters["result"])
@@ -165,9 +168,10 @@ export function MentorRecordFilters({
             <option value="legacy_unknown">结果未标记</option>
           </select>
         </label>
-        <label>
+        <label className={mentorControlClasses.label}>
           记录来源
           <select
+            className={mentorControlClasses.select}
             value={filters.source}
             onChange={(event) =>
               update("source", event.target.value as Filters["source"])
@@ -181,14 +185,11 @@ export function MentorRecordFilters({
         </label>
       </div>
       {filters.period === "custom" && (
-        <div
-          className={
-            "mentor-filter-dates grid mt-[16px] [&_p]:m-0 [&_p]:text-muted [&_p]:text-[13px] [&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [&&&&]:gap-[12px_16px] [&&&&_p]:[grid-column:1_/_-1] [@media(max-width:_600px)]:[&&&&]:grid-cols-[1fr]"
-          }
-        >
-          <label>
+        <div className="mentor-filter-dates mt-4 grid grid-cols-2 gap-[12px_16px] max-[600px]:grid-cols-[1fr]">
+          <label className={mentorControlClasses.label}>
             开始日期
             <input
+              className={mentorControlClasses.input}
               type="date"
               value={filters.from}
               max={filters.to || undefined}
@@ -197,9 +198,10 @@ export function MentorRecordFilters({
               onChange={(event) => update("from", event.target.value)}
             />
           </label>
-          <label>
+          <label className={mentorControlClasses.label}>
             结束日期
             <input
+              className={mentorControlClasses.input}
               type="date"
               value={filters.to}
               min={filters.from || undefined}
@@ -208,7 +210,9 @@ export function MentorRecordFilters({
               onChange={(event) => update("to", event.target.value)}
             />
           </label>
-          <p>按进入时间筛选，包含开始和结束当天；留空表示不限。</p>
+          <p className="col-span-full m-0 text-[13px] text-muted">
+            按进入时间筛选，包含开始和结束当天；留空表示不限。
+          </p>
         </div>
       )}
       {invalid && (
@@ -220,21 +224,17 @@ export function MentorRecordFilters({
           请输入有效日期，开始日期不能晚于结束日期。
         </p>
       )}
-      <div
-        className={
-          "mentor-filter-footer flex items-center gap-[16px] flex-wrap mt-[18px] pb-[18px] border-b border-solid border-line [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:tabular-nums [&&&&_>_span]:[margin-right:auto]"
-        }
-      >
-        <span role="status">
+      <div className="mentor-filter-footer mt-4.5 flex flex-wrap items-center gap-4 border-b border-solid border-line pb-4.5">
+        <span
+          className="[margin-right:auto] text-sm text-muted tabular-nums"
+          role="status"
+        >
           显示 {count} / {records.length} 条记录
         </span>
-        <label
-          className={
-            "mentor-filter-order [.mentor-page_&]:flex [.mentor-page_&]:items-center [.mentor-page_&]:gap-[8px] [.mentor-page_&]:whitespace-nowrap [&&&&_select]:w-[auto]"
-          }
-        >
+        <label className="mentor-filter-order flex items-center gap-2 font-semibold whitespace-nowrap">
           排序
           <select
+            className="min-h-10 w-auto min-w-0 rounded-control border border-solid border-control bg-surface px-3 py-2 text-ink pointer-coarse:min-h-11"
             value={filters.order}
             onChange={(event) =>
               update("order", event.target.value as Filters["order"])
@@ -245,9 +245,14 @@ export function MentorRecordFilters({
           </select>
         </label>
         <button
+          className={mentorControlClasses.button}
           type="button"
           disabled={!changed}
-          onClick={() => onChange({ ...DEFAULT_MENTOR_FILTERS })}
+          onClick={() =>
+            onChange({
+              ...DEFAULT_MENTOR_FILTERS,
+            })
+          }
         >
           重置筛选
         </button>

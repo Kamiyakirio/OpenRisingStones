@@ -1,4 +1,5 @@
 /** Account login methods with explicit consent and bound-character verification. */
+import clsx from "clsx";
 import {
   CheckCircle,
   ClipboardText,
@@ -16,18 +17,33 @@ import { useRef } from "react";
 import { useDialogFocus } from "../../../shared/hooks/useDialogFocus";
 import { type CurlImportStatus, useLoginDialog } from "../hooks/useLoginDialog";
 import type { LoginMethod, LoginProfile, LoginProgress } from "../types";
+import { authDialogCloseClasses } from "../utilityClasses";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+const loginSectionHeadingClasses =
+  "mx-0 mt-0 mb-1.5 text-base text-[17px] font-semibold";
+const loginFieldClasses =
+  "login-field grid gap-2 text-[12px] font-bold text-ink";
+const loginInputClasses =
+  "box-border min-h-11.5 w-full rounded-control border border-solid border-control bg-canvas px-[13px] py-0 font-medium text-ink outline-none [font:inherit] [transition:border-color_160ms_ease,_box-shadow_160ms_ease] placeholder:text-muted placeholder:opacity-78 focus:border-accent focus:shadow-[none]";
+const loginPrimaryButtonClasses =
+  "transition-[background-color,color,border-color] duration-120 ease-[ease] login-primary inline-flex min-h-11.5 items-center justify-center gap-2 rounded-control border border-solid border-accent bg-accent px-4.5 py-0 text-sm font-bold text-on-accent disabled:cursor-not-allowed disabled:opacity-46 dark:text-on-accent";
+const loginSpinnerClasses =
+  "spin h-[17px] w-[17px] animate-[login-spin_900ms_linear_infinite]";
+const loginFullWidthPrimaryClasses = `${loginPrimaryButtonClasses} w-full`;
+const loginStatusHeadingClasses =
+  "mx-0 mt-1 mb-0 text-base text-[18px] font-semibold";
+const loginStatusCopyClasses = "mx-0 mt-1.5 mb-0 text-[12px] leading-[1.55]";
 
 type LoginDialogProps = {
   onClose: () => void;
   onSuccess: (profile: LoginProfile) => void;
 };
-
 const METHOD_LABELS: Record<LoginMethod, string> = {
   push: "一键登录",
   qr: "扫码登录",
   cookie: "Cookie 登录",
 };
-
 export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
   const {
     method,
@@ -56,18 +72,17 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
     beginPush,
     beginQr,
     beginCookie,
-  } = useLoginDialog({ onClose, onSuccess });
+  } = useLoginDialog({
+    onClose,
+    onSuccess,
+  });
   const closeButton = useRef<HTMLButtonElement>(null);
-
   const dialog = useDialogFocus(() => {
     void closeDialog();
   });
-
   return (
     <div
-      className={
-        "login-backdrop fixed grid place-items-center p-[16px] max-[700px]:p-0 [&&&&]:inset-[0] [&&&&]:[background:rgba(10,_15,_26,_0.64)] [&&&&]:z-[30] [@media(max-width:_700px)]:[&&&&]:[align-items:end]"
-      }
+      className="login-backdrop fixed inset-0 z-30 grid place-items-center bg-[rgba(10,_15,_26,_0.64)] p-4 max-[700px]:items-end max-[700px]:p-0"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) void closeDialog();
       }}
@@ -75,40 +90,33 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
       <section
         ref={dialog}
         tabIndex={-1}
-        className={
-          "login-dialog rounded-2xl border border-control bg-surface text-ink max-[700px]:w-full max-[700px]:rounded-[var(--ors-radius-overlay)] [&&&&]:w-[min(640px,_100%)] [&&&&]:max-h-[calc(100dvh_-_32px)] [&&&&]:[overflow:auto] [@media(max-width:_700px)]:[&&&&]:max-h-[calc(100dvh_-_18px)]"
-        }
+        className="login-dialog max-h-[calc(100dvh_-_32px)] w-[min(640px,_100%)] overflow-auto rounded-overlay border border-control bg-surface text-ink max-[700px]:max-h-[calc(100dvh_-_18px)] max-[700px]:w-full max-[700px]:rounded-overlay"
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-title"
       >
-        <header
-          className={
-            "login-dialog-header bg-tool-soft flex justify-between items-start p-[24px] [&_span]:text-accent [&_span]:text-xs [&_span]:font-bold [&_h2]:text-lg max-[700px]:[&_h2]:text-lg [&&&&_span]:[letter-spacing:normal] [&&&&_h2]:m-[6px_0_0] [&&&&_h2]:[font-family:var(--ors-font-ui)] [@media(max-width:_700px)]:[&&&&]:p-[22px_20px_17px]"
-          }
-        >
+        <header className="login-dialog-header flex items-start justify-between bg-tool-soft p-6 max-[700px]:px-5 max-[700px]:pt-5.5 max-[700px]:pb-[17px]">
           <div>
-            <h2 className="text-lg font-semibold" id="login-title">
+            <h2
+              className="mx-0 mt-1.5 mb-0 font-sans text-lg font-semibold max-[700px]:text-lg"
+              id="login-title"
+            >
               登录盛趣通行证
             </h2>
           </div>
           <button
             ref={closeButton}
-            className={
-              "dialog-close grid size-9 place-items-center rounded-lg text-muted hover:bg-hover hover:text-ink [&_svg]:size-5 [.settings-dialog-header_&&&&:disabled]:[cursor:wait] [.settings-dialog-header_&&&&:disabled]:opacity-[0.45]"
-            }
+            className={authDialogCloseClasses}
             type="button"
             aria-label="关闭登录窗口"
             onClick={() => void closeDialog()}
           >
-            <X />
+            <X className="size-5" />
           </button>
         </header>
 
         <div
-          className={
-            'login-methods grid border-b border-solid border-line [&_button]:relative [&_button]:flex [&_button]:justify-center [&_button]:items-center [&_button]:gap-[7px] [&_button]:min-h-[48px] [&_button]:border-0 [&_button]:text-muted [&_button]:text-sm [&_button]:font-bold [&_button::after]:absolute [&_button::after]:h-[2px] [&_button::after]:bg-accent [&_button::after]:text-on-accent [&_svg]:w-[18px] [&_svg]:h-[18px] [&_svg]:text-accent max-[700px]:[&_button]:min-h-[50px] [&&&&]:grid-cols-[repeat(3,_1fr)] [&&&&]:p-[0_28px] [&&&&_button]:p-[0_10px] [&&&&_button]:[background:transparent] [&&&&_button::after]:[content:""] [&&&&_button::after]:left-[18%] [&&&&_button::after]:right-[18%] [&&&&_button::after]:bottom-[-1px] [&&&&_button::after]:transform-[scaleX(0)] [&&&&_button::after]:[transition:transform_180ms_ease] [@media(max-width:_700px)]:[&&&&]:p-[0_12px] [@media(max-width:_700px)]:[&&&&_button]:text-[12px]'
-          }
+          className="login-methods grid grid-cols-[repeat(3,_1fr)] border-b border-solid border-line px-7 py-0 max-[700px]:px-3 max-[700px]:py-0"
           role="tablist"
           aria-label="登录方式"
           onKeyDown={(event) => {
@@ -139,53 +147,49 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
           <MethodTab
             method="push"
             current={method}
-            icon={<DeviceMobile />}
+            icon={<DeviceMobile className="h-4.5 w-4.5 text-accent" />}
             onSelect={switchMethod}
           />
           <MethodTab
             method="qr"
             current={method}
-            icon={<QrCode />}
+            icon={<QrCode className="h-4.5 w-4.5 text-accent" />}
             onSelect={switchMethod}
           />
           <MethodTab
             method="cookie"
             current={method}
-            icon={<Cookie />}
+            icon={<Cookie className="h-4.5 w-4.5 text-accent" />}
             onSelect={switchMethod}
           />
         </div>
 
-        <div
-          className={
-            "login-content p-[24px] [@media(max-width:_700px)]:[&&&&]:p-[22px_20px_26px]"
-          }
-        >
+        <div className="login-content p-6 max-[700px]:px-5 max-[700px]:pt-5.5 max-[700px]:pb-6.5">
           {profile ? (
             <LoginSuccess profile={profile} onDone={() => void closeDialog()} />
           ) : bindingRequired ? (
             <CharacterBindingRequired onDone={() => void closeDialog()} />
           ) : method === "push" ? (
-            <div className="login-pane grid gap-[20px]" role="tabpanel">
+            <div className="login-pane grid gap-5" role="tabpanel">
               <BrowserSessionWarning />
-              <div
-                className={
-                  "login-intro flex items-center gap-[16px] [&_>_svg]:w-[48px] [&_>_svg]:h-[48px] [&_>_svg]:text-accent [&_p]:m-0 [&_p]:text-muted [&_p]:text-sm [&&&&]:p-[4px_2px] [&&&&_>_svg]:flex-[0_0_auto] [&&&&_h3]:m-[0_0_6px] [&&&&_h3]:text-[17px] [&&&&_p]:leading-[1.6]"
-                }
-              >
-                <DeviceMobile weight="duotone" />
+              <div className="login-intro flex items-center gap-4 px-0.5 py-1">
+                <DeviceMobile
+                  className="h-12 w-12 shrink-0 text-accent"
+                  weight="duotone"
+                />
                 <div>
-                  <h3 className="text-base font-semibold">在叨鱼中确认登录</h3>
-                  <p>输入绑定的手机号或盛趣账号，在叨鱼中确认。</p>
+                  <h3 className={loginSectionHeadingClasses}>
+                    在叨鱼中确认登录
+                  </h3>
+                  <p className="m-0 text-sm leading-[1.6] text-muted">
+                    输入绑定的手机号或盛趣账号，在叨鱼中确认。
+                  </p>
                 </div>
               </div>
-              <label
-                className={
-                  'login-field grid gap-[8px] text-ink font-bold [&_input]:w-full [&_input]:box-border [&_input]:border [&_input]:border-solid [&_input]:border-control [&_input]:rounded-[var(--ors-radius-control)] [&_input]:text-ink [&_input]:bg-canvas [&_input]:font-medium [&_textarea]:w-full [&_textarea]:box-border [&_textarea]:border [&_textarea]:border-solid [&_textarea]:border-control [&_textarea]:rounded-[var(--ors-radius-control)] [&_textarea]:text-ink [&_textarea]:bg-canvas [&_textarea]:font-medium [&_input]:min-h-[46px] [&_textarea]:min-h-[118px] [&_textarea]:text-xs [&_input:focus]:border-accent [&_textarea:focus]:border-accent [&_input::placeholder]:text-muted [&_textarea::placeholder]:text-muted [&&&&]:text-[12px] [&&&&_input]:[outline:0] [&&&&_input]:[font:inherit] [&&&&_input]:[transition:border-color_160ms_ease,_box-shadow_160ms_ease] [&&&&_textarea]:[outline:0] [&&&&_textarea]:[font:inherit] [&&&&_textarea]:[transition:border-color_160ms_ease,_box-shadow_160ms_ease] [&&&&_input]:p-[0_13px] [&&&&_textarea]:p-[12px_13px] [&&&&_textarea]:[resize:vertical] [&&&&_textarea]:[font-family:"Cascadia_Mono",_"SFMono-Regular",_Consolas,_monospace] [&&&&_textarea]:leading-[1.6] [&&&&_input:focus]:shadow-[none] [&&&&_textarea:focus]:shadow-[none] [&&&&_input::placeholder]:opacity-[0.78] [&&&&_textarea::placeholder]:opacity-[0.78]'
-                }
-              >
+              <label className={loginFieldClasses}>
                 手机号或盛趣账号
                 <input
+                  className={loginInputClasses}
                   autoComplete="username"
                   value={account}
                   onChange={(event) => setAccount(event.target.value)}
@@ -198,20 +202,14 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
               )}
               {!activeLogin && (
                 <button
-                  className={
-                    "login-primary inline-flex justify-center items-center gap-[8px] min-h-[46px] rounded-[var(--ors-radius-control)] text-sm font-bold border border-solid border-accent text-on-accent bg-accent [.theme-dark_&]:text-on-accent [&:disabled]:cursor-not-allowed [&_svg]:w-[17px] [&_svg]:h-[17px] [.binding-required_&]:w-full [.login-success_&]:w-full [&&&&]:p-[0_18px] [&&&&:disabled]:opacity-[0.46]"
-                  }
+                  className={loginPrimaryButtonClasses}
                   type="button"
                   disabled={busy || account.trim().length < 5}
                   onClick={() => void beginPush()}
                 >
                   {busy ? (
                     <>
-                      <SpinnerGap
-                        className={
-                          "spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"
-                        }
-                      />
+                      <SpinnerGap className={loginSpinnerClasses} />
                       正在发送
                     </>
                   ) : (
@@ -221,57 +219,49 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
               )}
             </div>
           ) : method === "qr" ? (
-            <div className="login-pane grid gap-[20px]" role="tabpanel">
+            <div className="login-pane grid gap-5" role="tabpanel">
               <BrowserSessionWarning />
               {qrImage ? (
-                <div
-                  className={
-                    "qr-stage grid gap-[17px] pt-[2px] [&&&&]:[justify-items:center]"
-                  }
-                >
-                  <div
-                    className={
-                      "qr-frame grid place-items-center w-[190px] h-[190px] border border-solid border-line rounded-[var(--ors-radius-control)] [&_img]:w-[160px] [&_img]:h-[160px] [&&&&]:[background:#f7f8f5] [&&&&]:shadow-[none] [&&&&_img]:[image-rendering:pixelated]"
-                    }
-                  >
-                    <img src={qrImage} alt="盛趣通行证登录二维码" />
+                <div className="qr-stage grid justify-items-center gap-[17px] pt-0.5">
+                  <div className="qr-frame grid h-47.5 w-47.5 place-items-center rounded-control border border-solid border-line bg-[#f7f8f5] shadow-[none]">
+                    <img
+                      className="h-40 w-40 [image-rendering:pixelated]"
+                      src={qrImage}
+                      alt="盛趣通行证登录二维码"
+                    />
                   </div>
                   <ProgressMessage
                     progress={progress ?? "awaiting_scan"}
                     method="qr"
+                    layout="qr-stage"
                   />
                 </div>
               ) : (
-                <div
-                  className={
-                    "login-intro qr-intro flex items-center gap-[16px] [&_>_svg]:w-[48px] [&_>_svg]:h-[48px] [&_>_svg]:text-accent [&_p]:m-0 [&_p]:text-muted [&_p]:text-sm [&&&&]:p-[4px_2px] [&&&&_>_svg]:flex-[0_0_auto] [&&&&_h3]:m-[0_0_6px] [&&&&_h3]:text-[17px] [&&&&_p]:leading-[1.6]"
-                  }
-                >
-                  <QrCode weight="duotone" />
+                <div className="login-intro qr-intro flex items-center gap-4 px-0.5 py-1">
+                  <QrCode
+                    className="h-12 w-12 shrink-0 text-accent"
+                    weight="duotone"
+                  />
                   <div>
-                    <h3 className="text-base font-semibold">
+                    <h3 className={loginSectionHeadingClasses}>
                       使用叨鱼扫描二维码
                     </h3>
-                    <p>二维码仅用于本次登录，生成后请在 2 分钟内完成确认。</p>
+                    <p className="m-0 text-sm leading-[1.6] text-muted">
+                      二维码仅用于本次登录，生成后请在 2 分钟内完成确认。
+                    </p>
                   </div>
                 </div>
               )}
               {!activeLogin && !qrImage && (
                 <button
-                  className={
-                    "login-primary inline-flex justify-center items-center gap-[8px] min-h-[46px] rounded-[var(--ors-radius-control)] text-sm font-bold border border-solid border-accent text-on-accent bg-accent [.theme-dark_&]:text-on-accent [&:disabled]:cursor-not-allowed [&_svg]:w-[17px] [&_svg]:h-[17px] [.binding-required_&]:w-full [.login-success_&]:w-full [&&&&]:p-[0_18px] [&&&&:disabled]:opacity-[0.46]"
-                  }
+                  className={loginPrimaryButtonClasses}
                   type="button"
                   disabled={busy}
                   onClick={() => void beginQr()}
                 >
                   {busy ? (
                     <>
-                      <SpinnerGap
-                        className={
-                          "spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"
-                        }
-                      />
+                      <SpinnerGap className={loginSpinnerClasses} />
                       正在生成
                     </>
                   ) : (
@@ -281,9 +271,7 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
               )}
               {!activeLogin && qrImage && progress !== "success" && (
                 <button
-                  className={
-                    "login-secondary inline-flex justify-center items-center gap-[8px] min-h-[46px] rounded-[var(--ors-radius-control)] text-sm font-bold border border-solid border-line text-ink [&:hover]:border-accent [&:hover]:bg-selected [&_svg]:w-[17px] [&_svg]:h-[17px] [&&&&]:p-[0_18px] [&&&&]:[background:transparent]"
-                  }
+                  className="login-secondary inline-flex min-h-11.5 items-center justify-center gap-2 rounded-control border border-solid border-line bg-transparent px-4.5 py-0 text-sm font-bold text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-selected"
                   type="button"
                   disabled={busy}
                   onClick={() => void beginQr()}
@@ -314,9 +302,7 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
           )}
           {error && (
             <div
-              className={
-                "login-error mt-[18px] rounded-[var(--ors-radius-control)] text-danger bg-surface [.theme-dark_&]:text-danger [.theme-dark_&]:bg-surface [&&&&]:p-[12px_14px] [&&&&]:[border-left:1px_solid_var(--ors-color-danger)] [&&&&]:text-[12px] [&&&&]:leading-[1.55]"
-              }
+              className="login-error mt-4.5 rounded-control bg-surface px-3.5 py-3 text-[12px] leading-[1.55] text-danger [border-left:1px_solid_var(--ors-color-danger)] dark:bg-surface dark:text-danger"
               role="alert"
             >
               {error}
@@ -327,30 +313,27 @@ export function LoginDialog({ onClose, onSuccess }: LoginDialogProps) {
     </div>
   );
 }
-
 function CharacterBindingRequired({ onDone }: { onDone: () => void }) {
   return (
     <div
-      className={
-        "login-pane binding-required grid gap-[20px] text-center [&_>_svg]:w-[52px] [&_>_svg]:h-[52px] [&_>_svg]:text-accent [&_>_span]:text-accent [&_>_span]:font-bold [&&&&]:[justify-items:center] [&&&&]:p-[6px_0_2px] [&&&&_>_span]:text-[12px] [&&&&_h3]:m-[-8px_0_0] [&&&&_h3]:[font-family:var(--ors-font-ui)] [&&&&_h3]:text-[23px]"
-      }
+      className="login-pane binding-required grid justify-items-center gap-5 px-0 pt-1.5 pb-0.5 text-center"
       role="status"
     >
-      <IdentificationCard weight="duotone" />
-      <span>尚未绑定角色</span>
-      <h3 className="text-base font-semibold">请先在石之家官网绑定角色</h3>
-      <div
-        className={
-          "binding-required-copy w-full box-border rounded-[var(--ors-radius-control)] text-muted bg-hover text-left [&_p]:m-0 [&_p_+_p]:mt-[6px] [&&&&]:p-[14px_16px] [&&&&_p]:text-[12px] [&&&&_p]:leading-[1.65]"
-        }
-      >
-        <p>当前盛趣账号已经通过验证，但石之家没有返回可用角色。</p>
-        <p>请在官网完成角色绑定后，再回到 App 重新登录。</p>
+      <IdentificationCard className="h-13 w-13 text-accent" weight="duotone" />
+      <span className="text-[12px] font-bold text-accent">尚未绑定角色</span>
+      <h3 className="mx-0 mt-[-8px] mb-0 font-sans text-base text-[23px] font-semibold">
+        请先在石之家官网绑定角色
+      </h3>
+      <div className="binding-required-copy box-border w-full rounded-control bg-hover px-4 py-3.5 text-left text-muted">
+        <p className="m-0 text-[12px] leading-[1.65]">
+          当前盛趣账号已经通过验证，但石之家没有返回可用角色。
+        </p>
+        <p className="m-0 mt-1.5 text-[12px] leading-[1.65]">
+          请在官网完成角色绑定后，再回到 App 重新登录。
+        </p>
       </div>
       <button
-        className={
-          "login-primary inline-flex justify-center items-center gap-[8px] min-h-[46px] rounded-[var(--ors-radius-control)] text-sm font-bold border border-solid border-accent text-on-accent bg-accent [.theme-dark_&]:text-on-accent [&:disabled]:cursor-not-allowed [&_svg]:w-[17px] [&_svg]:h-[17px] [.binding-required_&]:w-full [.login-success_&]:w-full [&&&&]:p-[0_18px] [&&&&:disabled]:opacity-[0.46]"
-        }
+        className={loginFullWidthPrimaryClasses}
         type="button"
         onClick={onDone}
       >
@@ -359,7 +342,6 @@ function CharacterBindingRequired({ onDone }: { onDone: () => void }) {
     </div>
   );
 }
-
 function CookieRiskGate({
   accepted,
   onAcceptedChange,
@@ -370,40 +352,40 @@ function CookieRiskGate({
   onContinue: () => void;
 }) {
   return (
-    <div
-      className="login-pane cookie-risk-page grid gap-[18px]"
-      role="tabpanel"
-    >
-      <div
-        className={
-          "cookie-risk-heading flex items-center gap-[14px] [&_>_svg]:w-[42px] [&_>_svg]:h-[42px] [&_span]:text-accent [&_span]:text-xs [&_span]:font-bold [&&&&]:p-[2px_2px_4px] [&&&&_>_svg]:flex-[0_0_auto] [&&&&_>_svg]:[color:var(--ors-color-warning)] [&&&&_span]:[letter-spacing:normal] [&&&&_h3]:m-[4px_0_0] [&&&&_h3]:text-[18px]"
-        }
-      >
-        <ShieldWarning weight="fill" />
+    <div className="login-pane cookie-risk-page grid gap-4.5" role="tabpanel">
+      <div className="cookie-risk-heading flex items-center gap-3.5 px-0.5 pt-0.5 pb-1">
+        <ShieldWarning
+          className="h-10.5 w-10.5 shrink-0 text-[var(--ors-color-warning)]"
+          weight="fill"
+        />
         <div>
-          <span>高级登录方式</span>
-          <h3 className="text-base font-semibold">Cookie 登录的影响</h3>
+          <span className="text-xs font-bold tracking-normal text-accent">
+            高级登录方式
+          </span>
+          <h3 className={loginStatusHeadingClasses}>Cookie 登录的影响</h3>
         </div>
       </div>
       <div
-        className={
-          "cookie-warning flex items-start gap-[12px] p-[15px] rounded-[var(--ors-radius-control)] text-warning bg-surface [.theme-dark_&]:border-warning [.theme-dark_&]:text-warning [.theme-dark_&]:bg-surface [&_>_svg]:w-[21px] [&_>_svg]:h-[21px] [&_>_svg]:mt-[1px] [&_strong]:text-sm [&&&&]:[border:1px_solid_var(--ors-color-warning)] [&&&&_>_svg]:flex-[0_0_auto] [&&&&_p]:m-[6px_0_0] [&&&&_p]:text-[12px] [&&&&_p]:leading-[1.55]"
-        }
+        className="cookie-warning flex items-start gap-3 rounded-control bg-surface p-[15px] text-warning [border:1px_solid_var(--ors-color-warning)] dark:border-warning dark:bg-surface dark:text-warning"
         role="note"
       >
-        <ShieldWarning weight="fill" />
+        <ShieldWarning
+          className="mt-[1px] h-[21px] w-[21px] shrink-0"
+          weight="fill"
+        />
         <div>
-          <strong>请先确认以下影响</strong>
-          <p>此方式需要你自行获取 Cookie 和 User-Agent。</p>
-          <p>登录后，原浏览器中的石之家登录状态会失效。</p>
+          <strong className="text-sm">请先确认以下影响</strong>
+          <p className={loginStatusCopyClasses}>
+            此方式需要你自行获取 Cookie 和 User-Agent。
+          </p>
+          <p className={loginStatusCopyClasses}>
+            登录后，原浏览器中的石之家登录状态会失效。
+          </p>
         </div>
       </div>
-      <label
-        className={
-          "risk-checkbox risk-checkbox-panel flex items-center gap-[10px] text-sm font-bold cursor-pointer [&_input]:w-[17px] [&_input]:h-[17px] [&_input]:m-0 w-full box-border border border-solid border-line rounded-[var(--ors-radius-control)] bg-canvas [&:focus-within]:border-accent [&&&&]:w-[max-content] [&&&&_input]:[accent-color:var(--ors-color-accent)] [&&&&]:p-[14px_15px] [&&&&:focus-within]:shadow-[none]"
-        }
-      >
+      <label className="risk-checkbox risk-checkbox-panel box-border flex w-[max-content] cursor-pointer items-center gap-2.5 rounded-control border border-solid border-line bg-canvas px-[15px] py-3.5 text-sm font-bold focus-within:border-accent focus-within:shadow-[none]">
         <input
+          className="m-0 h-[17px] w-[17px] [accent-color:var(--ors-color-accent)]"
           type="checkbox"
           checked={accepted}
           onChange={(event) => onAcceptedChange(event.target.checked)}
@@ -411,9 +393,7 @@ function CookieRiskGate({
         <span>我已了解上述影响</span>
       </label>
       <button
-        className={
-          "login-primary inline-flex justify-center items-center gap-[8px] min-h-[46px] rounded-[var(--ors-radius-control)] text-sm font-bold border border-solid border-accent text-on-accent bg-accent [.theme-dark_&]:text-on-accent [&:disabled]:cursor-not-allowed [&_svg]:w-[17px] [&_svg]:h-[17px] [.binding-required_&]:w-full [.login-success_&]:w-full [&&&&]:p-[0_18px] [&&&&:disabled]:opacity-[0.46]"
-        }
+        className={loginPrimaryButtonClasses}
         type="button"
         disabled={!accepted}
         onClick={onContinue}
@@ -423,7 +403,6 @@ function CookieRiskGate({
     </div>
   );
 }
-
 function CookieLoginForm({
   cookie,
   userAgent,
@@ -448,35 +427,38 @@ function CookieLoginForm({
   onLogin: () => Promise<void>;
 }) {
   return (
-    <div className="login-pane grid gap-[20px]" role="tabpanel">
-      <div
-        className={
-          "cookie-form-heading flex justify-between items-start gap-[20px] [&_h3]:mt-0 [&_p]:text-muted [&_button]:border-0 [&_button]:text-accent [&_button]:font-bold [&&&&_h3]:m-[4px_0_0] [&&&&_h3]:text-[18px] [&&&&_p]:m-[6px_0_0] [&&&&_p]:text-[12px] [&&&&_p]:leading-[1.5] [&&&&_button]:flex-[0_0_auto] [&&&&_button]:p-[4px_0] [&&&&_button]:[background:transparent] [&&&&_button]:text-[12px] [&&&&_button:hover]:[text-decoration:underline] [&&&&_button:hover]:[text-underline-offset:3px]"
-        }
-      >
+    <div className="login-pane grid gap-5" role="tabpanel">
+      <div className="cookie-form-heading flex items-start justify-between gap-5">
         <div>
-          <h3 className="text-base font-semibold">粘贴已有 Cookie</h3>
-          <p>登录信息会加密保存在系统安全存储中。</p>
+          <h3 className={loginStatusHeadingClasses}>粘贴已有 Cookie</h3>
+          <p className="mx-0 mt-1.5 mb-0 text-[12px] leading-[1.5] text-muted">
+            登录信息会加密保存在系统安全存储中。
+          </p>
         </div>
-        <button type="button" onClick={onReviewRisk}>
+        <button
+          className="min-h-9 shrink-0 border-0 bg-transparent px-0 py-1 text-[12px] font-bold text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] hover:underline hover:[text-underline-offset:3px] pointer-coarse:min-h-11"
+          type="button"
+          onClick={onReviewRisk}
+        >
           查看影响说明
         </button>
       </div>
-      <div className="curl-import grid gap-[10px] p-[14px] border border-solid border-line rounded-[var(--ors-radius-control)] bg-hover">
-        <div
-          className={
-            "curl-import-heading flex items-center gap-[10px] [&_>_svg]:w-[24px] [&_>_svg]:h-[24px] [&_>_svg]:text-accent [&_>_div]:grid [&_>_div]:gap-[2px] [&_strong]:text-sm [&_span]:text-muted [&_span]:text-xs [&&&&_>_svg]:flex-[0_0_auto] [&&&&_span]:leading-[1.45]"
-          }
-        >
-          <ClipboardText weight="duotone" />
-          <div>
-            <strong>从 Chrome 复制请求</strong>
-            <span>在网络请求菜单中选择“复制为 cURL (bash)”</span>
+      <div className="curl-import grid gap-2.5 rounded-control border border-solid border-line bg-hover p-3.5">
+        <div className="curl-import-heading flex items-center gap-2.5">
+          <ClipboardText
+            className="h-6 w-6 shrink-0 text-accent"
+            weight="duotone"
+          />
+          <div className="grid gap-0.5">
+            <strong className="text-sm">从 Chrome 复制请求</strong>
+            <span className="text-xs leading-[1.45] text-muted">
+              在网络请求菜单中选择“复制为 cURL (bash)”
+            </span>
           </div>
         </div>
         <textarea
           className={
-            'curl-import-input w-full min-h-[76px] box-border rounded-[var(--ors-radius-control)] text-ink bg-canvas text-xs [&:focus]:border-accent [&::placeholder]:text-muted [&&&&]:p-[10px_12px] [&&&&]:[resize:vertical] [&&&&]:[border:1px_dashed_color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-control-line)_)] [&&&&]:[outline:0] [&&&&]:[font-family:"Cascadia_Mono",_"SFMono-Regular",_Consolas,_monospace] [&&&&]:leading-[1.55] [&&&&]:[transition:border-color_160ms_ease,_box-shadow_160ms_ease] [&&&&:focus]:[border-style:solid] [&&&&:focus]:shadow-[none] [&&&&::placeholder]:opacity-[0.78]'
+            'curl-import-input box-border min-h-19 w-full resize-y rounded-control bg-canvas px-3 py-2.5 [font-family:"Cascadia_Mono",_"SFMono-Regular",_Consolas,_monospace] text-xs leading-[1.55] text-ink outline-none [border:1px_dashed_color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-control-line)_)] [transition:border-color_160ms_ease,_box-shadow_160ms_ease] placeholder:text-muted placeholder:opacity-78 focus:[border-style:solid] focus:border-accent focus:shadow-[none]'
           }
           aria-label="粘贴从 Chrome 复制的 cURL bash 请求"
           value={curlRequest}
@@ -489,13 +471,10 @@ function CookieLoginForm({
         />
         <CurlImportMessage status={curlImportStatus} />
       </div>
-      <label
-        className={
-          'login-field grid gap-[8px] text-ink font-bold [&_input]:w-full [&_input]:box-border [&_input]:border [&_input]:border-solid [&_input]:border-control [&_input]:rounded-[var(--ors-radius-control)] [&_input]:text-ink [&_input]:bg-canvas [&_input]:font-medium [&_textarea]:w-full [&_textarea]:box-border [&_textarea]:border [&_textarea]:border-solid [&_textarea]:border-control [&_textarea]:rounded-[var(--ors-radius-control)] [&_textarea]:text-ink [&_textarea]:bg-canvas [&_textarea]:font-medium [&_input]:min-h-[46px] [&_textarea]:min-h-[118px] [&_textarea]:text-xs [&_input:focus]:border-accent [&_textarea:focus]:border-accent [&_input::placeholder]:text-muted [&_textarea::placeholder]:text-muted [&&&&]:text-[12px] [&&&&_input]:[outline:0] [&&&&_input]:[font:inherit] [&&&&_input]:[transition:border-color_160ms_ease,_box-shadow_160ms_ease] [&&&&_textarea]:[outline:0] [&&&&_textarea]:[font:inherit] [&&&&_textarea]:[transition:border-color_160ms_ease,_box-shadow_160ms_ease] [&&&&_input]:p-[0_13px] [&&&&_textarea]:p-[12px_13px] [&&&&_textarea]:[resize:vertical] [&&&&_textarea]:[font-family:"Cascadia_Mono",_"SFMono-Regular",_Consolas,_monospace] [&&&&_textarea]:leading-[1.6] [&&&&_input:focus]:shadow-[none] [&&&&_textarea:focus]:shadow-[none] [&&&&_input::placeholder]:opacity-[0.78] [&&&&_textarea::placeholder]:opacity-[0.78]'
-        }
-      >
+      <label className={loginFieldClasses}>
         User-Agent
         <input
+          className={loginInputClasses}
           value={userAgent}
           onChange={(event) => onUserAgentChange(event.target.value)}
           placeholder="粘贴获取 Cookie 时浏览器的 User-Agent"
@@ -503,21 +482,16 @@ function CookieLoginForm({
           autoComplete="off"
           disabled={busy}
         />
-        <span
-          className={
-            "login-field-hint text-muted text-xs font-medium [&&&&]:leading-[1.55]"
-          }
-        >
+        <span className="login-field-hint text-xs leading-[1.55] font-medium text-muted">
           必须与 Cookie 来源浏览器一致，否则石之家会拒绝该会话。
         </span>
       </label>
-      <label
-        className={
-          'login-field grid gap-[8px] text-ink font-bold [&_input]:w-full [&_input]:box-border [&_input]:border [&_input]:border-solid [&_input]:border-control [&_input]:rounded-[var(--ors-radius-control)] [&_input]:text-ink [&_input]:bg-canvas [&_input]:font-medium [&_textarea]:w-full [&_textarea]:box-border [&_textarea]:border [&_textarea]:border-solid [&_textarea]:border-control [&_textarea]:rounded-[var(--ors-radius-control)] [&_textarea]:text-ink [&_textarea]:bg-canvas [&_textarea]:font-medium [&_input]:min-h-[46px] [&_textarea]:min-h-[118px] [&_textarea]:text-xs [&_input:focus]:border-accent [&_textarea:focus]:border-accent [&_input::placeholder]:text-muted [&_textarea::placeholder]:text-muted [&&&&]:text-[12px] [&&&&_input]:[outline:0] [&&&&_input]:[font:inherit] [&&&&_input]:[transition:border-color_160ms_ease,_box-shadow_160ms_ease] [&&&&_textarea]:[outline:0] [&&&&_textarea]:[font:inherit] [&&&&_textarea]:[transition:border-color_160ms_ease,_box-shadow_160ms_ease] [&&&&_input]:p-[0_13px] [&&&&_textarea]:p-[12px_13px] [&&&&_textarea]:[resize:vertical] [&&&&_textarea]:[font-family:"Cascadia_Mono",_"SFMono-Regular",_Consolas,_monospace] [&&&&_textarea]:leading-[1.6] [&&&&_input:focus]:shadow-[none] [&&&&_textarea:focus]:shadow-[none] [&&&&_input::placeholder]:opacity-[0.78] [&&&&_textarea::placeholder]:opacity-[0.78]'
-        }
-      >
+      <label className={loginFieldClasses}>
         Cookie
         <textarea
+          className={
+            'box-border min-h-29.5 w-full resize-y rounded-control border border-solid border-control bg-canvas px-[13px] py-3 [font-family:"Cascadia_Mono",_"SFMono-Regular",_Consolas,_monospace] text-xs leading-[1.6] font-medium text-ink outline-none [font:inherit] [transition:border-color_160ms_ease,_box-shadow_160ms_ease] placeholder:text-muted placeholder:opacity-78 focus:border-accent focus:shadow-[none]'
+          }
           value={cookie}
           onChange={(event) => onCookieChange(event.target.value)}
           placeholder="粘贴完整 Cookie 内容"
@@ -528,20 +502,14 @@ function CookieLoginForm({
         />
       </label>
       <button
-        className={
-          "login-primary inline-flex justify-center items-center gap-[8px] min-h-[46px] rounded-[var(--ors-radius-control)] text-sm font-bold border border-solid border-accent text-on-accent bg-accent [.theme-dark_&]:text-on-accent [&:disabled]:cursor-not-allowed [&_svg]:w-[17px] [&_svg]:h-[17px] [.binding-required_&]:w-full [.login-success_&]:w-full [&&&&]:p-[0_18px] [&&&&:disabled]:opacity-[0.46]"
-        }
+        className={loginPrimaryButtonClasses}
         type="button"
         disabled={busy || !cookie.trim() || !userAgent.trim()}
         onClick={() => void onLogin()}
       >
         {busy ? (
           <>
-            <SpinnerGap
-              className={
-                "spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"
-              }
-            />
+            <SpinnerGap className={loginSpinnerClasses} />
             正在验证
           </>
         ) : (
@@ -551,7 +519,6 @@ function CookieLoginForm({
     </div>
   );
 }
-
 const CURL_IMPORT_MESSAGES: Record<
   Exclude<CurlImportStatus, "idle">,
   string
@@ -562,25 +529,34 @@ const CURL_IMPORT_MESSAGES: Record<
   missing_user_agent: "已识别 cURL，但请求中没有 User-Agent 请求头。",
   missing_both: "已识别 cURL，但请求中没有 Cookie 和 User-Agent 请求头。",
 };
-
 function CurlImportMessage({ status }: { status: CurlImportStatus }) {
   if (status === "idle") return null;
   const successful = status === "success";
   return (
     <div
-      className={`[&&&&]:leading-[1.5] [&&&&_svg]:flex-[0_0_auto] flex items-start gap-[7px] text-xs [&_svg]:w-[15px] [&_svg]:h-[15px] [&_svg]:mt-[1px] curl-import-message ${successful ? "is-success [.curl-import-message&]:text-accent" : "is-error [.curl-import-message&]:text-danger [.theme-dark_.curl-import-message&]:text-danger [.teleport-alert&]:border-danger [.teleport-alert&]:text-danger [.teleport-alert&]:bg-surface [&&&&]:[color:var(--ors-color-danger)]!"}`}
+      className={clsx(
+        "curl-import-message flex items-start gap-[7px] text-xs leading-[1.5]",
+        successful
+          ? "is-success text-accent"
+          : "is-error text-danger dark:text-danger",
+      )}
       role={successful ? "status" : "alert"}
     >
       {successful ? (
-        <CheckCircle weight="fill" />
+        <CheckCircle
+          className="mt-[1px] h-[15px] w-[15px] shrink-0"
+          weight="fill"
+        />
       ) : (
-        <WarningCircle weight="fill" />
+        <WarningCircle
+          className="mt-[1px] h-[15px] w-[15px] shrink-0"
+          weight="fill"
+        />
       )}
       <span>{CURL_IMPORT_MESSAGES[status]}</span>
     </div>
   );
 }
-
 function MethodTab({
   method,
   current,
@@ -598,11 +574,7 @@ function MethodTab({
       role="tab"
       tabIndex={method === current ? 0 : -1}
       aria-selected={current === method}
-      className={
-        current === method
-          ? 'active [.login-methods_button&]:text-ink [.detail-thumbnails_button&]:border-accent [.search-mode-switch_button&]:border-accent [.search-mode-switch_button&]:text-accent [.search-mode-switch_button&]:bg-selected [.job-filter_>_summary&]:border-accent [.job-filter_>_summary&]:text-accent [.job-filter_>_summary&]:bg-selected [.tab-list_button&]:text-ink [.tab-list_button&::after]:absolute [.tab-list_button&::after]:h-[2px] [.tab-list_button&::after]:bg-accent [.tab-list_button&::after]:text-on-accent [.sort-control_button&]:text-accent [.sort-control_button&]:font-bold [.advanced-position-mode_button&]:border-accent [.advanced-position-mode_button&]:text-accent [.advanced-position-options_button&]:border-accent [.advanced-position-options_button&]:text-accent [.advanced-duty-types_button&]:border-accent [.advanced-duty-types_button&]:text-accent [.advanced-job-mode_button&]:text-accent [.advanced-rule-mode_button&]:text-accent [.login-methods_button&&&&::after]:transform-[scaleX(1)] [.detail-thumbnails_button&&&&]:opacity-[1] [.tab-list_button&&&&::after]:[content:""] [.tab-list_button&&&&::after]:left-[1px] [.tab-list_button&&&&::after]:right-[45%] [.tab-list_button&&&&::after]:bottom-[0] [.advanced-position-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-position-options_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-duty-types_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_10%,_var(--ors-color-surface)_)] [.advanced-job-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-job-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [.advanced-rule-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-rule-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)]'
-          : ""
-      }
+      className="relative flex min-h-12 items-center justify-center gap-[7px] border-0 bg-transparent px-2.5 py-0 text-sm font-bold text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] after:absolute after:right-[18%] after:bottom-[-1px] after:left-[18%] after:h-0.5 after:scale-x-0 after:bg-accent after:transition-transform after:duration-180 after:content-[''] aria-selected:text-ink aria-selected:after:scale-x-100 max-[700px]:min-h-12.5 max-[700px]:text-xs"
       onClick={() => void onSelect(method)}
     >
       {icon}
@@ -610,27 +582,26 @@ function MethodTab({
     </button>
   );
 }
-
 function BrowserSessionWarning() {
   return (
     <div
-      className={
-        "session-warning flex items-start gap-[9px] rounded-[var(--ors-radius-control)] text-warning bg-surface [.theme-dark_&]:text-warning [.theme-dark_&]:bg-surface [&_svg]:w-[17px] [&_svg]:h-[17px] [&_svg]:mt-[1px] [&&&&]:p-[11px_13px] [&&&&]:text-[12px] [&&&&]:leading-[1.55] [&&&&_svg]:flex-[0_0_auto]"
-      }
+      className="session-warning flex items-start gap-[9px] rounded-control bg-surface px-[13px] py-[11px] text-[12px] leading-[1.55] text-warning dark:bg-surface dark:text-warning"
       role="note"
     >
-      <ShieldWarning />
+      <ShieldWarning className="mt-[1px] h-[17px] w-[17px] shrink-0" />
       <span>使用此方式登录会使已登录的浏览器登录态失效。</span>
     </div>
   );
 }
-
 function ProgressMessage({
   progress,
   method,
+  layout,
 }: {
   progress: LoginProgress;
   method: "push" | "qr";
+  /** Explicit layout variants keep this component independent of ancestor classes. */
+  layout?: "qr-stage";
 }) {
   const text =
     progress === "scanned"
@@ -640,17 +611,17 @@ function ProgressMessage({
         : "等待扫描二维码";
   return (
     <div
-      className="login-progress flex justify-center items-center gap-[9px] min-h-[44px] rounded-[var(--ors-radius-control)] text-accent bg-selected text-sm font-bold [&_svg]:w-[18px] [&_svg]:h-[18px] [.qr-stage_&]:w-full"
+      className={clsx(
+        "login-progress flex min-h-11 items-center justify-center gap-[9px] rounded-control bg-selected text-sm font-bold text-accent",
+        layout === "qr-stage" && "w-full",
+      )}
       role="status"
     >
-      <SpinnerGap
-        className={"spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"}
-      />
+      <SpinnerGap className="spin h-4.5 w-4.5 animate-[login-spin_900ms_linear_infinite]" />
       <span>{text}</span>
     </div>
   );
 }
-
 function LoginSuccess({
   profile,
   onDone,
@@ -663,29 +634,23 @@ function LoginSuccess({
     .join(" · ");
   return (
     <div
-      className={
-        "login-success grid text-center [&_>_svg]:w-[48px] [&_>_svg]:h-[48px] [&_>_svg]:text-accent [&_>_span]:mt-[12px] [&_>_span]:text-accent [&_>_span]:font-bold [&_p]:text-muted [&&&&]:[justify-items:center] [&&&&]:p-[8px_0_2px] [&&&&_>_span]:text-[12px] [&&&&_h3]:m-[8px_0_2px] [&&&&_h3]:[font-family:var(--ors-font-ui)] [&&&&_h3]:text-[25px] [&&&&_p]:m-[4px_0_0] [&&&&_p]:text-[12px]"
-      }
+      className="login-success grid justify-items-center px-0 pt-2 pb-0.5 text-center"
       role="status"
     >
-      <CheckCircle weight="fill" />
-      <span>登录成功</span>
-      <h3 className="text-base font-semibold">
+      <CheckCircle className="h-12 w-12 text-accent" weight="fill" />
+      <span className="mt-3 text-[12px] font-bold text-accent">登录成功</span>
+      <h3 className="mx-0 mt-2 mb-0.5 font-sans text-base text-[25px] font-semibold">
         {profile.characterName || profile.displayAccount}
       </h3>
-      {location && <p>{location}</p>}
-      <div
-        className={
-          "verified-label flex items-center gap-[7px] rounded-[var(--ors-radius-control)] text-muted bg-hover text-xs [&_svg]:w-[16px] [&_svg]:h-[16px] [&_svg]:text-accent [&&&&]:m-[20px_0] [&&&&]:p-[10px_13px]"
-        }
-      >
-        <UserCircleCheck />
+      {location && (
+        <p className="mx-0 mt-1 mb-0 text-[12px] text-muted">{location}</p>
+      )}
+      <div className="verified-label mx-0 my-5 flex items-center gap-[7px] rounded-control bg-hover px-[13px] py-2.5 text-xs text-muted">
+        <UserCircleCheck className="h-4 w-4 text-accent" />
         已获取石之家账号与角色信息
       </div>
       <button
-        className={
-          "login-primary inline-flex justify-center items-center gap-[8px] min-h-[46px] rounded-[var(--ors-radius-control)] text-sm font-bold border border-solid border-accent text-on-accent bg-accent [.theme-dark_&]:text-on-accent [&:disabled]:cursor-not-allowed [&_svg]:w-[17px] [&_svg]:h-[17px] [.binding-required_&]:w-full [.login-success_&]:w-full [&&&&]:p-[0_18px] [&&&&:disabled]:opacity-[0.46]"
-        }
+        className={loginFullWidthPrimaryClasses}
         type="button"
         onClick={onDone}
       >

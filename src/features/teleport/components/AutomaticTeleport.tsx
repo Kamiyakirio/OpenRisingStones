@@ -1,5 +1,10 @@
 /** Current game-character presentation and automatic-travel progress feedback. */
 
+import clsx from "clsx";
+import {
+  teleportProgressOverlayClasses,
+  teleportProgressSpinnerClasses,
+} from "../utilityClasses";
 import { useId } from "react";
 import { useDialogFocus } from "../../../shared/hooks/useDialogFocus";
 import {
@@ -8,7 +13,6 @@ import {
   SpinnerGap,
   UserCircle,
 } from "@phosphor-icons/react";
-
 import type { TeleportWorkspaceState } from "../hooks/useTeleportWorkspace";
 
 export function AutomaticSource({
@@ -24,42 +28,41 @@ export function AutomaticSource({
   );
   return (
     <section
-      className={`[&&&&]:grid-cols-[auto_minmax(0,_1fr)_auto] [&&&&_strong]:[text-overflow:ellipsis] [&&&&_small]:[text-overflow:ellipsis] [&&&&_>_button]:p-[0_12px] [&&&&_>_button]:[font-weight:720] [&&&&_>_button:disabled]:opacity-[0.55] [@media(max-width:_700px)]:[&&&&]:grid-cols-[auto_minmax(0,_1fr)] [@media(max-width:_700px)]:[&&&&_>_button]:[grid-column:1_/_-1] grid items-center gap-[13px] mt-0 p-[15px] border border-solid border-line rounded-[var(--ors-radius-control)] bg-canvas [&_>_div:nth-child(2)]:grid [&_>_div:nth-child(2)]:min-w-0 [&_>_div:nth-child(2)]:gap-[3px] [&_span]:text-muted [&_span]:text-xs [&_small]:text-muted [&_small]:text-xs [&_strong]:overflow-hidden [&_strong]:whitespace-nowrap [&_small]:overflow-hidden [&_small]:whitespace-nowrap [&_strong]:text-sm [&_>_button]:inline-flex [&_>_button]:items-center [&_>_button]:gap-[7px] [&_>_button]:min-h-[36px] [&_>_button]:border [&_>_button]:border-solid [&_>_button]:border-control [&_>_button]:rounded-[var(--ors-radius-control)] [&_>_button]:text-ink [&_>_button]:bg-surface [&_>_button]:text-xs [&_>_button:disabled]:cursor-not-allowed [&_>_button_svg]:w-[15px] [&_>_button_svg]:h-[15px] max-[700px]:[&_>_button]:justify-center max-[700px]:[&_>_button]:w-full teleport-memory-source${ready ? " is-ready [.teleport-memory-source&]:bg-selected [.teleport-memory-source&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_45%,_var(--ors-color-line)_)]" : ""}`}
+      className={clsx(
+        "mt-0 grid grid-cols-[auto_minmax(0,_1fr)_auto] items-center gap-[13px] rounded-control border border-solid border-line bg-canvas p-[15px] max-[700px]:grid-cols-[auto_minmax(0,_1fr)]",
+        `teleport-memory-source${ready ? "is-ready border-[color-mix(_in_srgb,_var(--ors-color-accent)_45%,_var(--ors-color-line)_)] bg-selected" : ""}`,
+      )}
     >
-      <div
-        className={
-          "teleport-memory-source-icon grid place-items-center w-[38px] h-[38px] text-accent bg-surface [&_svg]:w-[21px] [&_svg]:h-[21px] [&&&&]:rounded-[50%]"
-        }
-      >
+      <div className="teleport-memory-source-icon grid h-9.5 w-9.5 place-items-center rounded-[50%] bg-surface text-accent nth-[2]:grid nth-[2]:min-w-0 nth-[2]:gap-[3px]">
         {ready ? (
-          <CheckCircle weight="fill" />
+          <CheckCircle className="h-[21px] w-[21px]" weight="fill" />
         ) : (
-          <UserCircle weight="duotone" />
+          <UserCircle className="h-[21px] w-[21px]" weight="duotone" />
         )}
       </div>
-      <div>
-        <span>游戏内存读取</span>
-        <strong>
+      <div className="nth-[2]:grid nth-[2]:min-w-0 nth-[2]:gap-[3px]">
+        <span className="text-xs text-muted">游戏内存读取</span>
+        <strong className="overflow-hidden text-sm text-ellipsis whitespace-nowrap">
           {ready ? viewModel.selectedRole?.roleName : "尚未读取当前角色"}
         </strong>
-        <small>
+        <small className="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-muted">
           {ready
             ? `${viewModel.selectedSourceArea?.areaName} / ${viewModel.selectedSourceGroup?.groupName} · World ${viewModel.automaticCharacter?.currentWorldId}`
             : "自动模式不需要手动选择当前大区、服务器或角色。"}
         </small>
       </div>
       <button
+        className="inline-flex min-h-9 items-center justify-center gap-[7px] rounded-control border border-solid border-control bg-surface px-3 py-0 text-xs font-[720] text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:opacity-55 max-[700px]:col-span-full max-[700px]:w-full max-[700px]:justify-center"
         type="button"
         disabled={viewModel.actionLoading}
         onClick={() => void viewModel.initializeAutomaticSource()}
       >
-        <ArrowClockwise />
+        <ArrowClockwise className="h-[15px] w-[15px] shrink-0" />
         {ready ? "重新读取" : "读取游戏数据"}
       </button>
     </section>
   );
 }
-
 export function AutomaticProgress({
   stage,
 }: {
@@ -86,24 +89,24 @@ export function AutomaticProgress({
       tabIndex={-1}
       aria-modal="true"
       aria-labelledby={titleId}
-      className={
-        "teleport-progress-overlay fixed grid place-items-center p-[20px] [&&&&]:z-[40] [&&&&]:inset-[0] [&&&&]:[background:rgba(10,_15,_26,_0.64)]"
-      }
+      className={teleportProgressOverlayClasses}
       role="dialog"
     >
-      <div
-        className={
-          "teleport-progress-panel grid min-w-0 max-h-[calc(100dvh-40px)] overflow-y-auto break-words p-6 border border-solid border-line rounded-[var(--ors-radius-control)] text-ink bg-surface text-center [&_>_svg]:w-[42px] [&_>_svg]:h-[42px] [&_>_svg]:mb-[17px] [&_>_svg]:text-accent [&_>_span]:text-accent [&_>_span]:text-xs [&_h2]:text-lg [&_code]:text-muted [&_code]:text-xs [&_p]:text-muted [&_p]:text-xs [&&&&]:[justify-items:center] [&&&&]:w-[min(440px,_100%)] [&&&&]:shadow-[none] [&&&&_>_span]:[font-weight:760] [&&&&_>_span]:[letter-spacing:normal] [&&&&_h2]:m-[8px_0] [&&&&_p]:m-[14px_0_0] [&&&&_p]:leading-[1.6]"
-        }
-      >
-        <SpinnerGap
-          className={"spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"}
-        />
-        <span>自动模式</span>
-        <h2 className="text-lg font-semibold" id={titleId} aria-live="polite">
+      <div className="teleport-progress-panel grid max-h-[calc(100dvh-40px)] w-[min(440px,_100%)] min-w-0 justify-items-center overflow-y-auto rounded-control border border-solid border-line bg-surface p-6 text-center break-words text-ink shadow-[none]">
+        <SpinnerGap className={teleportProgressSpinnerClasses} />
+        <span className="text-xs font-[760] tracking-normal text-accent">
+          自动模式
+        </span>
+        <h2
+          className="mx-0 my-2 text-lg font-semibold"
+          id={titleId}
+          aria-live="polite"
+        >
           {copy[stage]}
         </h2>
-        <p>进度和确认都在当前窗口显示。</p>
+        <p className="mx-0 mt-3.5 mb-0 text-xs leading-[1.6] text-muted">
+          进度和确认都在当前窗口显示。
+        </p>
       </div>
     </section>
   );

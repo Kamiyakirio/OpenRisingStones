@@ -1,4 +1,5 @@
 /** External control surface for the game's native portrait lighting editor. */
+import clsx from "clsx";
 import {
   Aperture,
   ArrowClockwise,
@@ -22,6 +23,16 @@ import {
   type PortraitLighting,
 } from "../features/portrait/types";
 
+/** Reused presentation strings stay static and are allocated once for this module. */
+const portraitSecondaryButtonClasses =
+  "transition-[background-color,color,border-color] duration-120 ease-[ease] portrait-secondary-button flex min-h-10 items-center justify-center gap-[var(--ors-space-2)] rounded-control border border-solid border-control bg-surface px-3.5 py-2 font-semibold text-ink enabled:hover:bg-hover max-[480px]:w-full";
+const portraitDescriptionClasses =
+  "mx-0 mt-[var(--ors-space-1)] mb-0 text-muted";
+const portraitLightIconClasses =
+  "portrait-light-icon grid h-9 w-9 place-items-center rounded-control bg-selected text-accent";
+const portraitTimelineButtonClasses =
+  "transition-[background-color,color,border-color] duration-120 ease-[ease] min-h-9 pointer-coarse:min-h-11 inline-flex h-9 w-9 items-center justify-center rounded-control border border-solid border-control bg-canvas p-0 text-ink enabled:hover:bg-hover [@media(pointer:_coarse)]:size-11";
+
 export function PortraitPage() {
   const editor = usePortraitLighting();
   const lighting = editor.lighting;
@@ -29,38 +40,25 @@ export function PortraitPage() {
   const editable = Boolean(
     lighting?.editorOpen && lighting.characterReady && !editor.updateFailed,
   );
-
   return (
-    <main
-      className={
-        "mx-auto w-full max-w-[1600px] px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 portrait-page min-h-[calc(100dvh-56px)] [@media(prefers-reduced-motion:_reduce)]:[&&&&_*]:[scroll-behavior:auto]"
-      }
-    >
-      <header
-        className={
-          "portrait-header flex gap-[var(--ors-space-8)] items-start justify-between pb-[var(--ors-space-6)] border-b border-solid border-line [&_h1]:m-0 [&_p]:text-muted max-[700px]:items-stretch max-[700px]:flex-col [&&&&_p]:max-w-[65ch] [&&&&_p]:m-[var(--ors-space-2)_0_0]"
-        }
-      >
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">肖像助手</h1>
-          <p>调整动作时间和光照。</p>
+    <main className="portrait-page mx-auto min-h-[calc(100dvh-56px)] w-full max-w-400 px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4">
+      <header className="portrait-header flex items-start justify-between gap-[var(--ors-space-8)] border-b border-solid border-line pb-[var(--ors-space-6)] max-[700px]:flex-col max-[700px]:items-stretch">
+        <div className="">
+          <h1 className="m-0 text-2xl font-bold tracking-tight">肖像助手</h1>
+          <p className="mx-0 mt-[var(--ors-space-2)] mb-0 max-w-[65ch] text-muted">
+            调整动作时间和光照。
+          </p>
         </div>
-        <div
-          className={
-            "portrait-header-actions flex items-center gap-[var(--ors-space-3)] max-[700px]:items-stretch max-[700px]:justify-between max-[480px]:flex-col [&&&&]:flex-[0_0_auto]"
-          }
-        >
+        <div className="portrait-header-actions flex shrink-0 items-center gap-[var(--ors-space-3)] max-[700px]:items-stretch max-[700px]:justify-between max-[480px]:flex-col">
           <PortraitStatus phase={editor.phase} lighting={lighting} />
           {connected && (
             <button
-              className={
-                "portrait-secondary-button flex items-center gap-[var(--ors-space-2)] justify-center min-h-[40px] rounded-[var(--ors-radius-control)] font-semibold text-ink bg-surface border border-solid border-control [&:hover:not(:disabled)]:bg-hover [&_svg]:w-[18px] [&_svg]:h-[18px] max-[480px]:w-full [&&&&]:p-[8px_14px]"
-              }
+              className={portraitSecondaryButtonClasses}
               type="button"
               disabled={editor.updating}
               onClick={() => void editor.refresh()}
             >
-              <ArrowClockwise aria-hidden="true" />
+              <ArrowClockwise className="h-4.5 w-4.5" aria-hidden="true" />
               重新读取
             </button>
           )}
@@ -107,7 +105,7 @@ export function PortraitPage() {
             "只修改当前编辑器的动作时间和光照参数。",
             "肖像仍需在游戏中保存。",
           ]}
-          description={<p>不接受以上风险，请取消。</p>}
+          description={<p className="m-0">不接受以上风险，请取消。</p>}
           confirmLabel="理解风险并连接"
           storageError={editor.storageError}
           onConfirm={editor.confirmRisk}
@@ -117,7 +115,6 @@ export function PortraitPage() {
     </main>
   );
 }
-
 function PortraitIntroduction({
   phase,
   onConnect,
@@ -127,38 +124,36 @@ function PortraitIntroduction({
 }) {
   const connecting = phase === "connecting";
   return (
-    <section
-      className={
-        "portrait-introduction [&_h2]:m-0 mt-7 grid max-w-[960px] grid-cols-[48px_minmax(0,1fr)] gap-5 rounded-xl border border-line bg-surface p-6 [&_>_svg]:w-[44px] [&_>_svg]:h-[44px] [&_>_svg]:text-accent [&_p]:text-muted max-[480px]:[&_>_svg]:w-[32px] max-[480px]:[&_>_svg]:h-[32px] [&&&&_p]:m-[var(--ors-space-1)_0_0] [@media(max-width:_480px)]:[&&&&]:grid-cols-[36px_minmax(0,_1fr)]"
-      }
-    >
-      <Aperture aria-hidden="true" />
-      <div>
-        <h2 className="text-lg font-semibold">连接游戏</h2>
-        <p>先在游戏中打开肖像编辑，再连接。</p>
+    <section className="portrait-introduction mt-7 grid max-w-240 grid-cols-[48px_minmax(0,1fr)] gap-5 rounded-panel border border-line bg-surface p-6 max-[480px]:grid-cols-[36px_minmax(0,_1fr)]">
+      <Aperture
+        className="h-11 w-11 text-accent max-[480px]:h-8 max-[480px]:w-8"
+        aria-hidden="true"
+      />
+      <div className="">
+        <h2 className="m-0 text-lg font-semibold">连接游戏</h2>
+        <p className={portraitDescriptionClasses}>
+          先在游戏中打开肖像编辑，再连接。
+        </p>
       </div>
       <button
-        className={
-          "portrait-connect-button flex items-center gap-[var(--ors-space-2)] justify-center min-h-[40px] rounded-[var(--ors-radius-control)] font-semibold text-on-accent bg-accent border border-solid border-accent [&:hover:not(:disabled)]:bg-accent-hover [&_svg]:w-[18px] [&_svg]:h-[18px] [&&&&]:p-[8px_14px] [&&&&]:[grid-column:2] [&&&&]:[justify-self:start] [@media(max-width:_480px)]:[&&&&]:[grid-column:1_/_3] [@media(max-width:_480px)]:[&&&&]:[justify-self:stretch]"
-        }
+        className="portrait-connect-button col-start-2 flex min-h-10 items-center justify-center gap-[var(--ors-space-2)] justify-self-start rounded-control border border-solid border-accent bg-accent px-3.5 py-2 font-semibold text-on-accent transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-accent-hover max-[480px]:col-[1_/_3] max-[480px]:justify-self-stretch"
         type="button"
         disabled={connecting || phase === "unsupported"}
         onClick={onConnect}
       >
         {connecting ? (
           <SpinnerGap
-            className={"spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"}
+            className="spin h-4.5 w-4.5 animate-[login-spin_900ms_linear_infinite]"
             aria-hidden="true"
           />
         ) : (
-          <PlugsConnected aria-hidden="true" />
+          <PlugsConnected className="h-4.5 w-4.5" aria-hidden="true" />
         )}
         {connecting ? "正在连接" : "连接游戏"}
       </button>
     </section>
   );
 }
-
 function PortraitLightingConsole({
   lighting,
   initial,
@@ -193,28 +188,23 @@ function PortraitLightingConsole({
       directionalHorizontalAngle: initial.directionalHorizontalAngle,
     }));
   };
-
   return (
     <div className="portrait-workspace mt-[var(--ors-space-6)]">
-      <div
-        className={
-          "portrait-workspace-bar flex items-center min-h-16 flex-wrap gap-5 rounded-xl border border-line bg-surface px-4 py-3 [&_>_div:first-child]:grid [&_>_div:first-child]:gap-[2px] [&_>_div:first-child]:min-w-0 [&_span]:text-muted [&_span]:text-[13px] max-[700px]:items-stretch max-[700px]:flex-col [&&&&_>_div:first-child]:[margin-right:auto]"
-        }
-      >
-        <div>
-          <strong>{portraitOpenType(lighting.openType)}</strong>
-          <span>{lighting.hasChanges ? "游戏中有未保存的修改" : "已同步"}</span>
+      <div className="portrait-workspace-bar flex min-h-16 flex-wrap items-center gap-5 rounded-panel border border-line bg-surface px-4 py-3 max-[700px]:flex-col max-[700px]:items-stretch">
+        <div className="first:[margin-right:auto] first:grid first:min-w-0 first:gap-0.5">
+          <strong className="">{portraitOpenType(lighting.openType)}</strong>
+          <span className="text-[13px] text-muted">
+            {lighting.hasChanges ? "游戏中有未保存的修改" : "已同步"}
+          </span>
         </div>
         {(updating || updateFailed) && (
           <div
-            className="portrait-sync-state flex items-center text-muted text-[13px] gap-[var(--ors-space-2)] whitespace-nowrap"
+            className="portrait-sync-state flex items-center gap-[var(--ors-space-2)] text-[13px] whitespace-nowrap text-muted first:[margin-right:auto] first:grid first:min-w-0 first:gap-0.5"
             aria-live="polite"
           >
             {updating && (
               <SpinnerGap
-                className={
-                  "spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"
-                }
+                className="spin animate-[login-spin_900ms_linear_infinite]"
                 aria-hidden="true"
               />
             )}
@@ -222,9 +212,7 @@ function PortraitLightingConsole({
           </div>
         )}
         <button
-          className={
-            "portrait-secondary-button flex items-center gap-[var(--ors-space-2)] justify-center min-h-[40px] rounded-[var(--ors-radius-control)] font-semibold text-ink bg-surface border border-solid border-control [&:hover:not(:disabled)]:bg-hover [&_svg]:w-[18px] [&_svg]:h-[18px] max-[480px]:w-full [&&&&]:p-[8px_14px]"
-          }
+          className={portraitSecondaryButtonClasses}
           type="button"
           disabled={!initial || !editable}
           onClick={resetAll}
@@ -240,14 +228,10 @@ function PortraitLightingConsole({
         onChange={onAnimationChange}
       />
 
-      <div
-        className={
-          "portrait-lighting-console grid gap-[var(--ors-space-6)] mt-[var(--ors-space-6)] [&&&&]:grid-cols-[minmax(0,_0.84fr)_minmax(0,_1.16fr)] [@media(max-width:_1050px)]:[&&&&]:grid-cols-[1fr]"
-        }
-      >
+      <div className="portrait-lighting-console mt-[var(--ors-space-6)] grid grid-cols-[minmax(0,_0.84fr)_minmax(0,_1.16fr)] gap-[var(--ors-space-6)] max-[1050px]:grid-cols-[1fr]">
         <LightingPanel
           className="portrait-ambient-panel"
-          icon={<MoonStars aria-hidden="true" />}
+          icon={<MoonStars className="h-[21px] w-[21px]" aria-hidden="true" />}
           title="环境光"
           description="调整人物整体明暗。"
           color={lighting.ambientColor}
@@ -281,7 +265,12 @@ function PortraitLightingConsole({
 
         <LightingPanel
           className="portrait-directional-panel"
-          icon={<LightbulbFilament aria-hidden="true" />}
+          icon={
+            <LightbulbFilament
+              className="h-[21px] w-[21px]"
+              aria-hidden="true"
+            />
+          }
           title="方向光"
           description="调整主光颜色、亮度和角度。"
           color={lighting.directionalColor}
@@ -296,7 +285,10 @@ function PortraitLightingConsole({
           onBrightness={(value) =>
             onChange(
               PORTRAIT_LIGHTING_FIELDS.directionalBrightness,
-              (current) => ({ ...current, directionalBrightness: value }),
+              (current) => ({
+                ...current,
+                directionalBrightness: value,
+              }),
             )
           }
           onReset={() => {
@@ -334,11 +326,7 @@ function PortraitLightingConsole({
         </LightingPanel>
       </div>
 
-      <p
-        className={
-          "portrait-save-note text-muted text-[13px] [&&&&]:max-w-[70ch] [&&&&]:m-[var(--ors-space-5)_0_0]"
-        }
-      >
+      <p className="portrait-save-note mx-0 mt-[var(--ors-space-5)] mb-0 max-w-[70ch] text-[13px] text-muted">
         {updateFailed
           ? "写入失败，已恢复游戏中的值。重新读取后再试。"
           : "修改后请在游戏中保存。"}
@@ -346,7 +334,6 @@ function PortraitLightingConsole({
     </div>
   );
 }
-
 function AnimationTimeline({
   lighting,
   supported,
@@ -374,20 +361,15 @@ function AnimationTimeline({
       true,
     );
   };
-
   return (
-    <section
-      className={
-        "portrait-animation-panel [&_h2]:m-0 mt-[var(--ors-space-6)] bg-surface border border-solid border-line rounded-[var(--ors-radius-panel)] [&_>_header]:grid [&_>_header]:gap-[var(--ors-space-3)] [&_>_header]:items-center [&_header_p]:text-muted [&_header_p]:text-[13px] [&_header_p]:tabular-nums [@media(max-width:_700px)]:[&&&&]:p-[var(--ors-space-4)] [&&&&]:p-[var(--ors-space-4)_var(--ors-space-5)] [&&&&_>_header]:grid-cols-[36px_minmax(0,_1fr)_auto] [&&&&_header_p]:m-[var(--ors-space-1)_0_0] [@media(max-width:_480px)]:[&&&&_>_header]:grid-cols-[36px_minmax(0,_1fr)]"
-      }
-    >
-      <header>
-        <span className="portrait-light-icon grid place-items-center w-[36px] h-[36px] text-accent bg-selected rounded-[var(--ors-radius-control)] [&_svg]:w-[21px] [&_svg]:h-[21px]">
-          <FilmStrip aria-hidden="true" />
+    <section className="portrait-animation-panel mt-[var(--ors-space-6)] rounded-panel border border-solid border-line bg-surface px-[var(--ors-space-5)] py-[var(--ors-space-4)] max-[700px]:p-[var(--ors-space-4)]">
+      <header className="grid grid-cols-[36px_minmax(0,_1fr)_auto] items-center gap-[var(--ors-space-3)] max-[480px]:grid-cols-[36px_minmax(0,_1fr)]">
+        <span className={portraitLightIconClasses}>
+          <FilmStrip className="h-[21px] w-[21px]" aria-hidden="true" />
         </span>
-        <div>
-          <h2 className="text-lg font-semibold">动作时间轴</h2>
-          <p>
+        <div className="">
+          <h2 className="m-0 text-lg font-semibold">动作时间轴</h2>
+          <p className="mx-0 mt-[var(--ors-space-1)] mb-0 text-[13px] text-muted tabular-nums">
             {!supported
               ? "当前载荷不支持动作时间轴，请更新载荷后重连。"
               : unavailable
@@ -398,9 +380,7 @@ function AnimationTimeline({
           </p>
         </div>
         <button
-          className={
-            "portrait-play-button inline-flex items-center justify-center text-ink bg-canvas border border-solid border-control rounded-[var(--ors-radius-control)] gap-[var(--ors-space-2)] min-w-[88px] min-h-[38px] font-semibold [&:hover:not(:disabled)]:bg-hover [&_svg]:w-[18px] [&_svg]:h-[18px] max-[480px]:w-full [&&&&]:p-[7px_12px] [@media(max-width:_480px)]:[&&&&]:[grid-column:1_/_3]"
-          }
+          className="portrait-play-button inline-flex min-h-9.5 min-w-22 items-center justify-center gap-[var(--ors-space-2)] rounded-control border border-solid border-control bg-canvas px-3 py-[7px] font-semibold text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover max-[480px]:col-[1_/_3] max-[480px]:w-full"
           type="button"
           disabled={controlDisabled}
           onClick={() =>
@@ -412,27 +392,27 @@ function AnimationTimeline({
           }
         >
           {lighting.animationPaused ? (
-            <Play aria-hidden="true" />
+            <Play className="h-4.5 w-4.5" aria-hidden="true" />
           ) : (
-            <Pause aria-hidden="true" />
+            <Pause className="h-4.5 w-4.5" aria-hidden="true" />
           )}
           {lighting.animationPaused ? "播放" : "暂停"}
         </button>
       </header>
-      <div
-        className={
-          'portrait-timeline-controls [&_button]:inline-flex [&_button]:items-center [&_button]:justify-center [&_button]:text-ink [&_button]:bg-canvas [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button:hover:not(:disabled)]:bg-hover [&_button_svg]:w-[18px] [&_button_svg]:h-[18px] grid gap-[var(--ors-space-3)] items-center mt-[var(--ors-space-4)] pt-[var(--ors-space-4)] border-t border-solid border-line [&_button]:w-[36px] [&_button]:h-[36px] [&_button]:p-0 [&_input[type=range]]:w-full [&&&&]:grid-cols-[36px_minmax(0,_1fr)_36px_88px_auto] [&&&&_input[type="range"]]:[accent-color:var(--ors-color-accent)] [@media(max-width:_480px)]:[&&&&]:grid-cols-[36px_minmax(0,_1fr)_36px_88px] [@media(max-width:_390px)]:[&&&&]:grid-cols-[36px_minmax(0,_1fr)_36px] [@media(pointer:_coarse)]:[&&&&_button]:size-11 [@media(pointer:_coarse)]:[&&&&]:grid-cols-[44px_minmax(0,_1fr)_44px_88px_auto] [@media(pointer:_coarse)_and_(max-width:_480px)]:[&&&&]:grid-cols-[44px_minmax(0,_1fr)_44px_88px] [@media(pointer:_coarse)_and_(max-width:_390px)]:[&&&&]:grid-cols-[44px_minmax(0,_1fr)_44px]'
-        }
-      >
+      <div className="portrait-timeline-controls mt-[var(--ors-space-4)] grid grid-cols-[36px_minmax(0,_1fr)_36px_88px_auto] items-center gap-[var(--ors-space-3)] border-t border-solid border-line pt-[var(--ors-space-4)] max-[480px]:grid-cols-[36px_minmax(0,_1fr)_36px_88px] max-[390px]:grid-cols-[36px_minmax(0,_1fr)_36px] [@media(pointer:_coarse)]:grid-cols-[44px_minmax(0,_1fr)_44px_88px_auto] [@media(pointer:_coarse)_and_(max-width:_390px)]:grid-cols-[44px_minmax(0,_1fr)_44px] [@media(pointer:_coarse)_and_(max-width:_480px)]:grid-cols-[44px_minmax(0,_1fr)_44px_88px]">
         <button
+          className={portraitTimelineButtonClasses}
           type="button"
           aria-label="上一帧"
           disabled={controlDisabled || currentFrame === 0}
           onClick={() => seek(currentFrame - 1)}
         >
-          <CaretLeft aria-hidden="true" />
+          <CaretLeft className="h-4.5 w-4.5" aria-hidden="true" />
         </button>
         <input
+          className={
+            '[&[type="range"]]:[accent-color:var(--ors-color-accent)] [&[type=range]]:w-full'
+          }
           aria-label="动作帧"
           type="range"
           min={0}
@@ -443,12 +423,13 @@ function AnimationTimeline({
           onChange={(event) => seek(Number(event.target.value))}
         />
         <button
+          className={portraitTimelineButtonClasses}
           type="button"
           aria-label="下一帧"
           disabled={controlDisabled || currentFrame === totalFrames}
           onClick={() => seek(currentFrame + 1)}
         >
-          <CaretRight aria-hidden="true" />
+          <CaretRight className="h-4.5 w-4.5" aria-hidden="true" />
         </button>
         <NumericInput
           ariaLabel="当前动作帧"
@@ -458,19 +439,15 @@ function AnimationTimeline({
           disabled={controlDisabled}
           commitAlways
           onChange={seek}
+          layout="timeline-controls"
         />
-        <span
-          className={
-            "portrait-timeline-duration text-muted text-[13px] tabular-nums whitespace-nowrap max-[480px]:text-right [@media(max-width:_480px)]:[&&&&]:[grid-column:1_/_5] [@media(max-width:_390px)]:[&&&&]:[grid-column:1_/_4]"
-          }
-        >
+        <span className="portrait-timeline-duration text-[13px] whitespace-nowrap text-muted tabular-nums max-[480px]:col-[1_/_5] max-[480px]:text-right max-[390px]:col-[1_/_4]">
           / {formatAnimationTime(lighting.animationDuration)}
         </span>
       </div>
     </section>
   );
 }
-
 function LightingPanel({
   className,
   icon,
@@ -499,17 +476,25 @@ function LightingPanel({
   const hex = colorToHex(color);
   return (
     <section
-      className={`[&&&&_header_p]:m-[var(--ors-space-1)_0_0] [&&&&]:[align-self:start] [&&&&_>_header]:grid-cols-[36px_minmax(0,_1fr)_auto] [&&&&_>_header]:[align-items:start] [&&&&_header_p]:max-w-[48ch] [&&&&_header_button]:p-[6px_10px] [&&&&_header_button]:[background:transparent] [&_h2]:m-0 [&_header_p]:text-muted min-w-0 p-[var(--ors-space-5)] bg-surface border border-solid border-line rounded-[var(--ors-radius-panel)] [&_>_header]:grid [&_>_header]:gap-[var(--ors-space-3)] [&_>_header]:pb-[var(--ors-space-5)] [&_>_header]:border-b [&_>_header]:border-solid [&_>_header]:border-line [&_header_p]:text-[13px] [&_header_button]:min-h-[36px] [&_header_button]:text-accent [&_header_button]:border [&_header_button]:border-solid [&_header_button]:border-line [&_header_button]:rounded-[var(--ors-radius-control)] [&_header_button:hover:not(:disabled)]:bg-hover max-[700px]:p-[var(--ors-space-4)] portrait-light-panel ${className}`}
+      className={clsx(
+        "portrait-light-panel min-w-0 self-start rounded-panel border border-solid border-line bg-surface p-[var(--ors-space-5)] max-[700px]:p-[var(--ors-space-4)]",
+        className,
+      )}
     >
-      <header>
-        <span className="portrait-light-icon grid place-items-center w-[36px] h-[36px] text-accent bg-selected rounded-[var(--ors-radius-control)] [&_svg]:w-[21px] [&_svg]:h-[21px]">
-          {icon}
-        </span>
-        <div>
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <p>{description}</p>
+      <header className="grid grid-cols-[36px_minmax(0,_1fr)_auto] items-start gap-[var(--ors-space-3)] border-b border-solid border-line pb-[var(--ors-space-5)]">
+        <span className={portraitLightIconClasses}>{icon}</span>
+        <div className="">
+          <h2 className="m-0 text-lg font-semibold">{title}</h2>
+          <p className="mx-0 mt-[var(--ors-space-1)] mb-0 max-w-[48ch] text-[13px] text-muted">
+            {description}
+          </p>
         </div>
-        <button type="button" disabled={disabled} onClick={onReset}>
+        <button
+          className="min-h-9 rounded-control border border-solid border-line bg-transparent px-2.5 py-1.5 text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover"
+          type="button"
+          disabled={disabled}
+          onClick={onReset}
+        >
           重置
         </button>
       </header>
@@ -533,7 +518,6 @@ function LightingPanel({
     </section>
   );
 }
-
 function DirectionControl({
   color,
   horizontal,
@@ -553,36 +537,22 @@ function DirectionControl({
     "--portrait-light-color": `rgb(${color.join(" ")})`,
   } as CSSProperties;
   return (
-    <div
-      className={
-        "portrait-direction-control grid gap-[var(--ors-space-6)] items-center mt-[var(--ors-space-6)] pt-[var(--ors-space-5)] border-t border-solid border-line [&&&&]:grid-cols-[176px_minmax(0,_1fr)] [@media(max-width:_1050px)]:[&&&&]:grid-cols-[168px_minmax(0,_1fr)] [@media(max-width:_700px)]:[&&&&]:grid-cols-[1fr]"
-      }
-    >
+    <div className="portrait-direction-control mt-[var(--ors-space-6)] grid grid-cols-[176px_minmax(0,_1fr)] items-center gap-[var(--ors-space-6)] border-t border-solid border-line pt-[var(--ors-space-5)] max-[1050px]:grid-cols-[168px_minmax(0,_1fr)] max-[700px]:grid-cols-[1fr]">
       <div
         className={
-          'portrait-direction-dial relative w-[168px] border border-solid border-control [&::before]:absolute [&::before]:border [&::before]:border-solid [&::before]:border-line [&_b]:absolute [&_b]:text-muted [&_b]:bg-surface [&_b]:text-xs [&_b]:font-medium [&&&&]:[aspect-ratio:1] [&&&&]:rounded-[50%] [&&&&::before]:inset-[25%] [&&&&::before]:[content:""] [&&&&::before]:rounded-[50%] [&&&&_b]:top-[8px] [&&&&_b]:left-[50%] [&&&&_b]:p-[0_var(--ors-space-1)] [&&&&_b]:transform-[translateX(-50%)] [@media(max-width:_700px)]:[&&&&]:[justify-self:center]'
+          'portrait-direction-dial relative [aspect-ratio:1] w-42 rounded-[50%] border border-solid border-control before:absolute before:inset-[25%] before:rounded-[50%] before:border before:border-solid before:border-line before:[content:""] max-[700px]:justify-self-center'
         }
         style={style}
         aria-hidden="true"
       >
-        <span
-          className={
-            "portrait-direction-axis horizontal absolute bg-line [.portrait-direction-axis&]:h-[1px] [.portrait-direction-axis&&&&]:top-[50%] [.portrait-direction-axis&&&&]:right-[8px] [.portrait-direction-axis&&&&]:left-[8px]"
-          }
-        />
-        <span
-          className={
-            "portrait-direction-axis vertical absolute bg-line [.portrait-direction-axis&]:w-[1px] [.portrait-direction-axis&&&&]:top-[8px] [.portrait-direction-axis&&&&]:bottom-[8px] [.portrait-direction-axis&&&&]:left-[50%]"
-          }
-        />
-        <span
-          className={
-            "portrait-direction-ray absolute w-[67px] h-[2px] [&_i]:absolute [&_i]:w-[12px] [&_i]:h-[12px] [&&&&]:top-[50%] [&&&&]:left-[50%] [&&&&]:[background:var(--portrait-light-color)] [&&&&]:shadow-[0_2px_8px_color-mix(in_srgb,_var(--portrait-light-color)_48%,_transparent)] [&&&&]:transform-[rotate(calc(var(--portrait-light-angle)_-_90deg))] [&&&&]:[transform-origin:left_center] [&&&&_i]:top-[calc(-5px_+_var(--portrait-light-height))] [&&&&_i]:right-[-6px] [&&&&_i]:[background:var(--portrait-light-color)] [&&&&_i]:[border:2px_solid_var(--ors-color-surface)] [&&&&_i]:rounded-[50%]"
-          }
-        >
-          <i />
+        <span className="portrait-direction-axis horizontal absolute top-1/2 right-2 left-2 h-px bg-line" />
+        <span className="portrait-direction-axis vertical absolute top-2 bottom-2 left-1/2 w-px bg-line" />
+        <span className="portrait-direction-ray absolute top-1/2 left-1/2 h-0.5 w-[67px] [transform-origin:left_center] transform-[rotate(calc(var(--portrait-light-angle)_-_90deg))] bg-[var(--portrait-light-color)] shadow-[0_2px_8px_color-mix(in_srgb,_var(--portrait-light-color)_48%,_transparent)]">
+          <i className="absolute top-[calc(-5px_+_var(--portrait-light-height))] right-[-6px] h-3 w-3 rounded-[50%] bg-[var(--portrait-light-color)] [border:2px_solid_var(--ors-color-surface)]" />
         </span>
-        <b>前</b>
+        <b className="absolute top-2 left-1/2 transform-[translateX(-50%)] bg-surface px-[var(--ors-space-1)] py-0 text-xs font-medium text-muted">
+          前
+        </b>
       </div>
       <div className="portrait-angle-controls">
         <RangeControl
@@ -594,6 +564,7 @@ function DirectionControl({
           unit="°"
           disabled={disabled}
           onChange={(value) => onChange(value, vertical)}
+          layout="angle-controls"
         />
         <RangeControl
           id="portrait-vertical-angle"
@@ -604,12 +575,12 @@ function DirectionControl({
           unit="°"
           disabled={disabled}
           onChange={(value) => onChange(horizontal, value)}
+          layout="angle-controls"
         />
       </div>
     </div>
   );
 }
-
 function RangeControl({
   id,
   label,
@@ -619,6 +590,7 @@ function RangeControl({
   unit = "",
   disabled,
   onChange,
+  layout,
 }: {
   id: string;
   label: string;
@@ -628,15 +600,23 @@ function RangeControl({
   unit?: string;
   disabled: boolean;
   onChange: (value: number) => void;
+  /** Explicit layout variants keep this component independent of ancestor classes. */
+  layout?: "angle-controls";
 }) {
   return (
     <div
-      className={
-        'portrait-range-control grid gap-[var(--ors-space-3)] items-center [&_>_label]:font-semibold mt-[var(--ors-space-5)] [&_input[type=range]]:w-full [.portrait-angle-controls_&:first-child]:mt-0 [&&&&]:grid-cols-[minmax(84px,_0.34fr)_minmax(0,_1fr)_88px] [&&&&_input[type="range"]]:[accent-color:var(--ors-color-accent)] [@media(max-width:_480px)]:[&&&&]:grid-cols-[minmax(0,_1fr)_88px] [@media(max-width:_480px)]:[&&&&_>_input[type="range"]]:[grid-column:1_/_3] [@media(max-width:_480px)]:[&&&&_>_input[type="range"]]:[grid-row:2]'
-      }
+      className={clsx(
+        "portrait-range-control mt-[var(--ors-space-5)] grid grid-cols-[minmax(84px,_0.34fr)_minmax(0,_1fr)_88px] items-center gap-[var(--ors-space-3)] max-[480px]:grid-cols-[minmax(0,_1fr)_88px]",
+        layout === "angle-controls" && "first:mt-0",
+      )}
     >
-      <label htmlFor={id}>{label}</label>
+      <label className="font-semibold" htmlFor={id}>
+        {label}
+      </label>
       <input
+        className={
+          '[&[type="range"]]:[accent-color:var(--ors-color-accent)] max-[480px]:[&[type="range"]]:col-[1_/_3] max-[480px]:[&[type="range"]]:row-start-2 [&[type=range]]:w-full'
+        }
         id={id}
         type="range"
         min={min}
@@ -653,11 +633,11 @@ function RangeControl({
         unit={unit}
         disabled={disabled}
         onChange={onChange}
+        layout="range-control"
       />
     </div>
   );
 }
-
 function ColorControl({
   id,
   color,
@@ -674,7 +654,6 @@ function ColorControl({
   const [hexDraft, setHexDraft] = useState(hex.toUpperCase());
   const [editingHex, setEditingHex] = useState(false);
   const cancelHexCommit = useRef(false);
-
   const commitHex = (draft: string) => {
     const normalized = draft.startsWith("#") ? draft : `#${draft}`;
     if (/^#[0-9a-f]{6}$/i.test(normalized)) {
@@ -684,20 +663,14 @@ function ColorControl({
     }
     setHexDraft(hex.toUpperCase());
   };
-
   return (
-    <div
-      className={
-        "portrait-color-control grid gap-[var(--ors-space-3)] items-center mt-[var(--ors-space-5)] [&_>_label]:font-semibold [&&&&]:grid-cols-[minmax(84px,_0.34fr)_minmax(0,_1fr)] [@media(max-width:_700px)]:[&&&&]:grid-cols-[72px_minmax(0,_1fr)] [@media(max-width:_390px)]:[&&&&]:grid-cols-[1fr]"
-      }
-    >
-      <label htmlFor={id}>颜色</label>
-      <div
-        className={
-          "portrait-color-editor grid gap-[var(--ors-space-2)] items-center min-w-0 [&_input[type=color]]:w-[56px] [&_input[type=color]]:h-[40px] [&_input[type=color]]:p-[3px] [&_input[type=color]]:bg-canvas [&_input[type=color]]:border [&_input[type=color]]:border-solid [&_input[type=color]]:border-control [&_input[type=color]]:rounded-[var(--ors-radius-control)] [&&&&]:grid-cols-[56px_minmax(0,_1fr)]"
-        }
-      >
+    <div className="portrait-color-control mt-[var(--ors-space-5)] grid grid-cols-[minmax(84px,_0.34fr)_minmax(0,_1fr)] items-center gap-[var(--ors-space-3)] max-[700px]:grid-cols-[72px_minmax(0,_1fr)] max-[390px]:grid-cols-[1fr]">
+      <label className="font-semibold" htmlFor={id}>
+        颜色
+      </label>
+      <div className="portrait-color-editor grid min-w-0 grid-cols-[56px_minmax(0,_1fr)] items-center gap-[var(--ors-space-2)]">
         <input
+          className="min-h-9 pointer-coarse:min-h-11 [&[type=color]]:h-10 [&[type=color]]:w-14 [&[type=color]]:rounded-control [&[type=color]]:border [&[type=color]]:border-solid [&[type=color]]:border-control [&[type=color]]:bg-canvas [&[type=color]]:p-[3px]"
           id={id}
           type="color"
           value={hex}
@@ -705,9 +678,7 @@ function ColorControl({
           onChange={(event) => onChange(hexToColor(event.target.value))}
         />
         <input
-          className={
-            "portrait-hex-input min-w-0 h-[38px] text-ink bg-canvas border border-solid border-control rounded-[var(--ors-radius-control)] w-full [&:focus]:border-accent [&:disabled]:text-disabled [&:disabled]:bg-surface [&&&&]:p-[7px_9px] [&&&&]:[text-transform:uppercase] [&&&&:focus]:[outline:2px_solid_color-mix(in_srgb,_var(--ors-color-accent)_24%,_transparent)] [&&&&:focus]:[outline-offset:1px]"
-          }
+          className="portrait-hex-input h-9.5 min-h-9 w-full min-w-0 rounded-control border border-solid border-control bg-canvas px-[9px] py-[7px] text-ink [text-transform:uppercase] focus:border-accent focus:[outline:2px_solid_color-mix(in_srgb,_var(--ors-color-accent)_24%,_transparent)] focus:[outline-offset:1px] disabled:bg-surface disabled:text-disabled pointer-coarse:min-h-11"
           aria-label="十六进制颜色"
           value={editingHex ? hexDraft : hex.toUpperCase()}
           maxLength={7}
@@ -735,11 +706,7 @@ function ColorControl({
             }
           }}
         />
-        <div
-          className={
-            "portrait-rgb-inputs grid gap-[var(--ors-space-2)] min-w-0 [&&&&]:[grid-column:1_/_3] [&&&&]:grid-cols-[repeat(3,_minmax(0,_1fr))]"
-          }
-        >
+        <div className="portrait-rgb-inputs col-[1_/_3] grid min-w-0 grid-cols-3 gap-[var(--ors-space-2)]">
           {(["R", "G", "B"] as const).map((channel, index) => (
             <NumericInput
               key={channel}
@@ -761,7 +728,6 @@ function ColorControl({
     </div>
   );
 }
-
 function NumericInput({
   ariaLabel,
   value,
@@ -772,6 +738,7 @@ function NumericInput({
   disabled,
   commitAlways = false,
   onChange,
+  layout,
 }: {
   ariaLabel: string;
   value: number;
@@ -782,11 +749,12 @@ function NumericInput({
   disabled: boolean;
   commitAlways?: boolean;
   onChange: (value: number) => void;
+  /** Explicit layout variants keep this component independent of ancestor classes. */
+  layout?: "timeline-controls" | "range-control";
 }) {
   const [draft, setDraft] = useState(String(value));
   const [editing, setEditing] = useState(false);
   const cancelCommit = useRef(false);
-
   const commit = (nextDraft: string) => {
     const parsed = nextDraft.trim() === "" ? Number.NaN : Number(nextDraft);
     const next = Number.isFinite(parsed)
@@ -795,23 +763,26 @@ function NumericInput({
     setDraft(String(next));
     if (next !== value || commitAlways) onChange(next);
   };
-
   return (
     <label
-      className={
-        "portrait-number-field min-w-0 h-[38px] text-ink bg-canvas border border-solid border-control rounded-[var(--ors-radius-control)] grid items-center tabular-nums [&_input]:w-full [&_input]:min-w-0 [&_input]:h-full [&_input]:border-0 [&_input]:tabular-nums [&_input]:text-right [&_input::-webkit-inner-spin-button]:m-0 [&_input::-webkit-outer-spin-button]:m-0 [&_>_span]:pr-[8px] [&_>_span]:text-muted [&_>_span]:text-[13px] [&:focus-within]:border-accent [&[data-disabled=true]]:text-disabled [&[data-disabled=true]]:bg-surface max-[390px]:[.portrait-timeline-controls_>_&]:w-[88px] [&&&&]:grid-cols-[auto_minmax(0,_1fr)_auto] [&&&&_input]:p-[6px_8px] [&&&&_input]:[color:inherit] [&&&&_input]:[background:transparent] [&&&&_input]:[outline:0] [&&&&_input]:[font:inherit] [&&&&_input]:[appearance:textfield] [&&&&_input::-webkit-inner-spin-button]:[appearance:none] [&&&&_input::-webkit-outer-spin-button]:[appearance:none] [&&&&:focus-within]:[outline:2px_solid_color-mix(in_srgb,_var(--ors-color-accent)_24%,_transparent)] [&&&&:focus-within]:[outline-offset:1px] [@media(max-width:_390px)]:[.portrait-timeline-controls_>_&&&&]:[grid-column:1_/_4] [@media(max-width:_390px)]:[.portrait-timeline-controls_>_&&&&]:[justify-self:end]"
-      }
+      className={clsx(
+        "portrait-number-field grid h-9.5 min-w-0 grid-cols-[auto_minmax(0,_1fr)_auto] items-center rounded-control border border-solid border-control bg-canvas text-ink tabular-nums focus-within:border-accent focus-within:[outline:2px_solid_color-mix(in_srgb,_var(--ors-color-accent)_24%,_transparent)] focus-within:[outline-offset:1px] data-[disabled=true]:bg-surface data-[disabled=true]:text-disabled",
+        layout === "timeline-controls" &&
+          "max-[390px]:col-[1_/_4] max-[390px]:w-22 max-[390px]:justify-self-end",
+        layout === "range-control" && "font-semibold",
+      )}
       data-disabled={disabled || undefined}
     >
       {prefix && (
         <span
-          className="portrait-number-prefix [.portrait-number-field_>_&]:pr-0 [.portrait-number-field_>_&]:pl-[8px]"
+          className="portrait-number-prefix px-2 text-[13px] text-muted"
           aria-hidden="true"
         >
           {prefix}
         </span>
       )}
       <input
+        className="h-full min-h-9 w-full min-w-0 [appearance:textfield] border-0 bg-transparent px-2 py-1.5 text-right text-[inherit] tabular-nums outline-none [font:inherit] pointer-coarse:min-h-11 [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:[appearance:none] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:[appearance:none]"
         aria-label={ariaLabel}
         type="number"
         inputMode="numeric"
@@ -843,11 +814,14 @@ function NumericInput({
           }
         }}
       />
-      {unit && <span aria-hidden="true">{unit}</span>}
+      {unit && (
+        <span className="pr-2 text-[13px] text-muted" aria-hidden="true">
+          {unit}
+        </span>
+      )}
     </label>
   );
 }
-
 function PortraitStatus({
   phase,
   lighting,
@@ -870,7 +844,7 @@ function PortraitStatus({
   return (
     <span
       className={
-        'portrait-status inline-flex gap-[var(--ors-space-2)] items-center text-muted text-[13px] font-semibold [&::before]:w-[8px] [&::before]:h-[8px] [&::before]:bg-disabled [&[data-state=ready]::before]:bg-success [&[data-state=connecting]::before]:bg-warning [&[data-state=unsupported]::before]:bg-danger [&&&&::before]:[content:""] [&&&&::before]:rounded-[50%]'
+        'portrait-status inline-flex items-center gap-[var(--ors-space-2)] text-[13px] font-semibold text-muted before:h-2 before:w-2 before:rounded-[50%] before:bg-disabled before:[content:""] data-[state=connecting]:before:bg-warning data-[state=ready]:before:bg-success data-[state=unsupported]:before:bg-danger'
       }
       data-state={
         phase === "ready" && lighting?.characterReady ? "ready" : phase
@@ -880,7 +854,6 @@ function PortraitStatus({
     </span>
   );
 }
-
 function PortraitEditorNotice({
   title,
   description,
@@ -892,27 +865,24 @@ function PortraitEditorNotice({
 }) {
   return (
     <section
-      className={
-        "portrait-editor-notice [&_h2]:m-0 [&_p]:text-muted flex gap-[var(--ors-space-4)] items-start max-w-[720px] mt-[var(--ors-space-8)] py-[var(--ors-space-5)] [&_>_svg]:w-[32px] [&_>_svg]:h-[32px] [&_>_svg]:text-accent [&&&&_p]:m-[var(--ors-space-1)_0_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)] [&&&&_>_svg]:flex-[0_0_auto]"
-      }
+      className="portrait-editor-notice mt-[var(--ors-space-8)] flex max-w-180 items-start gap-[var(--ors-space-4)] py-[var(--ors-space-5)] [border-block:1px_solid_var(--ors-color-line)]"
       aria-live="polite"
     >
       {loading ? (
         <SpinnerGap
-          className={"spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"}
+          className="spin h-8 w-8 shrink-0 animate-[login-spin_900ms_linear_infinite] text-accent"
           aria-hidden="true"
         />
       ) : (
-        <Aperture aria-hidden="true" />
+        <Aperture className="h-8 w-8 shrink-0 text-accent" aria-hidden="true" />
       )}
-      <div>
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p>{description}</p>
+      <div className="">
+        <h2 className="m-0 text-lg font-semibold">{title}</h2>
+        <p className={portraitDescriptionClasses}>{description}</p>
       </div>
     </section>
   );
 }
-
 function PortraitError({ code }: { code: string }) {
   const error = {
     portrait_lighting_unsupported: {
@@ -955,36 +925,33 @@ function PortraitError({ code }: { code: string }) {
       title: "仅支持 Windows",
       message: "请使用 Windows 桌面版。",
     },
-  }[code] ?? { title: "读取失败", message: "重新读取后再试。" };
+  }[code] ?? {
+    title: "读取失败",
+    message: "重新读取后再试。",
+  };
   return (
     <div
-      className={
-        "portrait-error flex gap-[var(--ors-space-3)] items-start mt-[var(--ors-space-5)] p-[var(--ors-space-4)] text-danger bg-surface border border-solid border-danger rounded-[var(--ors-radius-control)] [&_>_svg]:w-[22px] [&_>_svg]:h-[22px] [&_div]:grid [&_div]:gap-[var(--ors-space-1)] [&_span]:text-ink [&_span]:text-[13px] [&&&&_>_svg]:flex-[0_0_auto]"
-      }
+      className="portrait-error mt-[var(--ors-space-5)] flex items-start gap-[var(--ors-space-3)] rounded-control border border-solid border-danger bg-surface p-[var(--ors-space-4)] text-danger"
       role="alert"
     >
-      <WarningCircle aria-hidden="true" />
-      <div>
-        <strong>{error.title}</strong>
-        <span>{error.message}</span>
+      <WarningCircle className="h-5.5 w-5.5 shrink-0" aria-hidden="true" />
+      <div className="grid gap-[var(--ors-space-1)]">
+        <strong className="">{error.title}</strong>
+        <span className="text-[13px] text-ink">{error.message}</span>
       </div>
     </div>
   );
 }
-
 function portraitOpenType(value: number) {
   return value === 2 ? "冒险者铭牌" : value === 1 ? "套装肖像" : "肖像编辑";
 }
-
 function formatAnimationTime(value: number) {
   if (!Number.isFinite(value)) return "0.00 秒";
   return `${Math.max(0, value).toFixed(2)} 秒`;
 }
-
 function colorToHex(color: [number, number, number]) {
   return `#${color.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
 }
-
 function hexToColor(value: string): [number, number, number] {
   return [
     Number.parseInt(value.slice(1, 3), 16),

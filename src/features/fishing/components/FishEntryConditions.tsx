@@ -1,4 +1,6 @@
 /** Keep time, weather, and ocean intuition requirements visible in catch lists. */
+
+import clsx from "clsx";
 import { ArrowRight, Clock, Cloud } from "@phosphor-icons/react";
 import { timeRequirement } from "../utils/presentation";
 import {
@@ -7,6 +9,10 @@ import {
 } from "../utils/weatherChoices";
 import { WeatherIcon } from "./Weather";
 import type { Fish, FishCatalog } from "../types";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+const weatherOptionClasses =
+  "fish-entry-weather-option inline-flex min-w-0 flex-nowrap items-center gap-1 whitespace-nowrap";
 
 function WeatherChoices({
   ids,
@@ -20,25 +26,23 @@ function WeatherChoices({
   unknown: string;
   possible?: number[];
   followsPrevious?: boolean;
+  /** Explicit layout variants keep this component independent of ancestor classes. */
 }) {
   // Keep the transition arrow with the first current-weather option on narrow rows.
   const transition = followsPrevious && (
     <ArrowRight
-      className={
-        "fish-entry-weather-arrow text-muted w-[16px] h-[16px] [&&&&]:flex-[0_0_16px]"
-      }
+      className="fish-entry-weather-arrow size-4 shrink-0 text-muted"
       aria-label="前置天气转为当前天气"
     />
   );
   if (!ids?.length) {
     return (
-      <span
-        className={
-          "fish-entry-weather-option inline-flex items-center flex-wrap gap-[4px] min-w-0 flex-nowrap whitespace-nowrap [&_>_svg]:w-[18px] [&_>_svg]:h-[18px] [&_>_svg]:text-muted [&&&&_>_svg]:flex-[0_0_18px]"
-        }
-      >
+      <span className={weatherOptionClasses}>
         {transition}
-        <Cloud aria-hidden="true" />
+        <Cloud
+          className="h-4.5 w-4.5 flex-[0_0_18px] text-muted"
+          aria-hidden="true"
+        />
         <span>{ids == null ? unknown : "天气不限"}</span>
       </span>
     );
@@ -46,12 +50,9 @@ function WeatherChoices({
   const summary = summarizeWeatherChoices(ids, possible);
   if (summary.excluded) {
     return (
-      <span className="fish-entry-weather-exclusion inline-flex items-center gap-[4px] min-w-0">
+      <span className="fish-entry-weather-exclusion inline-flex min-w-0 items-center gap-1">
         {transition}
-        <Cloud
-          className="w-[18px] h-[18px] shrink-0 text-muted"
-          aria-hidden="true"
-        />
+        <Cloud className="h-4.5 w-4.5 shrink-0 text-muted" aria-hidden="true" />
         <span>
           非
           {summary.ids
@@ -63,36 +64,33 @@ function WeatherChoices({
     );
   }
   return (
-    <span className="fish-entry-weather-choices inline-flex items-center flex-wrap gap-[4px] min-w-0">
+    <span className="fish-entry-weather-choices inline-flex min-w-0 flex-wrap items-center gap-1">
       {summary.ids.map((id, index) => (
-        <span
-          className={
-            "fish-entry-weather-option inline-flex items-center flex-wrap gap-[4px] min-w-0 flex-nowrap whitespace-nowrap [&_>_svg]:w-[18px] [&_>_svg]:h-[18px] [&_>_svg]:text-muted [&&&&_>_svg]:flex-[0_0_18px]"
-          }
-          key={id}
-        >
+        <span className={weatherOptionClasses} key={id}>
           {index > 0 && (
             <span className="fish-entry-weather-separator text-muted">/</span>
           )}
           {index === 0 && transition}
-          <WeatherIcon id={id} catalog={catalog} />
+          <WeatherIcon id={id} catalog={catalog} layout="entry-conditions" />
           <span aria-hidden="true">{catalog.weather[id] || `天气 ${id}`}</span>
         </span>
       ))}
     </span>
   );
 }
-
 export function FishEntryConditions({
   fish,
   catalog,
   spotId,
   inSpectralCurrent = false,
+  layout,
 }: {
   fish: Fish;
   catalog: FishCatalog;
   spotId?: number;
   inSpectralCurrent?: boolean;
+  /** Explicit layout variants keep this component independent of ancestor classes. */
+  layout?: "now-aside" | "spot-page";
 }) {
   const before = fish.conditions?.previousWeather;
   const current = fish.conditions?.weather;
@@ -118,17 +116,21 @@ export function FishEntryConditions({
   const predators = fish.conditions?.predators ?? [];
   return (
     <div
-      className={
-        "fish-entry-conditions flex items-center flex-wrap min-w-0 text-[13px] [.fish-now-aside_&]:pl-[46px] [&&&&]:[grid-column:1_/_-1] [&&&&]:[grid-row:2] [&&&&]:gap-[4px_18px] [&&&&]:p-[0_8px_3px_56px] [&&&&]:leading-[1.45] [@media(max-width:_620px)]:[&&&&]:[grid-column:1] [@media(max-width:_620px)]:[&&&&]:[grid-row:2] [@media(max-width:_620px)]:[&&&&]:p-[4px_0_2px_48px] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-column:1_/_-1] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-row:2]"
-      }
+      className={clsx(
+        "fish-entry-conditions col-span-full row-start-2 flex min-w-0 flex-wrap items-center gap-[4px_18px] text-[13px] leading-[1.45]",
+        layout === "now-aside"
+          ? "pt-0 pr-0 pb-1.5 pl-13"
+          : "pt-0 pr-2 pb-[3px] pl-14 max-[620px]:col-start-1 max-[620px]:row-start-2 max-[620px]:pt-1 max-[620px]:pr-0 max-[620px]:pb-0.5 max-[620px]:pl-12",
+        layout === "spot-page" &&
+          "[@media(min-width:_480px)_and_(max-width:_620px)]:col-span-full [@media(min-width:_480px)_and_(max-width:_620px)]:row-start-2",
+      )}
       aria-label="钓获条件"
     >
-      <span
-        className={
-          "fish-entry-condition inline-flex items-center flex-wrap gap-[4px] min-w-0 [&_>_svg]:w-[18px] [&_>_svg]:h-[18px] [&_>_svg]:text-muted [&&&&_>_svg]:flex-[0_0_18px]"
-        }
-      >
-        <Clock aria-hidden="true" />
+      <span className="fish-entry-condition inline-flex min-w-0 flex-wrap items-center gap-1">
+        <Clock
+          className="h-4.5 w-4.5 flex-[0_0_18px] text-muted"
+          aria-hidden="true"
+        />
         <span>
           {ocean
             ? phases?.length
@@ -138,7 +140,7 @@ export function FishEntryConditions({
         </span>
       </span>
       {ocean && predators.length > 0 && (
-        <span className="fish-entry-intuition inline-flex flex-wrap items-baseline gap-x-[6px] gap-y-[2px] min-w-0">
+        <span className="fish-entry-intuition inline-flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
           <span className="text-muted">鱼识前置</span>
           {predators.map(([id, count], index) => (
             <span key={id}>
@@ -154,11 +156,7 @@ export function FishEntryConditions({
         </span>
       )}
       {!redundantWeather && (
-        <span
-          className={
-            "fish-entry-condition fish-entry-weather inline-flex items-center flex-wrap gap-[4px] min-w-0 [&_>_svg]:w-[18px] [&_>_svg]:h-[18px] [&_>_svg]:text-muted [&&&&_>_svg]:flex-[0_0_18px]"
-          }
-        >
+        <span className="fish-entry-condition fish-entry-weather inline-flex min-w-0 flex-wrap items-center gap-1">
           <span className="fish-entry-condition-label text-muted">天气</span>
           {hasBefore && (
             <WeatherChoices

@@ -1,4 +1,5 @@
 /** Compact control for the encrypted, character-scoped owned-item index. */
+import clsx from "clsx";
 import {
   ArrowClockwise,
   Backpack,
@@ -8,52 +9,51 @@ import {
 } from "@phosphor-icons/react";
 import type { OwnedItemsState } from "../hooks/useOwnedItems";
 
+/** Reused presentation strings stay static and are allocated once for this module. */
+const ownedItemsDescriptionClasses =
+  "mx-0 mt-[5px] mb-0 text-xs leading-[1.55] text-muted";
+
 type GlamourOwnedItemsPanelProps = {
   viewModel: OwnedItemsState;
 };
-
 export function GlamourOwnedItemsPanel({
   viewModel,
 }: GlamourOwnedItemsPanelProps) {
   const { snapshot } = viewModel;
   const loading =
     viewModel.status === "loading_cache" || viewModel.status === "syncing";
-
   return (
     <section
-      className={
-        "owned-items-panel grid items-center gap-[16px] mt-[28px] rounded-[var(--ors-radius-control)] max-[700px]:gap-[12px] max-[700px]:mt-[20px] max-[700px]:p-[14px] [&&&&]:grid-cols-[auto_minmax(0,_1fr)_auto] [&&&&]:p-[17px_18px] [&&&&]:[border:1px_solid_color-mix(in_srgb,_var(--ors-color-accent)_30%,_var(--ors-color-line))] [&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-surface)_88%,_var(--ors-color-selected)_)] [@media(max-width:_700px)]:[&&&&]:grid-cols-[auto_minmax(0,_1fr)] [@media(max-width:_700px)]:[&&&&]:[align-items:start]"
-      }
+      className="owned-items-panel mt-7 grid grid-cols-[auto_minmax(0,_1fr)_auto] items-center gap-4 rounded-control bg-[color-mix(_in_srgb,_var(--ors-color-surface)_88%,_var(--ors-color-selected)_)] px-4.5 py-[17px] [border:1px_solid_color-mix(in_srgb,_var(--ors-color-accent)_30%,_var(--ors-color-line))] max-[700px]:mt-5 max-[700px]:grid-cols-[auto_minmax(0,_1fr)] max-[700px]:items-start max-[700px]:gap-3 max-[700px]:p-3.5"
       aria-labelledby="owned-items-title"
     >
       <div
-        className="owned-items-mark grid place-items-center w-[46px] h-[46px] rounded-[var(--ors-radius-control)] text-accent bg-selected [&_svg]:w-[25px] [&_svg]:h-[25px] max-[700px]:w-[40px] max-[700px]:h-[40px]"
+        className="owned-items-mark grid h-11.5 w-11.5 place-items-center rounded-control bg-selected text-accent max-[700px]:h-10 max-[700px]:w-10"
         aria-hidden="true"
       >
-        <Backpack weight="duotone" />
+        <Backpack className="h-[25px] w-[25px]" weight="duotone" />
       </div>
-      <div
-        className={
-          "owned-items-copy min-w-0 [&_>_p]:text-muted [&_>_p]:text-xs [&_>_p_strong]:text-ink [&&&&_>_p]:m-[5px_0_0] [&&&&_>_p]:leading-[1.55]"
-        }
-      >
-        <div
-          className={
-            "owned-items-heading flex items-baseline gap-[10px] [&_h2]:m-0 [&_>_span]:text-muted [&_>_span]:text-xs [&&&&_h2]:text-[15px]"
-          }
-        >
-          <h2 className="text-lg font-semibold" id="owned-items-title">
+      <div className="owned-items-copy min-w-0">
+        <div className="owned-items-heading flex items-baseline gap-2.5">
+          <h2
+            className="m-0 text-lg text-[15px] font-semibold"
+            id="owned-items-title"
+          >
             我的物品匹配
           </h2>
           {snapshot && (
-            <span>{formatCacheTime(snapshot.capturedAtUnixMs)} 更新</span>
+            <span className="text-xs text-muted">
+              {formatCacheTime(snapshot.capturedAtUnixMs)} 更新
+            </span>
           )}
         </div>
         {snapshot ? (
           <>
-            <p>
+            <p className={ownedItemsDescriptionClasses}>
               已为 {snapshot.character.characterName} 匹配{" "}
-              <strong>{viewModel.itemCount.toLocaleString("zh-CN")}</strong>{" "}
+              <strong className="text-ink">
+                {viewModel.itemCount.toLocaleString("zh-CN")}
+              </strong>{" "}
               件物品
               {!viewModel.metadataReady && !viewModel.metadataFailed
                 ? "，正在整理同模信息"
@@ -62,9 +62,7 @@ export function GlamourOwnedItemsPanel({
                   : ""}
             </p>
             <div
-              className={
-                "owned-items-coverage flex flex-wrap mt-[9px] [&_>_span]:inline-flex [&_>_span]:items-center [&_>_span]:gap-[4px] [&_>_span]:text-muted [&_>_span]:text-xs [&_svg]:w-[12px] [&_svg]:h-[12px] [&&&&]:gap-[6px_12px]"
-              }
+              className="owned-items-coverage mt-[9px] flex flex-wrap gap-[6px_12px]"
               aria-label="物品来源读取状态"
             >
               <CoverageLabel
@@ -89,47 +87,45 @@ export function GlamourOwnedItemsPanel({
               />
             </div>
             {viewModel.armoireMappingFailed && (
-              <span className="owned-items-partial-warning block mt-[7px] text-danger text-xs">
+              <span className="owned-items-partial-warning mt-[7px] block text-xs text-danger">
                 收藏柜物品资料暂不可用，其他来源仍可正常匹配。
               </span>
             )}
           </>
         ) : (
-          <p>
+          <p className={ownedItemsDescriptionClasses}>
             从当前游戏角色读取背包、兵装库、投影台和收藏柜，在幻化列表与详情中标出已持有装备。
           </p>
         )}
         {viewModel.error && (
           <div
-            className={
-              "owned-items-error grid items-center gap-[7px] mt-[10px] text-danger text-xs [&_>_svg]:w-[14px] [&_>_svg]:h-[14px] [&_button]:border-0 [&_button]:text-xs [&_button]:font-bold [&&&&]:grid-cols-[auto_minmax(0,_1fr)_auto] [&&&&_button]:p-[2px_0] [&&&&_button]:[color:inherit] [&&&&_button]:[background:transparent]"
-            }
+            className="owned-items-error mt-2.5 grid grid-cols-[auto_minmax(0,_1fr)_auto] items-center gap-[7px] text-xs text-danger"
             role="alert"
           >
-            <WarningCircle weight="fill" />
+            <WarningCircle className="h-3.5 w-3.5" weight="fill" />
             <span>{viewModel.error}</span>
-            <button type="button" onClick={viewModel.dismissError}>
+            <button
+              className="min-h-9 border-0 bg-transparent px-0 py-0.5 text-xs font-bold text-[inherit] transition-[background-color,color,border-color] duration-120 ease-[ease] pointer-coarse:min-h-11"
+              type="button"
+              onClick={viewModel.dismissError}
+            >
               关闭
             </button>
           </div>
         )}
       </div>
       <button
-        className={
-          "owned-items-action inline-flex items-center justify-center gap-[7px] min-w-[108px] min-h-[38px] border border-solid border-accent rounded-[var(--ors-radius-control)] text-accent text-xs whitespace-nowrap [&:hover:not(:disabled)]:bg-selected [&_svg]:w-[15px] [&_svg]:h-[15px] max-[700px]:w-full [&&&&]:p-[0_14px] [&&&&]:[background:transparent] [&&&&]:[font-weight:730] [&&&&:disabled]:[cursor:wait] [&&&&:disabled]:opacity-[0.62] [@media(max-width:_700px)]:[&&&&]:[grid-column:1_/_-1]"
-        }
+        className="owned-items-action inline-flex min-h-9.5 min-w-27 items-center justify-center gap-[7px] rounded-control border border-solid border-accent bg-transparent px-3.5 py-0 text-xs font-[730] whitespace-nowrap text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-selected disabled:[cursor:wait] disabled:opacity-62 max-[700px]:col-span-full max-[700px]:w-full"
         type="button"
         disabled={loading}
         onClick={viewModel.requestSync}
       >
         {loading ? (
-          <CircleNotch
-            className={"spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"}
-          />
+          <CircleNotch className="spin h-[15px] w-[15px] animate-[login-spin_900ms_linear_infinite]" />
         ) : snapshot ? (
-          <ArrowClockwise />
+          <ArrowClockwise className="h-[15px] w-[15px]" />
         ) : (
-          <Backpack />
+          <Backpack className="h-[15px] w-[15px]" />
         )}
         {viewModel.status === "loading_cache"
           ? "正在读取缓存"
@@ -142,7 +138,6 @@ export function GlamourOwnedItemsPanel({
     </section>
   );
 }
-
 function CoverageLabel({
   label,
   complete,
@@ -154,19 +149,21 @@ function CoverageLabel({
 }) {
   return (
     <span
-      className={
-        complete
-          ? "is-complete [.owned-items-coverage_&_svg]:text-accent"
-          : "is-incomplete [.owned-items-coverage_&_svg]:text-danger"
-      }
+      className={clsx(
+        "inline-flex items-center gap-1 text-xs text-muted",
+        complete ? "is-complete" : "is-incomplete",
+      )}
     >
-      {complete ? <CheckCircle weight="fill" /> : <WarningCircle />}
+      {complete ? (
+        <CheckCircle className="h-3 w-3 text-danger" weight="fill" />
+      ) : (
+        <WarningCircle className="h-3 w-3 text-danger" />
+      )}
       {label}
       {complete && cached ? "缓存" : complete ? "已读取" : "未读取"}
     </span>
   );
 }
-
 function formatCacheTime(timestamp: number) {
   const date = new Date(timestamp);
   if (!Number.isFinite(date.getTime())) return "此前";

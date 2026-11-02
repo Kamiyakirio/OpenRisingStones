@@ -1,4 +1,10 @@
 /** Show current and upcoming windows alongside saved fishing targets. */
+
+import {
+  fishingSectionHeadingClasses,
+  fishingSectionDescriptionClasses,
+  fishingEmptyClasses,
+} from "../utilityClasses";
 import { useMemo } from "react";
 import { FishingRows, type RowContext } from "./FishingRows";
 import {
@@ -8,6 +14,18 @@ import {
   type NowFishScope,
 } from "../utils/workspace";
 import type { FishFilters as FishingFacets } from "../types";
+
+/** Complete utility strings are shared without adding component CSS rules. */
+const nowViewToggleClasses =
+  "min-h-8 rounded-control border-0 border-control bg-transparent px-3 py-[5px] text-[13px] whitespace-nowrap text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent";
+const fishTextActionClasses =
+  "fish-text-action mt-3 min-h-9 rounded-control border-0 border-control bg-transparent px-0 py-[5px] text-left font-semibold text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+
+const asideDescriptionClasses = "mx-0 mt-0.5 mb-0 text-[13px] leading-[1.5]";
+const asideSectionClasses =
+  "fish-aside-section mt-6.5 border-t border-solid border-line pt-5.5 max-[1199px]:m-0 max-[1199px]:border-0 max-[1199px]:p-0";
 
 export function NowView({
   context,
@@ -35,24 +53,26 @@ export function NowView({
   const upcomingFish = opportunities.upcoming.filter((fish) =>
     matchesNowFishScope(fish, scope),
   );
-  const scopeFacets = scope === "big" ? { kinds: ["big", "legendary"] } : {};
+  const scopeFacets =
+    scope === "big"
+      ? {
+          kinds: ["big", "legendary"],
+        }
+      : {};
   const savedIds = new Set(context.progress.saved);
   const saved = context.catalog.fish.filter((fish) => savedIds.has(fish.id));
   return (
-    <div
-      className={
-        "fish-now-layout grid gap-[32px] [&&&&]:grid-cols-[minmax(0,_1fr)_minmax(240px,_290px)] [&&&&]:[align-items:start] [@media(max-width:_1199px)]:[&&&&]:grid-cols-[minmax(0,_1fr)]"
-      }
-    >
+    <div className="fish-now-layout grid grid-cols-[minmax(0,_1fr)_minmax(240px,_290px)] items-start gap-8 max-[1199px]:grid-cols-1">
       <div className="fish-now-main">
-        <div
-          className={
-            "fish-now-scope flex items-center justify-between flex-wrap mb-[22px] pb-[14px] border-b border-solid border-line [&_>_span]:text-muted [&_>_span]:text-[13px] [&_>_div]:inline-flex [&_>_div]:gap-[4px] [&_>_div]:p-[3px] [&_>_div]:border [&_>_div]:border-solid [&_>_div]:border-control [&_>_div]:rounded-[var(--ors-radius-control)] [.fishing-workspace_&_button]:min-h-[32px] [.fishing-workspace_&_button]:border-0 [.fishing-workspace_&_button]:text-[13px] [.fishing-workspace_&_button]:whitespace-nowrap [.fishing-workspace_&_button[aria-pressed=true]]:bg-selected [.fishing-workspace_&_button[aria-pressed=true]]:text-accent [&&&&]:gap-[8px_16px] [.fishing-workspace_&&&&_button]:p-[5px_12px] [.fishing-workspace_&&&&_button]:[background:transparent]"
-          }
-        >
-          <span>窗口鱼类</span>
-          <div role="group" aria-label="窗口鱼类范围">
+        <div className="fish-now-scope mb-5.5 flex flex-wrap items-center justify-between gap-[8px_16px] border-b border-solid border-line pb-3.5">
+          <span className="text-[13px] text-muted">窗口鱼类</span>
+          <div
+            className="inline-flex gap-1 rounded-control border border-solid border-control p-[3px]"
+            role="group"
+            aria-label="窗口鱼类范围"
+          >
             <button
+              className={nowViewToggleClasses}
               type="button"
               aria-pressed={scope === "big"}
               onClick={() => onScopeChange("big")}
@@ -60,6 +80,7 @@ export function NowView({
               鱼王与鱼皇
             </button>
             <button
+              className={nowViewToggleClasses}
               type="button"
               aria-pressed={scope === "all"}
               onClick={() => onScopeChange("all")}
@@ -68,17 +89,15 @@ export function NowView({
             </button>
           </div>
         </div>
-        <section className="fish-task-section [.fish-task-section_+_&]:mt-[34px]">
-          <header
-            className={
-              "fish-section-heading [&_p]:text-muted flex items-baseline justify-between flex-wrap mb-[14px] [&_h2]:m-0 [&_h2]:text-lg [&_p]:text-[13px] [.fish-ocean-fish-section_&_h3]:m-0 [.fish-ocean-fish-section_&_h3]:text-lg [&&&&]:gap-[8px_20px] [&&&&_p]:m-[2px_0_0] [&&&&_p]:leading-[1.5]"
-            }
-          >
+        <section className="fish-task-section">
+          <header className={fishingSectionHeadingClasses}>
             <div>
-              <h2 className="text-lg font-semibold">当前窗口</h2>
-              <p>未记录，且已满足时间与天气条件。</p>
+              <h2 className="m-0 text-lg font-semibold">当前窗口</h2>
+              <p className={fishingSectionDescriptionClasses}>
+                未记录，且已满足时间与天气条件。
+              </p>
             </div>
-            <span className="fish-count text-muted text-[13px] tabular-nums">
+            <span className="fish-count text-[13px] text-muted tabular-nums">
               {openFish.length} 条
             </span>
           </header>
@@ -89,11 +108,7 @@ export function NowView({
               context={context}
             />
           ) : (
-            <p
-              className={
-                "fish-inline-empty m-0 text-muted [&&&&]:p-[24px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)]"
-              }
-            >
+            <p className={fishingEmptyClasses}>
               {scope === "big"
                 ? "当前没有窗口开放的未记录鱼王或鱼皇。"
                 : "当前没有未记录且窗口开放的鱼。"}
@@ -101,12 +116,12 @@ export function NowView({
           )}
           {openFish.length > 6 && (
             <button
-              className={
-                "fish-text-action [.fishing-workspace_&]:min-h-[36px] [.fishing-workspace_&]:mt-[12px] [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:font-semibold [.fishing-workspace_&]:text-left [.fishing-workspace_&&&&]:p-[5px_0] [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline]"
-              }
+              className={fishTextActionClasses}
               onClick={() =>
                 onBrowse(
-                  { category: "timed" },
+                  {
+                    category: "timed",
+                  },
                   {
                     ...scopeFacets,
                     completion: ["uncaught"],
@@ -119,15 +134,13 @@ export function NowView({
             </button>
           )}
         </section>
-        <section className="fish-task-section [.fish-task-section_+_&]:mt-[34px]">
-          <header
-            className={
-              "fish-section-heading [&_p]:text-muted flex items-baseline justify-between flex-wrap mb-[14px] [&_h2]:m-0 [&_h2]:text-lg [&_p]:text-[13px] [.fish-ocean-fish-section_&_h3]:m-0 [.fish-ocean-fish-section_&_h3]:text-lg [&&&&]:gap-[8px_20px] [&&&&_p]:m-[2px_0_0] [&&&&_p]:leading-[1.5]"
-            }
-          >
+        <section className="fish-task-section mt-8.5">
+          <header className={fishingSectionHeadingClasses}>
             <div>
-              <h2 className="text-lg font-semibold">接下来开放</h2>
-              <p>按本机时间排列；进入鱼的资料可查看前置天气和鱼饵。</p>
+              <h2 className="m-0 text-lg font-semibold">接下来开放</h2>
+              <p className={fishingSectionDescriptionClasses}>
+                按本机时间排列；进入鱼的资料可查看前置天气和鱼饵。
+              </p>
             </div>
           </header>
           {upcomingFish.length ? (
@@ -138,24 +151,24 @@ export function NowView({
               showNextCountdown
             />
           ) : (
-            <p
-              className={
-                "fish-inline-empty m-0 text-muted [&&&&]:p-[24px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)]"
-              }
-            >
+            <p className={fishingEmptyClasses}>
               {scope === "big"
                 ? "未来一年内没有可计算的鱼王或鱼皇窗口。"
                 : "未来一年内没有可计算的下一窗口。"}
             </p>
           )}
           <button
-            className={
-              "fish-text-action [.fishing-workspace_&]:min-h-[36px] [.fishing-workspace_&]:mt-[12px] [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:font-semibold [.fishing-workspace_&]:text-left [.fishing-workspace_&&&&]:p-[5px_0] [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline]"
-            }
+            className={fishTextActionClasses}
             onClick={() =>
               onBrowse(
-                { category: "timed", sort: "window" },
-                { ...scopeFacets, completion: ["uncaught"] },
+                {
+                  category: "timed",
+                  sort: "window",
+                },
+                {
+                  ...scopeFacets,
+                  completion: ["uncaught"],
+                },
               )
             }
           >
@@ -164,70 +177,66 @@ export function NowView({
         </section>
       </div>
       <aside
-        className={
-          "fish-now-aside pl-[24px] border-l border-solid border-line max-[1199px]:grid max-[1199px]:gap-[20px] max-[1199px]:border-t max-[1199px]:border-solid max-[1199px]:border-line [@media(max-width:_1199px)]:[&&&&]:grid-cols-[repeat(3,_minmax(0,_1fr))] [@media(max-width:_1199px)]:[&&&&]:p-[22px_0_0] [@media(max-width:_1199px)]:[&&&&]:[border-left:0] [@media(max-width:_850px)]:[&&&&]:grid-cols-[minmax(0,_1fr)]"
-        }
+        className="fish-now-aside border-l border-solid border-line pl-6 max-[1199px]:grid max-[1199px]:grid-cols-3 max-[1199px]:gap-5 max-[1199px]:border-t max-[1199px]:border-solid max-[1199px]:border-line max-[1199px]:px-0 max-[1199px]:pt-5.5 max-[1199px]:pb-0 max-[1199px]:[border-left:0] max-[850px]:grid-cols-1"
         aria-label="其他钓鱼任务"
       >
-        <section
-          className={
-            "fish-aside-section [&_h2]:m-0 [&_h2]:text-lg [&_p]:text-[13px] [.fish-aside-section_+_&]:mt-[26px] [.fish-aside-section_+_&]:pt-[22px] [.fish-aside-section_+_&]:border-t [.fish-aside-section_+_&]:border-solid [.fish-aside-section_+_&]:border-line [&_h2]:mb-[9px] max-[1199px]:[.fish-aside-section_+_&]:m-0 max-[1199px]:[.fish-aside-section_+_&]:p-0 max-[1199px]:[.fish-aside-section_+_&]:border-0 [&&&&_p]:m-[2px_0_0] [&&&&_p]:leading-[1.5]"
-          }
-        >
-          <h2 className="text-lg font-semibold">我的目标</h2>
+        <section className="fish-aside-section">
+          <h2 className="m-0 mb-[9px] text-lg font-semibold">我的目标</h2>
           {saved.length ? (
             <FishingRows
               fish={saved.slice(0, 4)}
               idPrefix="now-saved"
               context={context}
+              layout="now-aside"
             />
           ) : (
-            <p>打开鱼的资料，收藏想优先钓的鱼。</p>
+            <p className={asideDescriptionClasses}>
+              打开鱼的资料，收藏想优先钓的鱼。
+            </p>
           )}
           {saved.length > 4 && (
             <button
-              className={
-                "fish-text-action [.fishing-workspace_&]:min-h-[36px] [.fishing-workspace_&]:mt-[12px] [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:font-semibold [.fishing-workspace_&]:text-left [.fishing-workspace_&&&&]:p-[5px_0] [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline]"
+              className={fishTextActionClasses}
+              onClick={() =>
+                onBrowse(
+                  {},
+                  {
+                    progress: "saved",
+                  },
+                )
               }
-              onClick={() => onBrowse({}, { progress: "saved" })}
             >
               查看全部收藏
             </button>
           )}
         </section>
-        <section
-          className={
-            "fish-aside-section [&_h2]:m-0 [&_h2]:text-lg [&_p]:text-[13px] [.fish-aside-section_+_&]:mt-[26px] [.fish-aside-section_+_&]:pt-[22px] [.fish-aside-section_+_&]:border-t [.fish-aside-section_+_&]:border-solid [.fish-aside-section_+_&]:border-line [&_h2]:mb-[9px] max-[1199px]:[.fish-aside-section_+_&]:m-0 max-[1199px]:[.fish-aside-section_+_&]:p-0 max-[1199px]:[.fish-aside-section_+_&]:border-0 [&&&&_p]:m-[2px_0_0] [&&&&_p]:leading-[1.5]"
-          }
-        >
-          <h2 className="text-lg font-semibold">全天可钓</h2>
-          <p>
+        <section className={asideSectionClasses}>
+          <h2 className="m-0 mb-[9px] text-lg font-semibold">全天可钓</h2>
+          <p className={asideDescriptionClasses}>
             还有 {opportunities.anytime.length} 条未记录的鱼无需等待时间窗口。
           </p>
           <button
-            className={
-              "fish-text-action [.fishing-workspace_&]:min-h-[36px] [.fishing-workspace_&]:mt-[12px] [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:font-semibold [.fishing-workspace_&]:text-left [.fishing-workspace_&&&&]:p-[5px_0] [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline]"
-            }
+            className={fishTextActionClasses}
             onClick={() =>
-              onBrowse({ category: "anytime" }, { completion: ["uncaught"] })
+              onBrowse(
+                {
+                  category: "anytime",
+                },
+                {
+                  completion: ["uncaught"],
+                },
+              )
             }
           >
             查看全天可钓
           </button>
         </section>
-        <section
-          className={
-            "fish-aside-section [&_h2]:m-0 [&_h2]:text-lg [&_p]:text-[13px] [.fish-aside-section_+_&]:mt-[26px] [.fish-aside-section_+_&]:pt-[22px] [.fish-aside-section_+_&]:border-t [.fish-aside-section_+_&]:border-solid [.fish-aside-section_+_&]:border-line [&_h2]:mb-[9px] max-[1199px]:[.fish-aside-section_+_&]:m-0 max-[1199px]:[.fish-aside-section_+_&]:p-0 max-[1199px]:[.fish-aside-section_+_&]:border-0 [&&&&_p]:m-[2px_0_0] [&&&&_p]:leading-[1.5]"
-          }
-        >
-          <h2 className="text-lg font-semibold">按地区查漏</h2>
-          <p>逐级查看地图与钓场的未记录鱼。</p>
-          <button
-            className={
-              "fish-text-action [.fishing-workspace_&]:min-h-[36px] [.fishing-workspace_&]:mt-[12px] [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:font-semibold [.fishing-workspace_&]:text-left [.fishing-workspace_&&&&]:p-[5px_0] [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline]"
-            }
-            onClick={onCollection}
-          >
+        <section className={asideSectionClasses}>
+          <h2 className="m-0 mb-[9px] text-lg font-semibold">按地区查漏</h2>
+          <p className={asideDescriptionClasses}>
+            逐级查看地图与钓场的未记录鱼。
+          </p>
+          <button className={fishTextActionClasses} onClick={onCollection}>
             查看图鉴缺口
           </button>
         </section>

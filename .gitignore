@@ -56,6 +56,9 @@ public/data/fishing/
 # Local skill dependencies are restored with npm run skills:install.
 .agents/*
 
+# Per-developer hook manifests restored by the pinned skill launcher.
+.codex/hooks.json
+
 prompt.md
 sdo-session.debug.json
 owned-items.debug.dat

@@ -231,6 +231,8 @@ Glamour detail owns a 1480px maximum page width with 20px horizontal gutters, re
 
 The independent fishing timer stacks its title bar and content at every window width. Narrow gearing action groups wrap in their existing task order; the context summary keeps its title and data version intact while its descriptive middle can truncate. Gearing candidates use a 320px equipment column only from 1200px viewport width; narrower workspaces show candidates directly, with a return action and slot selector. Candidate context and filter feedback align to 12px toolbar insets, wrap their actions, and keep the table within a bounded scrolling region. The desktop candidate workspace reserves space for the command bar and context above it. Equipped names, materia, and effective stats occupy separate rows; the parent owns padding, and each stat label/value stays together when wrapping. Unsaved-plan dialogs scroll vertically for long content or short windows. Narrow authentication, footer, mentor-detail, portrait-panel, and diagnostic-list spacing overrides retain the specificity of their desktop rules. Benchmark gutters match the page inset, and its form chooses non-overlapping one-, two-, or four-column ranges. The browser-only debug view renders its runtime error and log fallback rather than allowing a synchronous native guard to unmount the application.
 
+Equipment-search filters and benchmark configuration choose their column counts from the available panel width. Desktop embedded loading states subtract the 56px workspace bar from their minimum height. Sparse equipment results keep pagination 24px below the content instead of reserving empty rows. Fishing target rows use a dedicated stacked sidebar layout, with 52px copy insets; main list copy uses 56px, and detail technique sections have no inherited inset. Recruitment detail panels own a single 24px inset rather than nesting viewport-sized padding.
+
 ## Elevation & Depth
 
 **The Flat Surface Rule.** Routine workspaces and home panels use borders and tonal separation. Reserve soft depth for temporary overlays; do not add decorative glow.
@@ -296,6 +298,7 @@ Dialogs pair a neutral surface and full outline with a dim backdrop, a labeled t
 - **Do** keep tool accents consistent with the existing feature mapping.
 - **Do** distinguish real connection states, demonstrations, errors, and disabled actions in visible text.
 - **Do** express both domain geometry and shared visual primitives through direct JSX/TSX utilities.
+- **Do** bind reusable control primitives directly to their elements and keep local geometry and states in utilities.
 - **Do** preserve semantic game channel colors, chart category distinctions, and readable QR grounds.
 
 ### Don't:
@@ -305,3 +308,5 @@ Dialogs pair a neutral surface and full outline with a dim backdrop, a labeled t
 - **Don't** add a separate display font or inflate ordinary tool screens into promotional layouts.
 - **Don't** issue requests from the development phone demonstration or present synthetic messages as a paired session.
 - **Don't** use a Tailwind prefix or @apply; the project uses standard Tailwind v4 utilities and Preflight.
+- **Don't** raise a broad parent selector's specificity to override a child control's explicit styles.
+- **Don't** style every button, field, label, or icon through a workspace ancestor.

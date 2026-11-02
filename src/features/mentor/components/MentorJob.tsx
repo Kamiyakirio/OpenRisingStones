@@ -1,7 +1,7 @@
 /** Accessible job label with a role-colored icon and a safe unknown fallback. */
+import clsx from "clsx";
 import { useState } from "react";
 import { resolveMentorJob } from "../utils/jobs";
-
 export function MentorJob({
   jobId,
   jobName,
@@ -13,10 +13,14 @@ export function MentorJob({
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   return (
     <span
-      className={`[&&&&_img]:flex-[none] inline-flex items-center gap-[6px] min-w-0 text-muted [&_img]:object-contain [&.role-tank]:text-info [&.role-healer]:text-success [&.role-dps]:text-danger mentor-job role-${job.role}`}
+      className={clsx(
+        "mentor-job inline-flex min-w-0 items-center gap-1.5 text-muted [&.role-dps]:text-danger [&.role-healer]:text-success [&.role-tank]:text-info",
+        `role-${job.role}`,
+      )}
     >
       {job.iconUrl && job.iconUrl !== failedUrl && (
         <img
+          className="flex-none object-contain"
           src={job.iconUrl}
           alt=""
           width={22}

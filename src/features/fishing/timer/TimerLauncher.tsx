@@ -1,4 +1,5 @@
 /** Header entrypoint also provides recovery when the floating timer ignores mouse input. */
+
 import { Timer } from "@phosphor-icons/react";
 import { useState } from "react";
 import { RiskDialog } from "../../../shared/components/RiskDialog";
@@ -23,12 +24,9 @@ export function TimerLauncher() {
   }
   return (
     <>
-      <span
-        className={
-          "fish-timer-launcher relative [&_button]:inline-flex [&_button]:items-center [&_button]:gap-[8px] [&_svg]:w-[18px] [&_svg]:h-[18px] [&_small]:absolute [&_small]:w-[230px] [&_small]:p-[12px] [&_small]:bg-surface [&_small]:text-danger [&&&&_small]:z-[10] [&&&&_small]:top-[100%] [&&&&_small]:right-[0] [&&&&_small]:shadow-[var(--ors-shadow-popover)]"
-        }
-      >
+      <span className="fish-timer-launcher relative">
         <button
+          className="inline-flex min-h-8 items-center gap-2 rounded-[6px] border border-solid border-control bg-surface px-2.5 py-[5px] text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-45 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected pointer-coarse:min-h-11"
           disabled={busy}
           onClick={() => {
             setError(false);
@@ -36,11 +34,14 @@ export function TimerLauncher() {
           }}
           title="打开计时器；已打开时恢复鼠标操作"
         >
-          <Timer aria-hidden="true" />
+          <Timer className="h-4.5 w-4.5" aria-hidden="true" />
           {busy ? "正在打开…" : "钓鱼计时"}
         </button>
         {error && (
-          <small role="alert">
+          <small
+            className="absolute top-full right-0 z-10 w-57.5 bg-surface p-3 text-danger shadow-[var(--ors-shadow-popover)]"
+            role="alert"
+          >
             无法打开计时器，请重试；网页需允许弹出窗口。
           </small>
         )}

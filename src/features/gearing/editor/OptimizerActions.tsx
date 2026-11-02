@@ -1,7 +1,18 @@
 /** Persistent task actions keep cancellation and the numerical outcome beside the apply decision. */
+
+import { gearingControlClasses, gearingHintClasses } from "../utilityClasses";
 import { useEffect, useState } from "react";
 import type { GearingViewModel } from "./ViewModel";
 import type { EditorState } from "./Editor";
+
+/** Complete utility strings are shared without adding component CSS rules. */
+const gearPrimaryClasses =
+  "gear-primary inline-flex min-h-10 items-center justify-center gap-1.5 rounded-control border border-solid border-accent bg-accent px-3 py-2 text-on-accent transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-accent-hover disabled:cursor-default disabled:border-line disabled:bg-surface disabled:text-disabled disabled:opacity-100 aria-pressed:bg-selected aria-pressed:text-accent pointer-coarse:min-h-11 aria-pressed:enabled:hover:bg-selected";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+const optimizerSummaryRowClasses =
+  "flex justify-between gap-3 leading-[1.8] tabular-nums";
+
 export function OptimizerActions({
   vm,
   state,
@@ -55,51 +66,40 @@ export function OptimizerActions({
             ? "准备周数需在 0–100 之间。"
             : "";
   return (
-    <div
-      className={
-        "gear-optimizer-actions border-t border-solid border-line bg-surface max-[767px]:sticky [&&&&]:shrink-[0] [&&&&]:p-[10px_12px] [@media(max-width:_767px)]:[&&&&]:bottom-[0]"
-      }
-    >
+    <div className="gear-optimizer-actions shrink-0 border-t border-solid border-line bg-surface px-3 py-2.5 max-[767px]:sticky max-[767px]:bottom-0">
       {validation && (
-        <p
-          className={"gear-negative [&&&&]:[color:var(--ors-color-danger)]!"}
-          role="alert"
-        >
+        <p className="gear-negative text-danger" role="alert">
           {validation}
         </p>
       )}
       {c.kind !== "combat" && !Object.keys(doc?.equipment ?? {}).length && (
-        <p className={"gear-muted text-muted text-xs [&&&&]:leading-[1.7]"}>
+        <p className={gearingHintClasses}>
           请先在配装页选择装备，再计算当前装备的属性分配。
         </p>
       )}
       {ready && next && (
-        <div
-          className={
-            "gear-apply-summary text-xs [&_>_strong]:block [&_>_strong]:mb-[8px] [&_>_div:not(.gear-run)]:flex [&_>_div:not(.gear-run)]:justify-between [&_>_div:not(.gear-run)]:gap-[12px] [&_>_div:not(.gear-run)]:tabular-nums [&&&&_>_div:not(.gear-run)]:leading-[1.8]"
-          }
-        >
-          <strong>应用前确认</strong>
+        <div className="gear-apply-summary text-xs">
+          <strong className="mb-2 block">应用前确认</strong>
           {next.effects ? (
             <>
-              <div>
+              <div className={optimizerSummaryRowClasses}>
                 <span>GCD</span>
                 <span>
                   {evaluation?.effects?.gcd.toFixed(2)} →{" "}
                   {next.effects.gcd.toFixed(2)}s
                 </span>
               </div>
-              <div>
+              <div className={optimizerSummaryRowClasses}>
                 <span>每威力伤害期望</span>
                 <span>{next.effects.damage.toFixed(5)}</span>
               </div>
-              <div>
+              <div className={optimizerSummaryRowClasses}>
                 <span>期望变化</span>
                 <span
                   className={
                     next.effects.damage >= (evaluation?.effects?.damage ?? 0)
                       ? "gear-positive text-success"
-                      : "gear-negative [&&&&]:[color:var(--ors-color-danger)]!"
+                      : "gear-negative text-danger"
                   }
                 >
                   {next.effects.damage >= (evaluation?.effects?.damage ?? 0)
@@ -113,7 +113,7 @@ export function OptimizerActions({
             </>
           ) : (
             job?.stats.map((s) => (
-              <div key={s}>
+              <div className={optimizerSummaryRowClasses} key={s}>
                 <span>{data?.statNames[s]}</span>
                 <span>
                   {evaluation?.stats[s] ?? 0} → {next.stats[s] ?? 0}
@@ -121,33 +121,26 @@ export function OptimizerActions({
               </div>
             ))
           )}
-          <div
-            className={
-              "gear-run [.gear-unsaved-dialog_&]:justify-end flex flex-wrap gap-[8px] [.gear-optimizer-actions_>_&]:m-0 [.gear-optimizer-actions_>_&]:items-center [.gear-unsaved-dialog_&&&&]:m-[24px_0_0] [&&&&]:m-[12px_0]"
-            }
-          >
+          <div className="gear-run mx-0 my-3 flex flex-wrap gap-2">
             <button
-              className="gear-primary [.gear-editor_&]:bg-accent [.gear-editor_&]:text-on-accent [.gear-editor_&]:border-accent [.gear-editor_&:hover:not(:disabled)]:bg-accent-hover [.gear-editor_&:disabled]:bg-surface [.gear-editor_&:disabled]:border-line"
+              className={gearPrimaryClasses}
               onClick={() => vm.applyProposal()}
             >
               应用方案
             </button>
-            <button onClick={onSaveProposal}>另存为新方案</button>
+            <button
+              className={gearingControlClasses.button}
+              onClick={onSaveProposal}
+            >
+              另存为新方案
+            </button>
           </div>
         </div>
       )}
       {proposal?.status === "cancelled" && <p role="status">计算已取消。</p>}
-      <div
-        className={
-          "gear-run [.gear-unsaved-dialog_&]:justify-end flex flex-wrap gap-[8px] [.gear-optimizer-actions_>_&]:m-0 [.gear-optimizer-actions_>_&]:items-center [.gear-unsaved-dialog_&&&&]:m-[24px_0_0] [&&&&]:m-[12px_0]"
-        }
-      >
+      <div className="gear-run mx-0 my-3 flex flex-wrap items-center gap-2">
         <button
-          className={
-            ready
-              ? ""
-              : "gear-primary [.gear-editor_&]:bg-accent [.gear-editor_&]:text-on-accent [.gear-editor_&]:border-accent [.gear-editor_&:hover:not(:disabled)]:bg-accent-hover [.gear-editor_&:disabled]:bg-surface [.gear-editor_&:disabled]:border-line"
-          }
+          className={ready ? gearingControlClasses.button : gearPrimaryClasses}
           disabled={
             state.running ||
             !!validation ||
@@ -161,7 +154,12 @@ export function OptimizerActions({
         {state.running && (
           <>
             <span role="status">已用 {elapsed}s</span>
-            <button onClick={() => vm.cancel(true)}>取消计算</button>
+            <button
+              className={gearingControlClasses.button}
+              onClick={() => vm.cancel(true)}
+            >
+              取消计算
+            </button>
           </>
         )}
       </div>

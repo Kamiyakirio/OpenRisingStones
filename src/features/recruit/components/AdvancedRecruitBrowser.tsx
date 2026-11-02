@@ -1,4 +1,5 @@
 /** In-memory advanced recruitment filtering after the consent-gated aggregation. Checkbox indicators stay 16px; labels provide 36px/44px targets. */
+
 import {
   ArrowClockwise,
   CaretDown,
@@ -18,6 +19,47 @@ import type { RecruitJob, RecruitSlotKey } from "../types";
 import { ADVANCED_RECRUIT_FIELD_KEYS } from "../utils/advancedRecruitFilter";
 import { AdvancedRecruitPreferences } from "./AdvancedRecruitPreferences";
 import { RecruitCard, RecruitDetailView } from "./RecruitEntry";
+import {
+  advancedProfessionSummaryClasses,
+  advancedProfessionChevronClasses,
+  advancedSearchInputClasses,
+  advancedProfessionButtonClasses,
+} from "../utilityClasses";
+
+/** Complete utility strings are shared without adding component CSS rules. */
+const activeClasses =
+  "active min-h-[29px] rounded-control border border-solid border-control bg-transparent px-[9px] py-0 text-xs font-[730] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] max-[460px]:flex-1";
+const advancedFilterButtonClasses =
+  "min-h-[29px] rounded-control border border-solid border-control bg-transparent px-[9px] py-0 text-xs font-[730] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] max-[460px]:flex-1";
+const advancedPickerContentClasses =
+  "advanced-picker-content px-3.5 pt-0 pb-3.5";
+const advancedChoiceButtonClasses =
+  "min-h-7.5 rounded-control border border-solid border-control bg-transparent px-2.5 py-0 text-xs font-[730] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] hover:border-[color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] hover:text-ink";
+const advancedChoiceActiveClasses =
+  "active min-h-7.5 rounded-control border border-solid border-control bg-transparent px-2.5 py-0 text-xs font-[730] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] hover:border-[color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] hover:text-ink";
+const advancedCompactActiveClasses =
+  "active min-h-[27px] rounded-control border border-solid border-control bg-transparent px-2 py-0 text-xs font-[740] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] hover:border-[color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] hover:text-ink";
+const advancedCompactChoiceClasses =
+  "min-h-[27px] rounded-control border border-solid border-control bg-transparent px-2 py-0 text-xs font-[740] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] hover:border-[color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] hover:text-ink";
+const advancedProfessionActiveClasses =
+  "active min-h-[29px] rounded-control border border-solid border-control bg-transparent px-[9px] py-0 text-xs font-[730] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease]";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+const advancedPageClasses =
+  "advanced-recruit-page mx-auto min-h-[calc(100dvh_-_74px)] w-full max-w-320 p-5 max-[700px]:px-4 max-[700px]:pt-7 max-[700px]:pb-12";
+
+const advancedPickerClasses =
+  "advanced-picker group/advanced-picker min-w-0 rounded-control border border-solid border-line bg-surface";
+const advancedPickerSummaryClasses =
+  "flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-[15px] py-0 [&::-webkit-details-marker]:hidden";
+const advancedPickerChevronClasses =
+  "h-[15px] w-[15px] shrink-0 text-muted [transition:transform_160ms_ease] group-open/advanced-picker:transform-[rotate(180deg)] group-open/advanced-picker:text-accent";
+
+const advancedCheckboxClasses =
+  "size-4 min-h-0 shrink-0 p-0 [accent-color:var(--ors-color-accent)]";
+
+const advancedFieldClasses =
+  "grid gap-1.5 max-[700px]:first:col-span-full max-[700px]:nth-[2]:min-w-0 max-[460px]:first:col-auto";
 
 const FIELD_LABELS: Record<AdvancedRecruitField, string> = {
   dutyName: "副本名称",
@@ -31,7 +73,6 @@ const FIELD_LABELS: Record<AdvancedRecruitField, string> = {
   location: "大区与服务器",
   labels: "标签",
 };
-
 const PARTY_POSITIONS: RecruitSlotKey[] = [
   "MT",
   "ST",
@@ -42,16 +83,13 @@ const PARTY_POSITIONS: RecruitSlotKey[] = [
   "D3",
   "D4",
 ];
-
 type AdvancedRecruitPageProps = {
   viewModel: AdvancedRecruitState;
 };
-
 export function AdvancedRecruitBrowser({
   viewModel,
 }: AdvancedRecruitPageProps) {
   const dataset = viewModel.dataset;
-
   if (viewModel.selectedDetail) {
     return (
       <RecruitDetailView
@@ -65,59 +103,46 @@ export function AdvancedRecruitBrowser({
       />
     );
   }
-
   if (viewModel.status !== "ready" || !dataset) {
     return <AdvancedRecruitLoading viewModel={viewModel} />;
   }
-
   return (
-    <main
-      className={
-        "mx-auto w-full max-w-[1600px] px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 advanced-recruit-page [&&&&]:min-h-[calc(100dvh_-_74px)] [&&&&]:m-[0_auto] [&&&&]:w-[min(1280px,_100%)] [&&&&]:p-[20px_20px] [@media(max-width:_700px)]:[&&&&]:p-[28px_16px_48px]"
-      }
-      id="advanced-recruit"
-    >
-      <header
-        className={
-          "advanced-recruit-heading flex justify-between gap-[32px] mb-[28px] [&_>_div:first-child_>_span]:text-accent [&_>_div:first-child_>_span]:text-xs [&_h1]:m-0 [&_p]:m-0 [&_h1]:mt-[7px] [&_h1]:text-2xl [&_p]:mt-[13px] [&_p]:text-muted [&_p]:text-sm max-[700px]:items-start max-[700px]:flex-col [&&&&]:[align-items:end] [&&&&_>_div:first-child_>_span]:[font-weight:780] [&&&&_>_div:first-child_>_span]:[letter-spacing:normal] [&&&&_h1]:leading-[1.5] [&&&&_h1]:[letter-spacing:normal]"
-        }
-      >
+    <main className={advancedPageClasses} id="advanced-recruit">
+      <header className="advanced-recruit-heading mb-7 flex items-end justify-between gap-8 max-[700px]:flex-col max-[700px]:items-start">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">高级筛选</h1>
-          <p>按副本、空缺位置和关键词筛选招募。</p>
+          <h1 className="m-0 mt-[7px] text-2xl leading-[1.5] font-bold tracking-normal">
+            高级筛选
+          </h1>
+          <p className="m-0 mt-[13px] text-sm text-muted">
+            按副本、空缺位置和关键词筛选招募。
+          </p>
         </div>
-        <div
-          className={
-            "advanced-recruit-dataset-summary grid items-baseline min-w-[174px] rounded-[var(--ors-radius-control)] text-accent [&_span]:text-muted [&_span]:text-xs [&_small]:text-danger [&_small]:text-xs [&&&&]:grid-cols-[auto_auto] [&&&&]:gap-[4px_9px] [&&&&]:p-[16px_18px] [&&&&]:[border:1px_solid_color-mix(in_srgb,_var(--ors-color-accent)_40%,_var(--ors-color-line))] [&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_7%,_var(--ors-color-surface)_)] [&&&&_strong]:text-[24px] [&&&&_small]:[grid-column:1_/_-1]"
-          }
-        >
-          <strong>{dataset.items.length}</strong>
-          <span>条招募</span>
+        <div className="advanced-recruit-dataset-summary grid min-w-43.5 grid-cols-[auto_auto] items-baseline gap-[4px_9px] rounded-control bg-[color-mix(_in_srgb,_var(--ors-color-accent)_7%,_var(--ors-color-surface)_)] px-4.5 py-4 text-accent [border:1px_solid_color-mix(in_srgb,_var(--ors-color-accent)_40%,_var(--ors-color-line))]">
+          <strong className="text-[24px]">{dataset.items.length}</strong>
+          <span className="text-xs font-[780] tracking-normal text-muted">
+            条招募
+          </span>
           {dataset.failedDetailCount > 0 && (
-            <small>{dataset.failedDetailCount} 条详情读取失败</small>
+            <small className="col-span-full text-xs text-danger">
+              {dataset.failedDetailCount} 条详情读取失败
+            </small>
           )}
         </div>
       </header>
 
       <section
-        className={
-          "advanced-filter-workbench @container/recruit-filters overflow-hidden border border-solid border-line rounded-[var(--ors-radius-control)] bg-surface [&&&&]:shadow-[none]"
-        }
+        className="advanced-filter-workbench @container/recruit-filters overflow-hidden rounded-control border border-solid border-line bg-surface shadow-[none]"
         aria-label="高级筛选条件"
       >
-        <header
-          className={
-            "advanced-filter-heading flex justify-between items-center gap-[20px] border-b border-solid border-line [&_h2]:m-0 [&_p]:m-0 [&_p]:mt-[4px] [&_p]:text-muted [&_p]:text-xs [&&&&]:p-[16px_20px] [&&&&_h2]:text-[15px]"
-          }
-        >
+        <header className="advanced-filter-heading flex items-center justify-between gap-5 border-b border-solid border-line px-5 py-4">
           <div>
-            <h2 className="text-lg font-semibold">组合条件</h2>
-            <p>同类条件按所选方式匹配，不同类别之间同时满足。</p>
+            <h2 className="m-0 text-lg text-[15px] font-semibold">组合条件</h2>
+            <p className="m-0 mt-1 text-xs text-muted">
+              同类条件按所选方式匹配，不同类别之间同时满足。
+            </p>
           </div>
           <button
-            className={
-              "advanced-filter-reset inline-flex justify-center items-center min-h-[34px] border border-solid border-line rounded-[var(--ors-radius-control)] text-muted text-xs [&:hover]:text-ink [&:hover]:bg-hover [&&&&]:p-[0_11px] [&&&&]:[background:transparent] [&&&&]:[font-weight:730] [&&&&:hover]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_45%,_var(--ors-color-line)_)] [@media(max-width:_700px)]:[&&&&]:flex-[0_0_auto]"
-            }
+            className="advanced-filter-reset inline-flex min-h-8.5 items-center justify-center rounded-control border border-solid border-line bg-transparent px-[11px] py-0 text-xs font-[730] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] hover:border-[color-mix(_in_srgb,_var(--ors-color-accent)_45%,_var(--ors-color-line)_)] hover:bg-hover hover:text-ink max-[700px]:shrink-0"
             type="button"
             onClick={viewModel.clearFilters}
           >
@@ -125,11 +150,7 @@ export function AdvancedRecruitBrowser({
           </button>
         </header>
 
-        <div
-          className={
-            "advanced-filter-primary grid gap-[12px] [&&&&]:grid-cols-[minmax(0,_1fr)] @min-[780px]/recruit-filters:[&&&&]:grid-cols-[minmax(0,_0.72fr)_minmax(0,_1.28fr)] [&&&&]:[align-items:start] [&&&&]:p-[16px_20px_18px] [&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_2.5%,_var(--ors-color-canvas)_)]"
-          }
-        >
+        <div className="advanced-filter-primary grid grid-cols-1 items-start gap-3 bg-[color-mix(_in_srgb,_var(--ors-color-accent)_2.5%,_var(--ors-color-canvas)_)] px-5 pt-4 pb-4.5 @min-[780px]/recruit-filters:grid-cols-[minmax(0,_0.72fr)_minmax(0,_1.28fr)]">
           <DutyFilterPicker
             items={viewModel.dutyOptions}
             selected={viewModel.filters.dutyNames}
@@ -149,24 +170,23 @@ export function AdvancedRecruitBrowser({
           />
         </div>
 
-        <details
-          className={
-            "advanced-profession-filters border-t border-solid border-line bg-surface [&_>_summary]:flex [&_>_summary]:justify-between [&_>_summary]:items-center [&_>_summary]:gap-[16px] [&_>_summary]:min-h-[52px] [&_>_summary]:cursor-pointer [&_>_summary::-webkit-details-marker]:hidden [&_>_summary_>_span]:grid [&_>_summary_>_span]:gap-[3px] [&_>_summary_small]:text-muted [&_>_summary_small]:text-xs [&_>_summary_>_svg]:w-[15px] [&_>_summary_>_svg]:h-[15px] [&_>_summary_>_svg]:text-muted [&[open]_>_summary_>_svg]:text-accent [&_>_div]:grid [&_>_div]:gap-[12px] [&&&&_>_summary]:p-[0_20px] [&&&&_>_summary]:[list-style:none] [&&&&_>_summary_strong]:text-[12px] [&&&&_>_summary_>_svg]:[transition:transform_160ms_ease] [&&&&[open]_>_summary_>_svg]:transform-[rotate(180deg)] [&&&&_>_div]:grid-cols-[repeat(2,_minmax(0,_1fr))] [&&&&_>_div]:p-[0_20px_20px] [@media(max-width:_920px)]:[&&&&_>_div]:grid-cols-[1fr]"
-          }
-        >
-          <summary>
-            <span>
-              <strong>更多职业条件</strong>
-              <small>
+        <details className="advanced-profession-filters group/advanced-profession-filters border-t border-solid border-line bg-surface">
+          <summary className={advancedProfessionSummaryClasses}>
+            <span className="grid gap-[3px]">
+              <strong className="text-[12px]">更多职业条件</strong>
+              <small className="text-xs text-muted">
                 {viewModel.filters.existingJobIds.length +
                 viewModel.filters.missingJobIds.length
                   ? `已选 ${viewModel.filters.existingJobIds.length + viewModel.filters.missingJobIds.length} 项`
                   : "按具体职业筛选已有或缺少成员"}
               </small>
             </span>
-            <CaretDown weight="bold" />
+            <CaretDown
+              className={advancedProfessionChevronClasses}
+              weight="bold"
+            />
           </summary>
-          <div>
+          <div className="grid grid-cols-2 gap-3 px-5 pt-0 pb-5 max-[920px]:grid-cols-[1fr]">
             <JobFilterPicker
               title="已有职业"
               jobs={viewModel.existingJobs}
@@ -188,28 +208,26 @@ export function AdvancedRecruitBrowser({
 
         <AdvancedRecruitPreferences viewModel={viewModel} />
 
-        <div
-          className={
-            "advanced-text-rules grid gap-[10px] border-t border-solid border-line [&_>_header]:flex [&_>_header]:justify-between [&_>_header]:items-center [&_>_header]:gap-[20px] [&_h2]:m-0 [&_p]:m-0 [&_header_p]:mt-[4px] [&_header_p]:text-muted [&_header_p]:text-xs max-[700px]:[&_>_header]:items-start max-[700px]:[&_>_header]:flex-col [&&&&]:p-[18px_20px_20px] [&&&&_h2]:text-[16px]"
-          }
-        >
-          <header>
+        <div className="advanced-text-rules grid gap-2.5 border-t border-solid border-line px-5 pt-4.5 pb-5">
+          <header className="flex items-center justify-between gap-5 max-[700px]:flex-col max-[700px]:items-start">
             <div>
-              <h2 className="text-lg font-semibold">关键词与正则规则</h2>
-              <p>每条规则都可以独立指定要检索的字段。</p>
+              <h2 className="m-0 text-lg text-[16px] font-semibold">
+                关键词与正则规则
+              </h2>
+              <p className="m-0 mt-1 text-xs text-muted">
+                每条规则都可以独立指定要检索的字段。
+              </p>
             </div>
-            <div className="advanced-rule-toolbar flex items-center gap-[8px] max-[700px]:justify-between max-[700px]:w-full max-[460px]:w-full">
+            <div className="advanced-rule-toolbar flex items-center gap-2 max-[700px]:w-full max-[700px]:justify-between max-[460px]:w-full">
               <div
-                className={
-                  "advanced-rule-mode [&_button]:min-h-[29px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-muted [&_button]:text-xs flex gap-[5px] [&&&&_button]:p-[0_9px] [&&&&_button]:[background:transparent] [&&&&_button]:[font-weight:730] [@media(max-width:_460px)]:[&&&&]:flex-[1] [@media(max-width:_460px)]:[&&&&_button]:flex-[1]"
-                }
+                className="advanced-rule-mode flex gap-[5px] max-[460px]:flex-1"
                 aria-label="规则组合方式"
               >
                 <button
                   className={
                     viewModel.filters.textRuleMode === "all"
-                      ? 'active [.login-methods_button&]:text-ink [.detail-thumbnails_button&]:border-accent [.search-mode-switch_button&]:border-accent [.search-mode-switch_button&]:text-accent [.search-mode-switch_button&]:bg-selected [.job-filter_>_summary&]:border-accent [.job-filter_>_summary&]:text-accent [.job-filter_>_summary&]:bg-selected [.tab-list_button&]:text-ink [.tab-list_button&::after]:absolute [.tab-list_button&::after]:h-[2px] [.tab-list_button&::after]:bg-accent [.tab-list_button&::after]:text-on-accent [.sort-control_button&]:text-accent [.sort-control_button&]:font-bold [.advanced-position-mode_button&]:border-accent [.advanced-position-mode_button&]:text-accent [.advanced-position-options_button&]:border-accent [.advanced-position-options_button&]:text-accent [.advanced-duty-types_button&]:border-accent [.advanced-duty-types_button&]:text-accent [.advanced-job-mode_button&]:text-accent [.advanced-rule-mode_button&]:text-accent [.login-methods_button&&&&::after]:transform-[scaleX(1)] [.detail-thumbnails_button&&&&]:opacity-[1] [.tab-list_button&&&&::after]:[content:""] [.tab-list_button&&&&::after]:left-[1px] [.tab-list_button&&&&::after]:right-[45%] [.tab-list_button&&&&::after]:bottom-[0] [.advanced-position-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-position-options_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-duty-types_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_10%,_var(--ors-color-surface)_)] [.advanced-job-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-job-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [.advanced-rule-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-rule-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)]'
-                      : ""
+                      ? activeClasses
+                      : advancedFilterButtonClasses
                   }
                   type="button"
                   onClick={() => viewModel.setTextRuleMatchMode("all")}
@@ -219,8 +237,8 @@ export function AdvancedRecruitBrowser({
                 <button
                   className={
                     viewModel.filters.textRuleMode === "any"
-                      ? 'active [.login-methods_button&]:text-ink [.detail-thumbnails_button&]:border-accent [.search-mode-switch_button&]:border-accent [.search-mode-switch_button&]:text-accent [.search-mode-switch_button&]:bg-selected [.job-filter_>_summary&]:border-accent [.job-filter_>_summary&]:text-accent [.job-filter_>_summary&]:bg-selected [.tab-list_button&]:text-ink [.tab-list_button&::after]:absolute [.tab-list_button&::after]:h-[2px] [.tab-list_button&::after]:bg-accent [.tab-list_button&::after]:text-on-accent [.sort-control_button&]:text-accent [.sort-control_button&]:font-bold [.advanced-position-mode_button&]:border-accent [.advanced-position-mode_button&]:text-accent [.advanced-position-options_button&]:border-accent [.advanced-position-options_button&]:text-accent [.advanced-duty-types_button&]:border-accent [.advanced-duty-types_button&]:text-accent [.advanced-job-mode_button&]:text-accent [.advanced-rule-mode_button&]:text-accent [.login-methods_button&&&&::after]:transform-[scaleX(1)] [.detail-thumbnails_button&&&&]:opacity-[1] [.tab-list_button&&&&::after]:[content:""] [.tab-list_button&&&&::after]:left-[1px] [.tab-list_button&&&&::after]:right-[45%] [.tab-list_button&&&&::after]:bottom-[0] [.advanced-position-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-position-options_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-duty-types_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_10%,_var(--ors-color-surface)_)] [.advanced-job-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-job-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [.advanced-rule-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-rule-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)]'
-                      : ""
+                      ? activeClasses
+                      : advancedFilterButtonClasses
                   }
                   type="button"
                   onClick={() => viewModel.setTextRuleMatchMode("any")}
@@ -229,24 +247,18 @@ export function AdvancedRecruitBrowser({
                 </button>
               </div>
               <button
-                className={
-                  "advanced-add-rule inline-flex justify-center items-center gap-[7px] min-h-[32px] border border-solid border-accent rounded-[var(--ors-radius-control)] text-on-accent bg-accent text-xs [&_svg]:w-[14px] [&_svg]:h-[14px] [&&&&]:p-[0_10px] [&&&&]:[font-weight:740]"
-                }
+                className="advanced-add-rule inline-flex min-h-8 items-center justify-center gap-[7px] rounded-control border border-solid border-accent bg-accent px-2.5 py-0 text-xs font-[740] text-on-accent transition-[background-color,color,border-color] duration-120 ease-[ease]"
                 type="button"
                 onClick={viewModel.addTextRule}
               >
-                <Plus weight="bold" />
+                <Plus className="h-3.5 w-3.5" weight="bold" />
                 添加规则
               </button>
             </div>
           </header>
           {viewModel.filters.textRules.length === 0 && (
-            <div
-              className={
-                "advanced-rule-empty flex items-baseline gap-[9px] min-h-[44px] rounded-[var(--ors-radius-control)] text-muted text-xs [&_strong]:text-ink [&_strong]:text-xs max-[460px]:items-start max-[460px]:flex-col max-[460px]:gap-[3px] [&&&&]:p-[10px_12px] [&&&&]:[border:1px_dashed_var(--ors-color-line)] [&&&&]:[background:color-mix(in_srgb,_var(--ors-color-canvas)_70%,_transparent)]"
-              }
-            >
-              <strong>尚未添加关键词规则</strong>
+            <div className="advanced-rule-empty flex min-h-11 items-baseline gap-[9px] rounded-control bg-[color-mix(in_srgb,_var(--ors-color-canvas)_70%,_transparent)] px-3 py-2.5 text-xs text-muted [border:1px_dashed_var(--ors-color-line)] max-[460px]:flex-col max-[460px]:items-start max-[460px]:gap-[3px]">
+              <strong className="text-xs text-ink">尚未添加关键词规则</strong>
               <span>当前按上方的副本、位置、职业与偏好条件筛选。</span>
             </div>
           )}
@@ -272,50 +284,51 @@ export function AdvancedRecruitBrowser({
       </section>
 
       <section
-        className={
-          "advanced-recruit-results pt-[38px] [&_>_header]:flex [&_>_header]:justify-between [&_>_header]:gap-[20px] [&_>_header]:mb-[17px] [&_h2]:m-0 [&_p]:m-0 [&_h2]:text-lg [&_header_p]:mt-[5px] [&_header_p]:text-muted [&_header_p]:text-xs [&_header_>_svg]:w-[27px] [&_header_>_svg]:h-[27px] [&_header_>_svg]:text-accent [&&&&_>_header]:[align-items:end]"
-        }
+        className="advanced-recruit-results pt-9.5"
         aria-labelledby="advanced-results-title"
       >
-        <header>
+        <header className="mb-[17px] flex items-end justify-between gap-5">
           <div>
-            <h2 className="text-lg font-semibold" id="advanced-results-title">
+            <h2
+              className="m-0 text-lg font-semibold"
+              id="advanced-results-title"
+            >
               筛选结果
             </h2>
-            <p>
+            <p className="m-0 mt-[5px] text-xs text-muted">
               {viewModel.ruleErrors.length
                 ? "修正规则后显示结果"
                 : `${viewModel.filteredItems.length} / ${dataset.items.length} 条招募`}
             </p>
           </div>
-          <Funnel weight="duotone" />
+          <Funnel className="h-[27px] w-[27px] text-accent" weight="duotone" />
         </header>
         {viewModel.ruleErrors.length ? (
-          <div
-            className={
-              "advanced-results-state error grid min-h-[260px] p-[30px] rounded-[var(--ors-radius-control)] text-center [&_>_svg]:w-[38px] [&_>_svg]:h-[38px] [&_>_svg]:text-accent [&_strong]:mt-[12px] [&_span]:mt-[6px] [&_span]:text-muted [&_span]:text-xs [.advanced-results-state&_>_svg]:text-danger [.advanced-results-state&_strong]:text-danger [button.recruit-config-note&]:text-danger [.recruit-feed-status&]:justify-start [.recruit-feed-status&]:border [.recruit-feed-status&]:border-solid [.recruit-feed-status&]:border-danger [.recruit-feed-status&]:rounded-[var(--ors-radius-control)] [.recruit-feed-status&]:text-danger [.recruit-feed-status&]:bg-surface [.recruit-feed-status&]:text-left [.recruit-feed-status&_>_div]:grid [.recruit-feed-status&_>_div]:gap-[3px] [.recruit-feed-status&_span]:text-xs max-[460px]:[.recruit-feed-status&]:items-start max-[460px]:[.recruit-feed-status&]:flex-wrap max-[460px]:[.recruit-feed-status&_button]:w-full [.log-outcome&]:text-danger [&&&&]:[justify-items:center] [&&&&]:[place-content:center] [&&&&]:[border:1px_dashed_var(--ors-color-line)] [&&&&_strong]:text-[15px] [button.recruit-config-note&&&&]:[text-decoration:underline] [button.recruit-config-note&&&&]:[text-underline-offset:3px] [.recruit-feed-status&&&&_>_div]:flex-[1]"
-            }
-          >
-            <WarningCircle weight="duotone" />
-            <strong>存在无效的正则规则</strong>
-            <span>请根据规则下方提示修正表达式。</span>
+          <div className="advanced-results-state error grid min-h-65 [place-content:center] justify-items-center rounded-control p-7.5 text-center [border:1px_dashed_var(--ors-color-line)]">
+            <WarningCircle
+              className="h-9.5 w-9.5 text-danger"
+              weight="duotone"
+            />
+            <strong className="mt-3 text-[15px] text-danger">
+              存在无效的正则规则
+            </strong>
+            <span className="mt-1.5 text-xs text-muted">
+              请根据规则下方提示修正表达式。
+            </span>
           </div>
         ) : viewModel.filteredItems.length === 0 ? (
-          <div
-            className={
-              "advanced-results-state grid min-h-[260px] p-[30px] rounded-[var(--ors-radius-control)] text-center [&_>_svg]:w-[38px] [&_>_svg]:h-[38px] [&_>_svg]:text-accent [&_strong]:mt-[12px] [&_span]:mt-[6px] [&_span]:text-muted [&_span]:text-xs [&&&&]:[justify-items:center] [&&&&]:[place-content:center] [&&&&]:[border:1px_dashed_var(--ors-color-line)] [&&&&_strong]:text-[15px]"
-            }
-          >
-            <MagnifyingGlass weight="duotone" />
-            <strong>没有符合全部条件的招募</strong>
-            <span>减少筛选条件或切换为任一匹配。</span>
+          <div className="advanced-results-state grid min-h-65 [place-content:center] justify-items-center rounded-control p-7.5 text-center [border:1px_dashed_var(--ors-color-line)]">
+            <MagnifyingGlass
+              className="h-9.5 w-9.5 text-accent"
+              weight="duotone"
+            />
+            <strong className="mt-3 text-[15px]">没有符合全部条件的招募</strong>
+            <span className="mt-1.5 text-xs text-muted">
+              减少筛选条件或切换为任一匹配。
+            </span>
           </div>
         ) : (
-          <div
-            className={
-              "recruit-grid advanced-results-grid grid gap-[12px] [&&&&]:grid-cols-[1fr] [@media(max-width:_1120px)]:[&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [@media(max-width:_760px)]:[&&&&]:grid-cols-[1fr] [@media(max-width:_1199px)]:[&&&&]:grid-cols-[1fr]"
-            }
-          >
+          <div className="recruit-grid advanced-results-grid grid grid-cols-[1fr] gap-3 max-[1199px]:grid-cols-[1fr] max-[1120px]:grid-cols-2 max-[760px]:grid-cols-[1fr]">
             {viewModel.filteredItems.map((item) => (
               <RecruitCard
                 key={item.id}
@@ -330,7 +343,6 @@ export function AdvancedRecruitBrowser({
     </main>
   );
 }
-
 function AdvancedRecruitLoading({
   viewModel,
 }: {
@@ -346,39 +358,37 @@ function AdvancedRecruitLoading({
         ),
       )
     : 0;
-
   return (
-    <main
-      className={
-        "mx-auto w-full max-w-[1600px] px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 advanced-recruit-page [&&&&]:min-h-[calc(100dvh_-_74px)] [&&&&]:m-[0_auto] [&&&&]:w-[min(1280px,_100%)] [&&&&]:p-[20px_20px] [@media(max-width:_700px)]:[&&&&]:p-[28px_16px_48px]"
-      }
-    >
-      <section
-        className={
-          "advanced-loading-panel [&_button]:inline-flex [&_button]:justify-center [&_button]:items-center [&_button]:gap-[7px] [&_button]:min-h-[38px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-ink [&_button]:bg-surface [&_button]:text-xs grid min-h-[390px] border border-solid border-line rounded-[var(--ors-radius-control)] bg-surface text-center p-[32px] [&_>_svg]:w-[46px] [&_>_svg]:h-[46px] [&_>_svg]:text-accent [&_h1]:text-2xl [&_p]:text-muted [&_progress]:h-[9px] [&_progress]:mt-[24px] [&_progress]:overflow-hidden [&_progress]:border-0 [&_progress]:rounded-[var(--ors-radius-control)] [&_progress]:text-accent [&_progress]:bg-hover [&_progress::-webkit-progress-bar]:rounded-[var(--ors-radius-control)] [&_progress::-webkit-progress-bar]:bg-hover [&_progress::-webkit-progress-value]:rounded-[var(--ors-radius-control)] [&_progress::-webkit-progress-value]:bg-accent [&_progress::-webkit-progress-value]:text-on-accent [&_progress::-moz-progress-bar]:rounded-[var(--ors-radius-control)] [&_progress::-moz-progress-bar]:bg-accent [&_progress::-moz-progress-bar]:text-on-accent [&_>_span]:mt-[8px] [&_>_span]:text-muted [&_>_span]:text-xs [&_button]:mt-[22px] max-[700px]:min-h-[330px] [&&&&_button]:p-[0_12px] [&&&&_button]:[font-weight:730] [&&&&]:[justify-items:center] [&&&&]:w-[min(680px,_100%)] [&&&&]:m-[clamp(30px,_8vh,_90px)_auto_0] [&&&&]:[place-content:center] [&&&&]:shadow-[none] [&&&&_h1]:m-[18px_0_0] [&&&&_p]:m-[10px_0_0] [&&&&_p]:text-[12px] [&&&&_progress]:w-[min(420px,_100%)] [&&&&_>_span]:[font-family:var(--ors-font-ui)] [@media(max-width:_700px)]:[&&&&]:p-[28px_20px]"
-        }
-      >
+    <main className={advancedPageClasses}>
+      <section className="advanced-loading-panel mx-auto mt-[clamp(30px,_8vh,_90px)] grid min-h-97.5 w-[min(680px,_100%)] [place-content:center] justify-items-center rounded-control border border-solid border-line bg-surface p-8 text-center shadow-[none] max-[700px]:min-h-82.5 max-[700px]:px-5 max-[700px]:py-7">
         {viewModel.status === "error" ? (
-          <WarningCircle weight="duotone" />
-        ) : (
-          <SpinnerGap
-            className={"spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"}
+          <WarningCircle
+            className="h-11.5 w-11.5 text-accent"
+            weight="duotone"
           />
+        ) : (
+          <SpinnerGap className="spin h-11.5 w-11.5 animate-[login-spin_900ms_linear_infinite] text-accent" />
         )}
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="mx-0 mt-4.5 mb-0 text-2xl font-bold tracking-tight">
           {viewModel.status === "error" ? "招募数据加载失败" : "正在加载招募"}
         </h1>
         {viewModel.status === "error" ? (
           <>
-            <p>{viewModel.error}</p>
-            <button type="button" onClick={viewModel.retryInitialization}>
+            <p className="mx-0 mt-2.5 mb-0 text-[12px] text-muted">
+              {viewModel.error}
+            </p>
+            <button
+              className="mt-5.5 inline-flex min-h-9.5 items-center justify-center gap-[7px] rounded-control border border-solid border-control bg-surface px-3 py-0 text-xs font-[730] text-ink transition-[background-color,color,border-color] duration-120 ease-[ease]"
+              type="button"
+              onClick={viewModel.retryInitialization}
+            >
               <ArrowClockwise weight="bold" />
               重新加载
             </button>
           </>
         ) : (
           <>
-            <p>
+            <p className="mx-0 mt-2.5 mb-0 text-[12px] text-muted">
               {progress?.stage === "rate_limit"
                 ? `请求过于频繁，${Math.ceil((progress.retryDelayMs ?? 0) / 1000)} 秒后自动重试`
                 : progress?.stage === "detail"
@@ -387,17 +397,22 @@ function AdvancedRecruitLoading({
                     ? `正在加载招募列表 ${progress.completed} / ${progress.total}`
                     : "正在读取第一批公开招募"}
             </p>
-            <progress value={percentage} max="100">
+            <progress
+              className="mt-6 h-[9px] w-[min(420px,_100%)] overflow-hidden rounded-control border-0 bg-hover text-accent [&::-moz-progress-bar]:rounded-control [&::-moz-progress-bar]:bg-accent [&::-moz-progress-bar]:text-on-accent [&::-webkit-progress-bar]:rounded-control [&::-webkit-progress-bar]:bg-hover [&::-webkit-progress-value]:rounded-control [&::-webkit-progress-value]:bg-accent [&::-webkit-progress-value]:text-on-accent"
+              value={percentage}
+              max="100"
+            >
               {percentage}%
             </progress>
-            <span>{percentage}%</span>
+            <span className="mt-2 font-sans text-xs text-muted">
+              {percentage}%
+            </span>
           </>
         )}
       </section>
     </main>
   );
 }
-
 function DutyFilterPicker({
   items,
   selected,
@@ -409,7 +424,11 @@ function DutyFilterPicker({
   onQueryChange,
   onToggle,
 }: {
-  items: Array<{ label: string; type: string; dutyNames: string[] }>;
+  items: Array<{
+    label: string;
+    type: string;
+    dutyNames: string[];
+  }>;
   selected: string[];
   selectedCount: number;
   types: string[];
@@ -420,35 +439,29 @@ function DutyFilterPicker({
   onToggle: (dutyNames: string[]) => void;
 }) {
   return (
-    <details
-      className={
-        "advanced-picker min-w-0 border border-solid border-line rounded-[var(--ors-radius-control)] bg-surface [&_summary]:flex [&_summary]:justify-between [&_summary]:items-center [&_summary]:gap-[12px] [&_summary]:min-h-[64px] [&_summary]:cursor-pointer [&_summary::-webkit-details-marker]:hidden [&_summary_>_span]:grid [&_summary_>_span]:min-w-0 [&_summary_>_span]:gap-[3px] [&_summary_strong]:text-sm [&_summary_small]:text-muted [&_summary_small]:text-xs [&_summary_>_svg]:w-[15px] [&_summary_>_svg]:h-[15px] [&_summary_>_svg]:text-muted [&[open]_summary_>_svg]:text-accent [&&&&_summary]:p-[0_15px] [&&&&_summary]:[list-style:none] [&&&&_summary_>_svg]:flex-[0_0_auto] [&&&&_summary_>_svg]:[transition:transform_160ms_ease] [&&&&[open]_summary_>_svg]:transform-[rotate(180deg)]"
-      }
-    >
-      <summary>
-        <span>
-          <strong>副本</strong>
-          <small>{selectedCount ? `已选 ${selectedCount} 项` : "不限"}</small>
+    <details className={advancedPickerClasses}>
+      <summary className={advancedPickerSummaryClasses}>
+        <span className="grid min-w-0 gap-[3px]">
+          <strong className="text-sm">副本</strong>
+          <small className="text-xs text-muted">
+            {selectedCount ? `已选 ${selectedCount} 项` : "不限"}
+          </small>
         </span>
-        <CaretDown weight="bold" />
+        <CaretDown className={advancedPickerChevronClasses} weight="bold" />
       </summary>
-      <div
-        className={
-          "advanced-picker-content [&_>_p]:text-muted [&_>_p]:text-xs [&&&&]:p-[0_14px_14px] [&&&&_>_p]:m-[0_0_11px] [&&&&_>_p]:leading-[1.5]"
-        }
-      >
-        <p>先选择首页使用的副本类别，再单选或多选具体副本。</p>
+      <div className={advancedPickerContentClasses}>
+        <p className="mx-0 mt-0 mb-[11px] text-xs leading-[1.5] text-muted">
+          先选择首页使用的副本类别，再单选或多选具体副本。
+        </p>
         <div
-          className={
-            "advanced-duty-types flex flex-wrap gap-[6px] mb-[11px] [&_button]:min-h-[30px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-muted [&_button]:text-xs [&_button:hover]:text-ink [&&&&_button]:p-[0_10px] [&&&&_button]:[background:transparent] [&&&&_button]:[font-weight:730] [&&&&_button:hover]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)]"
-          }
+          className="advanced-duty-types mb-[11px] flex flex-wrap gap-1.5"
           aria-label="副本类别"
         >
           <button
             className={
               activeType
-                ? ""
-                : 'active [.login-methods_button&]:text-ink [.detail-thumbnails_button&]:border-accent [.search-mode-switch_button&]:border-accent [.search-mode-switch_button&]:text-accent [.search-mode-switch_button&]:bg-selected [.job-filter_>_summary&]:border-accent [.job-filter_>_summary&]:text-accent [.job-filter_>_summary&]:bg-selected [.tab-list_button&]:text-ink [.tab-list_button&::after]:absolute [.tab-list_button&::after]:h-[2px] [.tab-list_button&::after]:bg-accent [.tab-list_button&::after]:text-on-accent [.sort-control_button&]:text-accent [.sort-control_button&]:font-bold [.advanced-position-mode_button&]:border-accent [.advanced-position-mode_button&]:text-accent [.advanced-position-options_button&]:border-accent [.advanced-position-options_button&]:text-accent [.advanced-duty-types_button&]:border-accent [.advanced-duty-types_button&]:text-accent [.advanced-job-mode_button&]:text-accent [.advanced-rule-mode_button&]:text-accent [.login-methods_button&&&&::after]:transform-[scaleX(1)] [.detail-thumbnails_button&&&&]:opacity-[1] [.tab-list_button&&&&::after]:[content:""] [.tab-list_button&&&&::after]:left-[1px] [.tab-list_button&&&&::after]:right-[45%] [.tab-list_button&&&&::after]:bottom-[0] [.advanced-position-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-position-options_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-duty-types_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_10%,_var(--ors-color-surface)_)] [.advanced-job-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-job-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [.advanced-rule-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-rule-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)]'
+                ? advancedChoiceButtonClasses
+                : advancedChoiceActiveClasses
             }
             type="button"
             onClick={() => onTypeChange("")}
@@ -459,8 +472,8 @@ function DutyFilterPicker({
             <button
               className={
                 activeType === type
-                  ? 'active [.login-methods_button&]:text-ink [.detail-thumbnails_button&]:border-accent [.search-mode-switch_button&]:border-accent [.search-mode-switch_button&]:text-accent [.search-mode-switch_button&]:bg-selected [.job-filter_>_summary&]:border-accent [.job-filter_>_summary&]:text-accent [.job-filter_>_summary&]:bg-selected [.tab-list_button&]:text-ink [.tab-list_button&::after]:absolute [.tab-list_button&::after]:h-[2px] [.tab-list_button&::after]:bg-accent [.tab-list_button&::after]:text-on-accent [.sort-control_button&]:text-accent [.sort-control_button&]:font-bold [.advanced-position-mode_button&]:border-accent [.advanced-position-mode_button&]:text-accent [.advanced-position-options_button&]:border-accent [.advanced-position-options_button&]:text-accent [.advanced-duty-types_button&]:border-accent [.advanced-duty-types_button&]:text-accent [.advanced-job-mode_button&]:text-accent [.advanced-rule-mode_button&]:text-accent [.login-methods_button&&&&::after]:transform-[scaleX(1)] [.detail-thumbnails_button&&&&]:opacity-[1] [.tab-list_button&&&&::after]:[content:""] [.tab-list_button&&&&::after]:left-[1px] [.tab-list_button&&&&::after]:right-[45%] [.tab-list_button&&&&::after]:bottom-[0] [.advanced-position-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-position-options_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-duty-types_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_10%,_var(--ors-color-surface)_)] [.advanced-job-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-job-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [.advanced-rule-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-rule-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)]'
-                  : ""
+                  ? advancedChoiceActiveClasses
+                  : advancedChoiceButtonClasses
               }
               type="button"
               key={type}
@@ -470,42 +483,31 @@ function DutyFilterPicker({
             </button>
           ))}
         </div>
-        <label
-          className={
-            "advanced-picker-search grid gap-[6px] [&_>_span]:text-muted [&_>_span]:text-xs [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-[39px] [&_input]:border [&_input]:border-solid [&_input]:border-control [&_input]:rounded-[var(--ors-radius-control)] [&_input]:text-ink [&_input]:bg-canvas [&_input]:text-xs [&_input:focus]:border-accent [&_input::placeholder]:text-muted [&&&&_>_span]:[font-weight:720] [&&&&_input]:p-[0_11px] [&&&&_input]:[outline:0] [&&&&_input:focus]:shadow-[none] [&&&&_input::placeholder]:opacity-[0.76]"
-          }
-        >
-          <span>搜索具体副本</span>
+        <label className="advanced-picker-search grid gap-1.5">
+          <span className="text-xs font-[720] text-muted">搜索具体副本</span>
           <input
+            className={advancedSearchInputClasses}
             type="search"
             value={query}
             placeholder="输入副本名称"
             onChange={(event) => onQueryChange(event.target.value)}
           />
         </label>
-        <div
-          className={
-            "advanced-picker-options duties grid gap-[4px] max-h-[230px] mt-[10px] overflow-auto [&_label]:flex [&_label]:items-center [&_label]:gap-[8px] [&_label]:min-h-[35px] [&_label]:rounded-[var(--ors-radius-control)] [&_label]:text-ink [&_label]:text-xs [&_label]:cursor-pointer [&_label:hover]:bg-hover [&_input]:w-[15px] [&_input]:h-[15px] [&_img]:w-[22px] [&_img]:h-[22px] [&_img]:object-contain [.advanced-picker-options&_label]:grid [&&&&]:[overscroll-behavior:contain] [&&&&_label]:p-[5px_8px] [&&&&_input]:flex-[0_0_auto] [&&&&_input]:[accent-color:var(--ors-color-accent)] [.advanced-picker-options&&&&_label]:grid-cols-[auto_auto_minmax(0,_1fr)]"
-          }
-        >
+        <div className="advanced-picker-options duties mt-2.5 grid max-h-57.5 gap-1 overflow-auto [overscroll-behavior:contain]">
           {items.map((item) => (
             <label
-              className="[&&&&&]:min-h-9 [@media(pointer:coarse)]:[&&&&&]:min-h-11"
+              className="grid min-h-9 cursor-pointer grid-cols-[auto_auto_minmax(0,_1fr)] items-center gap-2 rounded-control px-2 py-[5px] text-xs text-ink hover:bg-hover [@media(pointer:coarse)]:min-h-11"
               key={`${item.type}-${item.label}`}
             >
               <input
-                className="size-4 shrink-0 accent-accent [&&&&&]:size-4 [&&&&&]:min-h-0 [&&&&&]:p-0"
+                className={advancedCheckboxClasses}
                 type="checkbox"
                 checked={item.dutyNames.every((name) =>
                   selected.includes(name),
                 )}
                 onChange={() => onToggle(item.dutyNames)}
               />
-              <span
-                className={
-                  "advanced-duty-type min-w-[46px] rounded-[var(--ors-radius-control)] text-accent text-xs text-center [&&&&]:p-[3px_6px] [&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [&&&&]:[font-weight:760]"
-                }
-              >
+              <span className="advanced-duty-type min-w-11.5 rounded-control bg-[color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] px-1.5 py-[3px] text-center text-xs font-[760] text-accent">
                 {item.type}
               </span>
               <span>{item.label}</span>
@@ -516,7 +518,6 @@ function DutyFilterPicker({
     </details>
   );
 }
-
 function PositionFilter({
   selected,
   mode,
@@ -530,29 +531,27 @@ function PositionFilter({
 }) {
   return (
     <section
-      className={
-        "advanced-position-filter grid gap-[11px] min-w-0 border border-solid border-line rounded-[var(--ors-radius-control)] bg-surface [&_>_header]:flex [&_>_header]:justify-between [&_>_header]:items-center [&_>_header]:gap-[16px] [&_>_header_>_div:first-child]:grid [&_>_header_>_div:first-child]:gap-[3px] [&_strong]:text-sm [&_small]:text-muted [&_small]:text-xs [&_>_p]:text-muted [&_>_p]:text-xs [&_>_p]:m-0 min-[921px]:items-center min-[921px]:min-h-[64px] min-[921px]:[&_>_header]:contents min-[921px]:[&_>_p]:absolute min-[921px]:[&_>_p]:w-[1px] min-[921px]:[&_>_p]:h-[1px] min-[921px]:[&_>_p]:overflow-hidden min-[921px]:[&_>_p]:whitespace-nowrap [&&&&]:[align-content:center] [&&&&]:p-[13px_15px] [@media(min-width:_921px)]:[&&&&]:grid-cols-[max-content_minmax(0,_1fr)_max-content] [@media(min-width:_921px)]:[&&&&]:grid-rows-[1fr] [@media(min-width:_921px)]:[&&&&]:[align-content:normal] [@media(min-width:_921px)]:[&&&&]:p-[8px_12px] [@media(min-width:_921px)]:[&&&&_>_header_>_div:first-child]:[grid-column:1] [@media(min-width:_921px)]:[&&&&_>_header_>_div:first-child]:[grid-row:1] [@media(min-width:_921px)]:[&&&&_>_p]:[clip:rect(0_0_0_0)]"
-      }
+      className="advanced-position-filter grid min-w-0 content-center gap-[11px] rounded-control border border-solid border-line bg-surface px-[15px] py-[13px] min-[921px]:min-h-16 min-[921px]:grid-cols-[max-content_minmax(0,_1fr)_max-content] min-[921px]:grid-rows-[1fr] min-[921px]:content-normal min-[921px]:items-center min-[921px]:px-3 min-[921px]:py-2"
       aria-labelledby="position-filter-title"
     >
-      <header>
-        <div>
-          <strong id="position-filter-title">空缺位置</strong>
-          <small>
+      <header className="flex items-center justify-between gap-4 min-[921px]:contents">
+        <div className="first:grid first:gap-[3px] min-[921px]:first:col-start-1 min-[921px]:first:row-start-1">
+          <strong className="text-sm" id="position-filter-title">
+            空缺位置
+          </strong>
+          <small className="text-xs text-muted">
             {selected.length ? `已选 ${selected.length} 项` : "不限"}
           </small>
         </div>
         <div
-          className={
-            "advanced-position-mode flex gap-[5px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:text-muted [&_button]:min-h-[27px] [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-xs [&_button:hover]:text-ink [&&&&_button]:[background:transparent] [&&&&_button]:[font-weight:740] [&&&&_button]:p-[0_8px] [&&&&_button:hover]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [@media(min-width:_921px)]:[&&&&]:[grid-column:3] [@media(min-width:_921px)]:[&&&&]:[grid-row:1]"
-          }
+          className="advanced-position-mode flex gap-[5px] first:grid first:gap-[3px] min-[921px]:col-start-3 min-[921px]:row-start-1 min-[921px]:first:col-start-1 min-[921px]:first:row-start-1"
           aria-label="位置匹配方式"
         >
           <button
             className={
               mode === "any"
-                ? 'active [.login-methods_button&]:text-ink [.detail-thumbnails_button&]:border-accent [.search-mode-switch_button&]:border-accent [.search-mode-switch_button&]:text-accent [.search-mode-switch_button&]:bg-selected [.job-filter_>_summary&]:border-accent [.job-filter_>_summary&]:text-accent [.job-filter_>_summary&]:bg-selected [.tab-list_button&]:text-ink [.tab-list_button&::after]:absolute [.tab-list_button&::after]:h-[2px] [.tab-list_button&::after]:bg-accent [.tab-list_button&::after]:text-on-accent [.sort-control_button&]:text-accent [.sort-control_button&]:font-bold [.advanced-position-mode_button&]:border-accent [.advanced-position-mode_button&]:text-accent [.advanced-position-options_button&]:border-accent [.advanced-position-options_button&]:text-accent [.advanced-duty-types_button&]:border-accent [.advanced-duty-types_button&]:text-accent [.advanced-job-mode_button&]:text-accent [.advanced-rule-mode_button&]:text-accent [.login-methods_button&&&&::after]:transform-[scaleX(1)] [.detail-thumbnails_button&&&&]:opacity-[1] [.tab-list_button&&&&::after]:[content:""] [.tab-list_button&&&&::after]:left-[1px] [.tab-list_button&&&&::after]:right-[45%] [.tab-list_button&&&&::after]:bottom-[0] [.advanced-position-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-position-options_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-duty-types_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_10%,_var(--ors-color-surface)_)] [.advanced-job-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-job-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [.advanced-rule-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-rule-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)]'
-                : ""
+                ? advancedCompactActiveClasses
+                : advancedCompactChoiceClasses
             }
             type="button"
             onClick={() => onModeChange("any")}
@@ -562,8 +561,8 @@ function PositionFilter({
           <button
             className={
               mode === "all"
-                ? 'active [.login-methods_button&]:text-ink [.detail-thumbnails_button&]:border-accent [.search-mode-switch_button&]:border-accent [.search-mode-switch_button&]:text-accent [.search-mode-switch_button&]:bg-selected [.job-filter_>_summary&]:border-accent [.job-filter_>_summary&]:text-accent [.job-filter_>_summary&]:bg-selected [.tab-list_button&]:text-ink [.tab-list_button&::after]:absolute [.tab-list_button&::after]:h-[2px] [.tab-list_button&::after]:bg-accent [.tab-list_button&::after]:text-on-accent [.sort-control_button&]:text-accent [.sort-control_button&]:font-bold [.advanced-position-mode_button&]:border-accent [.advanced-position-mode_button&]:text-accent [.advanced-position-options_button&]:border-accent [.advanced-position-options_button&]:text-accent [.advanced-duty-types_button&]:border-accent [.advanced-duty-types_button&]:text-accent [.advanced-job-mode_button&]:text-accent [.advanced-rule-mode_button&]:text-accent [.login-methods_button&&&&::after]:transform-[scaleX(1)] [.detail-thumbnails_button&&&&]:opacity-[1] [.tab-list_button&&&&::after]:[content:""] [.tab-list_button&&&&::after]:left-[1px] [.tab-list_button&&&&::after]:right-[45%] [.tab-list_button&&&&::after]:bottom-[0] [.advanced-position-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-position-options_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-duty-types_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_10%,_var(--ors-color-surface)_)] [.advanced-job-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-job-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [.advanced-rule-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-rule-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)]'
-                : ""
+                ? advancedCompactActiveClasses
+                : advancedCompactChoiceClasses
             }
             type="button"
             onClick={() => onModeChange("all")}
@@ -572,17 +571,13 @@ function PositionFilter({
           </button>
         </div>
       </header>
-      <div
-        className={
-          "advanced-position-options gap-[5px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:text-muted grid [&_button]:min-h-[38px] [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-xs [&_button:hover]:text-ink [&&&&_button]:[background:transparent] [&&&&_button]:[font-weight:740] [&&&&]:grid-cols-[repeat(8,_minmax(0,_1fr))] [&&&&_button]:[font-family:var(--ors-font-ui)] [&&&&_button:hover]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [@media(min-width:_921px)]:[&&&&]:[grid-column:2] [@media(min-width:_921px)]:[&&&&]:[grid-row:1] [@media(max-width:_700px)]:[&&&&]:grid-cols-[repeat(4,_minmax(0,_1fr))]"
-        }
-      >
+      <div className="advanced-position-options grid grid-cols-8 gap-[5px] max-[700px]:grid-cols-4 min-[921px]:col-start-2 min-[921px]:row-start-1">
         {PARTY_POSITIONS.map((position) => (
           <button
             className={
               selected.includes(position)
-                ? 'active [.login-methods_button&]:text-ink [.detail-thumbnails_button&]:border-accent [.search-mode-switch_button&]:border-accent [.search-mode-switch_button&]:text-accent [.search-mode-switch_button&]:bg-selected [.job-filter_>_summary&]:border-accent [.job-filter_>_summary&]:text-accent [.job-filter_>_summary&]:bg-selected [.tab-list_button&]:text-ink [.tab-list_button&::after]:absolute [.tab-list_button&::after]:h-[2px] [.tab-list_button&::after]:bg-accent [.tab-list_button&::after]:text-on-accent [.sort-control_button&]:text-accent [.sort-control_button&]:font-bold [.advanced-position-mode_button&]:border-accent [.advanced-position-mode_button&]:text-accent [.advanced-position-options_button&]:border-accent [.advanced-position-options_button&]:text-accent [.advanced-duty-types_button&]:border-accent [.advanced-duty-types_button&]:text-accent [.advanced-job-mode_button&]:text-accent [.advanced-rule-mode_button&]:text-accent [.login-methods_button&&&&::after]:transform-[scaleX(1)] [.detail-thumbnails_button&&&&]:opacity-[1] [.tab-list_button&&&&::after]:[content:""] [.tab-list_button&&&&::after]:left-[1px] [.tab-list_button&&&&::after]:right-[45%] [.tab-list_button&&&&::after]:bottom-[0] [.advanced-position-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-position-options_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-duty-types_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_10%,_var(--ors-color-surface)_)] [.advanced-job-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-job-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [.advanced-rule-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-rule-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)]'
-                : ""
+                ? "active min-h-9.5 rounded-control border border-solid border-control bg-transparent font-sans text-xs font-[740] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] hover:border-[color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] hover:text-ink"
+                : "min-h-9.5 rounded-control border border-solid border-control bg-transparent font-sans text-xs font-[740] text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] hover:border-[color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] hover:text-ink"
             }
             type="button"
             aria-pressed={selected.includes(position)}
@@ -593,11 +588,12 @@ function PositionFilter({
           </button>
         ))}
       </div>
-      <p>选择你想加入的空缺位置，支持多选。</p>
+      <p className="m-0 text-xs text-muted min-[921px]:absolute min-[921px]:h-px min-[921px]:w-px min-[921px]:overflow-hidden min-[921px]:whitespace-nowrap min-[921px]:[clip:rect(0_0_0_0)]">
+        选择你想加入的空缺位置，支持多选。
+      </p>
     </section>
   );
 }
-
 function JobFilterPicker({
   title,
   jobs,
@@ -614,36 +610,26 @@ function JobFilterPicker({
   onToggle: (value: number) => void;
 }) {
   return (
-    <details
-      className={
-        "advanced-picker min-w-0 border border-solid border-line rounded-[var(--ors-radius-control)] bg-surface [&_summary]:flex [&_summary]:justify-between [&_summary]:items-center [&_summary]:gap-[12px] [&_summary]:min-h-[64px] [&_summary]:cursor-pointer [&_summary::-webkit-details-marker]:hidden [&_summary_>_span]:grid [&_summary_>_span]:min-w-0 [&_summary_>_span]:gap-[3px] [&_summary_strong]:text-sm [&_summary_small]:text-muted [&_summary_small]:text-xs [&_summary_>_svg]:w-[15px] [&_summary_>_svg]:h-[15px] [&_summary_>_svg]:text-muted [&[open]_summary_>_svg]:text-accent [&&&&_summary]:p-[0_15px] [&&&&_summary]:[list-style:none] [&&&&_summary_>_svg]:flex-[0_0_auto] [&&&&_summary_>_svg]:[transition:transform_160ms_ease] [&&&&[open]_summary_>_svg]:transform-[rotate(180deg)]"
-      }
-    >
-      <summary>
-        <span>
-          <strong>{title}</strong>
-          <small>
+    <details className={advancedPickerClasses}>
+      <summary className={advancedPickerSummaryClasses}>
+        <span className="grid min-w-0 gap-[3px]">
+          <strong className="text-sm">{title}</strong>
+          <small className="text-xs text-muted">
             {selected.length ? `已选 ${selected.length} 项` : "不限"}
           </small>
         </span>
-        <CaretDown weight="bold" />
+        <CaretDown className={advancedPickerChevronClasses} weight="bold" />
       </summary>
-      <div
-        className={
-          "advanced-picker-content [&_>_p]:text-muted [&_>_p]:text-xs [&&&&]:p-[0_14px_14px] [&&&&_>_p]:m-[0_0_11px] [&&&&_>_p]:leading-[1.5]"
-        }
-      >
-        <div
-          className={
-            "advanced-job-mode flex items-center gap-[6px] mb-[10px] [&_>_span]:text-muted [&_>_span]:text-xs [&_button]:min-h-[29px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-muted [&_button]:text-xs [&&&&_>_span]:[margin-right:auto] [&&&&_button]:p-[0_9px] [&&&&_button]:[background:transparent] [&&&&_button]:[font-weight:730]"
-          }
-        >
-          <span>多选匹配方式</span>
+      <div className={advancedPickerContentClasses}>
+        <div className="advanced-job-mode mb-2.5 flex items-center gap-1.5">
+          <span className="[margin-right:auto] text-xs text-muted">
+            多选匹配方式
+          </span>
           <button
             className={
               mode === "any"
-                ? 'active [.login-methods_button&]:text-ink [.detail-thumbnails_button&]:border-accent [.search-mode-switch_button&]:border-accent [.search-mode-switch_button&]:text-accent [.search-mode-switch_button&]:bg-selected [.job-filter_>_summary&]:border-accent [.job-filter_>_summary&]:text-accent [.job-filter_>_summary&]:bg-selected [.tab-list_button&]:text-ink [.tab-list_button&::after]:absolute [.tab-list_button&::after]:h-[2px] [.tab-list_button&::after]:bg-accent [.tab-list_button&::after]:text-on-accent [.sort-control_button&]:text-accent [.sort-control_button&]:font-bold [.advanced-position-mode_button&]:border-accent [.advanced-position-mode_button&]:text-accent [.advanced-position-options_button&]:border-accent [.advanced-position-options_button&]:text-accent [.advanced-duty-types_button&]:border-accent [.advanced-duty-types_button&]:text-accent [.advanced-job-mode_button&]:text-accent [.advanced-rule-mode_button&]:text-accent [.login-methods_button&&&&::after]:transform-[scaleX(1)] [.detail-thumbnails_button&&&&]:opacity-[1] [.tab-list_button&&&&::after]:[content:""] [.tab-list_button&&&&::after]:left-[1px] [.tab-list_button&&&&::after]:right-[45%] [.tab-list_button&&&&::after]:bottom-[0] [.advanced-position-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-position-options_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-duty-types_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_10%,_var(--ors-color-surface)_)] [.advanced-job-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-job-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [.advanced-rule-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-rule-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)]'
-                : ""
+                ? advancedProfessionActiveClasses
+                : advancedProfessionButtonClasses
             }
             type="button"
             onClick={() => onModeChange("any")}
@@ -653,8 +639,8 @@ function JobFilterPicker({
           <button
             className={
               mode === "all"
-                ? 'active [.login-methods_button&]:text-ink [.detail-thumbnails_button&]:border-accent [.search-mode-switch_button&]:border-accent [.search-mode-switch_button&]:text-accent [.search-mode-switch_button&]:bg-selected [.job-filter_>_summary&]:border-accent [.job-filter_>_summary&]:text-accent [.job-filter_>_summary&]:bg-selected [.tab-list_button&]:text-ink [.tab-list_button&::after]:absolute [.tab-list_button&::after]:h-[2px] [.tab-list_button&::after]:bg-accent [.tab-list_button&::after]:text-on-accent [.sort-control_button&]:text-accent [.sort-control_button&]:font-bold [.advanced-position-mode_button&]:border-accent [.advanced-position-mode_button&]:text-accent [.advanced-position-options_button&]:border-accent [.advanced-position-options_button&]:text-accent [.advanced-duty-types_button&]:border-accent [.advanced-duty-types_button&]:text-accent [.advanced-job-mode_button&]:text-accent [.advanced-rule-mode_button&]:text-accent [.login-methods_button&&&&::after]:transform-[scaleX(1)] [.detail-thumbnails_button&&&&]:opacity-[1] [.tab-list_button&&&&::after]:[content:""] [.tab-list_button&&&&::after]:left-[1px] [.tab-list_button&&&&::after]:right-[45%] [.tab-list_button&&&&::after]:bottom-[0] [.advanced-position-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-position-options_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_11%,_var(--ors-color-surface)_)] [.advanced-duty-types_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_10%,_var(--ors-color-surface)_)] [.advanced-job-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-job-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)] [.advanced-rule-mode_button&&&&]:[border-color:color-mix(_in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line)_)] [.advanced-rule-mode_button&&&&]:[background:color-mix(_in_srgb,_var(--ors-color-accent)_9%,_var(--ors-color-surface)_)]'
-                : ""
+                ? advancedProfessionActiveClasses
+                : advancedProfessionButtonClasses
             }
             type="button"
             onClick={() => onModeChange("all")}
@@ -662,23 +648,27 @@ function JobFilterPicker({
             全部
           </button>
         </div>
-        <div
-          className={
-            "advanced-picker-options jobs grid gap-[4px] max-h-[230px] mt-[10px] overflow-auto [&_label]:flex [&_label]:items-center [&_label]:gap-[8px] [&_label]:min-h-[35px] [&_label]:rounded-[var(--ors-radius-control)] [&_label]:text-ink [&_label]:text-xs [&_label]:cursor-pointer [&_label:hover]:bg-hover [&_input]:w-[15px] [&_input]:h-[15px] [&_img]:w-[22px] [&_img]:h-[22px] [&_img]:object-contain [&&&&]:[overscroll-behavior:contain] [&&&&_label]:p-[5px_8px] [&&&&_input]:flex-[0_0_auto] [&&&&_input]:[accent-color:var(--ors-color-accent)]"
-          }
-        >
+        <div className="advanced-picker-options jobs mt-2.5 grid max-h-57.5 gap-1 overflow-auto [overscroll-behavior:contain]">
           {jobs.map((job) => (
             <label
-              className="[&&&&&]:min-h-9 [@media(pointer:coarse)]:[&&&&&]:min-h-11"
+              className="flex min-h-9 cursor-pointer items-center gap-2 rounded-control px-2 py-[5px] text-xs text-ink hover:bg-hover [@media(pointer:coarse)]:min-h-11"
               key={job.id}
             >
               <input
-                className="size-4 shrink-0 accent-accent [&&&&&]:size-4 [&&&&&]:min-h-0 [&&&&&]:p-0"
+                className={advancedCheckboxClasses}
                 type="checkbox"
                 checked={selected.includes(job.id)}
                 onChange={() => onToggle(job.id)}
               />
-              {job.icon && <img src={job.icon} alt="" width="22" height="22" />}
+              {job.icon && (
+                <img
+                  className="h-5.5 w-5.5 object-contain"
+                  src={job.icon}
+                  alt=""
+                  width="22"
+                  height="22"
+                />
+              )}
               <span>{job.name}</span>
             </label>
           ))}
@@ -687,7 +677,6 @@ function JobFilterPicker({
     </details>
   );
 }
-
 function TextRuleEditor({
   rule,
   error,
@@ -704,24 +693,15 @@ function TextRuleEditor({
   onRemove: () => void;
 }) {
   return (
-    <article
-      className={
-        "advanced-rule-card [&_fieldset_input]:w-[15px] [&_fieldset_input]:h-[15px] p-[14px] border border-solid border-line rounded-[var(--ors-radius-control)] bg-canvas [&_fieldset]:flex [&_fieldset]:flex-wrap [&_fieldset]:p-0 [&_fieldset]:border-0 [&_legend]:w-full [&_legend]:mb-[8px] [&_legend]:text-muted [&_legend]:text-xs [&_fieldset_label]:inline-flex [&_fieldset_label]:items-center [&_fieldset_label]:gap-[5px] [&_fieldset_label]:text-xs [&_fieldset_label]:cursor-pointer [&&&&_fieldset_input]:flex-[0_0_auto] [&&&&_fieldset_input]:[accent-color:var(--ors-color-accent)] [&&&&_fieldset]:gap-[7px_14px] [&&&&_fieldset]:m-[13px_0_0] [&&&&_legend]:[font-weight:720]"
-      }
-    >
-      <div
-        className={
-          "advanced-rule-inputs [&_label_>_span:first-child]:text-muted [&_label_>_span:first-child]:text-xs [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-[39px] [&_input]:border [&_input]:border-solid [&_input]:border-control [&_input]:rounded-[var(--ors-radius-control)] [&_input]:text-ink [&_input]:bg-canvas [&_input]:text-xs [&_select]:w-full [&_select]:min-w-0 [&_select]:min-h-[39px] [&_select]:border [&_select]:border-solid [&_select]:border-control [&_select]:rounded-[var(--ors-radius-control)] [&_select]:text-ink [&_select]:bg-canvas [&_select]:text-xs [&_input:focus]:border-accent [&_select:focus]:border-accent [&_input::placeholder]:text-muted grid gap-[10px] [&_label]:grid [&_label]:gap-[6px] [&_>_button]:grid [&_>_button]:place-items-center [&_>_button]:w-[39px] [&_>_button]:h-[39px] [&_>_button]:border [&_>_button]:border-solid [&_>_button]:border-danger [&_>_button]:rounded-[var(--ors-radius-control)] [&_>_button]:text-danger [&_>_button]:bg-surface [&_>_button_svg]:w-[16px] [&_>_button_svg]:h-[16px] max-[700px]:[&_label:nth-child(2)]:min-w-0 max-[460px]:[&_>_button]:w-full [&&&&_label_>_span:first-child]:[font-weight:720] [&&&&_input]:p-[0_11px] [&&&&_input]:[outline:0] [&&&&_select]:p-[0_11px] [&&&&_select]:[outline:0] [&&&&_input:focus]:shadow-[none] [&&&&_select:focus]:shadow-[none] [&&&&_input::placeholder]:opacity-[0.76] [&&&&]:grid-cols-[150px_minmax(220px,_1fr)_auto] [&&&&]:[align-items:end] [@media(max-width:_920px)]:[&&&&]:grid-cols-[130px_minmax(180px,_1fr)_auto] [@media(max-width:_700px)]:[&&&&]:grid-cols-[1fr_auto] [@media(max-width:_700px)]:[&&&&_label:first-child]:[grid-column:1_/_-1] [@media(max-width:_460px)]:[&&&&]:grid-cols-[1fr] [@media(max-width:_460px)]:[&&&&_label:first-child]:[grid-column:auto]"
-        }
-      >
-        <label>
-          <span>规则类型</span>
-          <span
-            className={
-              "advanced-select-control relative block [&_select]:pr-[35px] [&_svg]:absolute [&_svg]:w-[14px] [&_svg]:h-[14px] [&_svg]:text-muted [&&&&_select]:[appearance:none] [&&&&_select]:[-webkit-appearance:none] [&&&&_svg]:top-[50%] [&&&&_svg]:right-[11px] [&&&&_svg]:[pointer-events:none] [&&&&_svg]:transform-[translateY(-50%)]"
-            }
-          >
+    <article className="advanced-rule-card rounded-control border border-solid border-line bg-canvas p-3.5">
+      <div className="advanced-rule-inputs grid grid-cols-[150px_minmax(220px,_1fr)_auto] items-end gap-2.5 max-[920px]:grid-cols-[130px_minmax(180px,_1fr)_auto] max-[700px]:grid-cols-[1fr_auto] max-[460px]:grid-cols-[1fr]">
+        <label className={advancedFieldClasses}>
+          <span className="first:text-xs first:font-[720] first:text-muted">
+            规则类型
+          </span>
+          <span className="advanced-select-control relative block first:text-xs first:font-[720] first:text-muted">
             <select
+              className="min-h-[39px] w-full min-w-0 [appearance:none] rounded-control border border-solid border-control bg-canvas px-[11px] py-0 text-xs text-ink outline-none [-webkit-appearance:none] focus:border-accent focus:shadow-[none]"
               value={rule.mode}
               onChange={(event) =>
                 onModeChange(
@@ -732,12 +712,18 @@ function TextRuleEditor({
               <option value="keyword">关键词</option>
               <option value="regex">正则表达式</option>
             </select>
-            <CaretDown weight="bold" />
+            <CaretDown
+              className="[pointer-events:none] absolute top-1/2 right-[11px] h-3.5 w-3.5 transform-[translateY(-50%)] text-muted"
+              weight="bold"
+            />
           </span>
         </label>
-        <label>
-          <span>{rule.mode === "regex" ? "正则表达式" : "关键词"}</span>
+        <label className={advancedFieldClasses}>
+          <span className="first:text-xs first:font-[720] first:text-muted">
+            {rule.mode === "regex" ? "正则表达式" : "关键词"}
+          </span>
           <input
+            className={advancedSearchInputClasses}
             type="text"
             value={rule.pattern}
             placeholder={
@@ -746,19 +732,26 @@ function TextRuleEditor({
             onChange={(event) => onPatternChange(event.target.value)}
           />
         </label>
-        <button type="button" aria-label="删除这条规则" onClick={onRemove}>
-          <Trash />
+        <button
+          className="grid h-[39px] min-h-9 w-[39px] place-items-center rounded-control border border-solid border-danger bg-surface text-danger transition-[background-color,color,border-color] duration-120 ease-[ease] max-[460px]:w-full pointer-coarse:min-h-11"
+          type="button"
+          aria-label="删除这条规则"
+          onClick={onRemove}
+        >
+          <Trash className="h-4 w-4" />
         </button>
       </div>
-      <fieldset>
-        <legend>搜索范围（未选择时搜索全部内容）</legend>
+      <fieldset className="mx-0 mt-[13px] mb-0 flex flex-wrap gap-[7px_14px] border-0 p-0">
+        <legend className="mb-2 w-full text-xs font-[720] text-muted">
+          搜索范围（未选择时搜索全部内容）
+        </legend>
         {ADVANCED_RECRUIT_FIELD_KEYS.map((field) => (
           <label
-            className="[&&&&&]:min-h-9 [@media(pointer:coarse)]:[&&&&&]:min-h-11"
+            className="inline-flex min-h-9 cursor-pointer items-center gap-[5px] text-xs [@media(pointer:coarse)]:min-h-11"
             key={field}
           >
             <input
-              className="size-4 shrink-0 accent-accent [&&&&&]:size-4 [&&&&&]:min-h-0 [&&&&&]:p-0"
+              className={advancedCheckboxClasses}
               type="checkbox"
               checked={rule.fields.includes(field)}
               onChange={() => onToggleField(field)}
@@ -768,11 +761,7 @@ function TextRuleEditor({
         ))}
       </fieldset>
       {error && (
-        <p
-          className={
-            "advanced-rule-error text-danger text-xs [&&&&]:m-[10px_0_0]!"
-          }
-        >
+        <p className="advanced-rule-error m-0 mx-0! mt-2.5! mb-0! text-xs text-danger">
           {error}
         </p>
       )}

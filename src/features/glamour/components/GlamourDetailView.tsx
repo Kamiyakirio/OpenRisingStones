@@ -1,4 +1,5 @@
 /** Complete glamour submission with media, author context, and equipment slots. */
+
 import {
   ArrowLeft,
   BookmarkSimple,
@@ -21,6 +22,13 @@ import type { OwnedItemMatch, OwnedItemSource } from "../ownedItems.types";
 import type { Glamour, GlamourDetail, GlamourEquipment } from "../types";
 import { hideBrokenImage } from "../utils/glamourPresentation";
 import { EquipmentSourcePopover } from "./EquipmentSourcePopover";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+const detailImageClasses = "absolute inset-0 h-full w-full object-cover";
+const detailMetadataBadgeClasses =
+  "rounded-control bg-selected px-2.5 py-[7px] text-xs font-bold text-accent";
+const detailEquipmentCaptionClasses =
+  "overflow-hidden text-xs font-[550] text-ellipsis whitespace-nowrap text-muted";
 
 type GlamourDetailViewProps = {
   glamour: Glamour;
@@ -47,7 +55,6 @@ const EQUIPMENT_SLOTS = [
   ["FEET", "脚部"],
   ["FINGER_RIGHT", "右戒指"],
 ] as const;
-
 export function GlamourDetailView({
   glamour,
   saved,
@@ -62,27 +69,22 @@ export function GlamourDetailView({
   // The page owns horizontal gutters; child sections share its content edges.
   return (
     <main
-      className={
-        "glamour-detail-page @container/glamour-detail mx-auto w-full max-w-[1480px] px-5 pb-5 pt-0 min-h-[calc(100dvh-56px)] max-[899px]:px-4 max-[899px]:min-h-[calc(100dvh-48px)] max-[519px]:px-3"
-      }
+      className="glamour-detail-page @container/glamour-detail mx-auto min-h-[calc(100dvh-56px)] w-full max-w-370 px-5 pt-0 pb-5 max-[899px]:min-h-[calc(100dvh-48px)] max-[899px]:px-4 max-[519px]:px-3"
       id="top"
     >
-      <div
-        className={
-          "detail-navigation flex justify-between items-center min-h-[68px] border-b border-solid border-line text-muted max-[600px]:min-h-[58px] max-[600px]:[&_>_span]:hidden [&&&&]:text-[12px]"
-        }
-      >
+      <div className="detail-navigation flex min-h-17 items-center justify-between border-b border-solid border-line text-[12px] text-muted max-[600px]:min-h-14.5">
         <button
-          className={
-            "detail-back inline-flex items-center gap-[9px] border-0 text-ink text-sm [&_svg]:w-[17px] [&_svg]:h-[17px] [&_svg]:text-accent [&&&&]:p-[9px_0] [&&&&]:[background:transparent] [&&&&]:[font-weight:720] [&&&&_svg]:[transition:transform_180ms_ease] [&&&&:hover_svg]:transform-[translateX(-3px)]"
-          }
+          className="detail-back group/detail-back inline-flex min-h-9 items-center gap-[9px] border-0 bg-transparent px-0 py-[9px] text-sm font-[720] text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] pointer-coarse:min-h-11"
           type="button"
           onClick={onBack}
         >
-          <ArrowLeft weight="bold" />
+          <ArrowLeft
+            className="h-[17px] w-[17px] text-accent [transition:transform_180ms_ease] group-hover/detail-back:transform-[translateX(-3px)]"
+            weight="bold"
+          />
           返回幻化列表
         </button>
-        <span>幻化详情</span>
+        <span className="max-[600px]:hidden">幻化详情</span>
       </div>
       {loading ? (
         <DetailSkeleton />
@@ -101,7 +103,6 @@ export function GlamourDetailView({
     </main>
   );
 }
-
 function DetailContent({
   detail,
   saved,
@@ -123,61 +124,40 @@ function DetailContent({
     [detail.equipments],
   );
   const avatar = useRisingStonesAvatar(detail.avatar);
-
   useEffect(() => {
     void ownedItems.ensureItemMetadata(
       detail.equipments.map((item) => item.equipmentId),
     );
   }, [detail.equipments, ownedItems]);
-
   return (
-    <article
-      className={
-        "detail-layout grid min-w-0 grid-cols-1 items-start gap-5 py-5 @min-[980px]/glamour-detail:items-stretch @min-[980px]/glamour-detail:grid-cols-[minmax(0,_0.92fr)_minmax(0,_1.08fr)] [@media(prefers-reduced-motion:_no-preference)]:[&&&&:not(.detail-skeleton)]:animate-[detail-enter_560ms_both_cubic-bezier(0.16,_1,_0.3,_1)]"
-      }
-    >
+    <article className="detail-layout grid min-w-0 grid-cols-1 items-start gap-5 py-5 @min-[980px]/glamour-detail:grid-cols-[minmax(0,_0.92fr)_minmax(0,_1.08fr)] @min-[980px]/glamour-detail:items-stretch">
       {/* Fill the media track explicitly; capped aspect ratios must not shrink its width. */}
       <section
-        className={
-          "detail-media flex min-w-0 flex-col gap-3 self-start @min-[980px]/glamour-detail:self-stretch"
-        }
+        className="detail-media flex min-w-0 flex-col gap-3 self-start @min-[980px]/glamour-detail:self-stretch"
         aria-label="投稿图片"
       >
-        <div
-          className={
-            "detail-main-image relative w-full aspect-[4/5] max-h-[720px] shrink-0 overflow-hidden @min-[980px]/glamour-detail:aspect-auto @min-[980px]/glamour-detail:min-h-[360px] @min-[980px]/glamour-detail:max-h-none @min-[980px]/glamour-detail:flex-1 rounded-[var(--ors-radius-control)] bg-hover [&_>_img]:w-full [&_>_img]:h-full [&_>_img]:object-cover [&_>_img]:absolute [&_>_img]:inset-0"
-          }
-        >
+        <div className="detail-main-image relative aspect-[4/5] max-h-180 w-full shrink-0 overflow-hidden rounded-control bg-hover @min-[980px]/glamour-detail:aspect-auto @min-[980px]/glamour-detail:max-h-none @min-[980px]/glamour-detail:min-h-90 @min-[980px]/glamour-detail:flex-1">
           <img
+            className={detailImageClasses}
             key={activeImage}
             src={activeImage}
             alt={`${detail.title}幻化大图`}
             referrerPolicy="no-referrer"
             onError={(event) => hideBrokenImage(event.currentTarget)}
           />
-          <span
-            className={
-              "detail-image-count absolute inline-flex items-center gap-[6px] min-h-[34px] rounded-[var(--ors-radius-control)] text-xs font-bold [&_svg]:w-[15px] [&_svg]:h-[15px] [&&&&]:right-[14px] [&&&&]:bottom-[14px] [&&&&]:p-[0_11px] [&&&&]:[border:1px_solid_rgba(255,_255,_255,_0.26)] [&&&&]:[color:#f4f6f3] [&&&&]:[background:rgba(20,_29,_30,_0.68)] [@media(prefers-reduced-transparency:_reduce)]:[&&&&]:[background:rgba(20,_29,_30,_0.92)]"
-            }
-          >
-            <Images />
+          <span className="detail-image-count absolute right-3.5 bottom-3.5 inline-flex min-h-8.5 items-center gap-1.5 rounded-control bg-[rgba(20,_29,_30,_0.68)] px-[11px] py-0 text-xs font-bold text-[#f4f6f3] [border:1px_solid_rgba(255,_255,_255,_0.26)] [@media(prefers-reduced-transparency:_reduce)]:bg-[rgba(20,_29,_30,_0.92)]">
+            <Images className="h-[15px] w-[15px]" />
             {detail.images.length}
           </span>
         </div>
         {detail.images.length > 1 && (
           <div
-            className={
-              "detail-thumbnails flex flex-row gap-3 overflow-x-auto min-w-0 [&_button]:relative [&_button]:p-0 [&_button]:overflow-hidden [&_button]:rounded-[var(--ors-radius-control)] [&_button]:bg-hover [&_button:hover]:border-accent [&_img]:w-full [&_img]:h-full [&_img]:object-cover [&&&&_button]:[aspect-ratio:4_/_5] [&&&&_button]:[border:1px_solid_transparent] [&&&&_button]:opacity-[0.58] [&&&&_button]:[transition:opacity_180ms_ease,_border-color_180ms_ease,_transform_180ms_ease] [&&&&_button:hover]:opacity-[1] [scroll-snap-type:x_mandatory] [&_button]:flex-[0_0_64px] [&_button]:[scroll-snap-align:start]"
-            }
+            className="detail-thumbnails flex min-w-0 [scroll-snap-type:x_mandatory] flex-row gap-3 overflow-x-auto"
             aria-label="选择投稿图片"
           >
             {detail.images.map((image, index) => (
               <button
-                className={
-                  image === activeImage
-                    ? "active [.detail-thumbnails_button&]:border-accent [.detail-thumbnails_button&&&&]:opacity-[1]"
-                    : ""
-                }
+                className="relative [aspect-ratio:4_/_5] min-h-9 flex-[0_0_64px] [scroll-snap-align:start] overflow-hidden rounded-control border border-transparent bg-hover p-0 opacity-58 [transition:opacity_180ms_ease,_border-color_180ms_ease,_transform_180ms_ease] hover:border-accent hover:opacity-100 aria-pressed:border-accent aria-pressed:opacity-100 pointer-coarse:min-h-11"
                 type="button"
                 aria-label={`查看第 ${index + 1} 张图片`}
                 aria-pressed={image === activeImage}
@@ -185,6 +165,7 @@ function DetailContent({
                 key={image}
               >
                 <img
+                  className="h-full w-full object-cover"
                   src={image}
                   alt=""
                   referrerPolicy="no-referrer"
@@ -197,25 +178,29 @@ function DetailContent({
       </section>
 
       <section className="detail-information @container/equipment min-w-0">
-        <header className="detail-heading flex justify-between items-center gap-3 pb-4 border-b border-solid border-line max-[600px]:items-start">
-          <div
-            className={
-              "detail-author flex items-center gap-3 min-w-0 [&_>_img]:w-[50px] [&_>_img]:h-[50px] [&_>_img]:rounded-[var(--ors-radius-control)] [&_>_span]:w-[50px] [&_>_span]:h-[50px] [&_>_span]:rounded-[var(--ors-radius-control)] [&_>_img]:object-cover [&_>_span]:grid [&_>_span]:place-items-center [&_>_span]:text-accent [&_>_span]:bg-selected [&_>_span]:font-bold [&_div]:grid [&_div]:gap-[6px] [&_div]:min-w-0 [&_strong]:overflow-hidden [&_strong]:whitespace-nowrap [&_small]:flex [&_small]:items-center [&_small]:gap-[5px] [&_small]:text-muted [&_small]:text-xs [&_small_svg]:w-[14px] [&_small_svg]:h-[14px] [&_small_svg]:text-accent [&&&&_>_img]:flex-[0_0_auto] [&&&&_>_img]:[border:1px_solid_color-mix(in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line))] [&&&&_>_span]:flex-[0_0_auto] [&&&&_>_span]:[border:1px_solid_color-mix(in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line))] [&&&&_>_span]:[font-family:var(--ors-font-ui)] [&&&&_>_span]:text-[21px] [&&&&_strong]:text-[16px] [&&&&_strong]:[text-overflow:ellipsis]"
-            }
-          >
+        <header className="detail-heading flex items-center justify-between gap-3 border-b border-solid border-line pb-4 max-[600px]:items-start">
+          <div className="detail-author flex min-w-0 items-center gap-3">
             {avatar.source ? (
               <img
+                className="h-12.5 w-12.5 shrink-0 rounded-control object-cover [border:1px_solid_color-mix(in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line))]"
                 src={avatar.source}
                 alt={`${detail.author}的头像`}
                 onError={avatar.markFailed}
               />
             ) : (
-              <span aria-hidden="true">{detail.author.slice(0, 1)}</span>
+              <span
+                className="grid h-12.5 w-12.5 shrink-0 place-items-center rounded-control bg-selected font-sans text-[21px] font-bold text-accent [border:1px_solid_color-mix(in_srgb,_var(--ors-color-accent)_58%,_var(--ors-color-line))]"
+                aria-hidden="true"
+              >
+                {detail.author.slice(0, 1)}
+              </span>
             )}
-            <div>
-              <strong>{detail.author}</strong>
-              <small>
-                <MapPin weight="fill" />
+            <div className="grid min-w-0 gap-1.5">
+              <strong className="overflow-hidden text-[16px] text-ellipsis whitespace-nowrap">
+                {detail.author}
+              </strong>
+              <small className="flex items-center gap-[5px] text-xs text-muted">
+                <MapPin className="h-3.5 w-3.5 text-accent" weight="fill" />
                 {detail.areaName} {detail.groupName}
               </small>
             </div>
@@ -223,72 +208,64 @@ function DetailContent({
           <button
             className={
               saved
-                ? "detail-save saved inline-flex items-center gap-[7px] min-h-[40px] border border-solid border-line rounded-[var(--ors-radius-control)] text-ink [&:hover]:border-accent [&:hover]:text-accent [&:hover]:bg-selected [&_svg]:w-[16px] [&_svg]:h-[16px] [.detail-save&]:border-accent [.detail-save&]:text-accent [.detail-save&]:bg-selected [.save-button&]:text-on-accent [.save-button&]:bg-accent [&&&&]:p-[0_14px] [&&&&]:[background:transparent] [&&&&]:text-[12px] [&&&&]:[font-weight:720]"
-                : "detail-save inline-flex items-center gap-[7px] min-h-[40px] border border-solid border-line rounded-[var(--ors-radius-control)] text-ink [&:hover]:border-accent [&:hover]:text-accent [&:hover]:bg-selected [&_svg]:w-[16px] [&_svg]:h-[16px] [&&&&]:p-[0_14px] [&&&&]:[background:transparent] [&&&&]:text-[12px] [&&&&]:[font-weight:720]"
+                ? "detail-save saved inline-flex min-h-10 items-center gap-[7px] rounded-control border border-solid border-accent bg-transparent px-3.5 py-0 text-[12px] font-[720] text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-selected hover:text-accent"
+                : "detail-save inline-flex min-h-10 items-center gap-[7px] rounded-control border border-solid border-line bg-transparent px-3.5 py-0 text-[12px] font-[720] text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] hover:border-accent hover:bg-selected hover:text-accent"
             }
             type="button"
             onClick={() => onToggleSave(detail.id)}
           >
-            <BookmarkSimple weight={saved ? "fill" : "regular"} />
+            <BookmarkSimple
+              className="h-4 w-4"
+              weight={saved ? "fill" : "regular"}
+            />
             {saved ? "已收藏" : "收藏"}
           </button>
         </header>
 
-        <div
-          className={
-            "detail-title-block [&_h1]:m-0 [&_h1]:text-2xl [&_h1]:font-semibold [&_>_p]:text-muted max-[600px]:[&_h1]:text-2xl [&&&&]:p-[20px_0] [&&&&_h1]:[font-family:var(--ors-font-heading)] [&&&&_h1]:leading-[1.5] [&&&&_h1]:[letter-spacing:normal] [&&&&_>_p]:max-w-[58ch] [&&&&_>_p]:m-[12px_0_0] [&&&&_>_p]:text-[14px] [&&&&_>_p]:leading-[1.75]"
-          }
-        >
-          <h1 className="text-2xl font-bold tracking-tight">{detail.title}</h1>
+        <div className="detail-title-block px-0 py-5">
+          <h1 className="m-0 [font-family:var(--ors-font-heading)] text-2xl leading-[1.5] font-semibold tracking-normal max-[600px]:text-2xl">
+            {detail.title}
+          </h1>
           <div
-            className={
-              "detail-stats flex flex-wrap gap-3 mt-3 text-muted [&_span]:inline-flex [&_span]:items-center [&_span]:gap-[6px] [&_svg]:w-[16px] [&_svg]:h-[16px] [&_svg]:text-accent [&&&&]:text-[12px]"
-            }
+            className="detail-stats mt-3 flex flex-wrap gap-3 text-[12px] text-muted"
             aria-label="投稿数据"
           >
-            <span>
-              <Heart weight="fill" />
+            <span className="inline-flex items-center gap-1.5">
+              <Heart className="h-4 w-4 text-accent" weight="fill" />
               {detail.likes.toLocaleString("zh-CN")}
             </span>
-            <span>
-              <Star weight="fill" />
+            <span className="inline-flex items-center gap-1.5">
+              <Star className="h-4 w-4 text-accent" weight="fill" />
               {detail.saved.toLocaleString("zh-CN")}
             </span>
-            <span>
-              <CalendarBlank />
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarBlank className="h-4 w-4 text-accent" />
               {formatDetailDate(detail.createdAt)}
             </span>
           </div>
-          <p>{detail.description || "投稿者没有填写造型说明。"}</p>
-          <div
-            className={
-              "detail-tags flex flex-wrap gap-2 mt-3 [&_span]:rounded-[var(--ors-radius-control)] [&_span]:text-accent [&_span]:bg-selected [&_span]:text-xs [&_span]:font-bold [&&&&_span]:p-[7px_10px]"
-            }
-          >
-            <span>{detail.race}</span>
-            <span>{detail.job}</span>
+          <p className="mx-0 mt-3 mb-0 max-w-[58ch] text-[14px] leading-[1.75] text-muted">
+            {detail.description || "投稿者没有填写造型说明。"}
+          </p>
+          <div className="detail-tags mt-3 flex flex-wrap gap-2">
+            <span className={detailMetadataBadgeClasses}>{detail.race}</span>
+            <span className={detailMetadataBadgeClasses}>{detail.job}</span>
           </div>
         </div>
 
         <section
-          className="equipment-section pt-5 border-t border-solid border-line"
+          className="equipment-section border-t border-solid border-line pt-5"
           aria-labelledby="equipment-title"
         >
-          <div
-            className={
-              "equipment-heading flex justify-between items-baseline gap-3 mb-3 [&_h2]:m-0 [&_h2]:text-lg [&_span]:text-muted [&_span]:text-xs max-[600px]:grid max-[600px]:gap-[5px] [&&&&_h2]:[letter-spacing:normal]"
-            }
-          >
-            <h2 className="text-lg font-semibold" id="equipment-title">
+          <div className="equipment-heading mb-3 flex items-baseline justify-between gap-3 max-[600px]:grid max-[600px]:gap-[5px]">
+            <h2
+              className="m-0 text-lg font-semibold tracking-normal"
+              id="equipment-title"
+            >
               装备搭配
             </h2>
-            <span>染剂按投稿记录显示</span>
+            <span className="text-xs text-muted">染剂按投稿记录显示</span>
           </div>
-          <div
-            className={
-              "equipment-grid grid grid-cols-1 gap-3 @min-[480px]/equipment:grid-cols-2"
-            }
-          >
+          <div className="equipment-grid grid grid-cols-1 gap-3 @min-[480px]/equipment:grid-cols-2">
             {EQUIPMENT_SLOTS.map(([slot, label]) => (
               <EquipmentSlot
                 label={label}
@@ -297,7 +274,9 @@ function DetailContent({
                 ownership={
                   equipment.get(slot)
                     ? ownedItems.matchItem(equipment.get(slot)!.equipmentId)
-                    : { kind: "unavailable" }
+                    : {
+                        kind: "unavailable",
+                      }
                 }
                 onSearchEquipment={onSearchEquipment}
                 key={slot}
@@ -320,7 +299,6 @@ function DetailContent({
     </article>
   );
 }
-
 function EquipmentSlot({
   label,
   equipment,
@@ -366,7 +344,6 @@ function EquipmentSlot({
       setPopoverOpen(false);
     }, 220);
   };
-
   useEffect(
     () => () => {
       if (openTimer.current !== null) window.clearTimeout(openTimer.current);
@@ -374,17 +351,13 @@ function EquipmentSlot({
     },
     [],
   );
-
   const content = (
     <>
-      <span
-        className={
-          "equipment-icon relative grid place-items-center w-[50px] h-[50px] overflow-hidden rounded-[var(--ors-radius-control)] text-muted bg-hover [&_img]:absolute [&_img]:w-full [&_img]:h-full [&_img]:object-cover [&&&&]:[border:1px_solid_color-mix(in_srgb,_var(--ors-color-line)_80%,_transparent)] [&&&&]:[font-family:var(--ors-font-ui)] [&&&&]:text-[15px] [&&&&_img]:inset-[0]"
-        }
-      >
+      <span className="equipment-icon relative grid h-12.5 w-12.5 place-items-center overflow-hidden rounded-control bg-hover font-sans text-[15px] text-muted [border:1px_solid_color-mix(in_srgb,_var(--ors-color-line)_80%,_transparent)]">
         <span aria-hidden="true">{label.slice(0, 1)}</span>
         {equipment?.icon && (
           <img
+            className={detailImageClasses}
             src={equipment.icon}
             alt=""
             referrerPolicy="no-referrer"
@@ -394,30 +367,31 @@ function EquipmentSlot({
           />
         )}
       </span>
-      <span
-        className={
-          "equipment-copy grid min-w-0 content-start [&_>_small]:text-accent [&_>_small]:text-xs [&_>_strong]:mt-[3px] [&_>_strong]:overflow-hidden [&_>_strong]:whitespace-nowrap [&&&&_>_small]:[font-weight:720] [&&&&_>_strong]:text-[12px] [&&&&_>_strong]:[font-weight:680] [&&&&_>_strong]:[text-overflow:ellipsis]"
-        }
-      >
-        <small>{label}</small>
-        <strong>{equipment?.name || "未装备"}</strong>
+      <span className="equipment-copy grid min-w-0 content-start">
+        <small className="text-xs font-[720] text-accent">{label}</small>
+        <strong className="mt-[3px] overflow-hidden text-[12px] font-[680] text-ellipsis whitespace-nowrap">
+          {equipment?.name || "未装备"}
+        </strong>
         {equipment?.dyes.length ? (
-          <span
-            className={
-              "dye-list flex min-w-0 gap-[8px] mt-[5px] overflow-hidden [&_>_span]:inline-flex [&_>_span]:items-center [&_>_span]:gap-[4px] [&_>_span]:min-w-0 [&_>_span]:overflow-hidden [&_>_span]:text-muted [&_>_span]:text-xs [&_>_span]:whitespace-nowrap [&_i]:w-[10px] [&_i]:h-[10px] [&_i]:rounded-[var(--ors-radius-control)] [&&&&_>_span]:[text-overflow:ellipsis] [&&&&_i]:flex-[0_0_auto] [&&&&_i]:[border:1px_solid_color-mix(in_srgb,_var(--ors-color-text)_18%,_transparent)]"
-            }
-          >
+          <span className="dye-list mt-[5px] flex min-w-0 gap-2 overflow-hidden">
             {equipment.dyes.map((dye, index) => (
-              <span title={dye.name} key={`${dye.id}-${index}`}>
+              <span
+                className="inline-flex min-w-0 items-center gap-1 overflow-hidden text-xs text-ellipsis whitespace-nowrap text-muted"
+                title={dye.name}
+                key={`${dye.id}-${index}`}
+              >
                 <i
-                  style={{ backgroundColor: dye.color ?? "var(--surface-2)" }}
+                  className="h-2.5 w-2.5 shrink-0 rounded-control [border:1px_solid_color-mix(in_srgb,_var(--ors-color-text)_18%,_transparent)]"
+                  style={{
+                    backgroundColor: dye.color ?? "var(--ors-color-hover)",
+                  }}
                 />
                 {dye.name}
               </span>
             ))}
           </span>
         ) : (
-          <span className="equipment-muted mt-[5px] text-muted text-xs">
+          <span className="equipment-muted mt-[5px] text-xs text-muted">
             无染剂记录
           </span>
         )}
@@ -432,9 +406,7 @@ function EquipmentSlot({
   const item =
     equipment?.name && equipment.equipmentId > 0 ? (
       <button
-        className={
-          "equipment-item equipment-search-link grid h-full items-start gap-[11px] min-h-[74px] p-[10px] border border-solid border-line rounded-[var(--ors-radius-control)] text-ink [.equipment-slot-wrapper_>_&]:w-full [.equipment-slot-wrapper_>_&]:box-border text-left cursor-pointer [&:hover]:border-accent [&&&&]:grid-cols-[50px_minmax(0,_1fr)] [&&&&]:[background:color-mix(in_srgb,_var(--ors-color-surface)_74%,_transparent)] [&&&&]:[text-decoration:none] [&&&&]:[font:inherit] [&&&&]:[transition:border-color_180ms_ease,_transform_180ms_ease]"
-        }
+        className="equipment-item equipment-search-link box-border grid h-full min-h-18.5 w-full cursor-pointer grid-cols-[50px_minmax(0,_1fr)] items-start gap-[11px] rounded-control border border-solid border-line bg-[color-mix(in_srgb,_var(--ors-color-surface)_74%,_transparent)] p-2.5 text-left text-ink [font:inherit] [text-decoration:none] [transition:border-color_180ms_ease,_transform_180ms_ease] hover:border-accent"
         type="button"
         aria-label={`查询${equipment.name}的幻化投稿`}
         onClick={() => onSearchEquipment(equipment, label)}
@@ -445,21 +417,18 @@ function EquipmentSlot({
       <div
         className={
           equipment?.name
-            ? "equipment-item grid h-full items-start gap-[11px] min-h-[74px] p-[10px] border border-solid border-line rounded-[var(--ors-radius-control)] text-ink [.equipment-slot-wrapper_>_&]:w-full [.equipment-slot-wrapper_>_&]:box-border [&&&&]:grid-cols-[50px_minmax(0,_1fr)] [&&&&]:[background:color-mix(in_srgb,_var(--ors-color-surface)_74%,_transparent)] [&&&&]:[text-decoration:none]"
-            : "equipment-item empty grid h-full items-start gap-[11px] min-h-[74px] p-[10px] border border-solid border-line rounded-[var(--ors-radius-control)] text-ink [.equipment-slot-wrapper_>_&]:w-full [.equipment-slot-wrapper_>_&]:box-border [&&&&]:grid-cols-[50px_minmax(0,_1fr)] [&&&&]:[background:color-mix(in_srgb,_var(--ors-color-surface)_74%,_transparent)] [&&&&]:[text-decoration:none] [.equipment-item&&&&]:[background:transparent] [.equipment-item&&&&]:opacity-[0.58]"
+            ? "equipment-item box-border grid h-full min-h-18.5 w-full grid-cols-[50px_minmax(0,_1fr)] items-start gap-[11px] rounded-control border border-solid border-line bg-[color-mix(in_srgb,_var(--ors-color-surface)_74%,_transparent)] p-2.5 text-ink [text-decoration:none]"
+            : "equipment-item empty box-border grid h-full min-h-18.5 w-full grid-cols-[50px_minmax(0,_1fr)] items-start gap-[11px] rounded-control border border-solid border-line bg-transparent p-2.5 text-ink opacity-58 [text-decoration:none]"
         }
       >
         {content}
       </div>
     );
-
   const matchesCurrentItem = wiki.itemName === equipment?.name;
   return (
     <div
       ref={setPopoverAnchor}
-      className={
-        "equipment-slot-wrapper relative min-w-0 rounded-[var(--ors-radius-control)] [&&&&]:[outline:none]"
-      }
+      className="equipment-slot-wrapper relative min-w-0 rounded-control [outline:none]"
       onMouseEnter={() => showPopover()}
       onMouseLeave={hidePopover}
       onFocus={() => showPopover(true)}
@@ -485,55 +454,42 @@ function EquipmentSlot({
     </div>
   );
 }
-
 function EquipmentOwnership({ match }: { match: OwnedItemMatch }) {
   if (match.kind === "exact") {
     return (
-      <span
-        className={
-          "equipment-ownership is-owned flex items-center gap-[4px] min-w-0 mt-[6px] text-xs [&_svg]:w-[12px] [&_svg]:h-[12px] [&_small]:overflow-hidden [&_small]:text-muted [&_small]:text-xs [&_small]:whitespace-nowrap [.equipment-ownership&]:text-accent [&&&&]:[font-weight:720] [&&&&_svg]:flex-[0_0_auto] [&&&&_small]:[font-weight:550] [&&&&_small]:[text-overflow:ellipsis]"
-        }
-      >
-        <CheckCircle weight="fill" />
+      <span className="equipment-ownership is-owned mt-1.5 flex min-w-0 items-center gap-1 text-xs font-[720] text-accent">
+        <CheckCircle className="h-3 w-3 shrink-0" weight="fill" />
         已持有
-        <small>{formatOwnedSources(match.sources)}</small>
+        <small className={detailEquipmentCaptionClasses}>
+          {formatOwnedSources(match.sources)}
+        </small>
       </span>
     );
   }
   if (match.kind === "same_model") {
     return (
-      <span
-        className={
-          "equipment-ownership is-same-model flex items-center gap-[4px] min-w-0 mt-[6px] text-xs [&_svg]:w-[12px] [&_svg]:h-[12px] [&_small]:overflow-hidden [&_small]:text-muted [&_small]:text-xs [&_small]:whitespace-nowrap [.equipment-ownership&]:text-accent [&&&&]:[font-weight:720] [&&&&_svg]:flex-[0_0_auto] [&&&&_small]:[font-weight:550] [&&&&_small]:[text-overflow:ellipsis]"
-        }
-      >
-        <Stack weight="fill" />
+      <span className="equipment-ownership is-same-model mt-1.5 flex min-w-0 items-center gap-1 text-xs font-[720] text-accent">
+        <Stack className="h-3 w-3 shrink-0" weight="fill" />
         持有同模
-        {match.ownedItemName && <small>{match.ownedItemName}</small>}
+        {match.ownedItemName && (
+          <small className={detailEquipmentCaptionClasses}>
+            {match.ownedItemName}
+          </small>
+        )}
       </span>
     );
   }
   if (match.kind === "checking") {
     return (
-      <span
-        className={
-          "equipment-ownership is-checking flex items-center gap-[4px] min-w-0 mt-[6px] text-xs [&_svg]:w-[12px] [&_svg]:h-[12px] [&_small]:overflow-hidden [&_small]:text-muted [&_small]:text-xs [&_small]:whitespace-nowrap [.equipment-ownership&]:text-muted [&&&&]:[font-weight:720] [&&&&_svg]:flex-[0_0_auto] [&&&&_small]:[font-weight:550] [&&&&_small]:[text-overflow:ellipsis]"
-        }
-      >
-        <CircleNotch
-          className={"spin [&&&&]:animate-[login-spin_900ms_linear_infinite]"}
-        />
+      <span className="equipment-ownership is-checking mt-1.5 flex min-w-0 items-center gap-1 text-xs font-[720] text-muted">
+        <CircleNotch className="spin h-3 w-3 shrink-0 animate-[login-spin_900ms_linear_infinite]" />
         正在匹配同模
       </span>
     );
   }
   return (
-    <span
-      className={
-        "equipment-ownership is-missing flex items-center gap-[4px] min-w-0 mt-[6px] text-xs [&_svg]:w-[12px] [&_svg]:h-[12px] [&_small]:overflow-hidden [&_small]:text-muted [&_small]:text-xs [&_small]:whitespace-nowrap [.equipment-ownership&]:text-muted [&&&&]:[font-weight:720] [&&&&_svg]:flex-[0_0_auto] [&&&&_small]:[font-weight:550] [&&&&_small]:[text-overflow:ellipsis]"
-      }
-    >
-      <XCircle />
+    <span className="equipment-ownership is-missing mt-1.5 flex min-w-0 items-center gap-1 text-xs font-[720] text-muted">
+      <XCircle className="h-3 w-3 shrink-0" />
       {match.kind === "not_owned"
         ? "未持有"
         : match.kind === "metadata_unavailable"
@@ -542,7 +498,6 @@ function EquipmentOwnership({ match }: { match: OwnedItemMatch }) {
     </span>
   );
 }
-
 function formatOwnedSources(sources: OwnedItemSource[]) {
   const labels: Record<OwnedItemSource, string> = {
     equipped: "身上装备",
@@ -553,34 +508,22 @@ function formatOwnedSources(sources: OwnedItemSource[]) {
   };
   return sources.map((source) => labels[source]).join("、");
 }
-
 function DetailSkeleton() {
   return (
     <div
-      className={
-        "detail-layout detail-skeleton grid min-w-0 grid-cols-1 items-start gap-5 py-5 @min-[980px]/glamour-detail:items-stretch @min-[980px]/glamour-detail:grid-cols-[minmax(0,_0.92fr)_minmax(0,_1.08fr)] [@media(prefers-reduced-motion:_no-preference)]:[&&&&:not(.detail-skeleton)]:animate-[detail-enter_560ms_both_cubic-bezier(0.16,_1,_0.3,_1)]"
-      }
+      className="detail-layout detail-skeleton grid min-w-0 grid-cols-1 items-start gap-5 py-5 @min-[980px]/glamour-detail:grid-cols-[minmax(0,_0.92fr)_minmax(0,_1.08fr)] @min-[980px]/glamour-detail:items-stretch"
       aria-label="正在加载幻化详情"
     >
-      <div
-        className={
-          "detail-skeleton-media block w-full aspect-[4/5] max-h-[720px] @min-[980px]/glamour-detail:aspect-auto @min-[980px]/glamour-detail:min-h-[360px] @min-[980px]/glamour-detail:max-h-none rounded-[var(--ors-radius-control)] [&&&&]:[background:linear-gradient(_100deg,_var(--ors-color-hover)_20%,_color-mix(in_srgb,_var(--ors-color-hover)_55%,_var(--ors-color-surface))_45%,_var(--ors-color-hover)_70%_)] [&&&&]:[background-size:240%_100%] [&&&&]:animate-[skeleton-shimmer_1.6s_ease-in-out_infinite] [@media(prefers-reduced-motion:_reduce)]:[&&&&]:animate-[none]"
-        }
-      />
-      <div
-        className={
-          "detail-skeleton-copy [&_>_span]:block [&_>_span]:rounded-[var(--ors-radius-control)] [&_>_strong]:block [&_>_strong]:rounded-[var(--ors-radius-control)] [&_>_small]:block [&_>_small]:rounded-[var(--ors-radius-control)] [&_>_div]:block [&_>_div]:rounded-[var(--ors-radius-control)] [&_>_span]:h-[50px] [&_>_strong]:h-[62px] [&_>_strong]:mt-5 [&_>_small]:h-[18px] [&_>_small]:mt-[22px] [&_>_div]:w-full [&_>_div]:h-[380px] [&_>_div]:mt-5 [&&&&_>_span]:[background:linear-gradient(_100deg,_var(--ors-color-hover)_20%,_color-mix(in_srgb,_var(--ors-color-hover)_55%,_var(--ors-color-surface))_45%,_var(--ors-color-hover)_70%_)] [&&&&_>_span]:[background-size:240%_100%] [&&&&_>_span]:animate-[skeleton-shimmer_1.6s_ease-in-out_infinite] [&&&&_>_strong]:[background:linear-gradient(_100deg,_var(--ors-color-hover)_20%,_color-mix(in_srgb,_var(--ors-color-hover)_55%,_var(--ors-color-surface))_45%,_var(--ors-color-hover)_70%_)] [&&&&_>_strong]:[background-size:240%_100%] [&&&&_>_strong]:animate-[skeleton-shimmer_1.6s_ease-in-out_infinite] [&&&&_>_small]:[background:linear-gradient(_100deg,_var(--ors-color-hover)_20%,_color-mix(in_srgb,_var(--ors-color-hover)_55%,_var(--ors-color-surface))_45%,_var(--ors-color-hover)_70%_)] [&&&&_>_small]:[background-size:240%_100%] [&&&&_>_small]:animate-[skeleton-shimmer_1.6s_ease-in-out_infinite] [&&&&_>_div]:[background:linear-gradient(_100deg,_var(--ors-color-hover)_20%,_color-mix(in_srgb,_var(--ors-color-hover)_55%,_var(--ors-color-surface))_45%,_var(--ors-color-hover)_70%_)] [&&&&_>_div]:[background-size:240%_100%] [&&&&_>_div]:animate-[skeleton-shimmer_1.6s_ease-in-out_infinite] [&&&&_>_span]:w-[40%] [&&&&_>_strong]:w-[68%] [&&&&_>_small]:w-[48%] [@media(prefers-reduced-motion:_reduce)]:[&&&&_>_span]:animate-[none] [@media(prefers-reduced-motion:_reduce)]:[&&&&_>_strong]:animate-[none] [@media(prefers-reduced-motion:_reduce)]:[&&&&_>_small]:animate-[none] [@media(prefers-reduced-motion:_reduce)]:[&&&&_>_div]:animate-[none]"
-        }
-      >
-        <span />
-        <strong />
-        <small />
-        <div />
+      <div className="detail-skeleton-media block aspect-[4/5] max-h-180 w-full animate-[skeleton-shimmer_1.6s_ease-in-out_infinite] rounded-control bg-[linear-gradient(_100deg,_var(--ors-color-hover)_20%,_color-mix(in_srgb,_var(--ors-color-hover)_55%,_var(--ors-color-surface))_45%,_var(--ors-color-hover)_70%_)] [background-size:240%_100%] @min-[980px]/glamour-detail:aspect-auto @min-[980px]/glamour-detail:max-h-none @min-[980px]/glamour-detail:min-h-90" />
+      <div className="detail-skeleton-copy">
+        <span className="block h-12.5 w-[40%] animate-[skeleton-shimmer_1.6s_ease-in-out_infinite] rounded-control bg-[linear-gradient(_100deg,_var(--ors-color-hover)_20%,_color-mix(in_srgb,_var(--ors-color-hover)_55%,_var(--ors-color-surface))_45%,_var(--ors-color-hover)_70%_)] [background-size:240%_100%]" />
+        <strong className="mt-5 block h-15.5 w-[68%] animate-[skeleton-shimmer_1.6s_ease-in-out_infinite] rounded-control bg-[linear-gradient(_100deg,_var(--ors-color-hover)_20%,_color-mix(in_srgb,_var(--ors-color-hover)_55%,_var(--ors-color-surface))_45%,_var(--ors-color-hover)_70%_)] [background-size:240%_100%]" />
+        <small className="mt-5.5 block h-4.5 w-[48%] animate-[skeleton-shimmer_1.6s_ease-in-out_infinite] rounded-control bg-[linear-gradient(_100deg,_var(--ors-color-hover)_20%,_color-mix(in_srgb,_var(--ors-color-hover)_55%,_var(--ors-color-surface))_45%,_var(--ors-color-hover)_70%_)] [background-size:240%_100%]" />
+        <div className="mt-5 block h-95 w-full animate-[skeleton-shimmer_1.6s_ease-in-out_infinite] rounded-control bg-[linear-gradient(_100deg,_var(--ors-color-hover)_20%,_color-mix(in_srgb,_var(--ors-color-hover)_55%,_var(--ors-color-surface))_45%,_var(--ors-color-hover)_70%_)] [background-size:240%_100%]" />
       </div>
     </div>
   );
 }
-
 function DetailError({
   message,
   onRetry,
@@ -590,21 +533,24 @@ function DetailError({
 }) {
   return (
     <div
-      className={
-        "detail-error grid min-h-[520px] text-center [&_>_svg]:w-[38px] [&_>_svg]:h-[38px] [&_>_svg]:text-accent [&_h1]:text-2xl [&_p]:m-0 [&_p]:text-muted [&_p]:text-sm [&_button]:mt-[22px] [&_button]:border [&_button]:border-solid [&_button]:border-accent [&_button]:rounded-[var(--ors-radius-control)] [&_button]:text-accent [&_button]:font-bold [&_button:hover]:bg-selected [&&&&]:[justify-items:center] [&&&&]:[align-content:center] [&&&&]:p-[40px_20px] [&&&&_h1]:m-[18px_0_7px] [&&&&_h1]:[font-family:var(--ors-font-heading)] [&&&&_button]:p-[10px_16px] [&&&&_button]:[background:transparent]"
-      }
+      className="detail-error grid min-h-80 content-center justify-items-center px-5 py-10 text-center"
       role="alert"
     >
-      <Images />
-      <h1 className="text-2xl font-bold tracking-tight">无法显示这套幻化</h1>
-      <p>{message}</p>
-      <button type="button" onClick={onRetry}>
+      <Images className="h-9.5 w-9.5 text-accent" />
+      <h1 className="mx-0 mt-4.5 mb-[7px] [font-family:var(--ors-font-heading)] text-2xl font-bold tracking-tight">
+        无法显示这套幻化
+      </h1>
+      <p className="m-0 text-sm text-muted">{message}</p>
+      <button
+        className="mt-5.5 min-h-9 rounded-control border border-solid border-accent bg-transparent px-4 py-2.5 font-bold text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-selected pointer-coarse:min-h-11"
+        type="button"
+        onClick={onRetry}
+      >
         重新加载
       </button>
     </div>
   );
 }
-
 function formatDetailDate(value: string) {
   if (!value) return "时间未公开";
   const [date] = value.split(" ");

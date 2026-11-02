@@ -1,4 +1,9 @@
 /** Mentor roulette ledger with live tracking, corrections, and read-only migration. */
+import clsx from "clsx";
+import {
+  mentorControlClasses,
+  mentorSectionHeadingClasses,
+} from "../features/mentor/utilityClasses";
 import {
   ArrowRight,
   CheckCircle,
@@ -49,6 +54,34 @@ import {
 } from "../features/mentor/utils/consent";
 import dutyNames from "../features/mentor/data/dutyNames.json";
 
+/** Complete utility strings are shared without adding component CSS rules. */
+const mentorSpinClasses =
+  "mentor-spin h-4.5 w-4.5 shrink-0 animate-[mentor-spin_1s_linear_infinite]";
+const mentorStepDescriptionClasses =
+  "last:col-start-2 last:text-[13px] last:font-normal last:text-muted max-[600px]:last:text-xs";
+const mentorTabClasses =
+  "disabled:opacity-55 inline-flex min-h-11 items-center justify-center gap-2 rounded-none border-0 bg-transparent px-0.5 py-2 text-muted transition-[background-color,color,border-color] duration-120 ease-[ease] [border-bottom:2px_solid_transparent] disabled:cursor-not-allowed aria-selected:[border-bottom-color:var(--ors-color-accent)] aria-selected:font-semibold aria-selected:text-ink";
+
+/** Reused presentation strings stay static and are allocated once for this module. */
+const mentorStepClasses =
+  'relative grid grid-cols-[16px_minmax(0,_1fr)] content-start gap-x-3 font-semibold text-muted not-last:after:absolute not-last:after:top-[7px] not-last:after:left-[calc(100%_-_8px)] not-last:after:h-px not-last:after:w-5 not-last:after:bg-line not-last:after:[content:""] max-[600px]:grid-cols-[13px_minmax(0,_1fr)] max-[600px]:gap-x-[5px] max-[600px]:text-[13px] max-[600px]:not-last:after:hidden';
+const mentorStepDotClasses =
+  "mentor-step-dot row-span-2 mt-[5px] size-[11px] rounded-full border-2";
+
+const mentorSummaryClasses =
+  "mentor-summary flex flex-wrap gap-9 border-b border-solid border-line px-0 pt-5 pb-5.5 max-[600px]:gap-[15px_23px]";
+const mentorSummaryItemClasses =
+  "inline-flex items-baseline gap-[9px] whitespace-nowrap text-muted";
+const mentorSummaryValueClasses =
+  "text-[1.3rem] leading-[1] text-ink tabular-nums";
+const mentorFormGridClasses =
+  "mentor-form-grid grid grid-cols-2 gap-4 max-[600px]:grid-cols-[1fr]";
+const mentorFormActionsClasses =
+  "mentor-form-actions mt-4.5 flex justify-end gap-2.5";
+const mentorDataBlockClasses =
+  "mentor-data-block max-w-185 border-b border-solid border-line px-0 py-7.5";
+const mentorDataHeadingClasses = "mx-0 mt-0 mb-[5px] text-base font-semibold";
+
 const names = dutyNames as Record<string, string>;
 const resultLabel: Record<MentorResult, string> = {
   completed: "已完成",
@@ -96,7 +129,6 @@ const readLegacyError = (reason: unknown) => {
     return `登录后读取旧站第 ${recordStatus[1]} 页失败（HTTP ${recordStatus[2]}）。本地记录未更改。`;
   return `旧站迁移失败：${detail}`;
 };
-
 export function MentorPage() {
   const [records, setRecords] = useState<MentorRecord[]>([]);
   const [status, setStatus] = useState<MonitorStatus | null>(null);
@@ -106,7 +138,9 @@ export function MentorPage() {
   const [riskOpen, setRiskOpen] = useState(false);
   const [storageError, setStorageError] = useState(false);
   const [view, setView] = useState<"history" | "analysis" | "data">("history");
-  const [filters, setFilters] = useState({ ...DEFAULT_MENTOR_FILTERS });
+  const [filters, setFilters] = useState({
+    ...DEFAULT_MENTOR_FILTERS,
+  });
   const [filterNow, setFilterNow] = useState(Date.now);
   useEffect(() => {
     const timer = window.setInterval(() => setFilterNow(Date.now()), 60_000);
@@ -128,7 +162,6 @@ export function MentorPage() {
   const [legacyCharacter, setLegacyCharacter] = useState("");
   const [legacyCompleted, setLegacyCompleted] = useState(false);
   const [preview, setPreview] = useState<LegacyPreview | null>(null);
-
   const refreshRecords = useCallback(async () => {
     try {
       setRecords(await listMentorRecords());
@@ -136,7 +169,6 @@ export function MentorPage() {
       setError(readError(reason));
     }
   }, []);
-
   useEffect(() => {
     if (!isTauriRuntime()) return;
     void listMentorRecords()
@@ -158,7 +190,6 @@ export function MentorPage() {
       unlisten?.();
     };
   }, [refreshRecords]);
-
   const start = useCallback(async () => {
     setBusy(true);
     setError(null);
@@ -176,7 +207,6 @@ export function MentorPage() {
       setBusy(false);
     }
   }, []);
-
   const requestStart = () =>
     hasMentorConsent() ? void start() : setRiskOpen(true);
   const confirmRisk = () => {
@@ -196,7 +226,6 @@ export function MentorPage() {
       setBusy(false);
     }
   };
-
   const totals = useMemo(
     () => ({
       all: records.length,
@@ -224,7 +253,6 @@ export function MentorPage() {
     return [...groups];
   }, [visible]);
   const active = records.find((record) => record.id === status?.activeRecordId);
-
   const submitManual = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -327,12 +355,18 @@ export function MentorPage() {
     const blob = new Blob(
       [
         JSON.stringify(
-          { schemaVersion: 1, exportedAt: new Date().toISOString(), records },
+          {
+            schemaVersion: 1,
+            exportedAt: new Date().toISOString(),
+            records,
+          },
           null,
           2,
         ),
       ],
-      { type: "application/json" },
+      {
+        type: "application/json",
+      },
     );
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -341,51 +375,53 @@ export function MentorPage() {
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
   };
-
   return (
-    <main
-      className={
-        'mx-auto w-full px-5 py-5 max-[899px]:px-4 max-[899px]:py-4 max-[519px]:px-3 max-[519px]:py-4 mentor-page max-w-[1600px] pb-16 [&_button]:min-h-[40px] [&_button]:inline-flex [&_button]:items-center [&_button]:justify-center [&_button]:gap-[8px] [&_button]:border [&_button]:border-solid [&_button]:border-control [&_button]:rounded-[8px] [&_button]:bg-surface [&_button]:cursor-pointer [&_button_svg]:w-[18px] [&_button_svg]:h-[18px] [&_input:not([type=checkbox])]:w-full [&_input:not([type=checkbox])]:min-h-[40px] [&_input:not([type=checkbox])]:border [&_input:not([type=checkbox])]:border-solid [&_input:not([type=checkbox])]:border-control [&_input:not([type=checkbox])]:rounded-[8px] [&_input:not([type=checkbox])]:bg-surface [&_input:not([type=checkbox])]:text-ink [&_select]:w-full [&_select]:min-h-[40px] [&_select]:border [&_select]:border-solid [&_select]:border-control [&_select]:rounded-[8px] [&_select]:bg-surface [&_select]:text-ink [&_textarea]:w-full [&_textarea]:border [&_textarea]:border-solid [&_textarea]:border-control [&_textarea]:rounded-[8px] [&_textarea]:bg-surface [&_textarea]:text-ink [&_textarea]:min-h-[72px] [&_label]:grid [&_label]:gap-[6px] [&_label]:font-semibold [&&&&_button]:p-[8px_14px] [&&&&_button:hover:not(:disabled)]:[background:var(--surface-2)] [&&&&_button:disabled]:opacity-[0.55] [&&&&_button_svg]:flex-[none] [&&&&_button:focus-visible]:[outline:2px_solid_var(--accent)] [&&&&_button:focus-visible]:[outline-offset:3px] [&&&&_input:focus-visible]:[outline:2px_solid_var(--accent)] [&&&&_input:focus-visible]:[outline-offset:3px] [&&&&_select:focus-visible]:[outline:2px_solid_var(--accent)] [&&&&_select:focus-visible]:[outline-offset:3px] [&&&&_textarea:focus-visible]:[outline:2px_solid_var(--accent)] [&&&&_textarea:focus-visible]:[outline-offset:3px] [&&&&_input:not([type="checkbox"])]:p-[8px_12px] [&&&&_select]:p-[8px_12px] [&&&&_textarea]:p-[8px_12px] [&&&&_textarea]:[resize:vertical] [@media(max-width:_600px)]:[&&&&]:p-[24px_18px_72px]'
-      }
-    >
-      <header
-        className={
-          "mentor-heading [&_h1]:text-tool flex items-start justify-between [&_h1]:m-0 [&_p]:text-muted max-[850px]:flex-wrap mb-6 flex-wrap gap-5 border-b border-line pb-5 [&&&&_p]:m-[4px_0_0]"
-        }
-      >
+    <main className="mentor-page mx-auto w-full max-w-400 px-5 py-5 pb-16 max-[899px]:px-4 max-[899px]:py-4 max-[600px]:px-4.5 max-[600px]:pt-6 max-[600px]:pb-18 max-[519px]:px-3 max-[519px]:py-4">
+      <header className="mentor-heading mb-5 flex flex-wrap items-start justify-between gap-5 border-b border-line pb-5 max-[850px]:flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="m-0 text-2xl font-bold tracking-tight text-tool">
             指导者随机任务记录
           </h1>
-          <p>从游戏中识别导随，在副本完成或退出时留下清楚的结果。</p>
+          <p className="mx-0 mt-1 mb-0 text-muted">
+            从游戏中识别导随，在副本完成或退出时留下清楚的结果。
+          </p>
         </div>
-        <div className="mentor-heading-actions flex items-center gap-[14px] flex-wrap max-[600px]:w-full max-[600px]:justify-between">
+        <div className="mentor-heading-actions flex flex-wrap items-center gap-3.5 max-[600px]:w-full max-[600px]:justify-between">
           <span
-            className={`[&&&&_span]:rounded-[50%] inline-flex items-center gap-[8px] text-muted whitespace-nowrap text-sm [&_span]:w-[8px] [&_span]:h-[8px] [&_span]:bg-muted mentor-live-badge ${status?.running ? "is-on [.mentor-live-badge&]:text-success [.mentor-live-badge&_span]:bg-success" : ""}`}
+            className={clsx(
+              "mentor-live-badge inline-flex items-center gap-2 text-sm whitespace-nowrap text-muted",
+              status?.running ? "is-on text-success" : "",
+            )}
           >
-            <span />
+            <span
+              className={clsx(
+                "size-2 rounded-full",
+                status?.running ? "bg-success" : "bg-muted",
+              )}
+            />
             {status?.running ? "自动监测中" : "未监测"}
           </span>
           {status?.running ? (
-            <button type="button" disabled={busy} onClick={() => void stop()}>
-              <SignOut />
+            <button
+              className={mentorControlClasses.button}
+              type="button"
+              disabled={busy}
+              onClick={() => void stop()}
+            >
+              <SignOut className={mentorControlClasses.icon} />
               停止监测
             </button>
           ) : (
             <button
-              className="mentor-primary [.mentor-page_&]:text-on-accent [.mentor-page_&]:bg-accent [.mentor-page_&]:border-accent [.mentor-page_&]:font-semibold [.mentor-page_&:hover:not(:disabled)]:bg-accent-hover"
+              className={mentorControlClasses.primaryButton}
               type="button"
               disabled={busy}
               onClick={requestStart}
             >
               {busy ? (
-                <SpinnerGap
-                  className={
-                    "mentor-spin [&&&&]:animate-[mentor-spin_1s_linear_infinite] [@media(prefers-reduced-motion:_reduce)]:[&&&&]:animate-[none]"
-                  }
-                />
+                <SpinnerGap className={mentorSpinClasses} />
               ) : (
-                <PlugsConnected />
+                <PlugsConnected className={mentorControlClasses.icon} />
               )}
               连接并监测
             </button>
@@ -393,102 +429,92 @@ export function MentorPage() {
         </div>
       </header>
       {!isTauriRuntime() && (
-        <p
-          className={
-            "mentor-message flex items-center gap-[8px] rounded-[8px] bg-surface [&&&&]:m-[18px_0_0] [&&&&]:p-[10px_14px]"
-          }
-        >
+        <p className="mentor-message mx-0 mt-4.5 mb-0 flex items-center gap-2 rounded-control bg-surface px-3.5 py-2.5">
           自动记录需要桌面版。仍可浏览页面设计。
         </p>
       )}
       {error && (
         <p
-          className={
-            "mentor-error flex items-center gap-[8px] rounded-[8px] bg-surface text-danger border border-solid border-danger [&_svg]:w-[20px] [&_svg]:h-[20px] [&&&&]:m-[18px_0_0] [&&&&]:p-[10px_14px] [&&&&_svg]:flex-[none]"
-          }
+          className="mentor-error mx-0 mt-4.5 mb-0 flex items-center gap-2 rounded-control border border-solid border-danger bg-surface px-3.5 py-2.5 text-danger"
           role="alert"
         >
-          <WarningCircle />
+          <WarningCircle className="h-5 w-5 flex-none" />
           {error}
         </p>
       )}
       {feedback && (
         <p
-          className={
-            "mentor-feedback flex items-center gap-[8px] rounded-[8px] bg-surface text-success border border-solid border-success [&_svg]:w-[20px] [&_svg]:h-[20px] [&&&&]:m-[18px_0_0] [&&&&]:p-[10px_14px] [&&&&_svg]:flex-[none]"
-          }
+          className="mentor-feedback mx-0 mt-4.5 mb-0 flex items-center gap-2 rounded-control border border-solid border-success bg-surface px-3.5 py-2.5 text-success"
           role="status"
         >
-          <CheckCircle />
+          <CheckCircle className="h-5 w-5 flex-none" />
           {feedback}
         </p>
       )}
 
       <section
-        className={
-          "mentor-session mt-[28px] border border-solid border-line rounded-[12px] bg-surface [@media(max-width:_600px)]:[&&&&]:p-[18px] [&&&&]:p-[22px_26px_18px]"
-        }
+        className="mentor-session mt-5 rounded-panel border border-solid border-line bg-surface px-6.5 pt-5.5 pb-4.5 max-[600px]:p-4.5"
         aria-label="当前导随进度"
       >
-        <div
-          className={
-            'mentor-session-flow grid gap-[12px] [&_>_div]:relative [&_>_div]:grid [&_>_div]:gap-x-[12px] [&_>_div]:text-muted [&_>_div]:font-semibold [&_>_div:not(:last-child)::after]:absolute [&_>_div:not(:last-child)::after]:w-[20px] [&_>_div:not(:last-child)::after]:h-[1px] [&_>_div:not(:last-child)::after]:bg-line [&_>_div_>_span:last-child]:text-[13px] [&_>_div_>_span:last-child]:font-normal [&_>_div_>_span:last-child]:text-muted max-[600px]:gap-[6px] max-[600px]:[&_>_div]:gap-x-[5px] max-[600px]:[&_>_div]:text-[13px] max-[600px]:[&_>_div:not(:last-child)::after]:hidden max-[600px]:[&_>_div_>_span:last-child]:text-xs [&&&&]:grid-cols-[repeat(3,_minmax(0,_1fr))] [&&&&_>_div]:grid-cols-[16px_minmax(0,_1fr)] [&&&&_>_div]:[align-content:start] [&&&&_>_div:not(:last-child)::after]:[content:""] [&&&&_>_div:not(:last-child)::after]:top-[7px] [&&&&_>_div:not(:last-child)::after]:left-[calc(100%_-_8px)] [&&&&_>_div_>_span:last-child]:[grid-column:2] [@media(max-width:_600px)]:[&&&&_>_div]:grid-cols-[13px_minmax(0,_1fr)]'
-          }
-        >
+        <div className="mentor-session-flow grid grid-cols-3 gap-3 max-[600px]:gap-1.5">
           <div
-            className={
+            className={clsx(
+              mentorStepClasses,
               status?.phase === "queued"
-                ? "current [.mentor-session-flow_&]:text-ink"
+                ? "current text-ink"
                 : status?.phase === "in_duty"
                   ? "passed"
-                  : ""
-            }
+                  : "",
+            )}
           >
             <span
-              className={
-                "mentor-step-dot w-[11px] h-[11px] mt-[5px] bg-surface [.mentor-session-flow_.current_&]:border-accent [.mentor-session-flow_.current_&]:bg-accent [.mentor-session-flow_.passed_&]:border-success [.mentor-session-flow_.passed_&]:bg-success [&&&&]:[grid-row:span_2] [&&&&]:[border:2px_solid_var(--ors-color-control-line)] [&&&&]:rounded-[50%] [.mentor-session-flow_.current_&&&&]:shadow-[0_0_0_4px_var(--accent-soft)]"
-              }
+              className={clsx(
+                mentorStepDotClasses,
+                status?.phase === "queued"
+                  ? "border-accent bg-accent shadow-[0_0_0_4px_var(--ors-color-selected)]"
+                  : status?.phase === "in_duty"
+                    ? "border-success bg-success"
+                    : "border-control bg-surface",
+              )}
             />
-            排队<span>指导者随机任务</span>
+            排队
+            <span className={mentorStepDescriptionClasses}>指导者随机任务</span>
           </div>
           <div
-            className={
-              status?.phase === "in_duty"
-                ? "current [.mentor-session-flow_&]:text-ink"
-                : ""
-            }
+            className={clsx(
+              mentorStepClasses,
+              status?.phase === "in_duty" ? "current text-ink" : "",
+            )}
           >
             <span
-              className={
-                "mentor-step-dot w-[11px] h-[11px] mt-[5px] bg-surface [.mentor-session-flow_.current_&]:border-accent [.mentor-session-flow_.current_&]:bg-accent [.mentor-session-flow_.passed_&]:border-success [.mentor-session-flow_.passed_&]:bg-success [&&&&]:[grid-row:span_2] [&&&&]:[border:2px_solid_var(--ors-color-control-line)] [&&&&]:rounded-[50%] [.mentor-session-flow_.current_&&&&]:shadow-[0_0_0_4px_var(--accent-soft)]"
-              }
+              className={clsx(
+                mentorStepDotClasses,
+                status?.phase === "in_duty"
+                  ? "border-accent bg-accent shadow-[0_0_0_4px_var(--ors-color-selected)]"
+                  : "border-control bg-surface",
+              )}
             />
             副本
-            <span>
+            <span className={mentorStepDescriptionClasses}>
               {active?.dutyId
                 ? (names[String(active.dutyId)] ?? active.dutyName)
                 : "等待进入"}
             </span>
           </div>
-          <div>
-            <span
-              className={
-                "mentor-step-dot w-[11px] h-[11px] mt-[5px] bg-surface [.mentor-session-flow_.current_&]:border-accent [.mentor-session-flow_.current_&]:bg-accent [.mentor-session-flow_.passed_&]:border-success [.mentor-session-flow_.passed_&]:bg-success [&&&&]:[grid-row:span_2] [&&&&]:[border:2px_solid_var(--ors-color-control-line)] [&&&&]:rounded-[50%] [.mentor-session-flow_.current_&&&&]:shadow-[0_0_0_4px_var(--accent-soft)]"
-              }
-            />
-            结果<span>完成或退出后记录</span>
+          <div className={mentorStepClasses}>
+            <span className="mentor-step-dot row-span-2 mt-[5px] size-[11px] rounded-full border-2 border-control bg-surface" />
+            结果
+            <span className={mentorStepDescriptionClasses}>
+              完成或退出后记录
+            </span>
           </div>
         </div>
         {active && (
-          <div className="mentor-session-job mt-[18px] text-sm">
+          <div className="mentor-session-job mt-4.5 text-sm">
             <MentorJob jobId={active.jobId} jobName={active.jobName} />
           </div>
         )}
-        <p
-          className={
-            "mentor-session-caption text-muted text-sm [&&&&]:m-[18px_0_0]"
-          }
-        >
+        <p className="mentor-session-caption mx-0 mt-4.5 mb-0 text-sm text-muted">
           {status?.phase === "in_duty"
             ? `正在记录 ${active?.characterName ?? "当前角色"} 的副本；完成信号或退出后会更新结果。`
             : status?.phase === "queued"
@@ -504,13 +530,12 @@ export function MentorPage() {
       </section>
 
       <div
-        className={
-          'mentor-tabs flex gap-[24px] mt-[30px] border-b border-solid border-line [.mentor-page_&_button]:min-h-[44px] [.mentor-page_&_button]:border-0 [.mentor-page_&_button]:rounded-none [.mentor-page_&_button]:text-muted [.mentor-page_&_button[aria-selected=true]]:text-ink [.mentor-page_&_button[aria-selected=true]]:font-semibold [&&&&]:[align-items:end] [.mentor-page_&&&&_button]:p-[8px_2px] [.mentor-page_&&&&_button]:[border-bottom:2px_solid_transparent] [.mentor-page_&&&&_button]:[background:transparent] [.mentor-page_&&&&_button[aria-selected="true"]]:[border-bottom-color:var(--accent)]'
-        }
+        className="mentor-tabs mt-5 flex items-end gap-6 border-b border-solid border-line"
         role="tablist"
         aria-label="记录页面"
       >
         <button
+          className={mentorTabClasses}
           role="tab"
           aria-selected={view === "history"}
           onClick={() => setView("history")}
@@ -518,6 +543,7 @@ export function MentorPage() {
           记录
         </button>
         <button
+          className={mentorTabClasses}
           role="tab"
           aria-selected={view === "analysis"}
           onClick={() => setView("analysis")}
@@ -525,6 +551,7 @@ export function MentorPage() {
           数据分析
         </button>
         <button
+          className={mentorTabClasses}
           role="tab"
           aria-selected={view === "data"}
           onClick={() => setView("data")}
@@ -539,59 +566,62 @@ export function MentorPage() {
         />
       ) : view === "history" ? (
         <>
-          <div
-            className={
-              "mentor-summary flex gap-[36px] flex-wrap border-b border-solid border-line [&_span]:inline-flex [&_span]:items-baseline [&_span]:gap-[9px] [&_span]:text-muted [&_span]:whitespace-nowrap [&_strong]:text-ink [&_strong]:tabular-nums [.mentor-preview_&]:pt-0 [&&&&]:p-[20px_0_22px] [&&&&_strong]:text-[1.3rem] [&&&&_strong]:leading-[1] [@media(max-width:_600px)]:[&&&&]:gap-[15px_23px]"
-            }
-            aria-label="记录统计"
-          >
-            <span>
-              <strong>{totals.all}</strong>全部记录
+          <div className={mentorSummaryClasses} aria-label="记录统计">
+            <span className={mentorSummaryItemClasses}>
+              <strong className={mentorSummaryValueClasses}>
+                {totals.all}
+              </strong>
+              全部记录
             </span>
-            <span>
-              <strong>{totals.completed}</strong>已完成
+            <span className={mentorSummaryItemClasses}>
+              <strong className={mentorSummaryValueClasses}>
+                {totals.completed}
+              </strong>
+              已完成
             </span>
-            <span>
-              <strong>{totals.exited}</strong>已退出
+            <span className={mentorSummaryItemClasses}>
+              <strong className={mentorSummaryValueClasses}>
+                {totals.exited}
+              </strong>
+              已退出
             </span>
-            <span>
-              <strong>{totals.review}</strong>待核对或未标记
+            <span className={mentorSummaryItemClasses}>
+              <strong className={mentorSummaryValueClasses}>
+                {totals.review}
+              </strong>
+              待核对或未标记
             </span>
           </div>
-          <section className="mentor-history mt-[30px]">
-            <div
-              className={
-                "mentor-section-heading flex justify-between gap-[24px] [&_h2]:m-0 [&_p]:text-muted items-center max-[850px]:flex-wrap [&&&&_p]:m-[4px_0_0]"
-              }
-            >
+          <section className="mentor-history mt-6">
+            <div className={mentorSectionHeadingClasses}>
               <div>
-                <h2 className="text-lg font-semibold">历史记录</h2>
-                <p>完成和退出分别统计；旧站记录可在详情里补充结果。</p>
+                <h2 className="m-0 text-lg font-semibold">历史记录</h2>
+                <p className="mx-0 mt-1 mb-0 text-muted">
+                  完成和退出分别统计；旧站记录可在详情里补充结果。
+                </p>
               </div>
               <button
+                className={mentorControlClasses.button}
                 type="button"
                 onClick={() => setManualOpen((open) => !open)}
               >
-                <Plus />
+                <Plus className={mentorControlClasses.icon} />
                 补录遗漏
               </button>
             </div>
             {manualOpen && (
               <form
-                className={
-                  "mentor-manual mt-[20px] p-[22px] border border-solid border-line rounded-[12px] bg-surface [&_>_label]:mt-[16px] [&&&&_h3]:m-[0_0_16px]"
-                }
+                className="mentor-manual mt-5 rounded-panel border border-solid border-line bg-surface p-5.5"
                 onSubmit={(event) => void submitManual(event)}
               >
-                <h3 className="text-base font-semibold">补录一条导随</h3>
-                <div
-                  className={
-                    "mentor-form-grid grid gap-[16px] [&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [@media(max-width:_600px)]:[&&&&]:grid-cols-[1fr]"
-                  }
-                >
-                  <label>
+                <h3 className="mx-0 mt-0 mb-4 text-base font-semibold">
+                  补录一条导随
+                </h3>
+                <div className={mentorFormGridClasses}>
+                  <label className={mentorControlClasses.label}>
                     角色名称
                     <input
+                      className={mentorControlClasses.input}
                       required
                       maxLength={120}
                       value={manual.characterName}
@@ -603,31 +633,40 @@ export function MentorPage() {
                       }
                     />
                   </label>
-                  <label>
+                  <label className={mentorControlClasses.label}>
                     副本名称
                     <input
+                      className={mentorControlClasses.input}
                       required
                       maxLength={160}
                       value={manual.dutyName}
                       onChange={(event) =>
-                        setManual({ ...manual, dutyName: event.target.value })
+                        setManual({
+                          ...manual,
+                          dutyName: event.target.value,
+                        })
                       }
                     />
                   </label>
-                  <label>
+                  <label className={mentorControlClasses.label}>
                     进入时间
                     <input
+                      className={mentorControlClasses.input}
                       required
                       type="datetime-local"
                       value={manual.date}
                       onChange={(event) =>
-                        setManual({ ...manual, date: event.target.value })
+                        setManual({
+                          ...manual,
+                          date: event.target.value,
+                        })
                       }
                     />
                   </label>
-                  <label>
+                  <label className={mentorControlClasses.label}>
                     结果
                     <select
+                      className={mentorControlClasses.select}
                       value={manual.result}
                       onChange={(event) =>
                         setManual({
@@ -642,23 +681,31 @@ export function MentorPage() {
                     </select>
                   </label>
                 </div>
-                <label>
+                <label className="mt-4 grid gap-1.5 font-semibold">
                   备注
                   <textarea
+                    className={mentorControlClasses.textarea}
                     maxLength={500}
                     rows={2}
                     value={manual.note}
                     onChange={(event) =>
-                      setManual({ ...manual, note: event.target.value })
+                      setManual({
+                        ...manual,
+                        note: event.target.value,
+                      })
                     }
                   />
                 </label>
-                <div className="mentor-form-actions flex justify-end gap-[10px] mt-[18px]">
-                  <button type="button" onClick={() => setManualOpen(false)}>
+                <div className={mentorFormActionsClasses}>
+                  <button
+                    className={mentorControlClasses.button}
+                    type="button"
+                    onClick={() => setManualOpen(false)}
+                  >
                     取消
                   </button>
                   <button
-                    className="mentor-primary [.mentor-page_&]:text-on-accent [.mentor-page_&]:bg-accent [.mentor-page_&]:border-accent [.mentor-page_&]:font-semibold [.mentor-page_&:hover:not(:disabled)]:bg-accent-hover"
+                    className={mentorControlClasses.primaryButton}
                     type="submit"
                     disabled={busy}
                   >
@@ -675,36 +722,34 @@ export function MentorPage() {
               onRefresh={() => void refreshRecords()}
             />
             {grouped.length === 0 ? (
-              <div
-                className={
-                  "mentor-empty text-center text-muted [&_h3]:m-0 [&_h3]:text-ink [&&&&]:p-[64px_20px] [&&&&_p]:m-[6px_0_18px]"
-                }
-              >
-                <h3 className="text-base font-semibold">
+              <div className="mentor-empty px-5 py-16 text-center text-muted">
+                <h3 className="m-0 text-base font-semibold text-ink">
                   {records.length
                     ? "没有符合条件的记录"
                     : "下一次导随会记在这里"}
                 </h3>
-                <p>
+                <p className="mx-0 mt-1.5 mb-4.5">
                   {records.length
                     ? "试试清除搜索或更换筛选条件。"
                     : "也可以从旧站迁移已有记录，或手动补录。"}
                 </p>
                 {!records.length && (
-                  <button type="button" onClick={() => setView("data")}>
-                    迁移旧站记录 <ArrowRight />
+                  <button
+                    className={mentorControlClasses.button}
+                    type="button"
+                    onClick={() => setView("data")}
+                  >
+                    迁移旧站记录{" "}
+                    <ArrowRight className={mentorControlClasses.icon} />
                   </button>
                 )}
               </div>
             ) : (
               grouped.map(([day, rows]) => (
-                <div
-                  className={
-                    "mentor-day mt-[26px] [&_>_h3]:text-muted [&_>_h3]:text-[13px] [&_>_h3]:font-semibold [&&&&_>_h3]:m-[0_0_9px]"
-                  }
-                  key={day}
-                >
-                  <h3 className="text-base font-semibold">{day}</h3>
+                <div className="mentor-day mt-6.5" key={day}>
+                  <h3 className="mx-0 mt-0 mb-[9px] text-base text-[13px] font-semibold text-muted">
+                    {day}
+                  </h3>
                   <div className="mentor-records border-t border-solid border-line">
                     {rows.map((record) => {
                       const duty = record.dutyId
@@ -717,9 +762,7 @@ export function MentorPage() {
                           key={record.id}
                         >
                           <button
-                            className={
-                              "mentor-record-main [.mentor-page_&]:grid [.mentor-page_&]:w-full [.mentor-page_&]:min-h-[70px] [.mentor-page_&]:items-center [.mentor-page_&]:gap-[16px] [.mentor-page_&]:border-0 [.mentor-page_&]:rounded-none [.mentor-page_&]:text-left [&_time]:text-muted [&_time]:text-sm [&_time]:tabular-nums max-[600px]:[.mentor-page_&]:gap-[9px] max-[600px]:[&_>_svg]:hidden [.mentor-page_&&&&]:grid-cols-[60px_minmax(0,_1fr)_100px_20px] [.mentor-page_&&&&]:p-[9px_6px] [.mentor-page_&&&&]:[background:transparent] [.mentor-page_&&&&:hover]:[background:var(--surface-2)] [@media(max-width:_600px)]:[.mentor-page_&&&&]:grid-cols-[46px_minmax(0,_1fr)_76px]"
-                            }
+                            className="mentor-record-main grid min-h-17.5 w-full grid-cols-[60px_minmax(0,_1fr)_100px_20px] items-center justify-center gap-4 rounded-none border-0 border-control bg-transparent px-1.5 py-[9px] text-left text-inherit transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-hover disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-55 max-[600px]:grid-cols-[46px_minmax(0,_1fr)_76px] max-[600px]:gap-[9px]"
                             type="button"
                             aria-expanded={open}
                             onClick={() => {
@@ -728,19 +771,15 @@ export function MentorPage() {
                               setEditNote(record.note);
                             }}
                           >
-                            <time>
+                            <time className="text-sm text-muted tabular-nums">
                               {new Intl.DateTimeFormat("zh-CN", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               }).format(record.startedAtMs)}
                             </time>
-                            <span
-                              className={
-                                "mentor-record-title min-w-0 font-semibold overflow-hidden whitespace-nowrap [&_small]:flex [&_small]:items-center [&_small]:gap-[12px] [&_small]:text-muted [&_small]:text-[13px] [&_small]:font-normal [&_small]:overflow-hidden [&&&&]:[text-overflow:ellipsis] [&&&&_small]:[text-overflow:ellipsis]"
-                              }
-                            >
+                            <span className="mentor-record-title min-w-0 overflow-hidden font-semibold text-ellipsis whitespace-nowrap">
                               {duty}
-                              <small>
+                              <small className="flex items-center gap-3 overflow-hidden text-[13px] font-normal text-ellipsis text-muted">
                                 {record.characterName || "未指定角色"}
                                 <MentorJob
                                   jobId={record.jobId}
@@ -749,44 +788,47 @@ export function MentorPage() {
                               </small>
                             </span>
                             <span
-                              className={`text-[13px] font-semibold whitespace-nowrap [&.result-completed]:text-success [&.result-exited]:text-warning [&.result-needs_review]:text-muted [&.result-legacy_unknown]:text-muted mentor-result result-${record.result}`}
+                              className={clsx(
+                                "mentor-result text-[13px] font-semibold whitespace-nowrap [&.result-completed]:text-success [&.result-exited]:text-warning",
+                                `result-${record.result}`,
+                              )}
                             >
                               {resultLabel[record.result]}
                             </span>
-                            <PencilSimple aria-hidden="true" />
+                            <PencilSimple
+                              className="h-4.5 w-4.5 shrink-0 max-[600px]:hidden"
+                              aria-hidden="true"
+                            />
                           </button>
                           {open && (
-                            <div
-                              className={
-                                "mentor-record-detail bg-surface [&_dl]:flex [&_dl]:flex-wrap [&_dl_div]:flex [&_dl_div]:gap-[8px] [&_dt]:text-muted [&_dd]:m-0 [@media(max-width:_600px)]:[&&&&]:p-[18px] [&&&&]:p-[18px_18px_20px_82px] [&&&&_dl]:gap-[20px_30px] [&&&&_dl]:m-[0_0_18px]"
-                              }
-                            >
-                              <dl>
-                                <div>
-                                  <dt>进入</dt>
-                                  <dd>{dateTime(record.startedAtMs)}</dd>
+                            <div className="mentor-record-detail bg-surface pt-4.5 pr-4.5 pb-5 pl-20.5 max-[600px]:p-4.5">
+                              <dl className="mx-0 mt-0 mb-4.5 flex flex-wrap gap-[20px_30px]">
+                                <div className="flex gap-2">
+                                  <dt className="text-muted">进入</dt>
+                                  <dd className="m-0">
+                                    {dateTime(record.startedAtMs)}
+                                  </dd>
                                 </div>
-                                <div>
-                                  <dt>结束</dt>
-                                  <dd>
+                                <div className="flex gap-2">
+                                  <dt className="text-muted">结束</dt>
+                                  <dd className="m-0">
                                     {record.endedAtMs
                                       ? dateTime(record.endedAtMs)
                                       : "未记录"}
                                   </dd>
                                 </div>
-                                <div>
-                                  <dt>来源</dt>
-                                  <dd>{sourceLabel[record.source]}</dd>
+                                <div className="flex gap-2">
+                                  <dt className="text-muted">来源</dt>
+                                  <dd className="m-0">
+                                    {sourceLabel[record.source]}
+                                  </dd>
                                 </div>
                               </dl>
-                              <div
-                                className={
-                                  "mentor-form-grid grid gap-[16px] [&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [@media(max-width:_600px)]:[&&&&]:grid-cols-[1fr]"
-                                }
-                              >
-                                <label>
+                              <div className={mentorFormGridClasses}>
+                                <label className={mentorControlClasses.label}>
                                   结果
                                   <select
+                                    className={mentorControlClasses.select}
                                     value={editResult}
                                     onChange={(event) =>
                                       setEditResult(
@@ -802,9 +844,10 @@ export function MentorPage() {
                                     </option>
                                   </select>
                                 </label>
-                                <label>
+                                <label className={mentorControlClasses.label}>
                                   备注
                                   <textarea
+                                    className={mentorControlClasses.textarea}
                                     maxLength={500}
                                     rows={2}
                                     value={editNote}
@@ -814,11 +857,9 @@ export function MentorPage() {
                                   />
                                 </label>
                               </div>
-                              <div className="mentor-form-actions flex justify-end gap-[10px] mt-[18px]">
+                              <div className={mentorFormActionsClasses}>
                                 <button
-                                  className={
-                                    "mentor-delete [.mentor-page_&]:text-danger [.mentor-page_&&&&]:[margin-right:auto] [.mentor-page_&&&&]:[border-color:transparent] [.mentor-page_&&&&]:[background:transparent]"
-                                  }
+                                  className="mentor-delete [margin-right:auto] inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-solid border-[transparent] bg-transparent px-3.5 py-2 text-danger transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:opacity-55 pointer-coarse:min-h-11"
                                   type="button"
                                   disabled={busy}
                                   onClick={() => void removeRecord(record.id)}
@@ -826,7 +867,7 @@ export function MentorPage() {
                                   删除记录
                                 </button>
                                 <button
-                                  className="mentor-primary [.mentor-page_&]:text-on-accent [.mentor-page_&]:bg-accent [.mentor-page_&]:border-accent [.mentor-page_&]:font-semibold [.mentor-page_&:hover:not(:disabled)]:bg-accent-hover"
+                                  className={mentorControlClasses.primaryButton}
                                   type="button"
                                   disabled={busy}
                                   onClick={() => void saveCorrection(record.id)}
@@ -846,35 +887,28 @@ export function MentorPage() {
           </section>
         </>
       ) : (
-        <section className="mentor-data mt-[30px]">
-          <div
-            className={
-              "mentor-section-heading flex justify-between gap-[24px] [&_h2]:m-0 [&_p]:text-muted items-center max-[850px]:flex-wrap [&&&&_p]:m-[4px_0_0]"
-            }
-          >
+        <section className="mentor-data mt-6">
+          <div className={mentorSectionHeadingClasses}>
             <div>
-              <h2 className="text-lg font-semibold">数据管理</h2>
-              <p>从旧站读取历史记录，先预览，再保存到本地。</p>
+              <h2 className="m-0 text-lg font-semibold">数据管理</h2>
+              <p className="mx-0 mt-1 mb-0 text-muted">
+                从旧站读取历史记录，先预览，再保存到本地。
+              </p>
             </div>
           </div>
-          <div
-            className={
-              "mentor-data-block max-w-[740px] border-b border-solid border-line [&_>_p]:text-muted [&&&&]:p-[30px_0] [&&&&_h3]:m-[0_0_5px] [&&&&_>_p]:m-[0_0_20px]"
-            }
-          >
-            <h3 className="text-base font-semibold">迁移旧站记录</h3>
-            <p>
+          <div className={mentorDataBlockClasses}>
+            <h3 className={mentorDataHeadingClasses}>迁移旧站记录</h3>
+            <p className="mx-0 mt-0 mb-5 text-muted">
               使用旧站账号登录并逐页读取记录。不会调用旧站会冻结账号的导出功能；密码和会话不会保存。
             </p>
             <form
-              className={
-                "mentor-legacy-form grid gap-[12px] [&&&&]:grid-cols-[1fr_1fr_auto] [&&&&]:[align-items:end] [@media(max-width:_850px)]:[&&&&]:grid-cols-[repeat(2,_minmax(0,_1fr))] [@media(max-width:_850px)]:[&&&&_button]:[grid-column:1_/_-1] [@media(max-width:_850px)]:[&&&&_button]:[justify-self:start] [@media(max-width:_600px)]:[&&&&]:grid-cols-[1fr] [@media(max-width:_600px)]:[&&&&_button]:[grid-column:1]"
-              }
+              className="mentor-legacy-form grid grid-cols-[1fr_1fr_auto] items-end gap-3 max-[850px]:grid-cols-2 max-[600px]:grid-cols-[1fr]"
               onSubmit={(event) => void fetchLegacy(event)}
             >
-              <label>
+              <label className={mentorControlClasses.label}>
                 旧站邮箱
                 <input
+                  className={mentorControlClasses.input}
                   type="email"
                   autoComplete="username"
                   required
@@ -882,9 +916,10 @@ export function MentorPage() {
                   onChange={(event) => setLegacyEmail(event.target.value)}
                 />
               </label>
-              <label>
+              <label className={mentorControlClasses.label}>
                 旧站密码
                 <input
+                  className={mentorControlClasses.input}
                   type="password"
                   autoComplete="current-password"
                   required
@@ -893,55 +928,57 @@ export function MentorPage() {
                 />
               </label>
               <button
-                className="mentor-primary [.mentor-page_&]:text-on-accent [.mentor-page_&]:bg-accent [.mentor-page_&]:border-accent [.mentor-page_&]:font-semibold [.mentor-page_&:hover:not(:disabled)]:bg-accent-hover"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-solid border-accent bg-accent px-3.5 py-2 font-semibold text-on-accent transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-accent-hover disabled:cursor-not-allowed disabled:border-accent disabled:bg-accent disabled:text-on-accent disabled:opacity-55 max-[850px]:col-span-full max-[850px]:justify-self-start max-[600px]:col-start-1 pointer-coarse:min-h-11"
                 type="submit"
                 disabled={busy}
               >
                 {busy ? (
-                  <SpinnerGap
-                    className={
-                      "mentor-spin [&&&&]:animate-[mentor-spin_1s_linear_infinite] [@media(prefers-reduced-motion:_reduce)]:[&&&&]:animate-[none]"
-                    }
-                  />
+                  <SpinnerGap className={mentorSpinClasses} />
                 ) : (
-                  <DownloadSimple />
+                  <DownloadSimple className={mentorControlClasses.icon} />
                 )}
                 登录并读取
               </button>
             </form>
             {preview && (
-              <div
-                className={
-                  "mentor-preview mt-[20px] p-[22px] border border-solid border-line rounded-[12px] bg-surface [&_>_p]:text-muted [&_ul]:pl-[20px] [&_>_label:not(.mentor-check)]:max-w-[340px] [&&&&_h3]:m-[0_0_16px] [&&&&_ul]:m-[10px_0_20px]"
-                }
-              >
-                <h3 className="text-base font-semibold">核对后保存</h3>
-                <div
-                  className={
-                    "mentor-summary flex gap-[36px] flex-wrap border-b border-solid border-line [&_span]:inline-flex [&_span]:items-baseline [&_span]:gap-[9px] [&_span]:text-muted [&_span]:whitespace-nowrap [&_strong]:text-ink [&_strong]:tabular-nums [.mentor-preview_&]:pt-0 [&&&&]:p-[20px_0_22px] [&&&&_strong]:text-[1.3rem] [&&&&_strong]:leading-[1] [@media(max-width:_600px)]:[&&&&]:gap-[15px_23px]"
-                  }
-                >
-                  <span>
-                    <strong>{preview.fetchedCount}</strong>读取
+              <div className="mentor-preview mt-5 rounded-panel border border-solid border-line bg-surface p-5.5">
+                <h3 className="mx-0 mt-0 mb-4 text-base font-semibold">
+                  核对后保存
+                </h3>
+                <div className={mentorSummaryClasses}>
+                  <span className={mentorSummaryItemClasses}>
+                    <strong className={mentorSummaryValueClasses}>
+                      {preview.fetchedCount}
+                    </strong>
+                    读取
                   </span>
-                  <span>
-                    <strong>{preview.validCount}</strong>可导入
+                  <span className={mentorSummaryItemClasses}>
+                    <strong className={mentorSummaryValueClasses}>
+                      {preview.validCount}
+                    </strong>
+                    可导入
                   </span>
-                  <span>
-                    <strong>{preview.duplicateCount}</strong>重复
+                  <span className={mentorSummaryItemClasses}>
+                    <strong className={mentorSummaryValueClasses}>
+                      {preview.duplicateCount}
+                    </strong>
+                    重复
                   </span>
-                  <span>
-                    <strong>{preview.invalidCount}</strong>无效
+                  <span className={mentorSummaryItemClasses}>
+                    <strong className={mentorSummaryValueClasses}>
+                      {preview.invalidCount}
+                    </strong>
+                    无效
                   </span>
                 </div>
-                <p>
+                <p className="text-muted">
                   账号：{legacyEmail}。
                   {preview.earliestAtMs && preview.latestAtMs
                     ? `记录范围：${dayLabel(preview.earliestAtMs)} 至 ${dayLabel(preview.latestAtMs)}。`
                     : ""}
                 </p>
                 {preview.examples.length > 0 && (
-                  <ul>
+                  <ul className="mx-0 mt-2.5 mb-5 pl-5">
                     {preview.examples.map((record) => (
                       <li key={record.id}>
                         {dayLabel(record.startedAtMs)} · {record.dutyName}
@@ -949,9 +986,10 @@ export function MentorPage() {
                     ))}
                   </ul>
                 )}
-                <label>
+                <label className="grid max-w-85 gap-1.5 font-semibold">
                   归属角色
                   <input
+                    className={mentorControlClasses.input}
                     required
                     maxLength={120}
                     placeholder="输入游戏内角色名称"
@@ -959,8 +997,9 @@ export function MentorPage() {
                     onChange={(event) => setLegacyCharacter(event.target.value)}
                   />
                 </label>
-                <label className="mentor-check [.mentor-preview_&]:flex [.mentor-preview_&]:items-center [.mentor-preview_&]:gap-[10px] [.mentor-preview_&]:mt-[16px] [.mentor-preview_&]:font-normal [&_input]:w-[18px] [&_input]:h-[18px]">
+                <label className="mentor-check mt-4 flex items-center gap-2.5 font-normal">
                   <input
+                    className="h-4.5 w-4.5"
                     type="checkbox"
                     checked={legacyCompleted}
                     onChange={(event) =>
@@ -969,15 +1008,11 @@ export function MentorPage() {
                   />
                   将旧站记录统一标为已完成
                 </label>
-                <p
-                  className={
-                    "mentor-hint [.mentor-preview_&]:text-[13px] [.mentor-preview_&&&&]:m-[5px_0_16px]"
-                  }
-                >
+                <p className="mentor-hint mx-0 mt-[5px] mb-4 text-[13px] text-muted">
                   旧站未提供可靠的完成结果。保持不选时会标为“结果未标记”，可逐条修正。
                 </p>
                 <button
-                  className="mentor-primary [.mentor-page_&]:text-on-accent [.mentor-page_&]:bg-accent [.mentor-page_&]:border-accent [.mentor-page_&]:font-semibold [.mentor-page_&:hover:not(:disabled)]:bg-accent-hover"
+                  className={mentorControlClasses.primaryButton}
                   type="button"
                   disabled={
                     busy || !legacyCharacter.trim() || preview.validCount === 0
@@ -989,19 +1024,18 @@ export function MentorPage() {
               </div>
             )}
           </div>
-          <div
-            className={
-              "mentor-data-block max-w-[740px] border-b border-solid border-line [&_>_p]:text-muted [&&&&]:p-[30px_0] [&&&&_h3]:m-[0_0_5px] [&&&&_>_p]:m-[0_0_20px]"
-            }
-          >
-            <h3 className="text-base font-semibold">本地备份</h3>
-            <p>下载当前记录的 JSON 副本，便于自行保留。</p>
+          <div className={mentorDataBlockClasses}>
+            <h3 className={mentorDataHeadingClasses}>本地备份</h3>
+            <p className="mx-0 mt-0 mb-5 text-muted">
+              下载当前记录的 JSON 副本，便于自行保留。
+            </p>
             <button
+              className={mentorControlClasses.button}
               type="button"
               disabled={!records.length}
               onClick={exportBackup}
             >
-              <DownloadSimple />
+              <DownloadSimple className={mentorControlClasses.icon} />
               下载备份
             </button>
           </div>

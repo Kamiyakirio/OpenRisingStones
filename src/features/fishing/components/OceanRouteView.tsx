@@ -1,4 +1,10 @@
 /** One selected voyage exposes its three seas and spot-specific catch methods. */
+
+import {
+  fishingEmptyClasses,
+  fishingSectionHeadingClasses,
+  fishingSectionDescriptionClasses,
+} from "../utilityClasses";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { FishingRows, type RowContext } from "./FishingRows";
@@ -9,7 +15,14 @@ import {
 } from "../utils/oceanRoutes";
 import type { Fish } from "../types";
 
-const phases: Record<number, string> = { 1: "白天", 2: "黄昏", 3: "夜晚" };
+/** Reused presentation strings stay static and are allocated once for this module. */
+const routeCountClasses = "fish-count text-[13px] text-muted tabular-nums";
+
+const phases: Record<number, string> = {
+  1: "白天",
+  2: "黄昏",
+  3: "夜晚",
+};
 const departureText = (time: number) =>
   new Date(time).toLocaleString("zh-CN", {
     month: "numeric",
@@ -18,7 +31,6 @@ const departureText = (time: number) =>
     minute: "2-digit",
     hour12: false,
   });
-
 export function OceanRouteView({
   context,
   state,
@@ -41,7 +53,10 @@ export function OceanRouteView({
   const stop = route?.stops[state.stopIndex] ?? route?.stops[0];
   const catches = stop
     ? oceanStopFish(context.catalog, stop)
-    : { main: [], spectral: [] };
+    : {
+        main: [],
+        spectral: [],
+      };
   const caught = new Set(context.progress.caught);
   const saved = new Set(context.progress.saved);
   const show = (fish: Fish[]) =>
@@ -56,87 +71,80 @@ export function OceanRouteView({
   const spectral = show(catches.spectral);
   const routeFish = route ? oceanRouteFish(context.catalog, route) : [];
   const missing = routeFish.filter((fish) => !caught.has(fish.id)).length;
-  useEffect(() => heading.current?.focus({ preventScroll: true }), [route?.id]);
-
+  useEffect(
+    () =>
+      heading.current?.focus({
+        preventScroll: true,
+      }),
+    [route?.id],
+  );
   if (!route || !stop)
-    return (
-      <p
-        className={
-          "fish-inline-empty m-0 text-muted [&&&&]:p-[24px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)]"
-        }
-      >
-        这班船的航线资料暂不可用。
-      </p>
-    );
-
+    return <p className={fishingEmptyClasses}>这班船的航线资料暂不可用。</p>;
   return (
-    <div className="fish-ocean-detail max-w-[1120px]">
+    <div className="fish-ocean-detail max-w-280">
       <button
-        className={
-          "fish-back [.fishing-workspace_&]:inline-flex [.fishing-workspace_&]:items-center [.fishing-workspace_&]:gap-[8px] [.fishing-workspace_&]:mb-[20px] [.fishing-workspace_&]:pl-0 [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:text-accent [&_svg]:w-[19px] [&_svg]:h-[19px] [.fishing-workspace_&&&&]:[background:transparent]"
-        }
+        className="fish-back mb-5 inline-flex min-h-10 items-center gap-2 rounded-control border-0 border-control bg-transparent py-2 pr-3.5 pl-0 text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent pointer-coarse:min-h-11"
         type="button"
         onClick={onBack}
       >
-        <ArrowLeft aria-hidden="true" /> 返回出海航次
+        <ArrowLeft className="h-[19px] w-[19px]" aria-hidden="true" />{" "}
+        返回出海航次
       </button>
-      <header
-        className={
-          "fish-ocean-detail-heading [&_p]:m-0 [&_p]:text-muted [&_p]:text-[13px] [&_span]:m-0 [&_span]:text-muted [&_span]:text-[13px] [&&&&]:m-[14px_0_24px] [&&&&_h1]:m-[4px_0]"
-        }
-      >
-        <p>
+      <header className="fish-ocean-detail-heading mx-0 mt-3.5 mb-6">
+        <p className="m-0 text-[13px] text-muted">
           {departureText(departure)} 开始登记 ·{" "}
           {route.family === "near" ? "近海" : "远洋"}
         </p>
         <h1
-          className="text-2xl font-bold tracking-tight"
+          className="mx-0 my-1 text-2xl font-bold tracking-tight"
           ref={heading}
           tabIndex={-1}
         >
           {route.name}
         </h1>
-        <span>
+        <span className="m-0 text-[13px] text-muted">
           全程 {routeFish.length} 种鱼 · 未记录 {missing} 种
         </span>
       </header>
       {gameLogNotice}
       <nav
-        className={
-          'fish-ocean-stops grid gap-[5px] border-b border-solid border-line [.fishing-workspace_&_button]:grid [.fishing-workspace_&_button]:gap-[4px] [.fishing-workspace_&_button]:min-w-0 [.fishing-workspace_&_button]:min-h-[68px] [.fishing-workspace_&_button]:border-0 [.fishing-workspace_&_button]:rounded-none [.fishing-workspace_&_button]:text-left [.fishing-workspace_&_button[aria-pressed=true]]:text-accent [&_span]:text-muted [&_span]:text-xs [&_strong]:overflow-hidden [&_strong]:whitespace-nowrap max-[620px]:gap-0 max-[620px]:[.fishing-workspace_&_button]:flex max-[620px]:[.fishing-workspace_&_button]:items-baseline max-[620px]:[.fishing-workspace_&_button]:justify-between max-[620px]:[.fishing-workspace_&_button]:min-h-[50px] max-[620px]:[.fishing-workspace_&_button]:border-b max-[620px]:[.fishing-workspace_&_button]:border-solid max-[620px]:[.fishing-workspace_&_button]:border-line max-[620px]:[&_strong]:text-right [&&&&]:grid-cols-[repeat(3,_minmax(0,_1fr))] [&&&&]:m-[24px_0] [.fishing-workspace_&&&&_button]:[align-content:center] [.fishing-workspace_&&&&_button]:p-[8px_10px] [.fishing-workspace_&&&&_button]:[border-bottom:2px_solid_transparent] [.fishing-workspace_&&&&_button]:[background:transparent] [.fishing-workspace_&&&&_button[aria-pressed="true"]]:[border-bottom-color:var(--ors-color-accent)] [&&&&_strong]:[text-overflow:ellipsis] [@media(max-width:_620px)]:[&&&&]:grid-cols-[minmax(0,_1fr)]'
-        }
+        className="fish-ocean-stops mx-0 my-6 grid grid-cols-3 gap-[5px] border-b border-solid border-line max-[620px]:grid-cols-1 max-[620px]:gap-0"
         aria-label="航线停靠海域"
       >
         {route.stops.map((item, index) => (
           <button
+            className="grid min-h-17 min-w-0 content-center gap-1 rounded-none border-0 bg-transparent px-2.5 py-2 text-left text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] [border-bottom:2px_solid_transparent] disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-50 aria-pressed:[border-bottom-color:var(--ors-color-accent)] aria-pressed:bg-selected aria-pressed:text-accent max-[620px]:flex max-[620px]:min-h-12.5 max-[620px]:items-baseline max-[620px]:justify-between max-[620px]:border-b max-[620px]:border-solid max-[620px]:border-line"
             type="button"
             key={`${route.id}-${item.spotId}`}
             aria-pressed={stop.spotId === item.spotId}
-            onClick={() => onChange({ ...state, stopIndex: index })}
+            onClick={() =>
+              onChange({
+                ...state,
+                stopIndex: index,
+              })
+            }
           >
-            <span>
+            <span className="text-xs text-muted">
               第 {index + 1} 站 · {phases[item.phase] || "时段待补"}
             </span>
-            <strong>{item.name}</strong>
+            <strong className="overflow-hidden text-ellipsis whitespace-nowrap max-[620px]:text-right">
+              {item.name}
+            </strong>
           </button>
         ))}
       </nav>
-      <div
-        className={
-          "fish-ocean-stop-heading flex justify-between flex-wrap [&_h2]:m-0 [&_p]:text-muted [&_p]:text-[13px] [.fish-ocean-detail_&_h2]:m-0 [&&&&]:[align-items:end] [&&&&]:gap-[12px_24px] [&&&&_p]:m-[4px_0_0] [&&&&_p]:leading-[1.5] [.fish-ocean-detail_&&&&_h2]:text-[1.2rem]"
-        }
-      >
+      <div className="fish-ocean-stop-heading flex flex-wrap items-end justify-between gap-[12px_24px]">
         <div>
-          <h2 className="text-lg font-semibold">{stop.name}</h2>
-          <p>
+          <h2 className="m-0 text-lg text-[1.2rem] font-semibold">
+            {stop.name}
+          </h2>
+          <p className="mx-0 mt-1 mb-0 text-[13px] leading-[1.5] text-muted">
             普通海域 {catches.main.length} 种 · 幻海流 {catches.spectral.length}{" "}
             种
           </p>
         </div>
         <div
-          className={
-            "fish-ocean-scope [.fishing-workspace_&_button]:min-h-[36px] [.fishing-workspace_&_button]:text-[13px] inline-flex flex-wrap gap-[5px] [.fishing-workspace_&&&&_button]:p-[5px_9px]"
-          }
+          className="fish-ocean-scope inline-flex flex-wrap gap-[5px]"
           role="group"
           aria-label="海域鱼类范围"
         >
@@ -148,42 +156,35 @@ export function OceanRouteView({
             ] as const
           ).map(([scope, label]) => (
             <button
+              className="min-h-9 rounded-control border border-solid border-control bg-surface px-[9px] py-[5px] text-[13px] text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected"
               type="button"
               key={scope}
               aria-pressed={state.scope === scope}
-              onClick={() => onChange({ ...state, scope })}
+              onClick={() =>
+                onChange({
+                  ...state,
+                  scope,
+                })
+              }
             >
               {label}
             </button>
           ))}
         </div>
       </div>
-      <p
-        className={
-          "fish-ocean-note text-muted text-[13px] [&&&&]:m-[12px_0_24px] [&&&&]:leading-[1.5]"
-        }
-      >
+      <p className="fish-ocean-note mx-0 mt-3 mb-6 text-[13px] leading-[1.5] text-muted">
         已按本航次的时段筛选鱼种；天气、鱼识和幻海流是否触发仍需在游戏中确认。积分为单条鱼的参考分值，不含航次结算加成。
       </p>
-      <section
-        className="fish-ocean-fish-section [.fish-ocean-fish-section_+_&]:mt-[32px]"
-        aria-label="普通海域鱼类"
-      >
-        <header
-          className={
-            "fish-section-heading [&_p]:text-muted flex items-baseline justify-between flex-wrap mb-[14px] [&_h2]:m-0 [&_h2]:text-lg [&_p]:text-[13px] [.fish-ocean-fish-section_&_h3]:m-0 [.fish-ocean-fish-section_&_h3]:text-lg [&&&&]:gap-[8px_20px] [&&&&_p]:m-[2px_0_0] [&&&&_p]:leading-[1.5]"
-          }
-        >
+      <section className="fish-ocean-fish-section" aria-label="普通海域鱼类">
+        <header className={fishingSectionHeadingClasses}>
           <div>
-            <h3 className="text-base font-semibold">普通海域</h3>
-            <p>
+            <h3 className="m-0 text-lg font-semibold">普通海域</h3>
+            <p className={fishingSectionDescriptionClasses}>
               未记录{" "}
               {catches.main.filter((fish) => !caught.has(fish.id)).length} 种
             </p>
           </div>
-          <span className="fish-count text-muted text-[13px] tabular-nums">
-            {main.length} 种
-          </span>
+          <span className={routeCountClasses}>{main.length} 种</span>
         </header>
         {main.length ? (
           <FishingRows
@@ -195,35 +196,20 @@ export function OceanRouteView({
             showTiming={false}
           />
         ) : (
-          <p
-            className={
-              "fish-inline-empty m-0 text-muted [&&&&]:p-[24px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)]"
-            }
-          >
-            这一栏没有符合条件的鱼。
-          </p>
+          <p className={fishingEmptyClasses}>这一栏没有符合条件的鱼。</p>
         )}
       </section>
-      <section
-        className="fish-ocean-fish-section [.fish-ocean-fish-section_+_&]:mt-[32px]"
-        aria-label="幻海流鱼类"
-      >
-        <header
-          className={
-            "fish-section-heading [&_p]:text-muted flex items-baseline justify-between flex-wrap mb-[14px] [&_h2]:m-0 [&_h2]:text-lg [&_p]:text-[13px] [.fish-ocean-fish-section_&_h3]:m-0 [.fish-ocean-fish-section_&_h3]:text-lg [&&&&]:gap-[8px_20px] [&&&&_p]:m-[2px_0_0] [&&&&_p]:leading-[1.5]"
-          }
-        >
+      <section className="fish-ocean-fish-section mt-8" aria-label="幻海流鱼类">
+        <header className={fishingSectionHeadingClasses}>
           <div>
-            <h3 className="text-base font-semibold">幻海流</h3>
-            <p>
+            <h3 className="m-0 text-lg font-semibold">幻海流</h3>
+            <p className={fishingSectionDescriptionClasses}>
               未记录{" "}
               {catches.spectral.filter((fish) => !caught.has(fish.id)).length}{" "}
               种
             </p>
           </div>
-          <span className="fish-count text-muted text-[13px] tabular-nums">
-            {spectral.length} 种
-          </span>
+          <span className={routeCountClasses}>{spectral.length} 种</span>
         </header>
         {spectral.length ? (
           <FishingRows
@@ -236,13 +222,7 @@ export function OceanRouteView({
             showTiming={false}
           />
         ) : (
-          <p
-            className={
-              "fish-inline-empty m-0 text-muted [&&&&]:p-[24px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)]"
-            }
-          >
-            这一栏没有符合条件的鱼。
-          </p>
+          <p className={fishingEmptyClasses}>这一栏没有符合条件的鱼。</p>
         )}
       </section>
     </div>

@@ -8,8 +8,9 @@ export function FishClock() {
     .map((value) => String(value).padStart(2, "0"))
     .join(":");
   return (
-    <span className="fish-clock text-muted text-[13px] tabular-nums [&_strong]:ml-[7px] [&_strong]:text-ink [&_strong]:text-base">
-      艾欧泽亚时间 <strong>{time}</strong>
+    <span className="fish-clock text-[13px] text-muted tabular-nums">
+      艾欧泽亚时间{" "}
+      <strong className="ml-[7px] text-base text-ink">{time}</strong>
     </span>
   );
 }

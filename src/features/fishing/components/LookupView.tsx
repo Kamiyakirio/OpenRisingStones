@@ -1,4 +1,10 @@
 /** Search the full catalog with the persisted fishing filters. */
+
+import {
+  fishingControlClasses,
+  fishingSectionHeadingClasses,
+  fishingSectionDescriptionClasses,
+} from "../utilityClasses";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import { FishFilters } from "./FishFilters";
@@ -10,14 +16,31 @@ import {
 } from "../utils/workspace";
 import type { FishFilters as FishingFacets } from "../types";
 
-const categoryOptions: { id: FishingCategory | "all"; label: string }[] = [
-  { id: "all", label: "全部" },
-  { id: "timed", label: "限时窗口" },
-  { id: "anytime", label: "全天可钓" },
-  { id: "voyage", label: "海钓航次" },
-  { id: "unknown", label: "条件待补" },
+const categoryOptions: {
+  id: FishingCategory | "all";
+  label: string;
+}[] = [
+  {
+    id: "all",
+    label: "全部",
+  },
+  {
+    id: "timed",
+    label: "限时窗口",
+  },
+  {
+    id: "anytime",
+    label: "全天可钓",
+  },
+  {
+    id: "voyage",
+    label: "海钓航次",
+  },
+  {
+    id: "unknown",
+    label: "条件待补",
+  },
 ];
-
 export function LookupView({
   context,
   search,
@@ -50,62 +73,64 @@ export function LookupView({
   );
   return (
     <div className="fish-lookup">
-      <div
-        className={
-          "fish-lookup-top [&_p]:text-muted flex justify-between mb-[18px] [&_p]:max-w-[210px] [&_p]:text-[13px] max-[620px]:block max-[620px]:[&_p]:mt-[9px] [&&&&]:[align-items:end] [&&&&]:gap-[16px_24px] [&&&&_p]:m-[0_0_6px] [@media(max-width:_620px)]:[&&&&_p]:max-w-[none]"
-        }
-      >
+      <div className="fish-lookup-top mb-4.5 flex items-end justify-between gap-[16px_24px] max-[620px]:block">
         <label
-          className={
-            "fish-lookup-search [&_>_span:first-child]:block [&_>_span:first-child]:font-semibold max-w-[700px] [&&&&]:flex-[1_1_520px]"
-          }
+          className="fish-lookup-search max-w-175 flex-[1_1_520px]"
           htmlFor="fish-query"
         >
-          <span>搜索鱼名、拼音、物品 ID 或钓点</span>
-          <span
-            className={
-              "fish-lookup-input [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-[40px] [&_input]:mt-[7px] [&_input]:border [&_input]:border-solid [&_input]:border-control [&_input]:rounded-[var(--ors-radius-control)] [&_input]:bg-surface [&_input]:text-ink relative block [&_svg]:absolute [&_svg]:w-[18px] [&_svg]:h-[18px] [&_svg]:text-muted [&_input]:pl-[38px] [&&&&_input]:p-[8px_10px_8px_38px] [&&&&_svg]:left-[12px] [&&&&_svg]:top-[18px]"
-            }
-          >
-            <MagnifyingGlass aria-hidden="true" />
+          <span className="first:block first:font-semibold">
+            搜索鱼名、拼音、物品 ID 或钓点
+          </span>
+          <span className="fish-lookup-input relative block first:block first:font-semibold">
+            <MagnifyingGlass
+              className="absolute top-4.5 left-3 h-4.5 w-4.5 text-muted"
+              aria-hidden="true"
+            />
             <input
+              className="mt-[7px] min-h-10 w-full min-w-0 rounded-control border border-solid border-control bg-surface py-2 pr-2.5 pl-9.5 text-ink"
               id="fish-query"
               type="search"
               value={search.query}
-              onChange={(event) => onSearch({ query: event.target.value })}
+              onChange={(event) =>
+                onSearch({
+                  query: event.target.value,
+                })
+              }
               placeholder="涅普特龙 / nieputelong / 8754"
             />
           </span>
         </label>
       </div>
       <div
-        className={
-          "fish-category-controls flex flex-wrap gap-[6px] pb-[18px] border-b border-solid border-line [.fishing-workspace_&_button]:border-line max-[620px]:flex-nowrap max-[620px]:overflow-x-auto max-[620px]:pb-[12px] max-[620px]:[&_button]:whitespace-nowrap [@media(max-width:_620px)]:[&&&&_button]:flex-[0_0_auto]"
-        }
+        className="fish-category-controls flex flex-wrap gap-1.5 border-b border-solid border-line pb-4.5 max-[620px]:flex-nowrap max-[620px]:overflow-x-auto max-[620px]:pb-3"
         aria-label="按窗口类型筛选"
       >
         {categoryOptions.map((option) => (
           <button
+            className="min-h-10 rounded-control border border-solid border-line bg-surface px-3.5 py-2 text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] enabled:hover:bg-hover disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent aria-pressed:enabled:hover:bg-selected max-[620px]:shrink-0 max-[620px]:whitespace-nowrap pointer-coarse:min-h-11"
             key={option.id}
             type="button"
             aria-pressed={search.category === option.id}
-            onClick={() => onSearch({ category: option.id })}
+            onClick={() =>
+              onSearch({
+                category: option.id,
+              })
+            }
           >
             {option.label}
           </button>
         ))}
       </div>
-      <div
-        className={
-          "fish-lookup-controls [&_label]:block [&_label]:font-semibold [&_select]:w-full [&_select]:min-w-0 [&_select]:min-h-[40px] [&_select]:border [&_select]:border-solid [&_select]:border-control [&_select]:rounded-[var(--ors-radius-control)] [&_select]:bg-surface [&_select]:text-ink flex flex-wrap gap-[12px] [&_label]:min-w-[150px] [&_label]:text-[13px] [&_select]:mt-[5px] [&_select]:text-[15px] [&_select]:font-normal [&&&&_select]:p-[8px_10px] [&&&&]:[align-items:end] [&&&&]:p-[18px_0_24px] [&&&&_label]:flex-[0_1_190px] [@media(max-width:_620px)]:[&&&&_label]:flex-[1_1_140px]"
-        }
-      >
-        <label>
+      <div className="fish-lookup-controls flex flex-wrap items-end gap-3 px-0 pt-4.5 pb-6">
+        <label className="block min-w-37.5 flex-[0_1_190px] text-[13px] font-semibold max-[620px]:flex-[1_1_140px]">
           排序
           <select
+            className="mt-[5px] min-h-10 w-full min-w-0 rounded-control border border-solid border-control bg-surface px-2.5 py-2 text-[15px] font-normal text-ink"
             value={search.sort}
             onChange={(event) =>
-              onSearch({ sort: event.target.value as FishingSearch["sort"] })
+              onSearch({
+                sort: event.target.value as FishingSearch["sort"],
+              })
             }
           >
             <option value="window">下一窗口</option>
@@ -116,10 +141,12 @@ export function LookupView({
         </label>
         {facets.available && (
           <button
-            className={
-              "fish-clear-open [.fishing-workspace_&]:min-h-[40px] [.fishing-workspace_&]:text-accent [.fishing-workspace_&&&&]:[border-color:transparent] [.fishing-workspace_&&&&]:[background:transparent]"
+            className="fish-clear-open min-h-10 rounded-control border border-solid border-[transparent] bg-transparent px-3.5 py-2 text-accent transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent"
+            onClick={() =>
+              onFacets({
+                available: false,
+              })
             }
-            onClick={() => onFacets({ available: false })}
           >
             取消“仅看当前可钓”
           </button>
@@ -133,14 +160,12 @@ export function LookupView({
         onReset={onReset}
       />
       <div className="fish-lookup-results min-w-0">
-        <header
-          className={
-            "fish-section-heading [&_p]:text-muted flex items-baseline justify-between flex-wrap mb-[14px] [&_h2]:m-0 [&_h2]:text-lg [&_p]:text-[13px] [.fish-ocean-fish-section_&_h3]:m-0 [.fish-ocean-fish-section_&_h3]:text-lg [&&&&]:gap-[8px_20px] [&&&&_p]:m-[2px_0_0] [&&&&_p]:leading-[1.5]"
-          }
-        >
+        <header className={fishingSectionHeadingClasses}>
           <div>
-            <h2 className="text-lg font-semibold">查询结果</h2>
-            <p>找到 {results.length} 条鱼</p>
+            <h2 className="m-0 text-lg font-semibold">查询结果</h2>
+            <p className={fishingSectionDescriptionClasses}>
+              找到 {results.length} 条鱼
+            </p>
           </div>
         </header>
         {results.length ? (
@@ -152,9 +177,7 @@ export function LookupView({
             />
             {results.length > limit && (
               <button
-                className={
-                  "fish-text-action [.fishing-workspace_&]:min-h-[36px] [.fishing-workspace_&]:mt-[12px] [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:font-semibold [.fishing-workspace_&]:text-left [.fishing-workspace_&&&&]:p-[5px_0] [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_&&&&:hover]:[background:transparent] [.fishing-workspace_&&&&:hover]:[text-decoration:underline]"
-                }
+                className="fish-text-action mt-3 min-h-9 rounded-control border-0 border-control bg-transparent px-0 py-[5px] text-left font-semibold text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent"
                 onClick={onMore}
               >
                 再显示 {Math.min(30, results.length - limit)} 条
@@ -162,14 +185,14 @@ export function LookupView({
             )}
           </>
         ) : (
-          <div
-            className={
-              "fish-empty [&_p]:text-muted [&&&&]:p-[32px_0] [&&&&]:[border-block:1px_solid_var(--ors-color-line)] [&&&&_h3]:m-[0_0_6px]"
-            }
-          >
-            <h3 className="text-base font-semibold">没有符合条件的鱼</h3>
-            <p>可修改鱼名或清除筛选。</p>
-            <button onClick={onReset}>清除筛选</button>
+          <div className="fish-empty px-0 py-8 [border-block:1px_solid_var(--ors-color-line)]">
+            <h3 className="mx-0 mt-0 mb-1.5 text-base font-semibold">
+              没有符合条件的鱼
+            </h3>
+            <p className="text-muted">可修改鱼名或清除筛选。</p>
+            <button className={fishingControlClasses.button} onClick={onReset}>
+              清除筛选
+            </button>
           </div>
         )}
       </div>

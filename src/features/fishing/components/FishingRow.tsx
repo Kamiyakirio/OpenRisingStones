@@ -1,4 +1,6 @@
 /** Compact task row: timing and destination lead, rarity remains secondary. */
+import clsx from "clsx";
+
 import { ArrowRight, BookmarkSimple, Check } from "@phosphor-icons/react";
 import { FishIcon } from "./FishIcon";
 import { FishEntryConditions } from "./FishEntryConditions";
@@ -12,8 +14,11 @@ import {
 } from "../utils/presentation";
 import { fishingCategory } from "../utils/workspace";
 import type { Fish, FishCatalog } from "../types";
-
-const methodLabels = { rod: "垂钓", spear: "刺鱼", ocean: "海钓" };
+const methodLabels = {
+  rod: "垂钓",
+  spear: "刺鱼",
+  ocean: "海钓",
+};
 const localStart = (time: number) =>
   new Date(time).toLocaleString("zh-CN", {
     month: "numeric",
@@ -22,7 +27,6 @@ const localStart = (time: number) =>
     minute: "2-digit",
     hour12: false,
   });
-
 export function FishingRow({
   fish,
   catalog,
@@ -44,6 +48,7 @@ export function FishingRow({
   showNextCountdown = false,
   onOpen,
   onToggleSaved,
+  layout,
 }: {
   fish: Fish;
   catalog: FishCatalog;
@@ -65,6 +70,8 @@ export function FishingRow({
   showNextCountdown?: boolean;
   onOpen: (fish: Fish, triggerId: string, spotId?: number) => void;
   onToggleSaved: (id: number) => void;
+  /** Explicit layout variants keep this component independent of ancestor classes. */
+  layout?: "now-aside" | "spot-page" | "fishing-workspace";
 }) {
   const category = fishingCategory(fish, catalog, now);
   const fishEyesAllDay = fishEyes && isUnrestricted(fish, true);
@@ -97,11 +104,18 @@ export function FishingRow({
         ? "图鉴外 · 未记录"
         : "未标记";
   const triggerId = `${idPrefix}-${fish.id}`;
+  // Sidebar rows stack their actions and timing instead of reserving desktop table columns.
+  const compact = layout === "now-aside";
   return (
     <article
-      className={
-        "fish-entry grid items-center gap-[0px] border-b border-solid border-line [.fish-now-aside_&]:block max-[620px]:gap-0 [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&]:gap-[6px] [&&&&]:grid-cols-[minmax(0,_1fr)_auto] [@media(max-width:_620px)]:[&&&&]:grid-cols-[minmax(0,_1fr)] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:grid-cols-[minmax(0,_1fr)_auto]"
-      }
+      className={clsx(
+        "fish-entry group/fish-entry min-w-0 border-b border-solid border-line",
+        compact
+          ? "block"
+          : "grid grid-cols-[minmax(0,_1fr)_auto] items-center gap-0 max-[620px]:grid-cols-1 max-[620px]:gap-0",
+        layout === "spot-page" &&
+          "[@media(min-width:_480px)_and_(max-width:_620px)]:grid-cols-[minmax(0,_1fr)_auto] [@media(min-width:_480px)_and_(max-width:_620px)]:gap-1.5",
+      )}
       data-category={category}
       data-conditions={showConditions}
       data-timing={showTiming}
@@ -110,32 +124,24 @@ export function FishingRow({
         id={triggerId}
         type="button"
         className={
-          'fish-entry-open [.fishing-workspace_&]:grid [.fishing-workspace_&]:items-center [.fishing-workspace_&]:gap-[12px] [.fishing-workspace_&]:min-w-0 [.fishing-workspace_&]:w-full [.fishing-workspace_&]:min-h-[80px] [.fishing-workspace_&]:border-0 [.fishing-workspace_&]:text-left [.fishing-workspace_&:hover]:bg-hover [.fish-now-aside_&]:gap-[6px] max-[620px]:[.fishing-workspace_&]:min-h-[74px] max-[620px]:[.fishing-workspace_&]:gap-[8px] max-[620px]:[.fishing-workspace_&]:pb-0 [@media(min-width:_480px)_and_(max-width:_620px)]:[.fishing-workspace_.fish-spot-page_&]:min-h-[70px] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fishing-workspace_.fish-spot-page_&]:pb-[10px] [.fishing-workspace_&&&&]:[grid-column:1] [.fishing-workspace_&&&&]:[grid-row:1] [.fishing-workspace_&&&&]:grid-cols-[44px_minmax(0,_1fr)_minmax(130px,_auto)_18px] [.fishing-workspace_&&&&]:p-[10px_8px_10px_0] [.fishing-workspace_&&&&]:[background:transparent] [.fishing-workspace_.fish-entry[data-timing="false"]_&&&&]:grid-cols-[44px_minmax(0,_1fr)_18px] [.fish-now-aside_&&&&]:grid-cols-[40px_minmax(0,_1fr)_16px] [@media(max-width:_620px)]:[.fishing-workspace_&&&&]:grid-cols-[40px_minmax(0,_1fr)_18px] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fishing-workspace_.fish-spot-page_&&&&]:grid-cols-[40px_minmax(0,_1fr)_minmax(100px,_auto)_18px]'
+          compact
+            ? "fish-entry-open grid w-full min-w-0 grid-cols-[44px_minmax(0,_1fr)_18px] items-center gap-x-2 gap-y-1 rounded-control border-0 bg-transparent px-0 py-2.5 text-left text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50"
+            : "fish-entry-open col-start-1 row-start-1 grid min-h-20 w-full min-w-0 grid-cols-[44px_minmax(0,_1fr)_minmax(130px,_auto)_18px] items-center gap-3 rounded-control border-0 border-control bg-transparent py-2.5 pr-2 pl-0 text-left text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] group-data-[timing=false]/fish-entry:grid-cols-[44px_minmax(0,_1fr)_18px] hover:bg-hover disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent max-[620px]:min-h-18.5 max-[620px]:grid-cols-[40px_minmax(0,_1fr)_18px] max-[620px]:gap-2 max-[620px]:pb-0 [@media(min-width:_480px)_and_(max-width:_620px)]:min-h-17.5 [@media(min-width:_480px)_and_(max-width:_620px)]:grid-cols-[40px_minmax(0,_1fr)_minmax(100px,_auto)_18px] [@media(min-width:_480px)_and_(max-width:_620px)]:pb-2.5"
         }
         onClick={() => onOpen(fish, triggerId, spotId)}
       >
         <FishIcon fish={fish} />
-        <span
-          className={
-            "fish-entry-copy grid min-w-0 gap-[1px] [&_strong]:overflow-hidden [&_strong]:whitespace-nowrap [&_strong]:font-semibold [&&&&_strong]:[text-overflow:ellipsis]"
-          }
-        >
-          <strong>{fish.name}</strong>
+        <span className="fish-entry-copy grid min-w-0 gap-[1px]">
+          <strong className="overflow-hidden font-semibold text-ellipsis whitespace-nowrap">
+            {fish.name}
+          </strong>
           {showLocation && (
-            <span
-              className={
-                "fish-entry-meta overflow-hidden text-muted text-[13px] whitespace-nowrap [&&&&]:[text-overflow:ellipsis]"
-              }
-            >
+            <span className="fish-entry-meta overflow-hidden text-[13px] text-ellipsis whitespace-nowrap text-muted">
               {fish.zone || "区域未收录"}
               {fish.locations[0]?.name && ` · ${fish.locations[0].name}`}
             </span>
           )}
-          <span
-            className={
-              "fish-entry-type flex flex-wrap items-baseline gap-x-[10px] gap-y-[2px] text-muted text-[13px]"
-            }
-          >
+          <span className="fish-entry-type flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-[13px] text-muted">
             <span>
               {methodLabels[fish.method]}
               {fish.kind !== "normal" &&
@@ -143,7 +149,7 @@ export function FishingRow({
                 ` · ${kindLabels[fish.kind]}`}
             </span>
             {fish.method === "ocean" && (
-              <span className="fish-entry-points font-semibold text-ink tabular-nums whitespace-nowrap">
+              <span className="fish-entry-points font-semibold whitespace-nowrap text-ink tabular-nums">
                 {fish.oceanAveragePoints != null
                   ? `${fish.oceanAveragePoints} 分`
                   : "积分待补充"}
@@ -153,18 +159,25 @@ export function FishingRow({
         </span>
         {showTiming && (
           <span
-            className={
-              "fish-entry-timing text-ink text-[13px] tabular-nums whitespace-nowrap [&[data-countdown=true]]:grid [&[data-countdown=true]]:gap-[2px] [&[data-countdown=true]]:text-right [&[data-countdown=true]_strong]:text-accent [&[data-countdown=true]_strong]:font-semibold [&[data-countdown=true]_small]:text-muted [&[data-countdown=true]_small]:text-xs [&[data-open=true]]:text-success [&[data-open=true]]:font-semibold [.fish-now-aside_&]:text-xs max-[620px]:pb-[5px] max-[620px]:[&[data-countdown=true]]:text-left [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&]:pb-0 [.fish-now-aside_&&&&]:[grid-column:2] [.fish-now-aside_&&&&]:[grid-row:2] [@media(max-width:_620px)]:[&&&&]:[grid-column:2] [@media(max-width:_620px)]:[&&&&]:[grid-row:2] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-column:3] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-row:1]"
-            }
+            className={clsx(
+              "fish-entry-timing group/fish-entry-timing whitespace-nowrap text-ink tabular-nums data-[countdown=true]:grid data-[countdown=true]:gap-0.5 data-[open=true]:font-semibold data-[open=true]:text-success",
+              compact
+                ? "col-start-2 row-start-2 text-left text-xs"
+                : "text-[13px] data-[countdown=true]:text-right max-[620px]:col-start-2 max-[620px]:row-start-2 max-[620px]:pb-[5px] max-[620px]:data-[countdown=true]:text-left",
+              layout === "spot-page" &&
+                "[@media(min-width:_480px)_and_(max-width:_620px)]:col-start-3 [@media(min-width:_480px)_and_(max-width:_620px)]:row-start-1 [@media(min-width:_480px)_and_(max-width:_620px)]:pb-0",
+            )}
             data-open={open}
             data-countdown={Boolean(nextCountdown)}
           >
             {nextCountdown ? (
               <>
-                <strong>
+                <strong className="group-data-[countdown=true]/fish-entry-timing:font-semibold group-data-[countdown=true]/fish-entry-timing:text-accent">
                   还有 {windowDurationText(window.start - now)} 可钓
                 </strong>
-                <small>{localStart(window.start)} 开放</small>
+                <small className="group-data-[countdown=true]/fish-entry-timing:text-xs group-data-[countdown=true]/fish-entry-timing:text-muted">
+                  {localStart(window.start)} 开放
+                </small>
               </>
             ) : (
               timing
@@ -172,9 +185,14 @@ export function FishingRow({
           </span>
         )}
         <ArrowRight
-          className={
-            'fish-entry-arrow w-[18px] h-[18px] text-muted [.fish-entry[data-timing="false"]_&&&&]:[grid-column:3] [.fish-now-aside_&&&&]:[grid-column:3] [.fish-now-aside_&&&&]:[grid-row:1] [@media(max-width:_620px)]:[&&&&]:[grid-column:3] [@media(max-width:_620px)]:[&&&&]:[grid-row:1] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-column:4]'
-          }
+          className={clsx(
+            "fish-entry-arrow h-4.5 w-4.5 text-muted",
+            compact
+              ? "col-start-3 row-start-1"
+              : "group-data-[timing=false]/fish-entry:col-start-3 max-[620px]:col-start-3 max-[620px]:row-start-1",
+            layout === "spot-page" &&
+              "[@media(min-width:_480px)_and_(max-width:_620px)]:col-start-4",
+          )}
           aria-hidden="true"
         />
       </button>
@@ -184,6 +202,13 @@ export function FishingRow({
           catalog={catalog}
           spotId={spotId}
           inSpectralCurrent={inSpectralCurrent}
+          layout={
+            layout === "now-aside"
+              ? "now-aside"
+              : layout === "spot-page"
+                ? "spot-page"
+                : undefined
+          }
         />
       )}
       <FishingTechnique
@@ -195,30 +220,43 @@ export function FishingRow({
         spotId={spotId}
         showAlternatives={false}
         showBaitSources
+        layout={
+          layout === "now-aside"
+            ? "now-aside"
+            : layout === "spot-page"
+              ? "spot-page"
+              : undefined
+        }
       />
       <div
-        className={
-          'fish-entry-side flex items-center gap-[8px] [.fish-now-aside_&]:justify-between max-[620px]:justify-between [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&]:p-0 [&&&&]:[grid-column:2] [&&&&]:[grid-row:1] [.fish-now-aside_&&&&]:p-[0_0_6px_46px] [@media(max-width:_620px)]:[&&&&]:[grid-column:1] [@media(max-width:_620px)]:[&&&&]:[grid-row:4] [@media(max-width:_620px)]:[&&&&]:p-[0_0_5px_48px] [@media(max-width:_620px)]:[.fish-entry[data-conditions="false"]_&&&&]:[grid-row:3] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-column:2] [@media(min-width:_480px)_and_(max-width:_620px)]:[.fish-spot-page_&&&&]:[grid-row:1]'
-        }
+        className={clsx(
+          "fish-entry-side flex items-center gap-2",
+          compact
+            ? "justify-between pt-0 pr-0 pb-1.5 pl-13"
+            : "col-start-2 row-start-1 max-[620px]:col-start-1 max-[620px]:row-start-4 max-[620px]:justify-between max-[620px]:pt-0 max-[620px]:pr-0 max-[620px]:pb-[5px] max-[620px]:pl-12 max-[620px]:group-data-[conditions=false]/fish-entry:row-start-3",
+          layout === "spot-page" &&
+            "[@media(min-width:_480px)_and_(max-width:_620px)]:col-start-2 [@media(min-width:_480px)_and_(max-width:_620px)]:row-start-1 [@media(min-width:_480px)_and_(max-width:_620px)]:p-0",
+        )}
       >
         <span
-          className="fish-entry-record inline-flex items-center gap-[3px] min-w-[50px] text-muted text-xs whitespace-nowrap [&[data-caught=true]]:text-success [&_svg]:w-[14px] [&_svg]:h-[14px]"
+          className="fish-entry-record inline-flex min-w-12.5 items-center gap-[3px] text-xs whitespace-nowrap text-muted data-[caught=true]:text-success"
           data-caught={caught}
         >
-          {caught && <Check aria-hidden="true" weight="bold" />}
+          {caught && (
+            <Check className="h-3.5 w-3.5" aria-hidden="true" weight="bold" />
+          )}
           {record}
         </span>
         <button
           type="button"
-          className={
-            "fish-entry-save [.fishing-workspace_&]:grid [.fishing-workspace_&]:place-items-center [.fishing-workspace_&]:w-[40px] [.fishing-workspace_&]:min-w-[40px] [.fishing-workspace_&]:h-[40px] [.fishing-workspace_&]:p-[6px] [&_svg]:w-[19px] [&_svg]:h-[19px] [.fishing-workspace_&&&&]:[border-color:transparent] [.fishing-workspace_&&&&]:[background:transparent]"
-          }
+          className="fish-entry-save grid h-10 min-h-10 w-10 min-w-10 place-items-center rounded-control border border-solid border-[transparent] bg-transparent p-1.5 text-ink transition-[background-color,color,border-color] duration-120 ease-[ease] disabled:cursor-not-allowed disabled:text-inherit disabled:opacity-50 aria-pressed:bg-selected aria-pressed:text-accent pointer-coarse:min-h-11"
           onClick={() => onToggleSaved(fish.id)}
           aria-label={`${saved ? "取消收藏" : "收藏"}${fish.name}`}
           aria-pressed={saved}
           title={saved ? "取消收藏" : "收藏"}
         >
           <BookmarkSimple
+            className="h-[19px] w-[19px]"
             aria-hidden="true"
             weight={saved ? "fill" : "regular"}
           />

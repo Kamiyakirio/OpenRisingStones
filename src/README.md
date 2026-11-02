@@ -10,7 +10,9 @@ the browser baseline, and shared semantic tokens define both themes. Source
 detection covers `src/` and the two HTML entrypoints. Components declare utilities
 directly in JSX/TSX, including responsive, state, and arbitrary geometry variants.
 There are no component or feature CSS files and no `@apply` declarations.
-The shared entry contains only Tailwind imports, theme configuration, and keyframes.
+The shared entry contains Tailwind imports, theme configuration, browser
+affordances, and keyframes. Control appearance uses native utilities on each
+element; reusable class strings live in feature-local `utilityClasses.ts` modules.
 
 - `app/` composes navigation, theme, authentication, diagnostics, and settings.
   Its components are the application shell, including the header and footer.
@@ -64,10 +66,22 @@ helpers stay with their owner. Recruitment card/detail presentation lives in
 cohesive module. Avoid one folder per button, field, or helper.
 
 Keep responsive and accessibility utilities beside the elements they modify.
-Legacy selector variants repeat `&` to preserve the removed unlayered stylesheet
-precedence while still allowing runtime inline geometry. New components should
-prefer ordinary utilities and simple state variants. Retained semantic class names
-support navigation, diagnostics, and scoped selectors; they do not load stylesheets.
+Bind control sizing, padding, colors, and layout directly to each button, field,
+label, table cell, or icon. Feature-local `utilityClasses.ts` constants reuse
+complete utility strings without reaching into a nested component. Resolve
+conflicting utilities explicitly instead of relying on class-string order. Workspace
+roots own layout and theme tokens, not blanket control rules. Keep interaction
+states and tightly scoped layout rules with their owning controls or immediate
+containers; do not repeat `&` to override a child component. Retained semantic
+class names support navigation, diagnostics, and local selectors.
+
+Use built-in responsive, ARIA, data, and named group variants for interaction
+states. Reusable components expose explicit size or layout props when their
+presentation differs between callers. Keep arbitrary values for domain geometry
+that has no equivalent utility; do not encode page ancestry in a control's class.
+Prettier uses `prettier-plugin-tailwindcss` with the shared v4 stylesheet and sorts
+classes inside JSX and `clsx`. ESLint rejects repeated `&` and blanket parent
+selectors for native controls.
 
 The Node tests and helpers use TypeScript in `tests/` and import feature utilities
 directly. `npm test` checks them with `tsconfig.tests.json` before running the Node
